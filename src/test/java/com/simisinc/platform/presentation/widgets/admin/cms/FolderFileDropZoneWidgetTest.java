@@ -39,6 +39,12 @@ import static org.mockito.Mockito.times;
  * Proves FolderFileDropZoneWidget -- the drag-and-drop widget that uploads a brand-new folder file's
  * actual bytes -- now writes an AuditEventCommand.record(...) call for both the success and failure
  * paths, closing part of the CMMC AU-2 gap for folder-file mutations (issue #502).
+ *
+ * <p>Also proves that a rejected upload sets a real JSON error response (not just
+ * context.setErrorMessage(...)). Without it, the dropzone form's targeted-widget POST falls through
+ * to a redirect that the browser's XMLHttpRequest follows transparently, reporting the reloaded
+ * page's HTTP 200 back to Dropzone.js -- which decides success/error purely from that status code,
+ * so a rejected upload was reported to the admin as a success ("N files uploaded. Refreshing...").
  */
 class FolderFileDropZoneWidgetTest extends WidgetBase {
 
@@ -91,11 +97,19 @@ class FolderFileDropZoneWidgetTest extends WidgetBase {
       saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
 
       FolderFileDropZoneWidget widget = new FolderFileDropZoneWidget();
-      widget.post(widgetContext);
+      WidgetContext result = widget.post(widgetContext);
 
       audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
           eq("folder_file.create"), eq(AuditEventCommand.FAILURE), eq("folder_file"), eq("-1"), eq(null),
           eq("A file was not found, please choose a file and try again")), times(1));
+
+      // A rejected upload must set a JSON error response, not just an error message, or the
+      // targeted-widget POST falls through to a redirect that Dropzone.js's XHR sees as a plain 200
+      // and reports as a success (issue: rejected uploads showing "N files uploaded").
+      Assertions.assertTrue(result.hasJson(), "A rejected upload must set a JSON response");
+      Assertions.assertTrue(result.getJson().contains("\"error\""), "The JSON response must carry an error field");
+      Assertions.assertTrue(result.getJson().contains("A file was not found"));
+      Assertions.assertFalse(result.getJson().contains("location"), "A rejected upload must not report a success-shaped location");
     }
   }
 
@@ -127,11 +141,18 @@ class FolderFileDropZoneWidgetTest extends WidgetBase {
           .thenThrow(new DataException("File type '.png' is not allowed in this folder"));
 
       FolderFileDropZoneWidget widget = new FolderFileDropZoneWidget();
-      widget.post(widgetContext);
+      WidgetContext result = widget.post(widgetContext);
 
       audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
           eq("folder_file.create"), eq(AuditEventCommand.FAILURE), eq("folder_file"), any(),
           eq("diagram.png"), eq("File type '.png' is not allowed in this folder")), times(1));
+
+      // Same JSON-error-response guarantee as the no-file-part case above, this time for the
+      // folder's allowed-extension rejection (issue #370's DataException path).
+      Assertions.assertTrue(result.hasJson(), "A rejected upload must set a JSON response");
+      Assertions.assertTrue(result.getJson().contains("\"error\""), "The JSON response must carry an error field");
+      Assertions.assertTrue(result.getJson().contains("File type '.png' is not allowed in this folder"));
+      Assertions.assertFalse(result.getJson().contains("location"), "A rejected upload must not report a success-shaped location");
     }
   }
 }

@@ -149,10 +149,10 @@
       <hr style="margin: .01rem auto;" />
     </c:when>
     <c:when test="${!empty link['icon'] && link['icon-only'] eq 'true'}">
-      <a title="<c:out value="${link['name']}"/>" href="${ctx}${link['link']}"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><i class="fa-fw <c:out value="${link['icon']}" />"></i></a>
+      <a title="<c:out value="${link['name']}"/>" href="<c:out value="${ctx}${link['link']}"/>"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><i class="fa-fw <c:out value="${link['icon']}" />"></i></a>
     </c:when>
     <c:otherwise>
-      <a class="<c:if test="${wrap eq 'true' }">text-no-wrap</c:if><c:if test="${!empty link['class']}"> <c:out value="${link['class']}" /></c:if>" href="${ctx}${link['link']}"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><c:if test="${!empty link['icon']}"><i class="fa-fw <c:out value="${link['icon']}" />"></i> </c:if><c:out value="${link['name']}"/></a>
+      <a class="<c:if test="${wrap eq 'true' }">text-no-wrap</c:if><c:if test="${!empty link['class']}"> <c:out value="${link['class']}" /></c:if>" href="<c:out value="${ctx}${link['link']}"/>"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><c:if test="${!empty link['icon']}"><i class="fa-fw <c:out value="${link['icon']}" />"></i> </c:if><c:out value="${link['name']}"/></a>
     </c:otherwise>
   </c:choose>
   <c:if test="${linkOpen eq 'true' && (empty link['container'] || link['container'] ne currentContainer)}">

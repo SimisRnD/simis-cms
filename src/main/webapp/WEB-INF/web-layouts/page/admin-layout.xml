@@ -702,6 +702,16 @@
     </section>
   </page>
 
+  <page name="/admin/elearning-statements" role="admin" title="xAPI Statements">
+    <section>
+      <column class="small-12 cell">
+        <widget name="xapiStatementList">
+          <title>xAPI Statements</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -1148,17 +1158,6 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-filter</icon>
-          <title>Facet Usage Breakdown</title>
-          <report>facet-usage-breakdown</report>
-          <label>Facet</label>
-          <value>Searches</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
           <icon>fa-briefcase</icon>
           <title>Traffic by Solution Type</title>
           <label>Page Views</label>
@@ -1189,6 +1188,7 @@
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
+  <p>The reports further down break those same search executions down by content type, originating page, and near-miss (low-but-nonzero) result counts, to help narrow down where to focus. Like the tiles above, these are a floor, not a full census -- searches from logged-in staff and DNT/GPC-opted-out visitors aren't recorded at all.</p>
 </div>]]></html>
         </widget>
       </column>
@@ -1233,6 +1233,82 @@
           <report>trending-search-terms</report>
           <label>Search Term</label>
           <value>Searches This Week</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Facet Usage Breakdown</title>
+          <report>facet-usage-breakdown</report>
+          <label>Facet</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">By Content Type &amp; Page</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-list-alt</icon>
+          <title>Search Volume by Content Type</title>
+          <report>search-volume-by-type</report>
+          <label>Content Type</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-percentage</icon>
+          <title>Zero-Result Rate by Content Type</title>
+          <report>zero-result-rate-by-type</report>
+          <label>Content Type</label>
+          <value>Zero-Result Rate %</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map</icon>
+          <title>Top Pages Generating Searches</title>
+          <report>top-search-paths</report>
+          <label>Page</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map-marker-alt</icon>
+          <title>Top Pages Generating Zero-Result Searches</title>
+          <report>top-zero-result-search-paths</report>
+          <label>Page</label>
+          <value>Zero-Result Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star-half-stroke</icon>
+          <title>Near-Miss Search Terms</title>
+          <report>near-miss-search-terms</report>
+          <label>Search Term</label>
+          <value>Low-Result Searches</value>
+          <days>30</days>
           <limit>10</limit>
         </widget>
       </column>
@@ -1498,6 +1574,19 @@
 
   <page name="/admin/useful-links" role="admin,content-manager" title="Useful Links">
     <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-FF54248C-71B7-4B3C-966F-9B343310F510</uniqueId>
+          <html><![CDATA[<h5>About Useful Links</h5>
+          <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
+          <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
+          <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
+          <p>Looking for the floating action buttons shown on every page instead? See <a href="/admin/sticky-footer-links">Sticky Page Buttons</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
           <title>Footer Useful Links Column 1</title>
@@ -1514,6 +1603,18 @@
   </page>
 
   <page name="/admin/sticky-footer-links" role="admin,content-manager" title="Sticky Footer Links">
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-55EC31E9-5FA5-4A33-95DB-111B8755789F</uniqueId>
+          <html><![CDATA[<h5>About Sticky Page Buttons</h5>
+          <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
+          <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
+          <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
@@ -2109,7 +2210,7 @@
     </section>
   </page>
 
-  <page name="/admin/apis" role="admin" title="APIs">
+  <page name="/admin/apis" role="admin" capability="admin:manage" title="APIs">
     <section>
       <column class="small-12 cell">
         <widget name="content" class="callout">
@@ -2142,7 +2243,7 @@
     </section>
   </page>
 
-  <page name="/admin/apps" role="admin" title="Apps">
+  <page name="/admin/apps" role="admin,data-manager" capability="admin:manage" title="Apps">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -2179,7 +2280,7 @@
     </section>
   </page>
 
-  <page name="/admin/app{?appId}" role="admin" title="Edit App">
+  <page name="/admin/app{?appId}" role="admin,data-manager" capability="admin:manage" title="Edit App">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">
@@ -2199,7 +2300,7 @@
     </section>
   </page>
 
-  <page name="/admin/blocked-ip-list" role="admin" title="Blocked IP list">
+  <page name="/admin/blocked-ip-list" role="admin" capability="admin:manage" title="Blocked IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="blockedIP">
@@ -2214,7 +2315,7 @@
     </section>
   </page>
 
-  <page name="/admin/allowed-ip-list" role="admin" title="Allowed IP list">
+  <page name="/admin/allowed-ip-list" role="admin" capability="admin:manage" title="Allowed IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="allowedIP">
@@ -2229,7 +2330,7 @@
     </section>
   </page>
 
-  <page name="/admin/bot-list" role="admin" title="Bot User Agent List">
+  <page name="/admin/bot-list" role="admin" capability="admin:manage" title="Bot User Agent List">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="botUserAgent">
@@ -2264,7 +2365,7 @@
     </section>
   </page>
 
-  <page name="/admin/capability-grants{?userId}" role="admin" title="Capability Grants">
+  <page name="/admin/capability-grants{?userId}" role="admin" capability="admin:manage" title="Capability Grants">
     <section>
       <column class="small-12 medium-8 large-6 cell">
         <widget name="capabilityGrants">
@@ -2345,7 +2446,7 @@
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
-        <widget name="xapiStatementList">
+        <widget name="activityFeed">
           <title>Activity</title>
         </widget>
       </column>
@@ -2384,7 +2485,7 @@
     </section>
   </page>
 
-  <page name="/admin/audit-log" role="admin" title="Security Audit Log">
+  <page name="/admin/audit-log" role="admin" capability="admin:manage" title="Security Audit Log">
     <section>
       <column class="small-12 cell">
         <widget name="auditLogList">

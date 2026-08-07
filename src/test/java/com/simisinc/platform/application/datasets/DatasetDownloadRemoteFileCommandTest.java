@@ -18,8 +18,11 @@ package com.simisinc.platform.application.datasets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
@@ -31,7 +34,12 @@ import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.http.HttpDownloadFileCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.RemoteUrlValidationCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
 
 /**
  * Proves that a "next page" url discovered mid-pagination -- fully controlled by whoever runs
@@ -120,6 +128,77 @@ class DatasetDownloadRemoteFileCommandTest {
       httpGet.verify(() -> HttpGetCommand.executeUserUrl(FIRST_PAGE_URL));
       httpGet.verify(() -> HttpGetCommand.executeUserUrl(secondPageUrl));
       httpGet.verify(() -> HttpGetCommand.execute(anyString()), never());
+    }
+  }
+
+  /**
+   * Regression test for {@link DatasetDownloadRemoteFileCommand#handleRemoteFileDownload}
+   * hardcoding a fetch to a specific PERLS e-learning endpoint for every "JSON API"
+   * (application/vnd.api+json) dataset, ignoring whatever source url the admin configured on
+   * the dataset's Source tab. This deliberately fails the download (the stub returns false) so
+   * the test can stay focused on proving *which url gets fetched* -- a normal successful sync is
+   * exercised elsewhere -- while still verifying the admin's own configured url, not a
+   * substituted one, is what reached the download call.
+   */
+  @Test
+  void jsonApiDatasetFetchesTheAdminsConfiguredSourceUrlNotAHardcodedIntegration(@TempDir File tempDir) {
+    Dataset dataset = new Dataset();
+    dataset.setId(55L);
+    dataset.setFileType("application/vnd.api+json");
+    dataset.setSourceUrl(FIRST_PAGE_URL);
+    // No paging configured -- this exercises the single-file download path, like every other
+    // remote dataset type
+
+    try (MockedStatic<RemoteUrlValidationCommand> urlValidation = mockStatic(RemoteUrlValidationCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<HttpDownloadFileCommand> httpDownload = mockStatic(HttpDownloadFileCommand.class)) {
+      urlValidation.when(() -> RemoteUrlValidationCommand.isFetchAllowed(FIRST_PAGE_URL)).thenReturn(true);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.getAbsolutePath() + "/");
+      fileSystem.when(() -> FileSystemCommand.generateFileServerSubPath("datasets"))
+          .thenReturn("datasets/2026/08/06/");
+      fileSystem.when(() -> FileSystemCommand.generateUniqueFilename(1L)).thenReturn("unique123");
+      httpDownload.when(() -> HttpDownloadFileCommand.executeUserUrl(anyString(), any(File.class))).thenReturn(false);
+
+      DataException thrown = assertThrows(DataException.class,
+          () -> DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, 1L));
+
+      assertTrue(thrown.getMessage().contains(FIRST_PAGE_URL),
+          "the failure must reference the admin's own configured source url, proving that's "
+              + "what was fetched instead of a hardcoded integration endpoint");
+      httpDownload.verify(() -> HttpDownloadFileCommand.executeUserUrl(eq(FIRST_PAGE_URL), any(File.class)));
+    }
+  }
+
+  /**
+   * "JSON API" must respect the admin's paging configuration exactly like the plain JSON type
+   * does -- before the fix, the hardcoded PERLS branch never even looked at
+   * {@code pagingUrlPath}.
+   */
+  @Test
+  void jsonApiDatasetWithPagingConfiguredUsesThePagedDownloadPathLikeOtherTypes(@TempDir File tempDir) {
+    Dataset dataset = new Dataset();
+    dataset.setId(56L);
+    dataset.setFileType("application/vnd.api+json");
+    dataset.setSourceUrl(FIRST_PAGE_URL);
+    dataset.setPagingUrlPath("/next");
+    dataset.setRecordsPath("/records");
+
+    try (MockedStatic<RemoteUrlValidationCommand> urlValidation = mockStatic(RemoteUrlValidationCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
+      urlValidation.when(() -> RemoteUrlValidationCommand.isFetchAllowed(FIRST_PAGE_URL)).thenReturn(true);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.getAbsolutePath() + "/");
+      fileSystem.when(() -> FileSystemCommand.generateFileServerSubPath("datasets"))
+          .thenReturn("datasets/2026/08/06/");
+      fileSystem.when(() -> FileSystemCommand.generateUniqueFilename(1L)).thenReturn("unique456");
+      // Fails fast so the test only needs to prove the paged path (and thus the admin's url) was
+      // used, not exercise a full successful merge/save (covered elsewhere)
+      httpGet.when(() -> HttpGetCommand.executeUserUrl(FIRST_PAGE_URL)).thenReturn(null);
+
+      assertThrows(DataException.class,
+          () -> DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, 1L));
+
+      httpGet.verify(() -> HttpGetCommand.executeUserUrl(FIRST_PAGE_URL));
     }
   }
 }
