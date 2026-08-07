@@ -33,6 +33,10 @@
   <label>Reference name <span class="required">*</span>
     <input type="text" placeholder="example-unique-id" name="uniqueId" value="<c:out value="${content.uniqueId}"/>" required>
   </label>
+  <p class="help-text">This is the internal key a page's widget XML uses to find this content block -- never a
+    URL, so there's no page-collision risk. It isn't scoped to just this form, though: if this name already
+    exists, Continue will warn instead of creating a duplicate, since you'd otherwise be silently opening that
+    existing block for editing.</p>
   <div class="button-container">
     <input type="submit" class="button radius primary expanded" value="Continue"/>
   </div>

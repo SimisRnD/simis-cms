@@ -128,3 +128,49 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
     </column>
   </section>
 </footer>');
+
+INSERT INTO web_containers (container_name, label, image_path, container_xml) VALUES
+('footer.4column', '4-column footer with company description, links, and social icons', 'Standard Footer.png',
+'<footer name="footer.4column" title="4-Column Footer">
+    <style><![CDATA[[
+.platform-footer .dropdown.menu>li>a { padding: .5rem 0; }
+.platform-footer .menu-title { font-weight: bold; }
+.platform-footer ul.dropdown.menu { margin-top: 6px; }
+    ]]></style>
+    <section class="padding-top-20">
+      <column class="small-12 medium-4 cell">
+        <widget name="logo">
+          <view>white</view>
+          <maxHeight>50px</maxHeight>
+        </widget>
+        <widget name="content" class="margin-top-15">
+          <html><![CDATA[<p>Since 2007, SimIS has been a pioneer in the modeling and simulation community, creating a bridge between traditional Cyber Security services and responsive, simulated architecture design.</p>]]></html>
+        </widget>
+        <widget name="button">
+          <title>Learn more about SimIS</title>
+          <link>/about-us</link>
+        </widget>
+        <widget name="copyright" class="width-full margin-bottom-40" />
+      </column>
+      <column class="small-6 medium-offset-1 medium-2 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>Company</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-useful-links-1</tocUniqueId>
+        </widget>
+      </column>
+      <column class="small-6 medium-2 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>Support</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-useful-links-2</tocUniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-offset-1 medium-2 cell">
+        <widget name="content">
+          <html><![CDATA[<p class="margin-bottom-5 text-bold">Follow Us</p>]]></html>
+        </widget>
+        <widget name="socialMediaLinks" class="margin-top-10 small-margin-bottom-20" />
+      </column>
+    </section>
+</footer>');

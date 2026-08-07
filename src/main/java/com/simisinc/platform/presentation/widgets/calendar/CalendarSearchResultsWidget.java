@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.calendar;
 
 import com.simisinc.platform.application.FacetUrlCommand;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -70,7 +70,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     }
 
     // Determine the query date range (from today on... using the site's timezone start of day)
-    ZoneId clientZoneId = ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone"));
+    ZoneId clientZoneId = FormatDateCommand.getSiteZoneId();
     Instant instant = Instant.now();
     ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, clientZoneId);
     ZonedDateTime zdtStart = zdt.toLocalDate().atStartOfDay(clientZoneId);
@@ -80,11 +80,17 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     // CalendarEventRepository, single-select since an event belongs to exactly one calendar)
     long selectedCalendarId = context.getParameterAsLong("calendarId", -1);
 
+    // A calendar switched offline ("Online?" unchecked) should not surface its events here for a
+    // regular visitor -- same admin/content-manager bypass as CalendarEventDetailsWidget's
+    // single-event view.
+    boolean isPreviewer = context.hasRole("admin") || context.hasRole("content-manager");
+
     // Search the calendar events
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
     // issue #882: archived events are excluded from every public-facing calendar surface
     eventSpecification.setArchivedOnly(false);
+    eventSpecification.setCalendarEnabledOnly(!isPreviewer);
     eventSpecification.setSearchTerm(query);
     eventSpecification.setStartingDateRange(startingDateRange);
     if (selectedCalendarId != -1) {
@@ -106,6 +112,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
         CalendarEventSpecification countSpecification = new CalendarEventSpecification();
         countSpecification.setPublishedOnly(true);
         countSpecification.setArchivedOnly(false);
+        countSpecification.setCalendarEnabledOnly(!isPreviewer);
         countSpecification.setSearchTerm(query);
         countSpecification.setStartingDateRange(startingDateRange);
         countSpecification.setCalendarId(calendar.getId());

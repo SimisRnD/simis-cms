@@ -2,8 +2,8 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
-  "timestamp": "2026-07-29T23:20:00+00:00",
-  "version": 5,
+  "timestamp": "2026-08-06T16:00:00+00:00",
+  "version": 6,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -950,6 +950,27 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Perl is present as a Debian base/tooling dependency but is never executed at runtime: the image does not install postgresql-17-plperl, so the database engine cannot invoke Perl, and the container entrypoint is the stock postgres shell entrypoint, not a Perl script. No process in the running container executes these modules."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8458"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
+            },
+            {
+              "@id": "pkg:deb/debian/libcurl4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
     },
     {
       "vulnerability": {

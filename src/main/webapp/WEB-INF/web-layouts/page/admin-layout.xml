@@ -702,6 +702,16 @@
     </section>
   </page>
 
+  <page name="/admin/elearning-statements" role="admin" title="xAPI Statements">
+    <section>
+      <column class="small-12 cell">
+        <widget name="xapiStatementList">
+          <title>xAPI Statements</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -1148,17 +1158,6 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-filter</icon>
-          <title>Facet Usage Breakdown</title>
-          <report>facet-usage-breakdown</report>
-          <label>Facet</label>
-          <value>Searches</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
           <icon>fa-briefcase</icon>
           <title>Traffic by Solution Type</title>
           <label>Page Views</label>
@@ -1189,6 +1188,7 @@
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
+  <p>The reports further down break those same search executions down by content type, originating page, and near-miss (low-but-nonzero) result counts, to help narrow down where to focus. Like the tiles above, these are a floor, not a full census -- searches from logged-in staff and DNT/GPC-opted-out visitors aren't recorded at all.</p>
 </div>]]></html>
         </widget>
       </column>
@@ -1233,6 +1233,82 @@
           <report>trending-search-terms</report>
           <label>Search Term</label>
           <value>Searches This Week</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Facet Usage Breakdown</title>
+          <report>facet-usage-breakdown</report>
+          <label>Facet</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">By Content Type &amp; Page</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-list-alt</icon>
+          <title>Search Volume by Content Type</title>
+          <report>search-volume-by-type</report>
+          <label>Content Type</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-percentage</icon>
+          <title>Zero-Result Rate by Content Type</title>
+          <report>zero-result-rate-by-type</report>
+          <label>Content Type</label>
+          <value>Zero-Result Rate %</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map</icon>
+          <title>Top Pages Generating Searches</title>
+          <report>top-search-paths</report>
+          <label>Page</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map-marker-alt</icon>
+          <title>Top Pages Generating Zero-Result Searches</title>
+          <report>top-zero-result-search-paths</report>
+          <label>Page</label>
+          <value>Zero-Result Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star-half-stroke</icon>
+          <title>Near-Miss Search Terms</title>
+          <report>near-miss-search-terms</report>
+          <label>Search Term</label>
+          <value>Low-Result Searches</value>
+          <days>30</days>
           <limit>10</limit>
         </widget>
       </column>
@@ -2354,7 +2430,7 @@
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
-        <widget name="xapiStatementList">
+        <widget name="activityFeed">
           <title>Activity</title>
         </widget>
       </column>
