@@ -469,6 +469,18 @@
           <c:if test="${siteProperty.name eq 'site.header.page'}">
             <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the Utility Bar Settings page.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'social.email'}">
+            <p class="help-text" id="socialEmailHelpText">A contact email address shown in the site footer, next to the Telephone number below if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.phone'}">
+            <p class="help-text" id="socialPhoneHelpText">A contact phone number shown in the site footer, next to the Email Address above if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}">
+            <p class="help-text" id="socialInstagramAccessTokenHelpText">A long-lived Instagram Graph API access token, used only by the Instagram feed-embed integration -- unrelated to the Social Profile Links above, which just link out to the platform. Generate one from a Facebook Developer app with the Instagram Graph API product added. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current token.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.instagram.facebookPageValue'}">
+            <p class="help-text" id="socialInstagramFacebookPageValueHelpText">The Facebook Page ID connected to the Instagram Business account being embedded -- required alongside the Access Token above for the Instagram feed-embed integration to authenticate.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
