@@ -27,7 +27,7 @@ import java.util.List;
  * Event} subclass just declares its own {@code public static final String ID}). This list was
  * built by enumerating every class under {@code com.simisinc.platform.domain.events.**} and
  * cross-checked against {@code BuildWebhookPayloadCommand}'s {@code instanceof} chain, which
- * handles the identical 17 types (any addition/removal there means this list is stale too).
+ * handles the identical 18 types (any addition/removal there means this list is stale too).
  *
  * <p>
  * Deliberately excludes {@code item-file-uploaded}: it is referenced in {@code

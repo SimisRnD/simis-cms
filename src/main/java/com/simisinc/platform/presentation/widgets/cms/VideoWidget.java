@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -38,10 +39,16 @@ import jakarta.servlet.http.Cookie;
  * neither is optional:
  * <ol>
  * <li><b>Consent</b>: the real embed markup (the youtube-nocookie.com/player.vimeo.com URL, and for
- * YouTube its static thumbnail image) is only written into the response when the site's {@code
- * analytics-consent} cookie is {@code "accepted"} -- the same cookie main.jsp's accept/decline
- * banner sets (issue #366). Without it, video.jsp renders a plain placeholder with no
- * video-identifying markup at all, so nothing about the page ever calls out to YouTube/Vimeo.</li>
+ * YouTube its static thumbnail image) is only written into the response when consent isn't being
+ * required in the first place ({@code analytics.consentRequired ne 'true'}, the shipped default),
+ * or the site's {@code analytics-consent} cookie is {@code "accepted"} -- the same cookie and the
+ * same property main.jsp's own analytics/GTM loading gate checks (issue #366). Without the
+ * consent-not-required branch, a fresh/default install -- where the accept/decline banner never
+ * renders because consent isn't required, so the cookie can never become "accepted" -- would leave
+ * every video embed on the site permanently stuck behind a consent requirement nothing on the page
+ * ever offers the visitor a way to satisfy. Without consent (when it IS required and not yet
+ * given), video.jsp renders a plain placeholder with no video-identifying markup at all, so
+ * nothing about the page ever calls out to YouTube/Vimeo.</li>
  * <li><b>Click</b>: even with consent, the iframe is never embedded directly. video.jsp renders a
  * click-to-play button; its own inline script only inserts the &lt;iframe&gt; into the DOM after
  * the visitor clicks it.</li>
@@ -142,10 +149,18 @@ public class VideoWidget extends GenericWidget {
   }
 
   /**
-   * @return true only when the analytics-consent cookie is present and its value is exactly
+   * @return true when consent isn't being required at all (matches main.jsp's own gate on this
+   *     same property for the GA4/GTM/SimpliFi/Brand CDN scripts -- issue: the shipped default is
+   *     analytics.consentRequired=false, so the accept/decline banner never renders and the
+   *     analytics-consent cookie can never become "accepted"; without this check every video
+   *     embed on the site was permanently stuck behind an unattainable consent requirement), or
+   *     when consent *is* required and the analytics-consent cookie is present with value exactly
    *     "accepted" -- missing, "declined", or any other value all mean no consent
    */
   private static boolean hasAnalyticsConsent(WidgetContext context) {
+    if (!"true".equals(LoadSitePropertyCommand.loadByName("analytics.consentRequired"))) {
+      return true;
+    }
     Cookie[] cookies = context.getRequest().getCookies();
     if (cookies == null) {
       return false;

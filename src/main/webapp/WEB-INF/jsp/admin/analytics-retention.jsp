@@ -22,6 +22,11 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <h6>What this page shows</h6>
+  <p>This page controls only <strong>session visitor PII</strong> (IP address, city, coordinates) -- the retention window below and the "Purge PII now" button affect session records exclusively. It does not control audit log, form data, or funnel event retention: those each have their own site property (<code>audit.retentionDays</code>, <code>formData.retentionDays</code>/<code>formData.failureRetentionDays</code>, <code>funnel.retentionDays</code>), but none of them currently has an admin editor -- changing any of them today requires a direct database update.</p>
+  <p>The retention window shown below is set on the <a href="${ctx}/admin/configure-analytics">Analytics Settings</a> page, not here.</p>
+</div>
 <table>
   <tr>
     <th>Metric</th>
@@ -36,9 +41,20 @@
     <td class="text-right"><c:out value="${retentionDays}"/> days</td>
   </tr>
 </table>
-<p class="subheader">The nightly job scrubs PII from session records older than the retention window. Use the button below to run the scrub immediately.</p>
-<form method="post">
+<p class="subheader">The nightly job scrubs PII from session records older than the retention window, and also prunes page-view history of the same age. Set the retention window on <a href="${ctx}/admin/configure-analytics">Analytics Settings</a> (Analytics data retention (days)) -- there's no editable field for it on this page. Use the button below to run the session scrub immediately.</p>
+<form method="post" onsubmit="return confirm('Are you sure you want to purge PII now? This immediately scrubs visitor PII from session records older than the retention window and cannot be undone.');">
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <input type="submit" class="button radius alert" value="Purge PII now" data-disable-on-submit="Purging..."/>
 </form>
+
+<h5>When to worry</h5>
+<div class="callout warning radius">
+  <p><strong>Sessions with retained visitor PII stays surprisingly high after lowering the retention window.</strong> The nightly job only catches up gradually as sessions age past the new, shorter window -- a lowered setting isn't retroactive on its own. Use <strong>Purge PII now</strong> to apply the new window immediately instead of waiting for the next 24 hours' worth of aging to catch up.</p>
+  <p><strong>You need to change the audit log, form data, or funnel event retention window.</strong> As noted above, none of those have an admin editor yet -- that requires a direct database update to the relevant site property, not anything on this page.</p>
+</div>
+
+<h5>For Azure</h5>
+<div class="callout radius">
+  <p>The nightly PII scrub (04:45) is distributed-lock protected, so on a multi-instance Azure App Service deployment exactly one instance runs it each night -- it will not run redundantly, or scrub more aggressively than intended, just because more instances are running.</p>
+</div>

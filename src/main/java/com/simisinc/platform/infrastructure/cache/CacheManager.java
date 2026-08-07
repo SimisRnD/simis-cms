@@ -61,6 +61,7 @@ public class CacheManager {
   public static String WEB_REDIRECT_CACHE = "WebRedirectCache";
   public static String RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE = "RateLimitLoginAttemptByUsernameCache";
   public static String RATE_LIMIT_ATTEMPT_BY_IP_CACHE = "RateLimitAttemptByIpCache";
+  public static String RATE_LIMIT_ATTEMPT_BY_IP_API_CACHE = "RateLimitAttemptByIpApiCache";
   public static String RATE_LIMIT_BY_APP_CACHE = "RateLimitByAppCache";
   public static String RATE_LIMIT_BY_APP_USER_CACHE = "RateLimitByAppUserCache";
   public static String OBJECT_CACHE = "ObjectCache";
@@ -207,6 +208,18 @@ public class CacheManager {
         .recordStats()
         .build();
     cacheManager.put(RATE_LIMIT_ATTEMPT_BY_IP_CACHE, accessAttemptByIpCache);
+
+    // Attempt by IP cache, scoped to the REST API's own pre-auth checks in RestRequestFilter (the
+    // initial per-IP throttle and the invalid-API-key check). Kept separate from
+    // RATE_LIMIT_ATTEMPT_BY_IP_CACHE above so repeated bad API-key attempts from an IP only
+    // throttle future API requests from that IP, not the same IP's unrelated web login,
+    // forgot-password, newsletter, or form-submission attempts (which all share the cache above).
+    Cache<String, Object> accessAttemptByIpApiCache = Caffeine.newBuilder()
+        .maximumSize(1_000_000)
+        .expireAfterAccess(30, TimeUnit.MINUTES)
+        .recordStats()
+        .build();
+    cacheManager.put(RATE_LIMIT_ATTEMPT_BY_IP_API_CACHE, accessAttemptByIpApiCache);
 
     // Rate limit by app cache
     Cache<String, Object> rateLimitByAppCache = Caffeine.newBuilder()

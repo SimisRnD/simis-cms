@@ -32,6 +32,7 @@ import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -145,6 +146,7 @@ class LoginWidgetTest extends WidgetBase {
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
@@ -187,6 +189,7 @@ class LoginWidgetTest extends WidgetBase {
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
@@ -219,6 +222,7 @@ class LoginWidgetTest extends WidgetBase {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
@@ -233,6 +237,70 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertEquals("/my-page", widgetContext.getRedirect());
     Assertions.assertNull(widgetContext.getErrorMessage());
     verify(response, times(1)).addCookie(any());
+  }
+
+  @Test
+  void loginIsRejectedWhenSiteLoginIsDisabledForANonAdminUser() {
+    // site.login ("Show login?") ships false by default on a fresh install -- previously this
+    // only hid the nav link; credentials still worked. This is the enforcement, mirroring how
+    // site.registrations blocks RegisterWidget.
+    addQueryParameter(widgetContext, "email", "user@example.com");
+    addQueryParameter(widgetContext, "password", "hunter2hunter2");
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    session.setAttribute(SessionConstants.USER, new UserSession());
+
+    User user = new User();
+    user.setId(7L);
+    user.setMfaEnabled(false);
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class)) {
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
+          .thenReturn(user);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("false");
+
+      widget.post(widgetContext);
+
+      userLoginRepo.verifyNoInteractions();
+    }
+    Assertions.assertEquals("Sign-ins are currently disabled.", widgetContext.getErrorMessage());
+    Assertions.assertNull(widgetContext.getRedirect());
+  }
+
+  @Test
+  void loginSucceedsWhenSiteLoginIsDisabledForAnAdminUser() {
+    // An admin must never be locked out by their own misconfiguration of this toggle.
+    addQueryParameter(widgetContext, "email", "admin@example.com");
+    addQueryParameter(widgetContext, "password", "hunter2hunter2");
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    session.setAttribute(SessionConstants.USER, new UserSession());
+
+    User user = new User();
+    user.setId(1L);
+    user.setMfaEnabled(false);
+    Role adminRole = new Role("System Administrator", "admin");
+    user.setRoleList(java.util.List.of(adminRole));
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class)) {
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
+          .thenReturn(user);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("false");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+
+      widget.post(widgetContext);
+
+      userLoginRepo.verify(() -> UserLoginRepository.save(any()));
+    }
+    Assertions.assertNull(widgetContext.getErrorMessage());
+    Assertions.assertEquals("/my-page", widgetContext.getRedirect());
   }
 
   @Test
@@ -259,6 +327,7 @@ class LoginWidgetTest extends WidgetBase {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
@@ -291,6 +360,7 @@ class LoginWidgetTest extends WidgetBase {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);

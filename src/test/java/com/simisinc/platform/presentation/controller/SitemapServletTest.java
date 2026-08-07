@@ -45,6 +45,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -59,6 +60,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
+import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
@@ -137,10 +139,15 @@ class SitemapServletTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(itemList);
+      // These helper-driven tests aren't exercising the guest-access gate itself (that's covered
+      // by doGetExcludesAWebPageAGuestCannotAccess) -- default every page to guest-accessible so
+      // they keep testing what they were already testing.
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }
@@ -329,6 +336,65 @@ class SitemapServletTest {
     assertFalse(body.contains("/item/widget"));
   }
 
+  @Test
+  void doGetOnlyQueriesGuestVisibleItems() throws Exception {
+    // Regression: itemEntries() previously queried with only approvedOnly=true, with no
+    // setForUserId(...) call at all -- that's the one thing that actually applies the
+    // collections.allows_guests / group-membership restriction (see
+    // ItemRepository.createSearchWhereStatement). Without it, an approved item in a private,
+    // group-restricted collection was still listed on this fully public, unauthenticated endpoint.
+    ArgumentCaptor<ItemSpecification> captor = ArgumentCaptor.forClass(ItemSpecification.class);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.findAll(captor.capture(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    assertEquals(UserSession.GUEST_ID, captor.getValue().getForUserId(),
+        "the sitemap is public and unauthenticated -- it must only ever list what a guest can see");
+  }
+
+  @Test
+  void doGetExcludesAWebPageAGuestCannotAccess() throws Exception {
+    // Regression: webPageEntries() never checked ValidateUserAccessToWebPageCommand.hasAccess(),
+    // unlike LlmsTxtServlet's buildPagesSection() for this same entity -- a role/group-restricted
+    // page with "Show in Sitemap.xml?" on was still listed on this public, unauthenticated endpoint.
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/public-page", null, null));
+    pages.add(webPage("/restricted-page", null, null));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(pages);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/public-page"), any())).thenReturn(true);
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/restricted-page"), any())).thenReturn(false);
+
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      HttpServletResponse response = mock(HttpServletResponse.class);
+      StringWriter body = new StringWriter();
+      when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+      new SitemapServlet().doGet(request, response);
+
+      assertTrue(body.toString().contains("<loc>https://example.org/public-page</loc>"),
+          "a guest-accessible page must still appear: " + body);
+      assertFalse(body.toString().contains("restricted-page"),
+          "a page a guest cannot access must not be disclosed via the public sitemap: " + body);
+    }
+  }
+
   private static BlogPost blogPost(long blogId, String uniqueId, Timestamp modified) {
     BlogPost post = new BlogPost();
     post.setBlogId(blogId);
@@ -467,10 +533,12 @@ class SitemapServletTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(itemList);
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }
@@ -576,10 +644,12 @@ class SitemapServletTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(pages);
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }
@@ -611,10 +681,12 @@ class SitemapServletTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }
@@ -630,10 +702,12 @@ class SitemapServletTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }

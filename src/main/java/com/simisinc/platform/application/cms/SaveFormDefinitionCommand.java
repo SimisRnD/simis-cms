@@ -34,7 +34,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionReposi
  */
 public class SaveFormDefinitionCommand {
 
-  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890";
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890";
   private static Log LOG = LogFactory.getLog(SaveFormDefinitionCommand.class);
 
   public static FormDefinition saveFormDefinition(FormDefinition formDefinitionBean) throws DataException {

@@ -57,7 +57,7 @@ public class CheckGeoPointCommand {
       return item;
     }
     if ("nominatim".equalsIgnoreCase(geocoderService)) {
-      return NominatimCommmand.updateGeoPoint(item);
+      return NominatimCommand.updateGeoPoint(item);
     }
     return item;
   }

@@ -27,10 +27,12 @@
 </c:if>
 <h4><c:out value="${targetUser.fullName}" /></h4>
 <p class="help-text">Direct grants give this specific user a capability without changing their role - useful for a
-  temporary need (set an expiration) or a one-off exception (leave it permanent). See
-  <a href="${ctx}/admin/role-capabilities">Role Capabilities</a> for what this user already has through their
-  role(s). Every grant or revoke here is recorded in the platform's audit log. A session already logged in as this
-  user won't see the change take effect until they log in again.</p>
+  temporary need (set an expiration) or a one-off exception (leave it permanent). This user's effective capabilities
+  are the union of what their role(s) grant (see <a href="${ctx}/admin/role-capabilities">Role Capabilities</a>) and
+  any active grants listed below - a direct grant can only add access on top of a role; it can never subtract from
+  or override what a role already provides. Every grant or revoke here is recorded in the platform's audit log. A
+  session already logged in as this user won't see the change take effect until they log in again - tell them to
+  log out and back in if the change needs to apply now.</p>
 <%@include file="../page_messages.jspf" %>
 <form method="post">
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -59,6 +61,12 @@
       </label>
     </div>
   </div>
+  <p class="help-text">Only capabilities that already exist in the system appear in the list above, and only one
+    active grant of a given capability is allowed per user at a time - granting a second one while the first is
+    still active is refused with a message telling you to revoke the first rather than silently overwriting it. If
+    you set an expiration date, re-open this page afterward and confirm the Expires column below shows the date you
+    intended; a malformed date is rejected with an error rather than silently creating a permanent grant, but it's
+    still worth double-checking.</p>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Grant"/>
   </div>
@@ -120,6 +128,9 @@
 <div class="reveal" id="revokeCapabilityGrantReveal" role="dialog" aria-modal="true" aria-labelledby="revokeCapabilityGrantTitle"
      data-reveal data-close-on-click="true">
   <h4 id="revokeCapabilityGrantTitle">Revoke Capability Grant</h4>
+  <p class="help-text">Revoking an "admin:manage" grant is refused if no one would be left effectively holding it -
+    via any role or any other active direct grant. Every other capability has no such check and can be revoked with
+    no warning even if this is its last holder; confirm some other route to that functionality exists first.</p>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>

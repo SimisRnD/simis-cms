@@ -16,7 +16,6 @@
 
 package com.simisinc.platform.application.cms;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -31,7 +30,8 @@ public class ColorCommand {
   private static Log LOG = LogFactory.getLog(ColorCommand.class);
 
   public static boolean isHexColor(String hexColor) {
-    return (hexColor != null && hexColor.length() == 7 && hexColor.startsWith("#") && StringUtils.isAlphanumeric(hexColor.substring(1)));
+    // Alphanumeric alone let non-hex letters like #gggggg through -- only 0-9/a-f are valid hex digits
+    return hexColor != null && hexColor.matches("^#[0-9a-fA-F]{6}$");
   }
 
 }

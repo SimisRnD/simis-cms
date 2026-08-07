@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.audit;
 
 import java.sql.Timestamp;
+import java.util.Set;
 
 /**
  * Filter criteria for querying the security audit log (see AuditLogRepository). Every field is optional;
@@ -29,6 +30,11 @@ import java.sql.Timestamp;
 public class AuditLogSpecification {
 
   private String eventCategory = null;
+  // Multi-category filter (issue #1006's activity feed) -- an IN (...) clause alongside the single-value
+  // eventCategory above rather than a replacement for it, so the pre-existing single-category callers
+  // (AuditLogListWidget, BuildAuditLogSpecificationCommand) are untouched. Null/empty means "no category
+  // constraint", same convention as every other optional field on this specification.
+  private Set<String> eventCategories = null;
   private String eventType = null;
   private String outcome = null;
   private long actorUserId = -1L;
@@ -45,6 +51,14 @@ public class AuditLogSpecification {
 
   public void setEventCategory(String eventCategory) {
     this.eventCategory = eventCategory;
+  }
+
+  public Set<String> getEventCategories() {
+    return eventCategories;
+  }
+
+  public void setEventCategories(Set<String> eventCategories) {
+    this.eventCategories = eventCategories;
   }
 
   public String getEventType() {

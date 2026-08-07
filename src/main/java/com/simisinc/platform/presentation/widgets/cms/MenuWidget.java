@@ -364,7 +364,11 @@ public class MenuWidget extends GenericWidget {
     // Prepare the link
     Map<String, String> properties = new HashMap<>();
     addProperty(context, properties, "name", name);
-    addProperty(context, properties, "link", withLogoutToken(context, link));
+    // menu.jsp renders this straight into href="${ctx}${link['link']}" without escaping, same as
+    // the entriesList path above -- run it through the same UrlCommand.sanitizeUrl() defense so a
+    // table-of-contents entry (this method's caller for TOC links) can't carry an attribute-breakout
+    // or active-scheme payload into the page.
+    addProperty(context, properties, "link", withLogoutToken(context, UrlCommand.sanitizeUrl(link)));
     addProperty(context, properties, "container", container);
     addProperty(context, properties, "icon", icon);
     //addProperty(context, properties, "icon-only", valueMap.get("icon-only"));

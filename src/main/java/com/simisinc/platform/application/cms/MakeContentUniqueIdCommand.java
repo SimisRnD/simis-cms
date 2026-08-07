@@ -24,7 +24,7 @@ package com.simisinc.platform.application.cms;
  */
 public class MakeContentUniqueIdCommand {
 
-  private static final String ALLOWED_CHARS = "1234567890abcdefghijklmnopqrstuvwyxz";
+  private static final String ALLOWED_CHARS = "1234567890abcdefghijklmnopqrstuvwxyz";
 
   public static String parseToValidValue(String originalName) {
 
