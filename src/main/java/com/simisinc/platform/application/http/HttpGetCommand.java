@@ -146,7 +146,7 @@ public class HttpGetCommand {
 
     // Download as a string
     try {
-      LOG.debug("Requesting from: " + url);
+      LOG.debug("Requesting from: " + redactSecretQueryParams(url));
 
       // Build the request
       HttpRequest.Builder builder = HttpRequest.newBuilder();
@@ -191,5 +191,45 @@ public class HttpGetCommand {
       LOG.error("Http client exception", e);
       return null;
     }
+  }
+
+  /**
+   * This is a shared utility called with whatever URL a caller builds, and callers routinely
+   * embed a credential as a query parameter (e.g. an OAuth/webservice token, or a third-party
+   * API's access_token/api_key) rather than a header. This class has no way to know which
+   * parameter name a given caller considers secret, so redact by a broad name-based heuristic
+   * rather than trying to enumerate every caller's convention -- over-redacting an
+   * unrelated-but-similarly-named param is a harmless debug-log readability cost; under-redacting
+   * a real credential is not.
+   */
+  static String redactSecretQueryParams(String url) {
+    int queryStart = url.indexOf('?');
+    if (queryStart < 0 || queryStart == url.length() - 1) {
+      return url;
+    }
+    String base = url.substring(0, queryStart + 1);
+    String query = url.substring(queryStart + 1);
+    StringBuilder redacted = new StringBuilder(base);
+    String[] pairs = query.split("&");
+    for (int i = 0; i < pairs.length; i++) {
+      if (i > 0) {
+        redacted.append('&');
+      }
+      String pair = pairs[i];
+      int eq = pair.indexOf('=');
+      if (eq < 0) {
+        redacted.append(pair);
+        continue;
+      }
+      String name = pair.substring(0, eq);
+      String lowerName = name.toLowerCase();
+      if (lowerName.contains("token") || lowerName.contains("key") || lowerName.contains("secret")
+          || lowerName.contains("password") || lowerName.contains("pwd") || lowerName.contains("auth")) {
+        redacted.append(name).append("=REDACTED");
+      } else {
+        redacted.append(pair);
+      }
+    }
+    return redacted.toString();
   }
 }
