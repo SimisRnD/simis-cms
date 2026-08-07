@@ -406,6 +406,51 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Facet"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
       return TABLE_JSP;
+    } else if ("search-volume-by-type".equalsIgnoreCase(report)) {
+      // issue #1014: search_type is populated by every widget today and wasn't read back by any
+      // report -- which of the six search surfaces (pages/content/blog/wiki/items/calendar) gets
+      // used at all, not just which terms are searched.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findSearchVolumeByType(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Content Type"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
+    } else if ("zero-result-rate-by-type".equalsIgnoreCase(report)) {
+      // issue #1014: which search surface fails visitors most often, as a rate rather than a raw
+      // zero-result count, so a low-volume surface with a bad hit rate isn't hidden by a high-volume
+      // surface's larger raw count.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findZeroResultRateByType(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Content Type"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Rate %"));
+      return TABLE_JSP;
+    } else if ("top-search-paths".equalsIgnoreCase(report)) {
+      // issue #1014: page_path is populated by every search widget today and wasn't read back by
+      // any report -- which pages visitors are searching from, a candidate list for on-page
+      // navigation/content review.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTopSearchPaths(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
+    } else if ("top-zero-result-search-paths".equalsIgnoreCase(report)) {
+      // issue #1014: narrower than top-search-paths -- which pages send visitors into a search that
+      // comes up empty, the sharpest candidate list for a content gap or on-page navigation fix.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTopZeroResultPaths(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Searches"));
+      return TABLE_JSP;
+    } else if ("near-miss-search-terms".equalsIgnoreCase(report)) {
+      // issue #1014: terms that technically found something (1-3 results) but few enough that
+      // recall is suspect -- worth a look even though they wouldn't show up on the hard-failure
+      // zero-result-terms report. See SearchAnalyticsRepository.findNearMissTerms's javadoc for the
+      // fixed threshold.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findNearMissTerms(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Low-Result Searches"));
+      return TABLE_JSP;
     } else if ("total-form-submissions".equalsIgnoreCase(report)) {
       Long count = FormDataRepository.countTotalSubmissions();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));

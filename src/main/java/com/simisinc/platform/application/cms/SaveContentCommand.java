@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveContentCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz-1234567890";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz-1234567890";
   private static Log LOG = LogFactory.getLog(SaveContentCommand.class);
 
   public static Content saveSafeContent(String contentUniqueId, String contentHtml, long userId, boolean publish) throws DataException {
