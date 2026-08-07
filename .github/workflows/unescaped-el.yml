@@ -19,6 +19,17 @@
 #    two dashboard tiles were live in the XML but never rendered until a manual browser check
 #    caught it (fixed narrowly in PR #650). A scan of all 468 existing <widget> blocks found no
 #    legitimate use of a repeated direct-child tag, so there is no known false positive to avoid.
+#
+# 4. Duplicate Flyway migration versions: fails when two migrations share a version within one
+#    Flyway location set. Flyway does not choose between them -- it throws, which aborts
+#    DatabaseMigrationTest and ItemOrderMigrationTest in @BeforeAll. junitlauncher records that
+#    as a container-level failure, so every per-class "Tests run" line still reads Failures: 0
+#    while ~20 tests never execute and the Ant build dies on hasFailingTest with no visible
+#    failing test. See tools/check-duplicate-migration-versions.py. This has happened twice:
+#    PR #585 (20260728.1000), and on 2026-08-06 three settings branches all chose 20260806.1000.
+#    Nothing catches it on a branch in isolation -- the collision only exists once both sides are
+#    in one tree -- so it lands on whichever PR merges second, which is exactly when it is most
+#    confusing. This check runs in about a second and names both offenders.
 name: Static checks
 
 on:
@@ -46,3 +57,5 @@ jobs:
         run: python3 tools/check-unescaped-el.py . --strict
       - name: Fail on a widget block that defines the same preference tag twice
         run: python3 tools/check-widget-duplicate-tags.py . --strict
+      - name: Fail on two Flyway migrations sharing a version
+        run: python3 tools/check-duplicate-migration-versions.py . --strict
