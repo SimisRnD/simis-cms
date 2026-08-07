@@ -844,9 +844,13 @@ public class PageServlet extends HttpServlet {
           "false".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
         if ("/".equals(pagePath)) {
           pageRef = WebPageXmlLayoutCommand.retrievePage("_new_install_");
-//        } else if (!"/login".equals(pagePath)) {
-          // @todo implement and test this...
-          // Redirect to /, except for login page
+        } else if (!isGuestAuthPage(pagePath)) {
+          // The site isn't open yet -- keep every other page behind the homepage splash. The
+          // 3 guest-facing auth pages (issue #1005: /login, /register, /forgot-password) stay
+          // reachable so a guest can still sign in/up before launch. /logout never reaches this
+          // servlet; it's handled directly in WebRequestFilter.
+          response.sendRedirect(contextPath + "/");
+          return;
         }
       }
 

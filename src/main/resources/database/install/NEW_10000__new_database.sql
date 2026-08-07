@@ -81,6 +81,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Web Page Background', 'theme.body.backgroundColor', '#ffffff', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Web Page Text Color', 'theme.body.text.color', '#000000', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Link Color', 'theme.link.color', '#0067ff', 'color');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (17, 'System Alert Bar', 'theme.utilitybar.backgroundColor', '#0067ff', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'System Alert Text Color', 'theme.utilitybar.text.color', '#ffffff', 'color');

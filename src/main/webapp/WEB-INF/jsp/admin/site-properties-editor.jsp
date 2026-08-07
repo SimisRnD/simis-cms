@@ -460,17 +460,14 @@
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'social.email'}">
-            <p class="help-text" id="socialEmailHelpText">A contact email address shown in the site footer, next to the Telephone number below if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          <c:if test="${siteProperty.name eq 'site.online'}">
+            <p class="help-text" id="siteOnlineHelpText">Turning this off swaps the homepage to a "coming soon" splash, hides the main nav menu, and blocks guest (keyless) API access and /sitemap.xml. It does not take other pages offline -- a web page, blog post, wiki page, or item reached by direct URL still renders normally for anonymous visitors while this is off.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'social.phone'}">
-            <p class="help-text" id="socialPhoneHelpText">A contact phone number shown in the site footer, next to the Email Address above if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          <c:if test="${siteProperty.name eq 'site.login'}">
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}">
-            <p class="help-text" id="socialInstagramAccessTokenHelpText">A long-lived Instagram Graph API access token, used only by the Instagram feed-embed integration -- unrelated to the Social Profile Links above, which just link out to the platform. Generate one from a Facebook Developer app with the Instagram Graph API product added. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current token.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'social.instagram.facebookPageValue'}">
-            <p class="help-text" id="socialInstagramFacebookPageValueHelpText">The Facebook Page ID connected to the Instagram Business account being embedded -- required alongside the Access Token above for the Instagram feed-embed integration to authenticate.</p>
+          <c:if test="${siteProperty.name eq 'site.header.page'}">
+            <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the Utility Bar Settings page.</p>
           </c:if>
         </td>
       </tr>
@@ -544,6 +541,20 @@
   </c:if>
   <c:if test="${prefix eq 'site'}">
     <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
+    <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Enable API?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
+  </c:if>
+  <c:if test="${prefix eq 'theme'}">
+    <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu Theme or Footer Theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color Scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
+    <p class="help-text">The three System Alert colors below are the same values shown on the Utility Bar Settings page -- editing either page changes what the other shows.</p>
+  </c:if>
+  <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
+    <div class="callout radius warning">
+      <p><strong>Re-authentication required</strong> — this page's settings are security-sensitive.
+        Enter your password or 6-digit authenticator code, then click Save again.</p>
+      <input type="password" name="stepUpCredential" maxlength="255"
+             placeholder="Password or authenticator code"
+             title="Enter your password or 6-digit authenticator code"/>
+    </div>
   </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
@@ -563,6 +574,7 @@
   <c:choose>
   <c:when test="${siteProperty.name eq 'theme.body.text.color'}">colorSelectorList.push('body');</c:when>
   <c:when test="${siteProperty.name eq 'theme.body.backgroundColor'}">colorSelectorList.push('body');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.link.color'}">colorSelectorList.push('a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.text.color'}">colorSelectorList.push('#platform-menu .utility-bar');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.link.color'}">colorSelectorList.push('#platform-menu .utility-bar a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.backgroundColor'}">colorSelectorList.push('#platform-menu .utility-bar');</c:when>
@@ -574,6 +586,8 @@
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.hoverTextColor'}">colorSelectorList.push('#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover');</c:when>
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.dropdown.backgroundColor'}">colorSelectorList.push('#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item');</c:when>
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.dropdown.text.color'}">colorSelectorList.push('#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.topbar.menu.activeBackgroundColor'}">colorSelectorList.push('#platform-menu ul.menu .active > a');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.topbar.menu.activeTextColor'}">colorSelectorList.push('#platform-menu ul.menu .active > a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.text.color'}">colorSelectorList.push('.button');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.default.backgroundColor'}">colorSelectorList.push('.button.base');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.default.hoverBackgroundColor'}">colorSelectorList.push('.button.base:hover, .button.base:focus');</c:when>

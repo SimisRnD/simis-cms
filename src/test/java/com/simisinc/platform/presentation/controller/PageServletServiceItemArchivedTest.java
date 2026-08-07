@@ -172,7 +172,14 @@ class PageServletServiceItemArchivedTest {
       webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
       webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
       loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
-      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      // site.online=true so these requests reach the item-resolution guard under test
+      // rather than being redirected by the (unrelated) site-offline gate -- see PageServlet
+      // service()'s "site isn't open yet" block.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("site.online", "true");
+        return map;
+      });
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
       // The crux of issue #827: excludeArchived must be true here, because unrestrictedShowPage()
       // has no role/group/capability restriction -- a deactivated item must resolve to null just
@@ -218,7 +225,14 @@ class PageServletServiceItemArchivedTest {
       webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
       webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
       loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
-      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      // site.online=true so these requests reach the item-resolution guard under test
+      // rather than being redirected by the (unrelated) site-offline gate -- see PageServlet
+      // service()'s "site isn't open yet" block.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("site.online", "true");
+        return map;
+      });
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
       loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
           .thenReturn(item);
@@ -303,7 +317,14 @@ class PageServletServiceItemArchivedTest {
             return false;
           });
       loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
-      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      // site.online=true so these requests reach the item-resolution guard under test
+      // rather than being redirected by the (unrelated) site-offline gate -- see PageServlet
+      // service()'s "site isn't open yet" block.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("site.online", "true");
+        return map;
+      });
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
       loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
           .thenReturn(item);
@@ -346,7 +367,14 @@ class PageServletServiceItemArchivedTest {
       webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
       webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
       loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
-      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      // site.online=true so these requests reach the item-resolution guard under test
+      // rather than being redirected by the (unrelated) site-offline gate -- see PageServlet
+      // service()'s "site isn't open yet" block.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("site.online", "true");
+        return map;
+      });
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
       loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
           .thenReturn(null);

@@ -179,6 +179,19 @@ public class LoginWidget extends GenericWidget {
 
   private WidgetContext finalizeLogin(WidgetContext context, User user, boolean stayLoggedIn) {
 
+    // "Show login?" (site.login) previously only hid the nav link -- credentials still worked
+    // if an admin bypassed the missing link (bookmark, typed URL). This is the enforcement point,
+    // checked against the authenticating user's own roles rather than the pre-login session's
+    // (which never has any role yet): an admin can always still sign in even if this is
+    // misconfigured off, matching how site.registrations never blocks an already-logged-in admin.
+    if (!user.hasRole("admin") && !"true".equals(LoadSitePropertyCommand.loadByName("site.login"))) {
+      SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", user.getId(),
+          user.getEmail(), context.getRequest().getRemoteAddr(), context.getRequest().getSession().getId(),
+          "Sign-ins are currently disabled");
+      context.setErrorMessage("Sign-ins are currently disabled.");
+      return context;
+    }
+
     // Update the user's session
     UserSession userSession = (UserSession) context.getRequest().getSession().getAttribute(SessionConstants.USER);
     // Rotate the servlet session id now that the user has authenticated: any session id an
