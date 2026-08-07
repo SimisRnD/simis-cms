@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;

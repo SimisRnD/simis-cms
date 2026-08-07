@@ -16,9 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.calendar;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
@@ -30,13 +33,29 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
- * Regression coverage for a calendar's "Online?" checkbox (Calendar.enabled) gating its events
- * off the upcoming-events widget for a regular visitor, mirroring CalendarEventDetailsWidget's
- * existing admin/content-manager bypass for the single-event details page.
+ * Covers two independently-added concerns for this widget:
+ *
+ * <p>1. A calendar's "Online?" checkbox (Calendar.enabled) gating its events off the
+ * upcoming-events widget for a regular visitor, mirroring CalendarEventDetailsWidget's existing
+ * admin/content-manager bypass for the single-event details page.
+ *
+ * <p>2. Timezone resolution. execute() used to compute its date-range query with
+ * {@code ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone"))} directly -- a null
+ * (unset) site.timezone would NPE immediately, since {@code ZoneId.of(null)} throws. It now routes
+ * through the shared {@code FormatDateCommand.getSiteZoneId()} helper (mirroring
+ * CalendarSearchResultsWidget/ItemDateFacetCommand), which falls back to the JVM's default zone.
+ *
+ * <p>Note the site.timezone stub below uses the two-argument
+ * {@code loadByName(name, defaultValue)} overload, because that is the one
+ * {@code FormatDateCommand.getSiteZoneId()} calls. Stubbing only the single-argument overload
+ * leaves the two-argument one returning null under mockStatic, which resurfaces as a
+ * {@code ZoneId.of(null)} NPE reading simply "zoneId".
  *
  * @author SimIS Inc.
  */
@@ -47,7 +66,7 @@ class UpcomingCalendarEventsWidgetTest extends WidgetBase {
   void executeRequestsTheEnabledCalendarFilterForANonAdminVisitor() {
     try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(new ArrayList<>());
 
       new UpcomingCalendarEventsWidget().execute(widgetContext);
@@ -69,7 +88,7 @@ class UpcomingCalendarEventsWidgetTest extends WidgetBase {
 
     try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(new ArrayList<>());
 
       new UpcomingCalendarEventsWidget().execute(widgetContext);
@@ -91,7 +110,7 @@ class UpcomingCalendarEventsWidgetTest extends WidgetBase {
 
     try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(new ArrayList<>());
 
       new UpcomingCalendarEventsWidget().execute(widgetContext);
@@ -102,6 +121,41 @@ class UpcomingCalendarEventsWidgetTest extends WidgetBase {
       for (CalendarEventSpecification specification : specCaptor.getAllValues()) {
         assertTrue(specification.isCalendarEnabledOnly());
       }
+    }
+  }
+
+  @Test
+  void executeQueriesUsingTheConfiguredSiteTimezone() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"upcomingCalendarEvents\" />");
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+
+      WidgetContext result = new UpcomingCalendarEventsWidget().execute(widgetContext);
+
+      assertEquals(UpcomingCalendarEventsWidget.JSP, result.getJsp());
+      events.verify(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any(DataConstraints.class)));
+    }
+  }
+
+  @Test
+  void executeDoesNotThrowWhenSiteTimezoneIsUnset() {
+    // getSiteZoneId() falls back to the JVM's default zone rather than NPEing on ZoneId.of(null)
+    // the way the old direct ZoneId.of(LoadSitePropertyCommand.loadByName(...)) call would have.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"upcomingCalendarEvents\" />");
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      // loadByName(name, defaultValue) falls back to the passed-through default when unset
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any()))
+          .thenAnswer(invocation -> invocation.getArgument(1));
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+
+      assertDoesNotThrow(() -> new UpcomingCalendarEventsWidget().execute(widgetContext));
     }
   }
 }
