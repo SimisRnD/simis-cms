@@ -1329,15 +1329,39 @@
   </page>
 
   <page name="/admin/content/analytics" role="admin,content-manager" title="Content Analytics">
-    <!--<section>-->
-    <!--<column class="small-12 cell">-->
-    <!--<widget name="breadcrumbs">-->
-    <!--<links>-->
-    <!--<link name="Analytics" value="" />-->
-    <!--</links>-->
-    <!--</widget>-->
-    <!--</column>-->
-    <!--</section>-->
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-20">
+          <html><![CDATA[
+            <h4>Content Analytics</h4>
+            <p>Traffic and engagement across the site, grouped below by what each group of tiles is
+            actually trying to answer. <strong>Every number on this page already excludes known
+            bots and crawlers</strong> -- search engine crawlers, SEO/AI crawlers, and social-media
+            link-preview bots, identified by user agent against an admin-editable list, are filtered
+            out before these are calculated, so you don't need to mentally discount them.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[
+            <h5 class="platform-dashboard-section-label">Traffic</h5>
+            <p>How much traffic, and to which pages. <strong>Top Pages</strong> and
+            <strong>Top Modules</strong> sound like the same thing but count differently: Top Pages
+            counts every hit to a raw URL path (minus admin/login/asset paths), whether or not that
+            path is a CMS-registered page; Top Modules only counts hits tied to an actual registered
+            "Web Page" record, with no path filtering of its own. A path that's never been turned
+            into a CMS page can show up in Top Pages but never in Top Modules, and vice versa for a
+            registered page whose path would otherwise have been filtered out. <strong>Web Page
+            Hits</strong> is a 30-day daily trend and, unlike the other tiles here, its window can't
+            be changed from this page -- only Top Pages' own dropdown lets you pick a different
+            range.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-12 medium-12 large-6 cell small-order-2 medium-order-1">
         <widget name="siteStats" class="stats card">
@@ -1364,12 +1388,6 @@
           <label1>Hit</label1>
           <report>daily-hits</report>
         </widget>
-        <widget name="siteStats" class="stats card">
-          <title>Referrals</title>
-          <report>referrals</report>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
       </column>
       <column class="small-12 medium-12 large-6 cell">
         <widget name="siteStats" class="stats card">
@@ -1379,6 +1397,49 @@
           <label>Module</label>
           <value>Hits</value>
           <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[
+            <h5 class="platform-dashboard-section-label">Where Visitors Come From</h5>
+            <p><strong>Referrals</strong> lists the site that sent someone here (the HTTP Referer
+            header), over the last 30 days. Two things it doesn't show: a visitor with no referrer
+            at all -- bookmarks, typed-in URLs, some mobile apps that strip the header -- isn't
+            bucketed as "Direct," they're simply left out of this list entirely; and visits from
+            this site back to itself are filtered out as self-referrals, but only when the site's
+            own URL is correctly set in Site Properties -- if it isn't, internal referrals could
+            show up here as if they were external traffic.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Referrals</title>
+          <report>referrals</report>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[
+            <h5 class="platform-dashboard-section-label">Engagement</h5>
+            <p>What visitors do once they're here, all over a 30-day window. <strong>Return Visitor
+            Rate</strong> is the trickiest of the three to read correctly: "active" is bounded to
+            the last 30 days (has this visitor had at least one session recently), but "returning"
+            checks that same visitor's <em>entire history</em>, not just the last 30 days -- so
+            someone whose only prior visit was months ago still counts as a returning visitor the
+            moment they come back, even though the actual return happened outside this window. A
+            flat 0% here means either genuinely no return visitors, or -- rarely -- that the
+            underlying query failed; the two aren't distinguishable from this tile alone.</p>
+          ]]></html>
         </widget>
       </column>
     </section>
