@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.application.cms.SaveContentCommand;
+import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -63,6 +65,23 @@ public class ContentFormWidget extends GenericWidget {
         context.setWarningMessage("Use a-z, 0-9 and dashes");
         return context;
       }
+    }
+
+    // A reference name is a lookup key a page's widget XML points at, not a namespace scoped to this
+    // form -- typing an existing one (e.g. accidentally re-typing "site-footer") would otherwise
+    // silently open that existing, possibly load-bearing block for editing instead of creating a new
+    // one, with no warning at all. This is informational rather than a hard block: editing an existing
+    // named block by its known reference name is sometimes exactly what someone means to do. Staying
+    // on this page (no redirect) rather than redirecting to /content-editor anyway is deliberate --
+    // the framework's flash-message mechanism only survives a redirect back to this same widget, not a
+    // hop to a different page, so a warning attached to a redirect to /content-editor would never
+    // actually be seen. The existing block is likely visible right in the list below (or via the
+    // search box above) for the admin to open deliberately instead.
+    if (ContentRepository.findByUniqueId(uniqueId) != null) {
+      context.setWarningMessage(
+          "\"" + uniqueId + "\" already exists. Find it in the list below (or search for it above) to edit it, "
+              + "or use a different reference name to create a new content block.");
+      return context;
     }
 
     context.setRedirect("/content-editor?uniqueId=" + uniqueId + "&returnPage=/admin/content-list");

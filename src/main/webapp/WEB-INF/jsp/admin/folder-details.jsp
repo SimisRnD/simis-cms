@@ -35,6 +35,7 @@
     </small>
   </c:if>
 </h3>
+<a class="button small radius secondary" href="${ctx}/admin/folder-zip-download?folderId=${folder.id}"><i class="fa fa-download"></i> Download all files as ZIP</a>
 <p>
   <c:if test="${!empty folder.summary}">
     <small class="subheader"><c:out value="${folder.summary}" /></small><br />

@@ -187,6 +187,79 @@ class ContentUsageCommandTest {
   }
 
   @Test
+  void aBlockUsedOnOnlyOnePageWithinAMultiPageTemplateFileIsNotFalselyShared() {
+    // A false-positive found by review: admin-layout.xml/cms-layout.xml each bundle dozens of
+    // independent <page> routes in one physical file -- a widget reference inside just one of those
+    // <page> blocks must NOT be treated as inherently site-wide the way a true single-purpose
+    // fragment include (footer-layout.xml, no <page> wrapper at all) correctly is. Before the fix,
+    // isFilesystemTemplateLocation() only checked the file path prefix, so this reproduced exactly:
+    // "login-hello" (real content block, used only on the single /login page inside cms-layout.xml)
+    // showed as Shared with a "site-wide template" warning, even though editing it only affects one page.
+    String cmsLayoutXml = "<pages>"
+        + "  <page name=\"/login\">"
+        + "    <section><column>"
+        + "      <widget name=\"content\"><uniqueId>login-hello</uniqueId></widget>"
+        + "    </column></section>"
+        + "  </page>"
+        + "  <page name=\"/register\">"
+        + "    <section><column>"
+        + "      <widget name=\"content\"><uniqueId>register-hello</uniqueId></widget>"
+        + "    </column></section>"
+        + "  </page>"
+        + "</pages>";
+
+    ServletContext servletContext = mockServletContextWithOneFile(
+        "/WEB-INF/web-layouts/page/", "/WEB-INF/web-layouts/page/cms-layout.xml", cmsLayoutXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of());
+
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(servletContext);
+
+      List<String> loginHelloLocations = usageMap.get("login-hello");
+      assertEquals(List.of("/WEB-INF/web-layouts/page/cms-layout.xml#/login"), loginHelloLocations,
+          "the location must be scoped to the specific <page> it was found in");
+      assertFalse(ContentUsageCommand.isShared(loginHelloLocations),
+          "a block used on exactly one <page> route inside a multi-page file must not count as Shared");
+      assertNull(ContentUsageCommand.buildReusabilityWarning("login-hello", usageMap),
+          "must not produce a false 'site-wide template' warning for a single-page reference");
+    }
+  }
+
+  @Test
+  void aBlockUsedOnTwoDifferentPagesWithinTheSameMultiPageTemplateFileIsShared() {
+    // The other half of the same fix: genuine reuse across two <page> blocks in one file must still
+    // be detected as Shared, same as reuse across two separate web_pages rows.
+    String adminLayoutXml = "<pages>"
+        + "  <page name=\"/admin\">"
+        + "    <section><column>"
+        + "      <widget name=\"content\"><uniqueId>admin-shared-banner</uniqueId></widget>"
+        + "    </column></section>"
+        + "  </page>"
+        + "  <page name=\"/admin/users\">"
+        + "    <section><column>"
+        + "      <widget name=\"content\"><uniqueId>admin-shared-banner</uniqueId></widget>"
+        + "    </column></section>"
+        + "  </page>"
+        + "</pages>";
+
+    ServletContext servletContext = mockServletContextWithOneFile(
+        "/WEB-INF/web-layouts/page/", "/WEB-INF/web-layouts/page/admin-layout.xml", adminLayoutXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of());
+
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(servletContext);
+
+      List<String> locations = usageMap.get("admin-shared-banner");
+      assertEquals(
+          List.of("/WEB-INF/web-layouts/page/admin-layout.xml#/admin", "/WEB-INF/web-layouts/page/admin-layout.xml#/admin/users"),
+          locations);
+      assertTrue(ContentUsageCommand.isShared(locations), "genuine reuse across two <page> routes must still count as Shared");
+    }
+  }
+
+  @Test
   void aBlockNotReferencedAnywhereIsOrphaned() {
     try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
       webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of());
@@ -262,6 +335,136 @@ class ContentUsageCommandTest {
 
       assertTrue(usageMap.isEmpty());
     }
+  }
+
+  @Test
+  void aTemplatedUniqueIdWithAnUnresolvedElPlaceholderIsNotRecordedAsALiteralUsageKey() {
+    // The real products-layout.xml pattern (issue #499 follow-up): a per-item content block whose
+    // <uniqueId> is never actually "product-details-${item.uniqueId}" at runtime -- that literal
+    // string can never match a real content_unique_id, so recording it as a usage key would only
+    // ever produce a permanently-dead map entry, making every real per-product content block show as
+    // falsely "Orphaned" forever.
+    String pageXml = "<page name=\"/show/*\">"
+        + "  <section><column>"
+        + "    <widget name=\"content\" hr=\"true\"><uniqueId>product-details-${item.uniqueId}</uniqueId></widget>"
+        + "  </column></section>"
+        + "</page>";
+    WebPage productPage = new WebPage();
+    productPage.setLink("/show/*");
+    productPage.setPageXml(pageXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(productPage));
+
+      ContentUsageCommand.UsageScan scan = ContentUsageCommand.scanUsage(null);
+
+      assertTrue(scan.usageMap().isEmpty(), "the unresolved literal string must never be recorded as a usage key");
+      assertEquals(List.of("/show/*"), scan.templatedPrefixLocations().get("product-details-"));
+    }
+  }
+
+  @Test
+  void aRealContentRecordMatchingATemplatedPrefixIsDistinctFromOneThatDoesNot() {
+    // findUsageMap() (the literal-match convenience wrapper) must keep excluding the templated
+    // prefix's literal string -- ContentListWidget is the one that cross-references
+    // templatedPrefixLocations against real Content rows to decide Orphaned vs Templated, not this
+    // class, so findUsageMap alone should never contain the placeholder text.
+    String pageXml = "<page name=\"/show/*\">"
+        + "  <section><column>"
+        + "    <widget name=\"content\"><uniqueId>product-details-${item.uniqueId}</uniqueId></widget>"
+        + "  </column></section>"
+        + "</page>";
+    WebPage productPage = new WebPage();
+    productPage.setLink("/show/*");
+    productPage.setPageXml(pageXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(productPage));
+
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(null);
+
+      assertFalse(usageMap.containsKey("product-details-${item.uniqueId}"));
+      assertTrue(usageMap.isEmpty());
+    }
+  }
+
+  @Test
+  void aBarePlaceholderWithNoLiteralPrefixIsSkippedEntirely() {
+    // A uniqueId that is ENTIRELY a placeholder (no literal prefix at all) must not be recorded as a
+    // templated prefix either -- an empty-string prefix would match every single Content row via
+    // String#startsWith, which is worse than not detecting the pattern at all.
+    String pageXml = "<page name=\"/show/*\">"
+        + "  <section><column>"
+        + "    <widget name=\"content\"><uniqueId>${item.uniqueId}</uniqueId></widget>"
+        + "  </column></section>"
+        + "</page>";
+    WebPage page = new WebPage();
+    page.setLink("/show/*");
+    page.setPageXml(pageXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(page));
+
+      ContentUsageCommand.UsageScan scan = ContentUsageCommand.scanUsage(null);
+
+      assertTrue(scan.usageMap().isEmpty());
+      assertTrue(scan.templatedPrefixLocations().isEmpty(), "an empty prefix must never be recorded");
+    }
+  }
+
+  @Test
+  void isSharedIsTrueForMultipleLocationsRegardlessOfKind() {
+    assertTrue(ContentUsageCommand.isShared(List.of("/careers", "/about-us")));
+  }
+
+  @Test
+  void isSharedIsTrueForASingleFilesystemTemplateLocation() {
+    // The undercounting bug (issue #499 follow-up): site-footer has exactly ONE usage-map entry
+    // (footer-layout.xml), but that template is rendered on every page site-wide, so it must still
+    // count as Shared/high-blast-radius, not slip through a raw ">1" count check.
+    assertTrue(ContentUsageCommand.isShared(List.of("/WEB-INF/web-layouts/footer/footer-layout.xml")));
+  }
+
+  @Test
+  void isSharedIsFalseForASingleOrdinaryWebPageLocation() {
+    assertFalse(ContentUsageCommand.isShared(List.of("/careers")));
+  }
+
+  @Test
+  void isSharedIsFalseForNullOrEmptyLocations() {
+    assertFalse(ContentUsageCommand.isShared(null));
+    assertFalse(ContentUsageCommand.isShared(List.of()));
+  }
+
+  @Test
+  void isFilesystemTemplateLocationMatchesOnlyTheWebLayoutsPath() {
+    assertTrue(ContentUsageCommand.isFilesystemTemplateLocation("/WEB-INF/web-layouts/footer/footer-layout.xml"));
+    assertFalse(ContentUsageCommand.isFilesystemTemplateLocation("/careers"));
+    assertFalse(ContentUsageCommand.isFilesystemTemplateLocation(null));
+  }
+
+  @Test
+  void buildReusabilityWarningDescribesASingleFilesystemTemplateLocationAsSiteWide() {
+    // Before this fix, a block used on exactly one location never triggered a warning at all
+    // (locations.size() <= 1 short-circuited); now a single site-wide template location must still
+    // warn, with wording that doesn't misleadingly say "appears on 1 pages".
+    Map<String, List<String>> usageMap = Map.of(
+        "site-footer", List.of("/WEB-INF/web-layouts/footer/footer-layout.xml"));
+
+    String warning = ContentUsageCommand.buildReusabilityWarning("site-footer", usageMap);
+
+    assertTrue(warning != null && warning.contains("site-wide template"), warning);
+    assertTrue(warning.contains("/WEB-INF/web-layouts/footer/footer-layout.xml"), warning);
+    assertFalse(warning.contains("1 pages"), "must not read as \"appears on 1 pages\"");
+  }
+
+  @Test
+  void buildReusabilityWarningStillReturnsNullForASingleOrdinaryWebPageLocation() {
+    // Unchanged behavior: a block used on exactly one ordinary page is not shared, so publishing it
+    // only ever affects the page already being looked at -- no warning needed.
+    Map<String, List<String>> usageMap = Map.of("solo-header", List.of("/careers"));
+
+    assertNull(ContentUsageCommand.buildReusabilityWarning("solo-header", usageMap));
   }
 
   /** A ServletContext mock that resolves exactly one *.xml file under the given directory. */

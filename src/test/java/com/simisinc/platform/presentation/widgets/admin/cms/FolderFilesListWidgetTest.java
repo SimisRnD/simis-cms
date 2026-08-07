@@ -40,6 +40,9 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
+import com.simisinc.platform.application.cms.DeleteFileCommand;
+import com.simisinc.platform.application.cms.LoadFileCommand;
+import com.simisinc.platform.application.cms.LoadFolderCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
@@ -378,5 +381,305 @@ class FolderFilesListWidgetTest extends WidgetBase {
       Assertions.assertEquals("Expiration date format is not valid", result.getErrorMessage());
       saveFileCommand.verify(() -> SaveFileCommand.saveFile(any(FileItem.class)), never());
     }
+  }
+
+  private static FileItem fileWithFolder(long fileId, long folderId) {
+    FileItem file = new FileItem();
+    file.setId(fileId);
+    file.setFolderId(folderId);
+    file.setFilename("handbook.pdf");
+    return file;
+  }
+
+  /**
+   * Verifies delete()'s permission-gap fix: it previously had a "// @todo make sure the folder's
+   * user group can delete" comment and never called
+   * CheckFolderPermissionCommand.userHasDeletePermission -- so any user who could merely view this
+   * page (any role admin-layout.xml allows: admin/content-manager/community-manager) could delete an
+   * individual file regardless of that folder's own delete-permission ACL, by requesting the delete
+   * action directly. The delete icon was already correctly hidden in the UI for a user without
+   * delete permission; these tests cover the backend enforcement that was missing.
+   */
+  @Test
+  void deleteWithoutFolderDeletePermissionDoesNotDeleteTheFile() {
+    setRoles(widgetContext, CONTENT_MANAGER);
+    addQueryParameter(widgetContext, "fileId", "42");
+
+    FileItem record = fileWithFolder(42L, 7L);
+
+    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<DeleteFileCommand> deleteCmd = mockStatic(DeleteFileCommand.class)) {
+      loadFile.when(() -> LoadFileCommand.loadFileByIdForAuthorizedUser(42L, 1L)).thenReturn(record);
+      perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(7L, 1L)).thenReturn(false);
+
+      WidgetContext result = new FolderFilesListWidget().delete(widgetContext);
+
+      // The file must NOT be deleted when the user lacks delete permission on its folder
+      deleteCmd.verify(() -> DeleteFileCommand.deleteFile(any()), never());
+      Assertions.assertEquals("Error. You do not have permission to delete this file.", result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void deleteWithFolderDeletePermissionDeletesTheFile() {
+    setRoles(widgetContext, CONTENT_MANAGER);
+    addQueryParameter(widgetContext, "fileId", "42");
+
+    FileItem record = fileWithFolder(42L, 7L);
+
+    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<DeleteFileCommand> deleteCmd = mockStatic(DeleteFileCommand.class)) {
+      loadFile.when(() -> LoadFileCommand.loadFileByIdForAuthorizedUser(42L, 1L)).thenReturn(record);
+      perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(7L, 1L)).thenReturn(true);
+      deleteCmd.when(() -> DeleteFileCommand.deleteFile(record)).thenReturn(true);
+
+      WidgetContext result = new FolderFilesListWidget().delete(widgetContext);
+
+      deleteCmd.verify(() -> DeleteFileCommand.deleteFile(record), times(1));
+      Assertions.assertEquals("File deleted", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void deleteAsAdminBypassesTheFolderDeletePermissionCheck() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "fileId", "42");
+
+    FileItem record = fileWithFolder(42L, 7L);
+
+    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<DeleteFileCommand> deleteCmd = mockStatic(DeleteFileCommand.class)) {
+      loadFile.when(() -> LoadFileCommand.loadItemById(42L)).thenReturn(record);
+      // Deliberately false -- an admin must bypass this check entirely, not merely happen to pass it
+      perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(anyLong(), anyLong())).thenReturn(false);
+      deleteCmd.when(() -> DeleteFileCommand.deleteFile(record)).thenReturn(true);
+
+      WidgetContext result = new FolderFilesListWidget().delete(widgetContext);
+
+      deleteCmd.verify(() -> DeleteFileCommand.deleteFile(record), times(1));
+      Assertions.assertEquals("File deleted", result.getSuccessMessage());
+    }
+  }
+
+  /**
+   * Verifies the new "canAdd" request attribute (issue: the "Add File Link" button was only shown to
+   * hasRole('admin') || hasRole('content-manager'), but FolderFileFormWidget's actual permission
+   * check for that action is admin OR CheckFolderPermissionCommand.userHasAddPermission(folderId,
+   * userId) -- so a role with real per-folder add permission via the folder's own group ACL had no
+   * button to find the feature). canAdd mirrors FolderFileFormWidget's own gate exactly.
+   */
+  @Test
+  void executeGrantsCanAddWhenNonAdminHasFolderAddPermission() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+
+    try (MockedStatic<LoadFolderCommand> loadFolder = mockStatic(LoadFolderCommand.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      loadFolder.when(() -> LoadFolderCommand.loadFolderByIdForAuthorizedUser(5L, 1L)).thenReturn(folderWithId(5L));
+      loadFolder.when(() -> LoadFolderCommand.findAllAuthorizedForUser(1L)).thenReturn(new ArrayList<>());
+      perm.when(() -> CheckFolderPermissionCommand.userHasEditPermission(anyLong(), anyLong())).thenReturn(false);
+      perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(anyLong(), anyLong())).thenReturn(false);
+      perm.when(() -> CheckFolderPermissionCommand.userHasAddPermission(5L, 1L)).thenReturn(true);
+      subFolderRepo.when(() -> SubFolderRepository.findAll(any(), any())).thenReturn(new ArrayList<SubFolder>());
+      categoryRepo.when(() -> FolderCategoryRepository.findAllByFolderId(5L)).thenReturn(new ArrayList<FolderCategory>());
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new FolderFilesListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("canAdd"));
+  }
+
+  @Test
+  void executeDeniesCanAddWhenNonAdminLacksFolderAddPermission() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+
+    try (MockedStatic<LoadFolderCommand> loadFolder = mockStatic(LoadFolderCommand.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      loadFolder.when(() -> LoadFolderCommand.loadFolderByIdForAuthorizedUser(5L, 1L)).thenReturn(folderWithId(5L));
+      loadFolder.when(() -> LoadFolderCommand.findAllAuthorizedForUser(1L)).thenReturn(new ArrayList<>());
+      perm.when(() -> CheckFolderPermissionCommand.userHasEditPermission(anyLong(), anyLong())).thenReturn(false);
+      perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(anyLong(), anyLong())).thenReturn(false);
+      perm.when(() -> CheckFolderPermissionCommand.userHasAddPermission(5L, 1L)).thenReturn(false);
+      subFolderRepo.when(() -> SubFolderRepository.findAll(any(), any())).thenReturn(new ArrayList<SubFolder>());
+      categoryRepo.when(() -> FolderCategoryRepository.findAllByFolderId(5L)).thenReturn(new ArrayList<FolderCategory>());
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new FolderFilesListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("false", request.getAttribute("canAdd"));
+  }
+
+  @Test
+  void executeGrantsCanAddToAdminEvenWithoutFolderAddPermission() {
+    addQueryParameter(widgetContext, "folderId", "5");
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      // Deliberately false -- an admin must bypass this check entirely, not merely happen to pass it
+      perm.when(() -> CheckFolderPermissionCommand.userHasAddPermission(anyLong(), anyLong())).thenReturn(false);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("canAdd"));
+  }
+
+  /**
+   * Verifies the pagination fix: execute() previously built its DataConstraints with the no-arg
+   * constructor (page size -1, i.e. unpaginated), so the entire file list rendered regardless of
+   * folder size. Mirrors AdminBlogPostListWidget/FileVersionsListWidget's page/items request params.
+   */
+  @Test
+  void executeDefaultsToPageOneWithThePreferencesPageSize() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    widgetContext.getPreferences().put("limit", "40");
+
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
+    }
+
+    Assertions.assertEquals(1, constraintsCaptor.getValue().getPageNumber());
+    Assertions.assertEquals(40, constraintsCaptor.getValue().getPageSize());
+  }
+
+  @Test
+  void executeHonorsThePageAndItemsRequestParameters() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "page", "3");
+    addQueryParameter(widgetContext, "items", "10");
+
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
+    }
+
+    Assertions.assertEquals(3, constraintsCaptor.getValue().getPageNumber());
+    Assertions.assertEquals(10, constraintsCaptor.getValue().getPageSize());
+  }
+
+  @Test
+  void executeDefaultsThePageSizeTo25WhenNoLimitPreferenceIsConfigured() {
+    addQueryParameter(widgetContext, "folderId", "5");
+
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
+    }
+
+    Assertions.assertEquals(25, constraintsCaptor.getValue().getPageSize());
+  }
+
+  /**
+   * Verifies the recordPagingParams attribute (built by the private appendPagingParam() helper)
+   * that paging_control.jspf appends to every pagination link, for the plain-folder case.
+   */
+  @Test
+  void executeSetsRecordPagingParamsForAPlainFolder() {
+    addQueryParameter(widgetContext, "folderId", "5");
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+    }
+
+    String pagingParams = (String) request.getAttribute("recordPagingParams");
+    Assertions.assertNotNull(pagingParams);
+    Assertions.assertTrue(pagingParams.contains("folderId=5"), "expected folderId=5 in: " + pagingParams);
+    Assertions.assertFalse(pagingParams.contains("subFolderId"), "a plain folder must not carry subFolderId: " + pagingParams);
+  }
+
+  /**
+   * Same as above, but for a sub-folder with an active search term and a non-default sort -- the
+   * combined case where a dropped/mis-joined param would be easiest to miss.
+   */
+  @Test
+  void executeSetsRecordPagingParamsForASubFolderWithSearchAndSort() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "subFolderId", "9");
+    addQueryParameter(widgetContext, "query", "invoice");
+    addQueryParameter(widgetContext, "sortBy", "name");
+
+    SubFolder subFolder = new SubFolder();
+    subFolder.setId(9L);
+    subFolder.setFolderId(5L);
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      subFolderRepo.when(() -> SubFolderRepository.findById(9L)).thenReturn(subFolder);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+    }
+
+    String pagingParams = (String) request.getAttribute("recordPagingParams");
+    Assertions.assertNotNull(pagingParams);
+    Assertions.assertTrue(pagingParams.contains("folderId=5"), "expected folderId=5 in: " + pagingParams);
+    Assertions.assertTrue(pagingParams.contains("subFolderId=9"), "expected subFolderId=9 in: " + pagingParams);
+    Assertions.assertTrue(pagingParams.contains("query=invoice"), "expected query=invoice in: " + pagingParams);
+    Assertions.assertTrue(pagingParams.contains("sortBy=name"), "expected sortBy=name in: " + pagingParams);
   }
 }

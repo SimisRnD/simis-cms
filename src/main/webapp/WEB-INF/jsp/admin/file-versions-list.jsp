@@ -36,6 +36,18 @@
   server, so restoring makes that version's content the current file again -- a new version entry is recorded for
   the restore itself.
 </p>
+<%-- Return to the file's originating folder or sub-folder listing (issue: the breadcrumb above only
+     goes back to the top-level folder list, and there was otherwise no way back except the browser's
+     Back button). Mirrors the folder-vs-sub-folder branch folder-files-list.jsp/FolderFilesListWidget
+     already use elsewhere for this same file. --%>
+<c:choose>
+  <c:when test="${subFolder.id gt 0}">
+    <a class="button small radius secondary float-left" href="${ctx}/admin/sub-folder-details?folderId=${folder.id}&subFolderId=${subFolder.id}"><i class="fa fa-angle-double-left"></i> Back to Files</a>
+  </c:when>
+  <c:otherwise>
+    <a class="button small radius secondary float-left" href="${ctx}/admin/folder-details?folderId=${folder.id}"><i class="fa fa-angle-double-left"></i> Back to Files</a>
+  </c:otherwise>
+</c:choose>
 <table class="unstriped">
   <thead>
     <tr>

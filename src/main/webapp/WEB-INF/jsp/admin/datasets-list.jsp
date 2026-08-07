@@ -28,7 +28,13 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">A dataset is a recurring bulk import: upload a CSV/Excel file or point to a URL, map its columns to a Collection's fields, and sync (insert new records, update existing ones, remove deleted ones) on a schedule. It's an ETL tool for keeping a Collection's items in sync with an external data source -- not a general API-connection mechanism, and not related to Item Search or the REST API. A dataset always targets an existing Collection (see the Collections page) -- create that first if one doesn't exist yet.</p>
+<div class="callout primary radius">
+  <p>A dataset is a recurring bulk import: upload a file or point to a URL, map its columns to a Collection's fields, and sync (insert new records, update existing ones, remove deleted ones) on a schedule. Supported source types are CSV, TSV, JSON, GeoJSON, RSS+XML (a syndicated feed URL), and a separate "JSON API" type for paginated REST endpoints -- there is no Excel/.xlsx support. It's an ETL tool for keeping a Collection's items in sync with an external data source -- not a general API-connection mechanism, and not related to Item Search or the REST API. A dataset always targets an existing Collection (see the Collections page) -- create that first if one doesn't exist yet.</p>
+  <p style="margin-bottom:0">Each row below shows three status indicators: <strong>Schedule Status</strong> (whether/when the source file is next re-downloaded), <strong>Sync Status</strong> (whether syncing to the Collection is turned on, and whether it's currently running or failed), and the <strong>Records</strong> count under the name (rows processed vs. total rows found in the source on the last download). If any of these look wrong, open that dataset's own <strong>Sync</strong> tab -- the Last Sync status message there is the first place to check.</p>
+</div>
+<div class="callout warning radius">
+  <p style="margin-bottom:0">A dataset's scheduled download retries on a backoff that escalates from every 5 minutes up to once a day. After 30 consecutive failed attempts, the dataset is marked permanently failed and stops retrying on its own -- there's no email or other proactive notice, only the <strong>Schedule Status</strong> badge on this page turning to "Failed". If a dataset's freshness matters, check this page on a regular cadence or build external monitoring against it.</p>
+</div>
 <a class="button small radius primary" href="${ctx}/admin/datasets/new"><i class="fa fa-cloud-upload"></i> Add a Dataset</a>
 <table class="unstriped">
   <thead>
