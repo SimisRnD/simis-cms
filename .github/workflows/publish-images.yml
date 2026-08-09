@@ -113,7 +113,7 @@ jobs:
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '21'
@@ -147,7 +147,7 @@ jobs:
       # Skip when ACR_REGISTRY is not set (forks, local branches).
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
-        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -187,7 +187,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the application scan results
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
@@ -271,7 +271,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database scan results
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
