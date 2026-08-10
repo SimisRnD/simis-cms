@@ -710,6 +710,10 @@ class WebPageRepositoryTest {
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
           + "release_reference VARCHAR(255), "
+          // issue #497 cheap-tier slice: see NEW_10010__new_cms.sql/UPGRADE_20260810.1300 for the
+          // real migration this mirrors.
+          + "internal BOOLEAN DEFAULT false, "
+          + "redirect_notes VARCHAR(500), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");

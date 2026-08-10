@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -164,6 +165,33 @@ public class WebPageRepository {
     return (List<WebPage>) result.getRecords();
   }
 
+  /**
+   * Exports the "All Web Pages" list to CSV (issue #497), honoring the same search-term and
+   * SQL-filterable status narrowing (draft/redirect/archived) the admin list itself applies via
+   * {@link WebPageSpecification}. Deliberately does NOT attempt to also honor the list's
+   * broken/live/no-traffic distinctions -- those are derived in Java (against XMLPageLoader's
+   * standard-pages map and a separate WebPageHitRepository query, respectively), not expressible as
+   * a plain WHERE clause, so replicating them here would mean duplicating that derivation logic.
+   */
+  public static void exportCsv(WebPageSpecification specification, File file) {
+    SqlUtils selectFields = new SqlUtils()
+        .addNames(
+            "link AS \"Link\"",
+            "page_title AS \"Title\"",
+            "page_keywords AS \"Keywords\"",
+            "page_description AS \"Description\"",
+            "draft AS \"Draft\"",
+            "redirect_url AS \"Redirect URL\"",
+            "redirect_notes AS \"Redirect Notes\"",
+            "internal AS \"Internal\"",
+            "modified AS \"Modified\"",
+            "solution_type AS \"Solution Type\"");
+    SqlUtils where = createWhereStatement(specification);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("link");
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, where, null, constraints, file);
+  }
+
   public static WebPage save(WebPage record) {
     if (record.getId() > -1) {
       return update(record);
@@ -202,7 +230,9 @@ public class WebPageRepository {
         .add("submitted_by", record.getSubmittedBy())
         .add("approved_by", record.getApprovedBy())
         .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
-        .add("archived", record.getArchived());
+        .add("archived", record.getArchived())
+        .add("internal", record.isInternal())
+        .add("redirect_notes", StringUtils.trimToNull(record.getRedirectNotes()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -246,7 +276,9 @@ public class WebPageRepository {
         .add("submitted_by", record.getSubmittedBy())
         .add("approved_by", record.getApprovedBy())
         .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
-        .add("archived", record.getArchived());
+        .add("archived", record.getArchived())
+        .add("internal", record.isInternal())
+        .add("redirect_notes", StringUtils.trimToNull(record.getRedirectNotes()));
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -460,6 +492,11 @@ public class WebPageRepository {
       // column may not exist yet on an instance mid-upgrade.
       if (DB.hasColumn(rs, "archived")) {
         record.setArchived(rs.getTimestamp("archived"));
+      }
+      // issue #497: same rolling-deploy guard as archived/draft_status above.
+      if (DB.hasColumn(rs, "internal")) {
+        record.setInternal(rs.getBoolean("internal"));
+        record.setRedirectNotes(rs.getString("redirect_notes"));
       }
       return record;
     } catch (SQLException se) {

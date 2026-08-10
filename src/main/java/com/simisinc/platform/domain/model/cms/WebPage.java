@@ -88,6 +88,13 @@ public class WebPage extends Entity implements Reviewable {
   private long submittedBy = -1;
   private long approvedBy = -1;
   private String releaseReference = null;
+  // issue #497 cheap-tier slice: a real, settable "internal page" flag for the /admin/web-pages
+  // "Hide Internal Pages" filter -- role_id_list above looked like it could serve this but turned out
+  // to be persisted and never actually consulted anywhere for access control (dead field).
+  private boolean internal = false;
+  // Documents WHY a redirect exists (e.g. "old marketing URL, kept for inbound links") so "is this
+  // 301 still needed or is it clutter?" (issue #497's "Redirect Confusion" section) isn't a guess.
+  private String redirectNotes = null;
 
   public WebPage() {
   }
@@ -360,6 +367,26 @@ public class WebPage extends Entity implements Reviewable {
   @Override
   public boolean hasDraftContent() {
     return StringUtils.isNotBlank(draftPageXml);
+  }
+
+  public boolean isInternal() {
+    return internal;
+  }
+
+  public boolean getInternal() {
+    return internal;
+  }
+
+  public void setInternal(boolean internal) {
+    this.internal = internal;
+  }
+
+  public String getRedirectNotes() {
+    return redirectNotes;
+  }
+
+  public void setRedirectNotes(String redirectNotes) {
+    this.redirectNotes = redirectNotes;
   }
 
   /**

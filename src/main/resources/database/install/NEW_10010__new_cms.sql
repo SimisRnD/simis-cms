@@ -132,7 +132,12 @@ CREATE TABLE web_pages (
   draft_status VARCHAR(20),
   submitted_by BIGINT DEFAULT -1,
   approved_by BIGINT DEFAULT -1,
-  release_reference VARCHAR(255)
+  release_reference VARCHAR(255),
+  -- issue #497 cheap-tier slice: see UPGRADE_20260810.1300__web_pages_internal_and_redirect_notes.sql
+  -- for the equivalent change to existing databases, and why role_id_list above wasn't reused for this
+  -- (persisted but never actually consulted anywhere for access control).
+  internal BOOLEAN DEFAULT false,
+  redirect_notes VARCHAR(500)
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);

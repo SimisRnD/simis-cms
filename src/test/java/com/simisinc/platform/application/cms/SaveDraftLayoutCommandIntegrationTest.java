@@ -221,7 +221,11 @@ class SaveDraftLayoutCommandIntegrationTest {
           + "draft_status VARCHAR(20), "
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
-          + "release_reference VARCHAR(255))");
+          + "release_reference VARCHAR(255), "
+          // issue #497 cheap-tier slice: see NEW_10010__new_cms.sql/UPGRADE_20260810.1300 for the
+          // real migration this mirrors.
+          + "internal BOOLEAN DEFAULT false, "
+          + "redirect_notes VARCHAR(500))");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages/users schema", se);
     }

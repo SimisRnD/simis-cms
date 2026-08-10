@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
@@ -35,6 +37,7 @@ import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Tests the /admin/web-pages status-count summary (issue #497): a stable "X total -- Y live, Z
@@ -221,5 +224,131 @@ class WebPageListWidgetTest extends WidgetBase {
     // nav-menu section can still reference it via the unfiltered webPageMap
     Map<Long, Long> viewCountMap = (Map<Long, Long>) request.getAttribute("webPageViewCountMap");
     assertEquals(99L, viewCountMap.get(2L), "a page excluded by the active filter must not silently show 0 views");
+  }
+
+  @Test
+  void hideInternalFilterExcludesInternalPagesWhenChecked() {
+    WebPage internalPage = livePage();
+    internalPage.setInternal(true);
+    WebPage externalPage = livePage();
+    externalPage.setInternal(false);
+    List<WebPage> webPageList = new ArrayList<>(List.of(internalPage, externalPage));
+
+    addQueryParameter(widgetContext, "hideInternal", "true");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    List<WebPage> filtered = (List<WebPage>) request.getAttribute("webPageList");
+    assertEquals(1, filtered.size());
+    assertFalse(filtered.get(0).isInternal());
+    assertTrue((Boolean) request.getAttribute("hideInternal"));
+  }
+
+  @Test
+  void hideInternalFilterIsOffByDefaultSoInternalPagesStillShow() {
+    WebPage internalPage = livePage();
+    internalPage.setInternal(true);
+    List<WebPage> webPageList = new ArrayList<>(List.of(internalPage));
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    List<WebPage> filtered = (List<WebPage>) request.getAttribute("webPageList");
+    assertEquals(1, filtered.size());
+  }
+
+  @Test
+  void noTrafficStatusFilterKeepsOnlyPagesWithZeroOrMissingViews() {
+    WebPage viewedPage = livePage();
+    viewedPage.setId(1L);
+    WebPage unviewedPage = livePage();
+    unviewedPage.setId(2L);
+    WebPage neverCountedPage = livePage();
+    neverCountedPage.setId(3L); // absent from the view-count map entirely -- must count as zero, not skipped
+    List<WebPage> webPageList = new ArrayList<>(List.of(viewedPage, unviewedPage, neverCountedPage));
+
+    addQueryParameter(widgetContext, "status", "noTraffic");
+
+    Map<Long, Long> viewCounts = new HashMap<>();
+    viewCounts.put(1L, 5L);
+    viewCounts.put(2L, 0L);
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(viewCounts);
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    List<WebPage> filtered = (List<WebPage>) request.getAttribute("webPageList");
+    assertEquals(2, filtered.size());
+    assertTrue(filtered.stream().anyMatch(p -> p.getId() == 2L));
+    assertTrue(filtered.stream().anyMatch(p -> p.getId() == 3L));
+  }
+
+  @Test
+  void sortByTrafficOrdersMostViewedFirst() {
+    WebPage lowTraffic = livePage();
+    lowTraffic.setId(1L);
+    WebPage highTraffic = livePage();
+    highTraffic.setId(2L);
+    WebPage noTraffic = livePage();
+    noTraffic.setId(3L);
+    List<WebPage> webPageList = new ArrayList<>(List.of(lowTraffic, highTraffic, noTraffic));
+
+    addQueryParameter(widgetContext, "sort", "traffic");
+
+    Map<Long, Long> viewCounts = new HashMap<>();
+    viewCounts.put(1L, 5L);
+    viewCounts.put(2L, 500L);
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(viewCounts);
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    List<WebPage> sorted = (List<WebPage>) request.getAttribute("webPageList");
+    assertEquals(List.of(2L, 1L, 3L), sorted.stream().map(WebPage::getId).toList());
+  }
+
+  /** Mirrors AuditLogListWidget's exportIsRefusedWithoutAdminRole -- the export is read-only but not public. */
+  @Test
+  void csvExportIsRefusedWithoutPermission() {
+    setRoles(widgetContext); // logged in, but neither admin nor content-manager
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class)) {
+      WidgetContext result = new WebPageListWidget().post(widgetContext);
+
+      repository.verifyNoInteractions();
+      assertEquals(widgetContext, result);
+    }
   }
 }
