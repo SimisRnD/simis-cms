@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import org.jobrunr.jobs.Job;
 import org.jobrunr.jobs.JobDetails;
+import org.jobrunr.jobs.states.FailedState;
 import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.storage.JobStats;
 import org.jobrunr.storage.Page;
@@ -60,6 +61,14 @@ class JobQueueDashboardWidgetTest extends WidgetBase {
     return stats;
   }
 
+  private static JobStats jobStats(long scheduled, long enqueued, long processing, long failed, long succeeded,
+      long total, long allTimeSucceeded) {
+    JobStats stats = jobStats(scheduled, enqueued, processing, failed, succeeded);
+    when(stats.getTotal()).thenReturn(total);
+    when(stats.getAllTimeSucceeded()).thenReturn(allTimeSucceeded);
+    return stats;
+  }
+
   private static Job job(StateName state, String className, String methodName) {
     Job job = mock(Job.class);
     JobDetails jobDetails = mock(JobDetails.class);
@@ -70,6 +79,15 @@ class JobQueueDashboardWidgetTest extends WidgetBase {
     when(job.getJobDetails()).thenReturn(jobDetails);
     when(job.getCreatedAt()).thenReturn(Instant.parse("2026-07-29T12:00:00Z"));
     when(job.getUpdatedAt()).thenReturn(Instant.parse("2026-07-29T12:05:00Z"));
+    return job;
+  }
+
+  private static Job failedJob(String className, String methodName, String exceptionType, String exceptionMessage) {
+    Job job = job(StateName.FAILED, className, methodName);
+    FailedState failedState = mock(FailedState.class);
+    when(failedState.getExceptionType()).thenReturn(exceptionType);
+    when(failedState.getExceptionMessage()).thenReturn(exceptionMessage);
+    when(job.<FailedState>getJobState()).thenReturn(failedState);
     return job;
   }
 
@@ -202,6 +220,128 @@ class JobQueueDashboardWidgetTest extends WidgetBase {
       WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
 
       assertEquals("ENQUEUED", result.getRequest().getAttribute("selectedState"));
+    }
+  }
+
+  @Test
+  void executePopulatesQueueMetricsFromJobStats() {
+    setRoles(widgetContext, ADMIN);
+    StorageProvider storageProvider = mock(StorageProvider.class);
+    // 3 currently failed, 97 all-time succeeded, 120 jobs currently in storage overall (the two
+    // aren't meant to add up -- see QueueMetrics' javadoc for why they're different kinds of count).
+    JobStats stats = jobStats(0, 5, 0, 3, 10, 120, 97);
+    // failed=3 above means resolveSelectedState defaults to FAILED (not ENQUEUED) -- see
+    // executeDefaultsToFailedWhenAnyJobsAreFailed for the same behavior isolated on its own.
+    Page<Job> jobPage = page(5, List.of());
+
+    try (MockedStatic<SchedulerManager> scheduler = mockStatic(SchedulerManager.class)) {
+      scheduler.when(SchedulerManager::getStorageProvider).thenReturn(storageProvider);
+      when(storageProvider.getJobStats()).thenReturn(stats);
+      when(storageProvider.getJobs(eq(StateName.FAILED), any(PageRequest.class))).thenReturn(jobPage);
+
+      WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
+
+      JobQueueDashboardWidget.QueueMetrics metrics =
+          (JobQueueDashboardWidget.QueueMetrics) result.getRequest().getAttribute("queueMetrics");
+      assertEquals(120L, metrics.getTotalInStorage());
+      assertEquals(97L, metrics.getAllTimeSucceededCount());
+      assertEquals(3L, metrics.getFailedCount());
+      // 3 / (3 + 97) = 3%
+      assertEquals(3.0, metrics.getFailureRatioPercent());
+    }
+  }
+
+  @Test
+  void queueMetricsFailureRatioIsNullWhenThereIsNoFailedOrSucceededData() {
+    setRoles(widgetContext, ADMIN);
+    StorageProvider storageProvider = mock(StorageProvider.class);
+    JobStats stats = jobStats(0, 0, 0, 0, 0, 0, 0);
+    Page<Job> jobPage = page(0, List.of());
+
+    try (MockedStatic<SchedulerManager> scheduler = mockStatic(SchedulerManager.class)) {
+      scheduler.when(SchedulerManager::getStorageProvider).thenReturn(storageProvider);
+      when(storageProvider.getJobStats()).thenReturn(stats);
+      when(storageProvider.getJobs(eq(StateName.ENQUEUED), any(PageRequest.class))).thenReturn(jobPage);
+
+      WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
+
+      JobQueueDashboardWidget.QueueMetrics metrics =
+          (JobQueueDashboardWidget.QueueMetrics) result.getRequest().getAttribute("queueMetrics");
+      assertNull(metrics.getFailureRatioPercent());
+    }
+  }
+
+  @Test
+  void jobRowIncludesTheErrorMessageForAFailedJobPreferringTheExceptionMessage() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "state", "FAILED");
+    StorageProvider storageProvider = mock(StorageProvider.class);
+    JobStats stats = jobStats(0, 0, 0, 1, 10);
+    Job failed = failedJob("com.simisinc.platform.infrastructure.workflow.EmailTask", "execute",
+        "org.apache.commons.mail.EmailException", "Could not connect to SMTP host");
+    Page<Job> jobPage = page(1, List.of(failed));
+
+    try (MockedStatic<SchedulerManager> scheduler = mockStatic(SchedulerManager.class)) {
+      scheduler.when(SchedulerManager::getStorageProvider).thenReturn(storageProvider);
+      when(storageProvider.getJobStats()).thenReturn(stats);
+      when(storageProvider.getJobs(eq(StateName.FAILED), any(PageRequest.class))).thenReturn(jobPage);
+
+      WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<JobQueueDashboardWidget.JobRow> jobList =
+          (List<JobQueueDashboardWidget.JobRow>) result.getRequest().getAttribute("jobList");
+      assertEquals("EmailException: Could not connect to SMTP host", jobList.get(0).getErrorMessage());
+    }
+  }
+
+  @Test
+  void jobRowFallsBackToTheJobRunrMessageWhenTheExceptionCarriedNoMessageOfItsOwn() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "state", "FAILED");
+    StorageProvider storageProvider = mock(StorageProvider.class);
+    JobStats stats = jobStats(0, 0, 0, 1, 10);
+    Job failed = job(StateName.FAILED, "com.simisinc.platform.infrastructure.workflow.EmailTask", "execute");
+    FailedState failedState = mock(FailedState.class);
+    when(failedState.getExceptionMessage()).thenReturn(null);
+    when(failedState.getMessage()).thenReturn("Job processing failed");
+    when(failed.<FailedState>getJobState()).thenReturn(failedState);
+    Page<Job> jobPage = page(1, List.of(failed));
+
+    try (MockedStatic<SchedulerManager> scheduler = mockStatic(SchedulerManager.class)) {
+      scheduler.when(SchedulerManager::getStorageProvider).thenReturn(storageProvider);
+      when(storageProvider.getJobStats()).thenReturn(stats);
+      when(storageProvider.getJobs(eq(StateName.FAILED), any(PageRequest.class))).thenReturn(jobPage);
+
+      WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<JobQueueDashboardWidget.JobRow> jobList =
+          (List<JobQueueDashboardWidget.JobRow>) result.getRequest().getAttribute("jobList");
+      assertEquals("Job processing failed", jobList.get(0).getErrorMessage());
+    }
+  }
+
+  @Test
+  void jobRowHasNoErrorMessageForANonFailedJob() {
+    setRoles(widgetContext, ADMIN);
+    StorageProvider storageProvider = mock(StorageProvider.class);
+    JobStats stats = jobStats(0, 1, 0, 0, 10);
+    Job enqueuedJob = job(StateName.ENQUEUED,
+        "com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob", "execute");
+    Page<Job> jobPage = page(1, List.of(enqueuedJob));
+
+    try (MockedStatic<SchedulerManager> scheduler = mockStatic(SchedulerManager.class)) {
+      scheduler.when(SchedulerManager::getStorageProvider).thenReturn(storageProvider);
+      when(storageProvider.getJobStats()).thenReturn(stats);
+      when(storageProvider.getJobs(eq(StateName.ENQUEUED), any(PageRequest.class))).thenReturn(jobPage);
+
+      WidgetContext result = new JobQueueDashboardWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<JobQueueDashboardWidget.JobRow> jobList =
+          (List<JobQueueDashboardWidget.JobRow>) result.getRequest().getAttribute("jobList");
+      assertNull(jobList.get(0).getErrorMessage());
     }
   }
 }
