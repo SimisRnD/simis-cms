@@ -35,6 +35,7 @@
     <jsp:useBean id="stateCounts" class="java.util.LinkedHashMap" scope="request"/>
     <jsp:useBean id="jobList" class="java.util.ArrayList" scope="request"/>
     <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+    <jsp:useBean id="queueMetrics" class="com.simisinc.platform.presentation.widgets.admin.JobQueueDashboardWidget$QueueMetrics" scope="request"/>
     <%-- State tiles double as the filter: each shows the current count for that state and links to
          show that state's job list. Only the 5 states an admin would monitor day-to-day are shown --
          see JobQueueDashboardWidget's FILTERABLE_STATES javadoc for AWAITING/DELETED being left out
@@ -54,6 +55,19 @@
         </c:choose>
       </c:forEach>
     </div>
+    <p>
+      <small>
+        <strong><fmt:formatNumber value="${queueMetrics.totalInStorage}"/></strong> jobs currently in storage
+        &#8226;
+        <strong><fmt:formatNumber value="${queueMetrics.allTimeSucceededCount}"/></strong> succeeded all-time
+        <c:if test="${not empty queueMetrics.failureRatioPercent}">
+          &#8226;
+          <span title="Currently-failed jobs (a live count) divided by all-time-succeeded jobs (a cumulative count) -- a rough sense of scale, not a precise failure rate across all attempts ever made.">
+            <strong><fmt:formatNumber value="${queueMetrics.failureRatioPercent}" maxFractionDigits="1"/>%</strong> currently failed vs. all-time succeeded
+          </span>
+        </c:if>
+      </small>
+    </p>
     <c:choose>
       <c:when test="${empty jobList}">
         <p>No jobs are currently in the <c:out value="${selectedState}"/> state.</p>
@@ -64,6 +78,7 @@
             <tr>
               <th>Job Type</th>
               <th>State</th>
+              <c:if test="${selectedState eq 'FAILED'}"><th>Error</th></c:if>
               <th>Created</th>
               <th>Updated</th>
               <th>Id</th>
@@ -81,6 +96,11 @@
                     <c:otherwise><span class="label secondary radius"><c:out value="${job.state}"/></span></c:otherwise>
                   </c:choose>
                 </td>
+                <%-- Column is only rendered while filtered to FAILED (see <th> above), so job.errorMessage
+                     is always non-null here -- every row in this table is itself a FAILED job. --%>
+                <c:if test="${selectedState eq 'FAILED'}">
+                  <td><c:out value="${job.errorMessage}"/></td>
+                </c:if>
                 <td><span title="<fmt:formatDate pattern='yyyy-MM-dd HH:mm:ss z' value='${job.createdAt}' />"><c:out value="${date:relative(job.createdAt)}" /></span></td>
                 <td><span title="<fmt:formatDate pattern='yyyy-MM-dd HH:mm:ss z' value='${job.updatedAt}' />"><c:out value="${date:relative(job.updatedAt)}" /></span></td>
                 <td><small><c:out value="${job.id}"/></small></td>
@@ -101,7 +121,7 @@
   <p><strong>Usually fine to just note and move on:</strong> a single FAILED occurrence of a routine nightly cleanup/retention job (there are many -- audit log retention, session cleanup, analytics cleanup, and similar) will simply run again at its next scheduled time. One miss rarely matters.</p>
   <p><strong>Worth checking soon:</strong> a job tied to something a person is waiting on -- order processing, shipping updates, newsletter sending -- failing means that customer-facing outcome didn't happen this cycle.</p>
   <p><strong>Worth investigating now:</strong> the <em>same</em> job type failing across several consecutive scheduled runs, not just once. That's a persistent problem, not noise. Since most jobs read or write the database, a cluster of FAILED jobs appearing at the same time is often downstream of a database issue -- check the <a href="/admin/health-dashboard">System Health</a> page for the same time window.</p>
-  <p>This page doesn't show the job's actual exception yet -- that requires checking the application logs for the failure.</p>
+  <p>The FAILED job list's Error column shows the underlying exception's own message (or JobRunr's own description, if the exception didn't carry one). The full stack trace still requires checking the application logs -- this page only surfaces the one-line summary.</p>
 </div>
 
 <h5>For Azure</h5>
