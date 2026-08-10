@@ -303,6 +303,17 @@ public class MailingListMemberRepository {
     return members;
   }
 
+  /** Looks up a member by their numeric primary key, for the REST write endpoint (issue #412 PR3)
+   *  to resolve a {@code memberId} path parameter -- every other existing single-row lookup here is
+   *  keyed by (list, email) or a single-use token, not the raw id. */
+  public static MailingListMember findById(long memberId) {
+    SqlUtils select = new SqlUtils().addNames("emails.email AS email_address");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils().add("mailing_list_members.member_id = ?", memberId);
+    return (MailingListMember) DB.selectRecordFrom(TABLE_NAME, select, joins, where,
+        MailingListMemberRepository::buildRecordWithEmail);
+  }
+
   /** Looks up a member by their single-use unsubscribe link token. */
   public static MailingListMember findByUnsubscribeToken(String token) {
     if (StringUtils.isBlank(token)) {
