@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jobrunr.jobs.Job;
+import org.jobrunr.jobs.states.FailedState;
 import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.storage.JobStats;
 import org.jobrunr.storage.Page;
@@ -91,8 +92,11 @@ public class JobQueueDashboardWidget extends GenericWidget {
 
   private void loadDashboardData(WidgetContext context, StorageProvider storageProvider) {
 
-    Map<String, Long> stateCounts = loadStateCounts(storageProvider);
+    JobStats stats = storageProvider.getJobStats();
+
+    Map<String, Long> stateCounts = loadStateCounts(stats);
     context.getRequest().setAttribute("stateCounts", stateCounts);
+    context.getRequest().setAttribute("queueMetrics", new QueueMetrics(stats));
 
     StateName selectedState = resolveSelectedState(context, stateCounts);
     context.getRequest().setAttribute("selectedState", selectedState.name());
@@ -124,8 +128,7 @@ public class JobQueueDashboardWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
   }
 
-  private Map<String, Long> loadStateCounts(StorageProvider storageProvider) {
-    JobStats stats = storageProvider.getJobStats();
+  private Map<String, Long> loadStateCounts(JobStats stats) {
     Map<String, Long> stateCounts = new LinkedHashMap<>();
     stateCounts.put(StateName.SCHEDULED.name(), nullToZero(stats.getScheduled()));
     stateCounts.put(StateName.ENQUEUED.name(), nullToZero(stats.getEnqueued()));
@@ -169,6 +172,7 @@ public class JobQueueDashboardWidget extends GenericWidget {
     private final String state;
     private final Timestamp createdAt;
     private final Timestamp updatedAt;
+    private final String errorMessage;
 
     JobRow(Job job) {
       this.id = job.getId().toString();
@@ -176,12 +180,27 @@ public class JobQueueDashboardWidget extends GenericWidget {
       this.state = job.getState().name();
       this.createdAt = Timestamp.from(job.getCreatedAt());
       this.updatedAt = Timestamp.from(job.getUpdatedAt());
+      this.errorMessage = job.getState() == StateName.FAILED ? buildErrorMessage(job.getJobState()) : null;
     }
 
     private static String simpleJobType(Job job) {
       String className = job.getJobDetails().getClassName();
       String simpleName = className.substring(className.lastIndexOf('.') + 1);
       return simpleName + "." + job.getJobDetails().getMethodName();
+    }
+
+    // Prefers the underlying exception's own message (what actually went wrong) over JobRunr's
+    // generic wrapper message ("Job processing failed"), falling back to the wrapper only if the
+    // exception carried no message of its own.
+    private static String buildErrorMessage(FailedState failedState) {
+      String exceptionMessage = failedState.getExceptionMessage();
+      String prefix = failedState.getExceptionType() != null
+          ? failedState.getExceptionType().substring(failedState.getExceptionType().lastIndexOf('.') + 1) + ": "
+          : "";
+      if (exceptionMessage != null && !exceptionMessage.isBlank()) {
+        return prefix + exceptionMessage;
+      }
+      return failedState.getMessage();
     }
 
     public String getId() {
@@ -202,6 +221,59 @@ public class JobQueueDashboardWidget extends GenericWidget {
 
     public Timestamp getUpdatedAt() {
       return updatedAt;
+    }
+
+    public String getErrorMessage() {
+      return errorMessage;
+    }
+  }
+
+  /** Cheap, derived-from-already-fetched-{@link JobStats} totals -- not a rigorous cumulative
+   * failure rate. {@code failedCount} is a live snapshot (jobs currently sitting in the FAILED
+   * state), while {@code allTimeSucceededCount} is JobRunr's one genuinely cumulative counter;
+   * dividing one by the other approximates "is my current failure count small or large relative
+   * to real throughput", not "what fraction of all attempts ever failed" -- JobRunr keeps no
+   * all-time-failed counter to compute the latter. See job-queue-dashboard.jsp for how this is
+   * labeled to the admin. */
+  public static class QueueMetrics {
+
+    private long totalInStorage;
+    private long allTimeSucceededCount;
+    private long failedCount;
+
+    // Required so jsp:useBean's class= attribute passes Jasper's translation-time bean check;
+    // the JSP never actually hits this path since the widget always populates the real instance
+    // via the constructor below before the request reaches the page (see DataConstraints for the
+    // same pattern elsewhere in this codebase).
+    public QueueMetrics() {
+    }
+
+    QueueMetrics(JobStats stats) {
+      this.totalInStorage = nullToZero(stats.getTotal());
+      this.allTimeSucceededCount = nullToZero(stats.getAllTimeSucceeded());
+      this.failedCount = nullToZero(stats.getFailed());
+    }
+
+    public long getTotalInStorage() {
+      return totalInStorage;
+    }
+
+    public long getAllTimeSucceededCount() {
+      return allTimeSucceededCount;
+    }
+
+    public long getFailedCount() {
+      return failedCount;
+    }
+
+    /** Null (rather than 0) when there's no meaningful denominator yet, so the JSP can show
+     * "not enough data" instead of a misleading 0%. */
+    public Double getFailureRatioPercent() {
+      long denominator = failedCount + allTimeSucceededCount;
+      if (denominator == 0) {
+        return null;
+      }
+      return (failedCount * 100.0) / denominator;
     }
   }
 }

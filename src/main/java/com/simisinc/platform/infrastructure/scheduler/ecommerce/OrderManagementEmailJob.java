@@ -118,6 +118,10 @@ public class OrderManagementEmailJob implements JobRequest {
         sendConfirmationToUser(order, orderItemList, trackingNumberList, emailType);
       } catch (Exception e) {
         LOG.error("sendConfirmationToUser error", e);
+        // Rethrow (wrapped, since run() isn't declared to throw a checked Exception) so this
+        // job's retries=1 actually gets a chance to fire -- swallowing it here was silently
+        // discarding every send failure with no retry (issue #1124).
+        throw new RuntimeException(e);
       }
     }
 

@@ -194,6 +194,10 @@ public class EmailTask implements Work {
 
       } catch (Exception e) {
         LOG.error("sendConfirmationToUser could not send mail", e);
+        // A FAILED report (not COMPLETED) is required for WorkflowManager.findAndRunWorkflow() to
+        // let this propagate to the enclosing JobRunr job's retries=1 (issue #1124) -- returning
+        // COMPLETED here regardless of outcome is what made that retry dead code.
+        return new DefaultWorkReport(WorkStatus.FAILED, workContext, e);
       }
       return new DefaultWorkReport(WorkStatus.COMPLETED, workContext);
     } catch (Exception e) {
