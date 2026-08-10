@@ -93,7 +93,7 @@
     <jstl-api.version>3.0.2</jstl-api.version>
     <jstl.version>3.0.1</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
-    <libphonenumber.version>9.0.35</libphonenumber.version>
+    <libphonenumber.version>9.0.36</libphonenumber.version>
     <lombok.version>1.18.46</lombok.version>
     <postgresql.version>42.7.13</postgresql.version>
     <rabbitmq.version>5.34.0</rabbitmq.version>
