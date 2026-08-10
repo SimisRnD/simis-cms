@@ -1,0 +1,1455 @@
+openapi: 3.0.3
+info:
+  title: SimIS CMS REST API
+  version: "1.0.0"
+  description: |
+    The JSON API described in [api.md](api.md), covering every endpoint registered in
+    `WEB-INF/rest-services/rest-services.xml` plus the two authentication endpoints
+    `RestRequestFilter` handles directly (`POST /session`, `POST /oauth2/authorize`).
+
+    ## Authentication
+
+    Every request needs an app's public key, either as the `X-API-Key` header or the `key` query
+    parameter (header checked first). An unrecognized or disabled key is rejected before the request
+    reaches any endpoint logic.
+
+    A **Bearer token** is additionally required for any write (`POST`/`PUT`/`DELETE`), and for a
+    handful of reads that are gated further (see each operation). To obtain one, exchange a CMS
+    username/password for a 30-day token via HTTP Basic auth against `POST /oauth2/authorize` (this
+    endpoint is handled directly by `RestRequestFilter`, ahead of the normal key/token checks, and is
+    not one of the registered service classes below):
+
+    ```
+    POST /api/oauth2/authorize
+    X-API-Key: <app public key>
+    Authorization: Basic <base64(email:password)>
+    ```
+
+    Without a Bearer token, a request is demoted to a role-less guest (numeric user id `0`, distinct
+    from "no user") rather than rejected — guest reads are legitimate throughout this API. A guest
+    may only use `GET`/`HEAD`; any other verb without a token is rejected with `401` before it reaches
+    the endpoint. Whether a guest *read* also needs a token depends on the `site.online` setting: when
+    the site is offline, every request needs a token, guest or not.
+
+    ## Response envelope
+
+    Every successful (`200`) response is a JSON object with a `meta` key (always) and a `data` key
+    (present on every operation documented here). `meta` is either `{"type": "..."}` for a single
+    resource, or `{"type": "...", "rows": N, "totalItems": N}` for a collection — with `pageIndex`
+    and `totalPages` added when the endpoint paginates (see each operation). A failure response
+    instead has a single `error` key: `{"error": {"code": N, "message": "..."}}`, where `code` repeats
+    the HTTP status. The two shapes are mutually exclusive; a `meta`/`data` response never carries an
+    `error`, and vice versa. `POST /session`'s realistic (no-token) response is the one exception —
+    see that operation.
+
+    **Null fields are omitted, not sent as `null`.** The server's JSON serializer (Jakarta JSON
+    Binding / Apache Johnzon, not the Jackson annotations visible on a few response classes — those
+    are inert leftovers and have no effect) drops any field whose value is Java `null` at
+    serialization time. It does *not* drop empty strings or empty arrays — those are sent as `""`
+    / `[]`. A schema below marks a field `nullable`+not-`required` wherever the server can omit it;
+    treat an absent key and an explicit `null` as the same thing.
+
+    ## Errors that can happen on any operation
+
+    These are enforced by `RestRequestFilter` ahead of every endpoint below, so they're documented
+    once here rather than repeated on each operation:
+    - **401** — missing or unrecognized `X-API-Key` / `key`, or (once past the key check) a missing,
+      expired, or invalid Bearer token on an operation that requires one.
+    - **403** `{"error":{"code":403,"message":"API is disabled"}}` — the site operator has turned the
+      API off (`site.api` setting).
+    - **429** `{"error":{"code":429,"message":"Too many requests"}}` — per-IP or per-app-key rate
+      limit, checked before the key/token itself in some cases.
+    - **500** `{"error":{"code":500,"message":"Error occurred"}}` — an uncaught exception anywhere in
+      request handling. Always a generic message; never includes exception detail.
+    - Calling an HTTP method a given endpoint's service class doesn't implement (e.g. `DELETE` on any
+      endpoint below) returns **404** `{"error":{"code":404,"message":"Service error occurred"}}`, not
+      `405` — the dispatcher resolves purely by reflecting for a same-named method and treats a miss
+      as "not found".
+    - A small number of infrastructure-level responses exist outside this JSON envelope entirely and
+      are not modeled below: a `301` redirect to HTTPS when the site requires SSL, and a bare `404`
+      when the request's hostname isn't on the site's allow-list.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: /api
+    description: Relative to the application's context path, e.g. https://your-site.example.com/api
+
+security:
+  - ApiKeyHeader: []
+  - ApiKeyQuery: []
+
+tags:
+  - name: Authentication
+  - name: User
+  - name: Content
+  - name: Collections & Items
+  - name: Web Pages
+  - name: Blog Posts
+  - name: Files
+  - name: Mailing Lists
+  - name: Audit Log
+
+paths:
+  /session:
+    post:
+      tags: [Authentication]
+      summary: Record a session (guest or authenticated)
+      description: |
+        Handled directly by `RestRequestFilter`, ahead of the normal dispatcher — the request never
+        reaches a registered service class unless a *valid Bearer token* is also supplied, an
+        unusual combination for this endpoint (see below).
+
+        **Without a Bearer token** (the intended, documented use — establishing a session id up
+        front, before a user logs in): the filter starts a new session and returns immediately, in a
+        non-standard shape that is *not* the `{meta,data}` envelope described above:
+        ```json
+        {"type": "session", "id": "<servlet session id>"}
+        ```
+        **With a valid Bearer token:** the request instead falls through the filter's normal
+        authenticated path and reaches `SessionService.post()`, which is a legacy no-op — it returns
+        `200` with a completely empty JSON body (`{}`), no `meta` or `data` at all. There is
+        essentially never a reason to call this endpoint with a Bearer token.
+      responses:
+        '200':
+          description: Session established (see the two distinct shapes described above)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - title: No Bearer token (real, documented use)
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum: [session]
+                      id:
+                        type: string
+                        description: The servlet session id
+                    required: [type, id]
+                  - title: With a valid Bearer token (legacy no-op)
+                    type: object
+                    description: Always empty.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /oauth2/authorize:
+    post:
+      tags: [Authentication]
+      summary: Exchange a username/password for a Bearer token
+      description: |
+        Handled directly by `RestRequestFilter`, ahead of the normal dispatcher and ahead of the
+        Bearer-token check (there is no token yet) — not one of the registered service classes.
+        Credentials are sent as **HTTP Basic** auth (`docs/api.md` calls this "digest authentication",
+        which is not accurate to the actual implementation).
+      security:
+        - ApiKeyHeader: []
+          BasicAuth: []
+        - ApiKeyQuery: []
+          BasicAuth: []
+      responses:
+        '200':
+          description: A 30-day Bearer token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: Pass this as `Authorization Bearer <access_token>` on later requests.
+                  token_type:
+                    type: string
+                    enum: [bearer]
+                  expires_in:
+                    type: integer
+                    description: Seconds until expiry (fixed at 2592000 — 30 days).
+                  name:
+                    type: string
+                  first_name:
+                    type: string
+                  last_name:
+                    type: string
+                  scope:
+                    type: string
+                    enum: [create]
+                required: [access_token, token_type, expires_in, name, first_name, last_name, scope]
+        '401':
+          description: Missing/malformed `Authorization` header, or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /me:
+    get:
+      tags: [User]
+      summary: Get the caller's profile
+      description: |
+        Does **not** require a Bearer token and does not itself distinguish a guest from an
+        authenticated caller — a guest (no Bearer token) gets `200` back too, just with almost every
+        field absent (a guest has no name, email, roles, or groups). This is the one read endpoint in
+        this API where "the call succeeded" does not imply "a real user is signed in"; check whether
+        the response has any populated fields, not the status code, to tell the two apart.
+      responses:
+        '200':
+          description: OK (see the guest-caller note above)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/MeProfile'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /content/{contentUniqueId}:
+    get:
+      tags: [Content]
+      summary: Get a content block's published HTML
+      parameters:
+        - $ref: '#/components/parameters/ContentUniqueId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/ContentBlock'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No content block with this unique id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Content]
+      summary: Create or update a content block
+      description: |
+        Requires a Bearer-authenticated user holding the `admin`, `content-manager`, or
+        `content-editor` role. If the site has governed publishing turned on
+        (`content.review.required`) and the caller isn't allowed to publish directly, a requested
+        publish is silently downgraded to a draft save — check the response's `gated` field, not just
+        the status code, to detect this; a headless caller has no UI to notice it otherwise.
+      security:
+        - ApiKeyHeader: []
+          BearerAuth: []
+        - ApiKeyQuery: []
+          BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ContentUniqueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentUpdateRequest'
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/ContentUpdateResponse'
+                required: [meta, data]
+        '400':
+          description: |
+            Malformed JSON body, blank `content`, `format` other than `"html"`/`"delta"`, or the
+            underlying save was rejected (message varies).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No Bearer token (a guest may not write)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated, but missing `admin`/`content-manager`/`content-editor`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: |
+            This content block already has a saved version (published, if this write would publish;
+            otherwise the pending draft) in the *other* format (HTML vs. Delta) from the one this
+            request uses.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: The save itself failed (returned null) for an unlogged reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections:
+    get:
+      tags: [Collections & Items]
+      summary: List collections visible to the caller
+      description: Not paginated — every visible collection is returned in one response.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Collection'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /categories/{collectionUniqueId}:
+    get:
+      tags: [Collections & Items]
+      summary: List a collection's categories
+      description: |
+        Not paginated. Returns **400**, not 404, both when the collection truly doesn't exist and
+        when it exists but the caller isn't authorized to see it — the two cases use different
+        messages ("Parent collection was not found" vs. "Collection was not found") but the same
+        status code.
+      parameters:
+        - $ref: '#/components/parameters/CollectionUniqueId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                required: [meta, data]
+        '400':
+          description: Collection not found, or not authorized for this caller (see above)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /items/{collectionUniqueId}:
+    get:
+      tags: [Collections & Items]
+      summary: List items in a collection
+      description: |
+        Returns **400**, not 404, when the collection doesn't exist, isn't authorized for this
+        caller, or (if `category` is given) the category doesn't exist within it — all three share
+        the 400 status, with distinct messages.
+
+        The route was originally registered with a `query` parameter in mind
+        (`items/{collectionUniqueId}?category=...&query=value`, see the comment above this entry in
+        `rest-services.xml`) but `ItemListService` never implemented it — passing `query` has no
+        effect. Only `category`, `page`, and `size` actually do anything.
+      parameters:
+        - $ref: '#/components/parameters/CollectionUniqueId'
+        - name: category
+          in: query
+          description: Restrict to one category, by its unique id within this collection.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ItemSummary'
+                required: [meta, data]
+        '400':
+          description: Collection not found/not authorized, or category not found (see above)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /item/{itemUniqueId}:
+    get:
+      tags: [Collections & Items]
+      summary: Get a single item
+      description: |
+        Deactivated/archived items are always excluded, even for an admin caller — unlike the
+        equivalent page-servlet routes, this endpoint has no "admin edit" mode.
+
+        Note the status-code split: the item itself missing (or archived) is **404**, but the item
+        existing while its *parent collection* isn't authorized for this caller is **400** — both use
+        a non-leaking "Item was not found" message.
+      parameters:
+        - $ref: '#/components/parameters/ItemUniqueId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/ItemDetails'
+                required: [meta, data]
+        '400':
+          description: Item exists but its parent collection isn't authorized for this caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such item, or it's archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /pages:
+    get:
+      tags: [Web Pages]
+      summary: List web pages visible to the caller
+      description: |
+        Visibility (draft state, publish/expiry schedule, and any role/group/capability gate on the
+        page) is applied in application code *after* the database page/size window is fetched, not as
+        a SQL filter. A returned page can therefore legitimately contain fewer than `size` entries —
+        `meta.rows` reflects the post-filter count actually returned, while `meta.totalItems` /
+        `meta.totalPages` reflect the pre-filter database total, so the two can disagree.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebPage'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /page/{pagePath}:
+    get:
+      tags: [Web Pages]
+      summary: Get a single web page's metadata by its path
+      description: |
+        Returns rendered *metadata* (title, description, publish window, ...), not the page's widget
+        content — that would need the same section/column/widget role-gating the page servlet applies
+        at render time, which is out of scope here.
+
+        `pagePath` may itself contain `/` (e.g. a page linked at `/about/team`) — pass the full path
+        after the leading slash. A page that doesn't exist and a page that exists but isn't currently
+        visible to this caller (draft, outside its publish window, role-gated, ...) both return the
+        same 404 with the same message, so the response never reveals which case it was.
+      parameters:
+        - name: pagePath
+          in: path
+          required: true
+          description: The page's link, without the leading slash (e.g. `about/team` for `/about/team`).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/WebPage'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such page, or not visible to this caller (see above)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /blog-posts/{blogUniqueId}:
+    get:
+      tags: [Blog Posts]
+      summary: List a blog's published posts
+      description: |
+        Registered as `blog-posts/{blogUniqueId}`, not `blog/{blogUniqueId}/posts` as originally
+        specced in issue #412 — the dispatcher's router only supports up to two raw path parameters
+        with no literal segment between them, so a trailing literal `/posts` isn't representable.
+
+        Only currently-published posts within their start/end window are returned — this is stricter
+        than the single-post `GET /post/{blogUniqueId}/{postUniqueId}` endpoint below, which also
+        serves a post whose end date has passed (matching what the live site's permalink actually
+        does; see that operation).
+      parameters:
+        - $ref: '#/components/parameters/BlogUniqueId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BlogPost'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such blog, or it's disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /post/{blogUniqueId}/{postUniqueId}:
+    get:
+      tags: [Blog Posts]
+      summary: Get a single blog post
+      description: |
+        Registered as `post/{blogUniqueId}/{postUniqueId}`, not `post/{postUniqueId}` as originally
+        specced — a post's unique id is only unique within its blog, not globally, so the blog has to
+        be resolved first regardless.
+
+        Visibility here mirrors the live single-post page exactly (`published != null`, plus an
+        admin/`content-manager` bypass for unpublished drafts) — unlike the list endpoint above, it
+        does **not** also require the post to be within its start/end date window, so a post whose end
+        date has passed is still reachable by direct link here even though it has dropped out of list
+        results.
+      parameters:
+        - $ref: '#/components/parameters/BlogUniqueId'
+        - name: postUniqueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/BlogPost'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such blog (or disabled), or no such post (or not visible — see above)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /files/{folderUniqueId}:
+    get:
+      tags: [Files]
+      summary: List files in a folder
+      description: |
+        Applies the same guest/group ACL (`Folder.allowsGuests` plus folder/user group membership)
+        that the live site's folder-listing widget applies — an anonymous or guest caller only sees
+        folders and files that ACL actually allows, not every enabled folder.
+      parameters:
+        - $ref: '#/components/parameters/FolderUniqueId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileSummary'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such folder, or not authorized for this caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /file/{fileId}:
+    get:
+      tags: [Files]
+      summary: Get a single file's metadata
+      description: |
+        Registered as `file/{fileId}`, keyed by the file's numeric id rather than a `fileUniqueId` as
+        originally specced — files have no unique-id field the way folders/blogs/pages do. Applies the
+        same folder ACL as the list endpoint above.
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: Numeric file id. A non-numeric value is treated as not-found (404), not a 400.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/FileSummary'
+                required: [meta, data]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No such file (including a non-numeric `fileId`), or not authorized for this caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /mailing-list-members:
+    post:
+      tags: [Mailing Lists]
+      summary: Create (or reactivate) a mailing list member
+      description: |
+        Requires a Bearer-authenticated user holding the `admin` or `community-manager` role. Reuses
+        the same save command the admin UI and CSV import use
+        (`SaveEmailCommand.saveEmail`) — the exact same validation, quarantine, and
+        already-subscribed-elsewhere handling applies, not a reimplementation.
+
+        The target mailing list must already exist: `mailingListId` (if `> -1`) takes priority over
+        `mailingListName`; if neither is given the list defaults to "Newsletter" — but unlike
+        `SaveEmailCommand`'s own internal default-list helper, a name that doesn't resolve to an
+        existing list is rejected here (400), never auto-created.
+      security:
+        - ApiKeyHeader: []
+          BearerAuth: []
+        - ApiKeyQuery: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MailingListMemberCreateRequest'
+      responses:
+        '200':
+          description: Created (or reactivated)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/MailingListMember'
+                required: [meta, data]
+        '400':
+          description: |
+            Malformed JSON body, blank `email`, the mailing list couldn't be resolved, or the
+            underlying save was rejected (message varies).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No Bearer token (a guest may not write)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated, but missing `admin`/`community-manager`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: The save itself failed for an unlogged reason
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /mailing-list-members/{memberId}:
+    put:
+      tags: [Mailing Lists]
+      summary: Update a mailing list member's name/organization, or unsubscribe them
+      description: |
+        Requires a Bearer-authenticated user holding the `admin` or `community-manager` role, same as
+        the create endpoint above.
+
+        **`unsubscribed: false` is rejected (400), not silently ignored.** The quarantine-reactivation
+        block in the membership-add path only guards *subscribing*; flipping the stored flag straight
+        back to subscribed here would bypass it. To resubscribe someone, `POST` a new member instead —
+        that goes through the same guarded path a brand-new signup does.
+
+        A name/organization change lands on the address's shared record, not a column scoped to this
+        one list membership — the change is visible on every mailing list (and any e-commerce customer
+        record) that shares the same email address, not just this membership.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          description: Numeric mailing-list-member id.
+          schema:
+            type: string
+      security:
+        - ApiKeyHeader: []
+          BearerAuth: []
+        - ApiKeyQuery: []
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MailingListMemberUpdateRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaSingle'
+                  data:
+                    $ref: '#/components/schemas/MailingListMember'
+                required: [meta, data]
+        '400':
+          description: |
+            `memberId` isn't numeric, the JSON body is malformed/missing, or `unsubscribed: false` was
+            sent (see above).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No Bearer token (a guest may not write)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated, but missing `admin`/`community-manager`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No member with this id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: The member's associated email or mailing-list record was unexpectedly missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /audit-log:
+    get:
+      tags: [Audit Log]
+      summary: Query the security audit log
+      description: |
+        Requires a Bearer-authenticated user holding the `admin` role — every other consumer of the
+        audit log (the admin widget, its CSV/JSON export) is admin-only too, and this follows suit.
+        Querying it via the API is itself recorded as an audit event.
+      security:
+        - ApiKeyHeader: []
+          BearerAuth: []
+        - ApiKeyQuery: []
+          BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Page size. Values below 1 fall back to 50; values above 200 are capped to 200.
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: outcome
+          in: query
+          schema:
+            type: string
+        - name: actor
+          in: query
+          schema:
+            type: string
+        - name: sourceIp
+          in: query
+          schema:
+            type: string
+        - name: targetType
+          in: query
+          schema:
+            type: string
+        - name: targetLabel
+          in: query
+          schema:
+            type: string
+        - name: range
+          in: query
+          description: A quick preset instead of an explicit `fromDate`/`toDate` range (e.g. 1h/24h/7d/30d).
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaList'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+                required: [meta, data]
+        '401':
+          description: No Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated, but missing `admin`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: An app's public key, from Admin > Apps.
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: key
+      description: Equivalent to the `X-API-Key` header — use one or the other, not both.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Obtained from `POST /oauth2/authorize`.
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: CMS username (email) and password, used only to obtain a Bearer token.
+
+  parameters:
+    ContentUniqueId:
+      name: contentUniqueId
+      in: path
+      required: true
+      schema:
+        type: string
+    CollectionUniqueId:
+      name: collectionUniqueId
+      in: path
+      required: true
+      schema:
+        type: string
+    ItemUniqueId:
+      name: itemUniqueId
+      in: path
+      required: true
+      schema:
+        type: string
+    BlogUniqueId:
+      name: blogUniqueId
+      in: path
+      required: true
+      schema:
+        type: string
+    FolderUniqueId:
+      name: folderUniqueId
+      in: path
+      required: true
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      description: 1-indexed page number.
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    Size:
+      name: size
+      in: query
+      description: |
+        Page size. Unlike `/audit-log`, this endpoint does not clamp an out-of-range value server-side
+        beyond falling back to the default when the value isn't a positive-looking numeral.
+      schema:
+        type: integer
+        default: 20
+
+  responses:
+    Unauthorized:
+      description: Missing/unrecognized API key, or (where a Bearer token is required) a missing/expired/invalid one
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Rate limit exceeded (per-IP or per-app-key)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      description: The body of every non-2xx response in this API.
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: Repeats the HTTP status code.
+            message:
+              type: string
+          required: [code, message]
+      required: [error]
+
+    MetaSingle:
+      type: object
+      description: The `meta` shape for an endpoint returning one resource.
+      properties:
+        type:
+          type: string
+      required: [type]
+
+    MetaList:
+      type: object
+      description: |
+        The `meta` shape for an endpoint returning a collection. `pageIndex`/`totalPages` are present
+        only on the paginated endpoints (see each operation) — `GET /collections` and
+        `GET /categories/{collectionUniqueId}` return every visible row in one response and omit both.
+        `totalItems` can be `-1` if the underlying query never ran a count (not observed in current
+        code, but not structurally prevented either) — treat it as unreliable rather than asserting on it.
+      properties:
+        type:
+          type: string
+        rows:
+          type: integer
+          description: The number of items actually in this response's `data` array.
+        totalItems:
+          type: integer
+        pageIndex:
+          type: integer
+        totalPages:
+          type: integer
+      required: [type, rows, totalItems]
+
+    MeProfile:
+      type: object
+      description: See the guest-caller note on `GET /me` — most fields are absent for a guest.
+      properties:
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        fullName:
+          type: string
+          nullable: true
+        nickname:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+          description: Omitted (not just blank) unless the underlying value contains "@".
+        roleList:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Role titles only, not full role objects. Absent for a guest.
+        groupList:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Group names only. Absent for a guest.
+
+    ContentBlock:
+      type: object
+      properties:
+        uniqueId:
+          type: string
+        content:
+          type: string
+          description: Always rendered to displayable HTML server-side, even if the block is stored as Delta.
+      required: [uniqueId, content]
+
+    ContentUpdateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+        format:
+          type: string
+          enum: [html, delta]
+          default: html
+        publish:
+          type: boolean
+          default: false
+          description: A request, not a guarantee — see the operation description for governed publishing.
+      required: [content]
+
+    ContentUpdateResponse:
+      type: object
+      properties:
+        uniqueId:
+          type: string
+        published:
+          type: boolean
+          description: What actually happened — not an echo of the request's `publish` flag.
+        gated:
+          type: boolean
+          description: True when a requested publish was downgraded to a draft save for review.
+      required: [uniqueId, published, gated]
+
+    Collection:
+      type: object
+      properties:
+        name:
+          type: string
+        uniqueId:
+          type: string
+        description:
+          type: string
+          nullable: true
+        categoryCount:
+          type: integer
+      required: [name, uniqueId, categoryCount]
+
+    Category:
+      type: object
+      properties:
+        uniqueId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required: [uniqueId, name]
+
+    ItemSummary:
+      type: object
+      description: The abbreviated shape used in the list endpoint. See `ItemDetails` for the single-item shape.
+      properties:
+        uniqueId:
+          type: string
+        name:
+          type: string
+        summaryPart:
+          type: string
+          nullable: true
+          description: A ~75-character trimmed excerpt of the item's summary; absent if the item has none.
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          description: Present only if the item has a geo point set — always alongside `longitude`, never alone.
+        longitude:
+          type: number
+          format: double
+          nullable: true
+      required: [uniqueId, name]
+
+    ItemDetails:
+      type: object
+      description: The full shape used by the single-item endpoint. See `ItemSummary` for the list shape.
+      properties:
+        uniqueId:
+          type: string
+        name:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        street:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        postalCode:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          description: Present only if the item has a geo point set — always alongside `longitude`, never alone.
+        longitude:
+          type: number
+          format: double
+          nullable: true
+      required: [uniqueId, name]
+
+    WebPage:
+      type: object
+      properties:
+        link:
+          type: string
+          description: The page's path, with a leading slash.
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        keywords:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        redirectUrl:
+          type: string
+          nullable: true
+        publishAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        modified:
+          type: string
+          format: date-time
+          nullable: true
+      required: [link]
+
+    BlogPost:
+      type: object
+      properties:
+        uniqueId:
+          type: string
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        keywords:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        videoUrl:
+          type: string
+          nullable: true
+        published:
+          type: string
+          format: date-time
+          nullable: true
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        modified:
+          type: string
+          format: date-time
+          nullable: true
+      required: [uniqueId]
+
+    FileSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+        title:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        mimeType:
+          type: string
+        fileLength:
+          type: integer
+          description: Size in bytes.
+        width:
+          type: integer
+          description: 0 for a non-image file.
+        height:
+          type: integer
+          description: 0 for a non-image file.
+        modified:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, filename, mimeType, fileLength, width, height]
+
+    AuditLogEntry:
+      type: object
+      description: |
+        Excludes the tamper-evidence hash-chain fields (`previousHash`/`recordHash`) present on the
+        underlying record — those are an internal integrity-verification detail, not exposed here.
+      properties:
+        id:
+          type: integer
+        occurred:
+          type: string
+          format: date-time
+          nullable: true
+        eventCategory:
+          type: string
+        eventType:
+          type: string
+        outcome:
+          type: string
+        actorUserId:
+          type: integer
+          nullable: true
+          description: Absent for a system/anonymous-actor event, not a real user.
+        actorUsername:
+          type: string
+          nullable: true
+        sourceIp:
+          type: string
+          nullable: true
+        targetType:
+          type: string
+          nullable: true
+        targetId:
+          type: string
+          nullable: true
+        targetLabel:
+          type: string
+          nullable: true
+        sessionId:
+          type: string
+          nullable: true
+        details:
+          type: string
+          nullable: true
+      required: [id, eventCategory, eventType, outcome]
+
+    MailingListMemberCreateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        organization:
+          type: string
+        mailingListId:
+          type: integer
+          description: Takes priority over `mailingListName` when both are given.
+        mailingListName:
+          type: string
+          description: Ignored if `mailingListId` is given. Defaults to "Newsletter" if neither is given.
+      required: [email]
+
+    MailingListMemberUpdateRequest:
+      type: object
+      description: Every field is optional; an omitted field is left unchanged.
+      properties:
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        organization:
+          type: string
+          nullable: true
+        unsubscribed:
+          type: boolean
+          nullable: true
+          description: |
+            Only `true` is accepted. Omit the field for no change; `false` is rejected with 400 — see
+            the operation description.
+
+    MailingListMember:
+      type: object
+      properties:
+        memberId:
+          type: integer
+        mailingListId:
+          type: integer
+        email:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        organization:
+          type: string
+          nullable: true
+        valid:
+          type: boolean
+          description: False once quarantined or unsubscribed.
+        unsubscribed:
+          type: boolean
+      required: [memberId, mailingListId, email, valid, unsubscribed]

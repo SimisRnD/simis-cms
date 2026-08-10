@@ -53,3 +53,8 @@ Calls without a user:
 ```bash
 http GET http://localhost:8080/api/me?key=<secret_key>
 ```
+
+## OpenAPI Spec
+
+[openapi.yaml](openapi.yaml) is a machine-readable OpenAPI 3.0 description of every endpoint above,
+including exact request/response shapes, status codes, and auth requirements per endpoint.
