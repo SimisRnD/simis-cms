@@ -44,6 +44,9 @@
          failure. Not a generated management-plane client. See PublishEventCachePurgeHandler. -->
     <azure-identity.version>1.18.4</azure-identity.version>
     <azure-core-http-okhttp.version>1.13.5</azure-core-http-okhttp.version>
+    <!-- Azure SPN authentication for Postgres (issue #1129): dormant, opt-in
+         (DB_AUTH_METHOD=azure-sql-spn); see DatabaseProperties.applyAzureSpnAuthentication() -->
+    <azure-identity-extensions.version>1.2.9</azure-identity-extensions.version>
     <bucket4j.version>8.10.1</bucket4j.version>
     <caffeine.version>3.2.4</caffeine.version>
     <apache-http.version>5.4.3</apache-http.version>
@@ -144,6 +147,18 @@
       <groupId>com.azure</groupId>
       <artifactId>azure-core-http-okhttp</artifactId>
       <version>${azure-core-http-okhttp.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity-extensions</artifactId>
+      <version>${azure-identity-extensions.version}</version>
+      <exclusions>
+        <!-- Swapped for azure-core-http-okhttp above; see the azure-identity.version comment. -->
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-http-netty</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.bucket4j</groupId>
