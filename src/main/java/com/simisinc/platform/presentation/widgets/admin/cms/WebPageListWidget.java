@@ -20,6 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
@@ -27,14 +28,19 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.XMLPageLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.Page;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -114,6 +120,22 @@ public class WebPageListWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("webPageMap", webPageMap);
 
+    // Trailing 30-day view count per page (#497), keyed by web_page_id -- one bulk query for the
+    // whole page set rather than a per-row lookup. This must cover every page in webPageList, not
+    // just the filtered "All Web Pages" subset: the "In Navigation Menu" section above always
+    // renders from the unfiltered webPageMap regardless of the active search/status filter, so
+    // scoping this query to the filtered subset would silently show 0 views for a nav-menu page
+    // excluded by the filter. A page absent from the map (no hits in the window, or a WebPage with a
+    // null/unset id) has zero views; the JSP must treat a missing key as zero rather than blank.
+    // Computed up here (rather than after filtering, where it used to live) so the "No Traffic"
+    // status filter below can use it too.
+    List<Long> webPageIdList = new ArrayList<>();
+    for (WebPage webPage : webPageList) {
+      webPageIdList.add(webPage.getId());
+    }
+    Map<Long, Long> webPageViewCountMap = WebPageHitRepository.countViewsByWebPageId(webPageIdList, 30);
+    context.getRequest().setAttribute("webPageViewCountMap", webPageViewCountMap);
+
     // Status-count summary (issue #497): always computed over the full, unfiltered list so it
     // stays a stable "at a glance" total regardless of the active search/status filter below.
     // Every page falls into exactly one bucket, using the same live/broken/draft/redirect
@@ -190,6 +212,48 @@ public class WebPageListWidget extends GenericWidget {
         }
       }
       filteredWebPageList = liveList;
+    } else if ("noTraffic".equals(status)) {
+      // issue #497: reuses the 30-day view-count map computed above rather than a separate/longer
+      // window -- keeps this cheap (no second query) and consistent with the Views (30d) column the
+      // admin is already looking at. Not restricted to any other status (a draft, a redirect, or a
+      // broken page can all have zero traffic too) -- just excludes archived, like every other option.
+      List<WebPage> noTrafficList = new ArrayList<>();
+      for (WebPage webPage : filteredWebPageList) {
+        Long views = webPageViewCountMap.get(webPage.getId());
+        if (views == null || views == 0L) {
+          noTrafficList.add(webPage);
+        }
+      }
+      filteredWebPageList = noTrafficList;
+    }
+
+    // "Hide Internal Pages" (issue #497) -- internal is a real column (see WebPage javadoc for why
+    // the pre-existing role_id_list wasn't reused), so this could be pushed into the specification's
+    // WHERE clause, but it's applied here instead to compose freely with broken/live/noTraffic above,
+    // which are already Java-side post-filters for the same reason.
+    boolean hideInternal = context.getParameterAsBoolean("hideInternal");
+    if (hideInternal) {
+      List<WebPage> externalList = new ArrayList<>();
+      for (WebPage webPage : filteredWebPageList) {
+        if (!webPage.isInternal()) {
+          externalList.add(webPage);
+        }
+      }
+      filteredWebPageList = externalList;
+    }
+
+    // Sort by traffic (issue #497) -- the default order (alphabetical by link, via
+    // WebPageSpecification/findAll's ORDER BY) is left alone unless explicitly requested; this
+    // re-sorts the already-filtered, already-fetched list in Java rather than pushing into SQL,
+    // matching how broken/live/noTraffic are derived above rather than queried.
+    String sort = context.getParameter("sort");
+    if ("traffic".equals(sort)) {
+      filteredWebPageList = new ArrayList<>(filteredWebPageList);
+      filteredWebPageList.sort(Comparator.comparingLong(
+          (WebPage webPage) -> {
+            Long views = webPageViewCountMap.get(webPage.getId());
+            return views == null ? 0L : views;
+          }).reversed());
     }
     context.getRequest().setAttribute("webPageList", filteredWebPageList);
 
@@ -204,23 +268,11 @@ public class WebPageListWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("webPageReviewStatusMap", webPageReviewStatusMap);
 
-    // Trailing 30-day view count per page (#497), keyed by web_page_id -- one bulk query for the
-    // whole page set rather than a per-row lookup. This must cover every page in webPageList, not
-    // just filteredWebPageList: the "In Navigation Menu" section above always renders from the
-    // unfiltered webPageMap regardless of the active search/status filter, so scoping this query to
-    // the filtered subset would silently show 0 views for a nav-menu page excluded by the filter. A
-    // page absent from the map (no hits in the window, or a WebPage with a null/unset id) has zero
-    // views; the JSP must treat a missing key as zero rather than blank.
-    List<Long> webPageIdList = new ArrayList<>();
-    for (WebPage webPage : webPageList) {
-      webPageIdList.add(webPage.getId());
-    }
-    Map<Long, Long> webPageViewCountMap = WebPageHitRepository.countViewsByWebPageId(webPageIdList, 30);
-    context.getRequest().setAttribute("webPageViewCountMap", webPageViewCountMap);
-
     // Echo the filter values back so the form keeps its state
     context.getRequest().setAttribute("q", searchTerm);
     context.getRequest().setAttribute("status", status);
+    context.getRequest().setAttribute("hideInternal", hideInternal);
+    context.getRequest().setAttribute("sort", sort);
 
     // Show the JSP
     context.setJsp(JSP);
@@ -237,6 +289,16 @@ public class WebPageListWidget extends GenericWidget {
   public WidgetContext post(WidgetContext context) {
 
     String command = context.getParameter("command");
+
+    if ("downloadCSVFile".equals(command)) {
+      // Read-only, so gated the same as the page itself (admin-or-content-manager) rather than the
+      // stricter admin-only bulkDelete gate below.
+      if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+        LOG.warn("No permission to export web pages");
+        return context;
+      }
+      return downloadCsvFile(context);
+    }
 
     if ("bulkDelete".equals(command)) {
       // Matches WebPageFormWidget#action's existing admin-only delete gate exactly -- stricter
@@ -439,6 +501,55 @@ public class WebPageListWidget extends GenericWidget {
 
     setBulkResultMessage(context, "deleted", succeeded, webPageIds.size(), notFound, failed, rowIssues);
     context.setRedirect("/admin/web-pages");
+    return context;
+  }
+
+  /**
+   * Exports the "All Web Pages" list to CSV (issue #497), mirroring AuditLogListWidget's
+   * downloadCSVFile pattern. Honors the same search term + SQL-filterable status (draft/redirect/
+   * archived) as the on-screen list -- see {@link WebPageRepository#exportCsv} for why the
+   * broken/live/noTraffic/hideInternal refinements aren't also reflected in the export.
+   */
+  private WidgetContext downloadCsvFile(WidgetContext context) {
+    String searchTerm = context.getParameter("q");
+    String status = context.getParameter("status");
+    WebPageSpecification specification = new WebPageSpecification();
+    if (StringUtils.isNotBlank(searchTerm)) {
+      specification.setSearchTerm(searchTerm);
+    }
+    if ("archived".equals(status)) {
+      specification.setArchivedOnly(true);
+    } else {
+      specification.setArchivedOnly(false);
+      if ("draft".equals(status)) {
+        specification.setDraft(true);
+      } else if ("redirect".equals(status)) {
+        specification.setHasRedirect(true);
+      }
+    }
+
+    String displayFilename = "web-pages-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + ".csv";
+    File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), "csv");
+    try {
+      WebPageRepository.exportCsv(specification, tempFile);
+      MultipartFileSender.fromFile(tempFile)
+          .with(context.getRequest())
+          .with(context.getResponse())
+          .withMimeType("text/csv")
+          .withFilename(displayFilename)
+          .serveResource();
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "web_page.export", AuditEventCommand.SUCCESS,
+          "web_page", "filtered", displayFilename, null);
+    } catch (Exception e) {
+      LOG.error("Web page export failed", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "web_page.export", AuditEventCommand.FAILURE,
+          "web_page", "filtered", displayFilename, e.getMessage());
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete();
+      }
+    }
+    context.setHandledResponse(true);
     return context;
   }
 

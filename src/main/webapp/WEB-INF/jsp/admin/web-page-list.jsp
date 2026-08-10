@@ -45,7 +45,9 @@
   Problems). A second, unrelated badge can appear alongside it, on a page in any of those states:
   <strong>Pending Review</strong>/<strong>Approved</strong>/<strong>Draft</strong> means this page has a
   separate, unpublished edit sitting in the governed review pipeline -- the page's own live content (or lack of
-  it) is unaffected until that edit is actually published, however that badge reads.
+  it) is unaffected until that edit is actually published, however that badge reads. An <strong>internal</strong>
+  badge means the page has been marked as employee/staff-only in its edit form -- the "Hide Internal Pages"
+  filter below hides these; it does not restrict who can actually view the page.
 </p>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
@@ -252,12 +254,18 @@
       <strong>All Web Pages</strong>
       <small class="subheader">Every page record in the system, including the ones already shown above in the navigation menu.</small>
       <br />
+      <%-- Each count links to the matching status filter below (issue #497) -- clicking jumps
+           straight to that subset without needing to know the dropdown has a matching option. --%>
+      <c:url var="liveCountUrl" value="${widgetContext.uri}"><c:param name="status" value="live"/></c:url>
+      <c:url var="draftCountUrl" value="${widgetContext.uri}"><c:param name="status" value="draft"/></c:url>
+      <c:url var="redirectCountUrl" value="${widgetContext.uri}"><c:param name="status" value="redirect"/></c:url>
+      <c:url var="brokenCountUrl" value="${widgetContext.uri}"><c:param name="status" value="broken"/></c:url>
       <small class="subheader">
         <fmt:formatNumber value="${webPageTotalCount}" /> total &ndash;
-        <fmt:formatNumber value="${webPageLiveCount}" /> live,
-        <fmt:formatNumber value="${webPageDraftCount}" /> draft,
-        <fmt:formatNumber value="${webPageRedirectCount}" /> redirects,
-        <fmt:formatNumber value="${webPageBrokenCount}" /> broken
+        <a href="${liveCountUrl}"><fmt:formatNumber value="${webPageLiveCount}" /> live</a>,
+        <a href="${draftCountUrl}"><fmt:formatNumber value="${webPageDraftCount}" /> draft</a>,
+        <a href="${redirectCountUrl}"><fmt:formatNumber value="${webPageRedirectCount}" /> redirects</a>,
+        <a href="${brokenCountUrl}"><fmt:formatNumber value="${webPageBrokenCount}" /> broken</a>
       </small>
       <br />
       <small class="subheader">
@@ -270,12 +278,16 @@
   <tr>
     <td colspan="9">
       <form method="get" autocomplete="off" class="grid-x grid-margin-x align-bottom">
-        <div class="cell medium-5">
+        <%-- Only needed by the Download CSV button below (formmethod="post" routes it through
+             post()), but harmless as extra GET query params on Filter/Clear. --%>
+        <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+        <input type="hidden" name="token" value="${userSession.formToken}"/>
+        <div class="cell medium-4">
           <label>Search
             <input type="text" name="q" value="<c:out value='${q}'/>" placeholder="Title, link, or keywords" />
           </label>
         </div>
-        <div class="cell medium-4">
+        <div class="cell medium-3">
           <label>Status
             <select name="status">
               <option value="" ${empty status ? 'selected' : ''}>All</option>
@@ -283,17 +295,37 @@
               <option value="redirect" ${status eq 'redirect' ? 'selected' : ''}>Redirect (301)</option>
               <option value="broken" ${status eq 'broken' ? 'selected' : ''}>Broken (no content)</option>
               <option value="live" ${status eq 'live' ? 'selected' : ''}>Live</option>
+              <%-- Reuses the same 30-day window as the Views column, not a separate lookback (issue #497). --%>
+              <option value="noTraffic" ${status eq 'noTraffic' ? 'selected' : ''}>No Traffic (30d)</option>
               <%-- Archived pages are excluded from every other option above by default (issue #427);
                    this is the only way to see them in the admin list. --%>
               <option value="archived" ${status eq 'archived' ? 'selected' : ''}>Archived</option>
             </select>
           </label>
         </div>
+        <div class="cell medium-2">
+          <label>Sort
+            <select name="sort">
+              <option value="" ${empty sort ? 'selected' : ''}>Link (A-Z)</option>
+              <option value="traffic" ${sort eq 'traffic' ? 'selected' : ''}>Most Views (30d)</option>
+            </select>
+          </label>
+        </div>
         <div class="cell medium-3">
+          <label>
+            <input type="checkbox" name="hideInternal" value="true" ${hideInternal ? 'checked' : ''}>
+            Hide Internal Pages
+          </label>
+        </div>
+        <div class="cell medium-12">
           <input type="submit" class="button radius" value="Filter" />
-          <c:if test="${!empty q || !empty status}">
+          <c:if test="${!empty q || !empty status || !empty sort || hideInternal}">
             <a href="${widgetContext.uri}" class="button radius secondary">Clear</a>
           </c:if>
+          <%-- Exports exactly the search+status narrowing above -- see WebPageRepository#exportCsv
+               javadoc for why Sort/Hide Internal/No Traffic/Broken/Live aren't also reflected. --%>
+          <button type="submit" name="command" value="downloadCSVFile" formmethod="post"
+                  class="button radius secondary"><i class="fa fa-download"></i> Download CSV</button>
         </div>
       </form>
     </td>
@@ -348,6 +380,9 @@
         <c:if test="${!empty webPageReviewStatusMap[webPage.id]}">
           <br /><span class="secondary label"><i class="fa fa-clipboard-check"></i> <c:out value="${webPageReviewStatusMap[webPage.id]}" /></span>
         </c:if>
+        <c:if test="${webPage.internal}">
+          <br /><span class="secondary label">internal</span>
+        </c:if>
       </td>
       <td>
         <c:out value="${webPage.title}" />
@@ -356,6 +391,9 @@
         <a href="${ctx}${webPage.link}"><c:out value="${webPage.link}" /></a>
         <c:if test="${!empty webPage.redirectUrl}">
           <i class="fa fa-long-arrow-right"></i> <c:out value="${webPage.redirectUrl}" />
+          <c:if test="${!empty webPage.redirectNotes}">
+            <br /><small class="subheader"><c:out value="${webPage.redirectNotes}" /></small>
+          </c:if>
         </c:if>
       </td>
       <td>

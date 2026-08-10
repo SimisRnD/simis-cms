@@ -382,6 +382,22 @@ ALLOWLIST: dict[str, str] = {
         "Built by <c:url> tag with <c:param> elements for each query parameter (action, widget, token, itemUniqueId, returnPage); <c:url> handles percent-encoding of parameter values and assembly of the URL.",
     "admin/job-queue-dashboard.jsp:${stateFilterUrl}":
         "Built by <c:url> tag with a <c:param name='state' value='${entry.key}'/> (job-queue-dashboard.jsp); entry.key only ever iterates over JobQueueDashboardWidget.loadStateCounts()'s fixed StateName.name() literals (SCHEDULED/ENQUEUED/PROCESSING/FAILED/SUCCEEDED), never request input, and <c:url>/<c:param> percent-encode the value regardless.",
+    "admin/web-page-list.jsp:${liveCountUrl}":
+        "Built by <c:url> tag with a <c:param name='status' value='live'/> (issue #497) -- the param value is a fixed literal, not request input, and <c:url>/<c:param> percent-encode it regardless.",
+    "admin/web-page-list.jsp:${draftCountUrl}":
+        "Same construction and reasoning as ${liveCountUrl} above (issue #497) -- <c:param name='status' value='draft'/>, a fixed literal.",
+    "admin/web-page-list.jsp:${redirectCountUrl}":
+        "Same construction and reasoning as ${liveCountUrl} above (issue #497) -- <c:param name='status' value='redirect'/>, a fixed literal.",
+    "admin/web-page-list.jsp:${brokenCountUrl}":
+        "Same construction and reasoning as ${liveCountUrl} above (issue #497) -- <c:param name='status' value='broken'/>, a fixed literal.",
+    "admin/web-page-list.jsp:${status eq 'noTraffic' ? 'selected' : ''}":
+        "Same reasoning as the sibling ${status eq 'draft' ? 'selected' : ''}-shaped options in this same dropdown (issue #497) -- fixed two-literal ternary comparing against a hardcoded string; only 'selected' or the empty string is possible.",
+    "admin/web-page-list.jsp:${empty sort ? 'selected' : ''}":
+        "Fixed two-literal ternary (issue #497), same shape as ${empty status ? 'selected' : ''} elsewhere in this file -- only 'selected' or the empty string is possible.",
+    "admin/web-page-list.jsp:${sort eq 'traffic' ? 'selected' : ''}":
+        "Fixed two-literal ternary (issue #497) comparing against a hardcoded string -- only 'selected' or the empty string is possible.",
+    "admin/web-page-list.jsp:${hideInternal ? 'checked' : ''}":
+        "hideInternal is a Java boolean (WebPageListWidget.java, context.getParameterAsBoolean('hideInternal'), issue #497) -- EL renders it as the fixed literal 'checked' or the empty string, never attacker-controlled text.",
 
     # <fmt:formatDate> output with a fixed, all-numeric pattern: the JSTL tag renders a real
     # Date/Timestamp through that pattern, so the output can only ever contain digits, '-',

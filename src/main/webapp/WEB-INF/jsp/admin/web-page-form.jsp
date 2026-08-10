@@ -71,6 +71,9 @@
       <label>Redirect
         <input type="text" placeholder="/other/page" name="redirectUrl" value="<c:out value="${webPage.redirectUrl}"/>">
       </label>
+      <label>Redirect Notes (optional)
+        <input type="text" placeholder="Why does this redirect exist? Is it still needed?" name="redirectNotes" value="<c:out value="${webPage.redirectNotes}"/>">
+      </label>
       <label>Title
         <input type="text" placeholder="Give it a title..." name="title" value="<c:out value="${webPage.title}"/>">
       </label>
@@ -146,6 +149,15 @@
         <div class="switch large">
           <input class="switch-input" id="searchable-yes-no" type="checkbox" name="searchable" value="true"<c:if test="${webPage.searchable}"> checked</c:if>>
           <label class="switch-paddle" for="searchable-yes-no">
+            <span class="switch-active" aria-hidden="true">Yes</span>
+            <span class="switch-inactive" aria-hidden="true">No</span>
+          </label>
+        </div>
+      </label>
+      <label>Internal page? <small class="subheader">(employee/staff-only -- lets other admins hide these from the main web pages list)</small>
+        <div class="switch large">
+          <input class="switch-input" id="internal-yes-no" type="checkbox" name="internal" value="true"<c:if test="${webPage.internal}"> checked</c:if>>
+          <label class="switch-paddle" for="internal-yes-no">
             <span class="switch-active" aria-hidden="true">Yes</span>
             <span class="switch-inactive" aria-hidden="true">No</span>
           </label>

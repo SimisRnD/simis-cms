@@ -153,6 +153,12 @@ public class WebPageFormWidget extends GenericWidget {
       webPageBean.setShowInSitemap(false);
     }
 
+    // Handle when value is not sent in request (issue #497 cheap-tier slice)
+    String internal = context.getParameter("internal");
+    if (StringUtils.isBlank(internal)) {
+      webPageBean.setInternal(false);
+    }
+
     // Parse optional scheduling timestamps (BeanUtils cannot convert String → Timestamp)
     String publishAtStr = context.getParameter("publishAt");
     if (StringUtils.isBlank(publishAtStr)) {
