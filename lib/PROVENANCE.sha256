@@ -62,7 +62,7 @@ cb46fa519fd4108a5bdde5f960c89dc5ed508e3dbf1edff89611d49817184c0d  lib/build/john
 5cc6e60b9e74d38c25fe4f2d22dfd40577f5b8396bc885f7061cd2c525a43b86  lib/build/jstl/jakarta.servlet.jsp.jstl-3.0.1.jar
 d55951aefedb543cb16193a873b92d22c40c3b8ba26cfa7ed9229eb118bb9c9b  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.2.jar
 6f64eac736db9434dd6925b4a518b9d1d17177652320c37916cf9ba3ce7d7d7a  lib/build/kotlin/kotlin-stdlib-2.3.21.jar
-943405a8dfb3959a0d8835eec7b0ce9c3ee137fcaf72491a20214cb16d35d073  lib/build/libphonenumber/libphonenumber-9.0.35.jar
+e8bbba87d446f6e035157c32b8f30e2b947964980c841161e148c3883dd177cd  lib/build/libphonenumber/libphonenumber-9.0.36.jar
 6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93  lib/build/postgresql/postgresql-42.7.13.jar
 407bab4db77453b42b052554934095873db0f1c9b8018aebb97f19eb9f5575fa  lib/build/rabbitmq/amqp-client-5.34.0.jar
 0325971b1e4acfaec4602a06ea6feda1b010b8f153cbe2f5955e7b7e5c6a897f  lib/build/restfb/restfb-2026.8.0.jar
