@@ -25,6 +25,13 @@
        comment free of a doubled hyphen; see PR #939 for why that already broke this exact file
        once. -->
   <service method="get" endpoint="content/{contentUniqueId}" class="com.simisinc.platform.rest.services.cms.ContentService" />
+  <!-- MailingListMemberService implements post() and put(), for POST /mailing-list-members (create)
+       and PUT /mailing-list-members/{memberId} (update) (issue #412 PR3). One row covers both verbs
+       and both the param-less collection endpoint and the param'd item endpoint: RestServlet falls
+       back from a direct "mailing-list-members" lookup miss to splitting off a trailing path param,
+       so POST resolves via the direct hit and PUT via the fallback split. See the comment on the
+       POST-capable content entry above for why the method attribute here is informational only. -->
+  <service method="post, put" endpoint="mailing-list-members/{memberId}" class="com.simisinc.platform.rest.services.mailinglists.MailingListMemberService" />
   <service method="get" endpoint="collections" class="com.simisinc.platform.rest.services.items.CollectionListService" />
   <service method="get" endpoint="categories/{collectionUniqueId}" class="com.simisinc.platform.rest.services.items.CategoryListService" />
   <service method="get" endpoint="items/{collectionUniqueId}?category=${categoryUniqueId}&amp;query=value" class="com.simisinc.platform.rest.services.items.ItemListService" />

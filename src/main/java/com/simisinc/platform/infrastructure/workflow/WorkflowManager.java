@@ -30,6 +30,8 @@ import org.jeasy.flows.playbook.PlaybookManager;
 import org.jeasy.flows.reader.YamlReader;
 import org.jeasy.flows.work.Expression;
 import org.jeasy.flows.work.WorkContext;
+import org.jeasy.flows.work.WorkReport;
+import org.jeasy.flows.work.WorkStatus;
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.scheduling.BackgroundJobRequest;
 
@@ -170,8 +172,15 @@ public class WorkflowManager {
       LOG.debug("-----------------------------------------------------------------------");
     }
 
-    // Execute the playbook
-    PlaybookManager.run(playbook, workContext);
+    // Execute the playbook -- a step reporting FAILED (e.g. EmailTask's send() throwing) has to
+    // propagate as a thrown exception here, or the enclosing JobRunr job
+    // (WorkflowEngineJobRequestHandler, @Job(retries = 1)) never sees a failure to retry against
+    // (issue #1124). findAndRunWorkflow() has exactly one caller -- that job's run() method --
+    // so throwing on failure here is safe.
+    WorkReport report = PlaybookManager.run(playbook, workContext);
+    if (report.getStatus() == WorkStatus.FAILED) {
+      throw new RuntimeException("Workflow failed for event: " + domainEvent.getDomainEventType(), report.getError());
+    }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("=======================================================================");
