@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
@@ -1488,6 +1489,36 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
     Assertions.assertEquals("Page", request.getAttribute("label"));
     Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeBotTrafficByIdentity() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Bot Traffic by Identity</title>\n" +
+            "  <report>bot-traffic-by-identity</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    BotIdentityStats googlebot = new BotIdentityStats();
+    googlebot.setIdentity("Googlebot");
+    googlebot.setSessionCount(42);
+    googlebot.setFirstSeen("Aug 1, 2026 9:00 AM");
+    googlebot.setLastSeen("Aug 11, 2026 2:00 PM");
+    googlebot.setTopPage("/home");
+    googlebot.setTopPageHits(30);
+    List<BotIdentityStats> data = List.of(googlebot);
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.findBotSessionStatsByIdentity(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.BOT_IDENTITY_TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("botIdentityStatsList"));
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
   }
 
   private static StatisticsData statistic(String label, String value) {
