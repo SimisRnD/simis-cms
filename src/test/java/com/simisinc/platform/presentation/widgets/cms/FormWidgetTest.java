@@ -516,6 +516,35 @@ class FormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postRejectedForABlankFieldStillRecordsCheckedCheckboxGroupOptionsForRedisplay() {
+    // The email field is left blank (rejecting the whole submission) while the checkbox-group field
+    // has two boxes checked -- form.jsp's redisplay needs the checked option KEYS (not just the
+    // joined-label userValue) so it can mark those same boxes checked again on the error round trip.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>survey</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Your email address\" value=\"email\" type=\"email\" required=\"true\" />\n" +
+            "    <field name=\"Which departments interest you?\" value=\"departments\" type=\"checkbox\"" +
+            " list=\"sales=Sales,marketing=Marketing,tech=Technical\" required=\"false\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    widgetContext.getParameterMap().put(widgetContext.getUniqueId() + "departments", new String[] { "tech", "sales" });
+
+    try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertEquals("Your email address is required", widgetContext.getWarningMessage());
+
+      FormData formData = (FormData) widgetContext.getRequestObject();
+      FormField departmentsField = formData.getFormFieldList().get(1);
+      Assertions.assertEquals(List.of("sales", "tech"), departmentsField.getCheckedOptionKeys());
+    }
+  }
+
+  @Test
   void postCapturesCheckedSingleToggleCheckboxValue() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"form\">\n" +
