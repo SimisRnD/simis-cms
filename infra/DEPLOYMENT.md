@@ -70,6 +70,7 @@ Review the planned resources. Confirm:
 - ✅ One Key Vault
 - ✅ One Container Registry
 - ✅ One Log Analytics workspace
+- ✅ One Application Insights component (workspace-based)
 - ✅ One Front Door (Premium) with WAF
 
 ### 1.4 Deploy
@@ -88,6 +89,7 @@ Capture the outputs (show at end of deployment):
 - `keyVaultName` — for secrets
 - `frontDoorEndpointHostName` — for WAF testing
 - `acrLoginServer` — for push validation
+- `appInsightsName` — for opening the Application Insights resource (§9.2)
 
 ---
 
@@ -160,6 +162,7 @@ Look for:
 - ✅ `Server startup in X milliseconds` (Tomcat started)
 - ✅ `Starting up the web database connection pool`
 - ✅ `Flyway version X.Y` and `Successfully validated X migrations` OR `Acquired migration lock` / `Released migration lock` (multi-instance)
+- ✅ Application Insights agent activated -- don't rely on a specific console log line for this (the agent's self-diagnostics verbosity may suppress its own success message; only the `No connection string provided` self-disable notice is documented as certain to appear when the connection string is absent). Confirm activation instead via the portal: open the `appi-«namePrefix»` resource's **Live Metrics** blade and send one test request to the app -- a live metrics point within seconds confirms the agent is attached and sending telemetry. If nothing appears, check `az webapp config appsettings list` for `APPLICATIONINSIGHTS_CONNECTION_STRING` and confirm the Bicep deployed correctly.
 - ✅ No `ERROR` or `FATAL` lines
 
 ### 4.0 Database Migrations (Multi-Instance)
@@ -413,14 +416,27 @@ ContainerAppConsoleLogs
 | limit 50
 ```
 
-### 9.2 Alerts
+### 9.2 Application Insights (APM / distributed tracing)
+
+Included from first deploy: `infra/main.bicep` provisions a workspace-based Application Insights resource (`appi-«namePrefix»`) linked to the same Log Analytics workspace, and wires its connection string to the App Service so the Java agent already baked into the container image (`docker/app/Dockerfile`) activates automatically -- no extra step at deploy time.
+
+In the portal, open the `appi-«namePrefix»` resource for:
+- **Live Metrics** -- real-time request rate, response time, failure rate, and CPU/memory, useful during the first hours after cutover
+- **Performance** -- per-endpoint request duration and dependency (Postgres, outbound HTTP) timing, to catch slow queries or slow third-party calls
+- **Failures** -- exceptions and failed requests with stack traces, correlated to the request that triggered them
+- **Application Map** -- visual dependency graph (App Service → Postgres, App Service → any outbound integrations)
+
+Sampling is fixed at 100% for the pilot (`docker/app/applicationinsights.json`) -- revisit if ingestion volume/cost becomes a concern once real traffic arrives.
+
+### 9.3 Alerts
 
 Create alerts for:
 - App Service down (HTTP 5xx errors)
 - Database unavailable (query latency spike)
 - WAF blocks (if expected volume is zero)
+- Application Insights failure rate or server response time (Smart Detection is on by default for anomaly alerts; add explicit alert rules for specific thresholds if needed)
 
-### 9.3 Backup & restore test
+### 9.4 Backup & restore test
 
 PostgreSQL Flexible Server has automated backups (7-day retention by default). Test restore:
 
@@ -450,6 +466,7 @@ Before switching user traffic:
 - [ ] Custom domain resolves with valid TLS cert
 - [ ] CMS_URL set correctly (links use right domain)
 - [ ] Backup test passed
+- [ ] Application Insights receiving telemetry (Live Metrics shows requests after a test hit)
 - [ ] Monitoring alerts configured
 - [ ] Runback procedure documented (switch DNS back if needed)
 

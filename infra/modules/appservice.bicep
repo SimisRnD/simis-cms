@@ -67,6 +67,9 @@ param trustedProxies string = ''
 @description('Public URL of the site (CMS_URL). Defaults to the App Service hostname until the custom domain lands at cutover.')
 param customUrl string = ''
 
+@description('Application Insights connection string (APPLICATIONINSIGHTS_CONNECTION_STRING). Activates the APM/tracing Java agent already baked into the container image; leave empty to run without APM.')
+param appInsightsConnectionString string = ''
+
 @description('Key Vault secret name for the database password.')
 param dbPasswordSecretName string = 'db-password'
 
@@ -162,6 +165,9 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'DB_USER', value: dbUser }
         { name: 'DB_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${dbPasswordSecretName})' }
         { name: 'DB_SSL', value: 'true' }
+        // Activates the APM/tracing Java agent already baked into the image (docker/app/Dockerfile);
+        // the agent self-disables cleanly if this is ever empty.
+        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
       ]
     }
   }

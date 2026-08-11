@@ -91,6 +91,16 @@ module logAnalytics 'modules/loganalytics.bicep' = {
   }
 }
 
+module appInsights 'modules/appinsights.bicep' = {
+  name: 'appinsights'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
+}
+
 module storage 'modules/storage.bicep' = {
   name: 'storage'
   params: {
@@ -153,6 +163,7 @@ module appService 'modules/appservice.bicep' = {
     dbUser: dbUser
     trustedProxies: trustedProxies
     customUrl: customUrl
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
@@ -186,6 +197,7 @@ module frontDoor 'modules/frontdoor.bicep' = {
 output vnetId string = network.outputs.vnetId
 output appSubnetId string = network.outputs.appSubnetId
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.workspaceId
+output appInsightsName string = appInsights.outputs.name
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output storageAccountName string = storage.outputs.storageAccountName
