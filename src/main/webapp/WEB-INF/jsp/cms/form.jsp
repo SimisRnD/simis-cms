@@ -220,7 +220,7 @@
                 <c:set var="isChecked" value="true" />
               </c:if>
             </c:forEach>
-            <label>
+            <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>-<c:out value="${option.key}"/>">
               <input type="checkbox"
                   id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>-<c:out value="${option.key}"/>"
                   name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
@@ -232,7 +232,7 @@
         </fieldset>
       </c:when>
       <c:otherwise>
-        <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
+        <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
             <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
