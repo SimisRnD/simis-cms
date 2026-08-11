@@ -22,7 +22,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="content">
-          <html><![CDATA[<h2>Career and Job Listings</span></h2>]]></html>
+          <html><![CDATA[<h2>Career and Job Listings</h2>]]></html>
         </widget>
       </column>
     </section>
