@@ -79,7 +79,8 @@
   <li>
     <strong>FAQ content</strong> &mdash; a page built with the FAQ widget automatically gets
     FAQPage structured data for its questions and answers, a format several answer engines use
-    directly when responding to how-to and Q&amp;A style queries.
+    directly when responding to how-to and Q&amp;A style queries. Create one from
+    <a href="${ctx}/admin/web-pages">Pages</a> &rarr; Add a New Page &rarr; the "FAQ" template.
   </li>
   <li>
     <strong><a href="${ctx}/admin/community/search-analytics">Search Analytics</a></strong> &mdash;
