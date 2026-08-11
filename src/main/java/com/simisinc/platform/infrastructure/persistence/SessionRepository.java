@@ -222,7 +222,7 @@ public class SessionRepository {
     }
     if (botUserAgentList != null) {
       for (BotUserAgent botUserAgent : botUserAgentList) {
-        if (StringUtils.isNotBlank(botUserAgent.getUserAgent()) && userAgent.contains(botUserAgent.getUserAgent())) {
+        if (StringUtils.isNotBlank(botUserAgent.getUserAgent()) && StringUtils.containsIgnoreCase(userAgent, botUserAgent.getUserAgent())) {
           return StringUtils.isNotBlank(botUserAgent.getLabel()) ? botUserAgent.getLabel() : botUserAgent.getUserAgent();
         }
       }

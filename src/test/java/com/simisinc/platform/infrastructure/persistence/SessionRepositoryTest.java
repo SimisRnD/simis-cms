@@ -181,6 +181,21 @@ class SessionRepositoryTest {
   }
 
   @Test
+  void findBotSessionsByIdentityMatchesRegardlessOfUserAgentCasing() {
+    // Real Bingbot UA is sent lowercase ("bingbot"), but the seeded bot_list signature is
+    // capitalized ("Bingbot") -- issue #1145, same case-sensitivity bug as SessionCommand.checkForBot()
+    // (fixed there in PR #1146), independently present here since classifyBotUserAgent() has its own
+    // substring match rather than delegating to checkForBot().
+    seedBotUserAgent("Bingbot", "Bingbot");
+    seedBotSession("Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("Bingbot", results.get(0).getLabel());
+  }
+
+  @Test
   void findBotSessionsByIdentityBucketsUnmatchedUserAgentsAsUnclassified() {
     seedBotUserAgent("Googlebot/2.1", "Googlebot");
     seedBotSession("SomeOtherCrawler/1.0", now());
