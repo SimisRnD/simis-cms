@@ -20,6 +20,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="latestChecks" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="recentErrors" class="java.util.ArrayList" scope="request"/>
 <meta http-equiv="refresh" content="30">
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
@@ -104,6 +105,50 @@
   </ul>
   <p>The application container otherwise runs with a read-only filesystem by design (see the app's runtime hardening) &mdash; this mounted path is the one place it's expected to write, so a permissions issue here is almost always the mount itself, not the app.</p>
 </div>
+
+<h5>Recent Service Errors</h5>
+<div class="callout primary radius">
+  <p>Every uncaught exception anywhere in the application is recorded here, not just database/file-store failures above &mdash; this is the only place these are visible without server log access. History is kept for 30 days. This does <strong>not</strong> capture every logged warning or handled error, only exceptions that escaped request handling entirely (what would otherwise have shown only as a generic error page to whoever hit it).</p>
+</div>
+<c:choose>
+  <c:when test="${empty recentErrors}">
+    <p>No service errors recorded. That's either good news, or this dashboard is new -- history only starts accumulating once this feature is deployed.</p>
+  </c:when>
+  <c:otherwise>
+    <table class="unstriped">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Exception</th>
+          <th>Request</th>
+          <th>Message</th>
+          <th>Stack Trace</th>
+        </tr>
+      </thead>
+      <tbody>
+        <c:forEach items="${recentErrors}" var="serviceError">
+          <tr>
+            <td nowrap><span title="<fmt:formatDate pattern='yyyy-MM-dd HH:mm:ss z' value='${serviceError.occurredAt}' />"><c:out value="${date:relative(serviceError.occurredAt)}" /></span></td>
+            <td><span class="label alert radius" title="<c:out value="${serviceError.exceptionClass}"/>"><c:out value="${serviceError.exceptionSimpleName}"/></span></td>
+            <td><c:out value="${serviceError.requestUri}"/></td>
+            <td><c:out value="${serviceError.message}"/></td>
+            <td>
+              <c:if test="${!empty serviceError.stackTrace}">
+                <details>
+                  <summary>View</summary>
+                  <pre style="white-space:pre-wrap;font-size:0.75rem;max-height:20rem;overflow-y:auto;"><c:out value="${serviceError.stackTrace}"/></pre>
+                </details>
+              </c:if>
+            </td>
+          </tr>
+        </c:forEach>
+      </tbody>
+    </table>
+    <c:if test="${recentErrors.size() == recentErrorLimit}">
+      <p><small class="subheader">Showing the most recent <c:out value="${recentErrorLimit}"/> errors.</small></p>
+    </c:if>
+  </c:otherwise>
+</c:choose>
 
 <h5>The <code>/healthz</code> endpoint</h5>
 <div class="callout radius">

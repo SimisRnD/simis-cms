@@ -32,6 +32,13 @@
     <!--<listener-class>com.simisinc.platform.presentation.controller.SessionListener</listener-class>-->
   <!--</listener>-->
   <!-- Filters -->
+  <!-- Mapped before everything else so it wraps the whole chain: an uncaught exception from any
+       filter, servlet, or JSP forward below it is recorded before the container's own error-page
+       handling takes over (issue #556). -->
+  <filter>
+    <filter-name>ServiceErrorLoggingFilter</filter-name>
+    <filter-class>com.simisinc.platform.presentation.controller.ServiceErrorLoggingFilter</filter-class>
+  </filter>
   <!-- Opt-in: when CMS_TRUSTED_PROXIES is set, resolve the real client IP from
        X-Forwarded-For before any IP-based control runs. Must be mapped first. -->
   <filter>
@@ -46,6 +53,10 @@
     <filter-name>RestRequestFilter</filter-name>
     <filter-class>com.simisinc.platform.rest.controller.RestRequestFilter</filter-class>
   </filter>
+  <filter-mapping>
+    <filter-name>ServiceErrorLoggingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
   <filter-mapping>
     <filter-name>TrustedProxyIpFilter</filter-name>
     <url-pattern>/*</url-pattern>
