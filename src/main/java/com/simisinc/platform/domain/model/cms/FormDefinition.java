@@ -43,6 +43,9 @@ public class FormDefinition extends Entity {
   private boolean useCaptcha = false;
   private boolean checkForSpam = true;
   private boolean enabled = true;
+  private boolean sendConfirmationToSubmitter = false;
+  private String confirmationSubject = null;
+  private String confirmationMessage = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -145,6 +148,30 @@ public class FormDefinition extends Entity {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  public boolean getSendConfirmationToSubmitter() {
+    return sendConfirmationToSubmitter;
+  }
+
+  public void setSendConfirmationToSubmitter(boolean sendConfirmationToSubmitter) {
+    this.sendConfirmationToSubmitter = sendConfirmationToSubmitter;
+  }
+
+  public String getConfirmationSubject() {
+    return confirmationSubject;
+  }
+
+  public void setConfirmationSubject(String confirmationSubject) {
+    this.confirmationSubject = confirmationSubject;
+  }
+
+  public String getConfirmationMessage() {
+    return confirmationMessage;
+  }
+
+  public void setConfirmationMessage(String confirmationMessage) {
+    this.confirmationMessage = confirmationMessage;
   }
 
   public long getCreatedBy() {

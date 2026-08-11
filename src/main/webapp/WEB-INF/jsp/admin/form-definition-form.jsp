@@ -73,6 +73,24 @@
   <label>Success Message
     <input type="text" placeholder="Optional message shown after a successful submission..." name="successMessage" value="<c:out value="${formDefinition.successMessage}"/>">
   </label>
+  <input id="sendConfirmationToSubmitter" type="checkbox" name="sendConfirmationToSubmitter" value="true" <c:if test="${formDefinition.sendConfirmationToSubmitter}">checked</c:if>/><label for="sendConfirmationToSubmitter">Send a confirmation email to the person who submitted this form?</label>
+  <p class="help-text" style="margin-top:-8px">
+    Only sent if the form has an "Email" type field and the visitor's answer to it is a valid
+    address -- there's no other way to know who to reply to. The Success Title/Message above are
+    shown on the page itself either way; this is a separate email, in addition to that.
+  </p>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Confirmation Email Subject
+        <input type="text" placeholder="e.g. We received your message" name="confirmationSubject" value="<c:out value="${formDefinition.confirmationSubject}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Confirmation Email Message
+        <input type="text" placeholder="e.g. Thanks for reaching out -- we'll reply within 2 business days." name="confirmationMessage" value="<c:out value="${formDefinition.confirmationMessage}"/>">
+      </label>
+    </div>
+  </div>
   <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
   <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>

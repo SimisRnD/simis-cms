@@ -144,6 +144,21 @@ class FormDefinitionRepositoryTest {
   }
 
   @Test
+  void saveRoundTripsSubmitterConfirmationFields() {
+    FormDefinition definition = newDefinition("contact-us", "Contact Us");
+    definition.setSendConfirmationToSubmitter(true);
+    definition.setConfirmationSubject("We received your message");
+    definition.setConfirmationMessage("Thanks for reaching out -- we'll reply soon.");
+
+    FormDefinition saved = FormDefinitionRepository.save(definition);
+    FormDefinition reloaded = FormDefinitionRepository.findById(saved.getId());
+
+    assertTrue(reloaded.getSendConfirmationToSubmitter());
+    assertEquals("We received your message", reloaded.getConfirmationSubject());
+    assertEquals("Thanks for reaching out -- we'll reply soon.", reloaded.getConfirmationMessage());
+  }
+
+  @Test
   void findByUniqueIdReturnsNullWhenNoSuchFormExists() {
     assertNull(FormDefinitionRepository.findByUniqueId("does-not-exist"));
   }
@@ -267,6 +282,9 @@ class FormDefinitionRepositoryTest {
           + "use_captcha BOOLEAN DEFAULT FALSE, "
           + "check_for_spam BOOLEAN DEFAULT TRUE, "
           + "enabled BOOLEAN DEFAULT TRUE, "
+          + "send_confirmation_to_submitter BOOLEAN DEFAULT FALSE, "
+          + "confirmation_subject VARCHAR(255), "
+          + "confirmation_message TEXT, "
           + "created_by BIGINT REFERENCES users(user_id), "
           + "modified_by BIGINT REFERENCES users(user_id), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "

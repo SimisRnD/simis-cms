@@ -149,6 +149,9 @@ public class FormWidget extends GenericWidget {
     // doesn't short-circuit on the first invalid one, so this must not be overwritten by a later field's
     // failure in the same submission.
     String rejectionReason = null;
+    // issue #1154: the submitter's own address, if this form has an email-type field and the answer
+    // is syntactically valid -- there's no other way to know who to reply to. First such field wins.
+    String submitterEmail = null;
 
     // Resolve the database-backed form definition, if any (issue #409) -- see execute() for why a
     // formId configured but not resolvable, or resolved-but-disabled, must not proceed. Checking
@@ -240,6 +243,8 @@ public class FormWidget extends GenericWidget {
           if (rejectionReason == null) {
             rejectionReason = FormSubmissionFailureRepository.REASON_INVALID_EMAIL;
           }
+        } else if (submitterEmail == null) {
+          submitterEmail = parameterValue;
         }
       }
       LOG.debug("Set userValue " + formField.getName() + "=" + formField.getUserValue());
@@ -320,7 +325,14 @@ public class FormWidget extends GenericWidget {
     // #409 follow-up); only the XML-preference path still reads this from the widget placement's
     // own preferences
     String emailAddresses = formDefinition != null ? formDefinition.getEmailTo() : context.getPreferences().get("emailTo");
-    WorkflowManager.triggerWorkflowForEvent(new FormSubmittedEvent(formData, emailAddresses));
+    // A submitter confirmation email (issue #1154) is only offered by a database-backed form -- the
+    // XML-preference path has no equivalent setting, matching how useCaptcha/checkForSpam/emailTo
+    // already work above
+    boolean sendConfirmation = formDefinition != null && formDefinition.getSendConfirmationToSubmitter();
+    String confirmationSubject = formDefinition != null ? formDefinition.getConfirmationSubject() : null;
+    String confirmationMessage = formDefinition != null ? formDefinition.getConfirmationMessage() : null;
+    WorkflowManager.triggerWorkflowForEvent(new FormSubmittedEvent(
+        formData, emailAddresses, submitterEmail, sendConfirmation, confirmationSubject, confirmationMessage));
 
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
