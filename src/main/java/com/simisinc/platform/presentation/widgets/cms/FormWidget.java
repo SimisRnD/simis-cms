@@ -188,7 +188,15 @@ public class FormWidget extends GenericWidget {
       // Determine the user's value. A checkbox-group field (type == checkbox with options) can
       // have several boxes checked, which the browser submits as repeated same-named parameters --
       // getParameter() only ever returns the first one, silently dropping the rest.
-      boolean isCheckboxGroup = "checkbox".equals(formField.getType()) && formField.getListOfOptions() != null;
+      // Must mirror form.jsp's !empty check (JSTL's !empty treats a non-null empty Map as empty)
+      // exactly, not just null-check listOfOptions -- a non-null-but-empty map is reachable via a
+      // malformed XML fields preference (e.g. list=","), and disagreeing here makes form.jsp render
+      // a single-toggle checkbox while this method takes the checkbox-group branch, whose value
+      // resolution can never find a match against zero options -- silently discarding every
+      // submission and making a required field permanently unsatisfiable.
+      boolean isCheckboxGroup = "checkbox".equals(formField.getType())
+          && formField.getListOfOptions() != null
+          && !formField.getListOfOptions().isEmpty();
       String parameterValue = isCheckboxGroup
           ? resolveCheckboxGroupValue(context, formField)
           : context.getParameter(context.getUniqueId() + formField.getName());
@@ -215,7 +223,10 @@ public class FormWidget extends GenericWidget {
       parameterValue = parameterValue.trim();
       if (isCheckboxGroup) {
         formField.setUserValue(parameterValue);
-      } else if (formField.getListOfOptions() != null) {
+      } else if (formField.getListOfOptions() != null && !formField.getListOfOptions().isEmpty()) {
+        // Same isEmpty() guard as isCheckboxGroup above -- otherwise a checkbox field with a
+        // non-null-but-empty listOfOptions (single-toggle per form.jsp) would wrongly take the
+        // select-field label-lookup path here and always resolve to null against zero options.
         formField.setUserValue(formField.getListOfOptions().get(parameterValue));
       } else {
         formField.setUserValue(parameterValue);

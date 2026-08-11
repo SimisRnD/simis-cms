@@ -24,30 +24,16 @@
         <widget name="content">
           <uniqueId>${webPageName}-hello</uniqueId>
         </widget>
-        <widget name="contentAccordion" class="margin-top-50">
-          <uniqueId>${webPageName}-content</uniqueId>
-          <class>outer-accordion</class>
-          <innerClass>inner-accordion</innerClass>
-          <html><![CDATA[<h1>Our Products</h1>
- <p>&gt; <span style="font-weight: 400;">How do I know which product is right for me?</span></p>
- <p><span style="font-weight: 400;">Our products designed to meet your specific needs and fit into your lifestyle.</span></p>
- <hr />
- <p>&gt; <span style="font-weight: 400;">How do I use the product?</span></p>
- <p><span style="font-weight: 400;">You can follow these directions.</span></p>
- <hr />
- <p>&gt; <span style="font-weight: 400;">How do I use this other product?</span></p>
- <p><span style="font-weight: 400;">You can follow these directions</span></p>
- <hr />
- <h1>Our Services</h1>
- <p>&gt; <span style="font-weight: 400;">How do I know which product is right for me?</span></p>
- <p><span style="font-weight: 400;">Our products designed to meet your specific needs and fit into your lifestyle. </span></p>
- <hr />
- <p>&gt; <span style="font-weight: 400;">How do I use the product?</span></p>
- <p><span style="font-weight: 400;">You can follow these directions.</span></p>
- <hr />
- <p>&gt; <span style="font-weight: 400;">How do I use this other product?</span></p>
- <p><span style="font-weight: 400;">You can follow these directions</span></p>
- ]]></html>
+        <widget name="faq" class="margin-top-50">
+          <title>Frequently Asked Questions</title>
+          <questions>
+            <entry question="How do I know which product is right for me?"
+                answer="Our products are designed to meet your specific needs and fit into your lifestyle." />
+            <entry question="How do I use the product?"
+                answer="You can follow the directions included with your order." />
+            <entry question="How do I request support for a service?"
+                answer="Reach out through our contact page and a team member will follow up." />
+          </questions>
         </widget>
         <widget name="content" class="margin-top-50 callout no-box light">
           <uniqueId>${webPageName}-more</uniqueId>
