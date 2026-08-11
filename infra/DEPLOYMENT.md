@@ -11,9 +11,27 @@
 - [ ] Azure subscription access (contributor role on resource group)
 - [ ] `az` CLI installed and logged in (`az login`)
 - [ ] Bicep CLI available (`az bicep build` works)
+- [ ] Resource providers registered for every provider this stack uses (see below)
 - [ ] Signed container images published to the registry (PR #246 complete, or manual push)
 - [ ] PostgreSQL administrator password generated (random, 20+ chars, stored securely)
 - [ ] Three Key Vault secrets ready to create (see §4)
+
+**Resource provider registration:** this is the first live deployment against this subscription, so nothing here has necessarily been registered yet. Check and register anything missing before running `what-if` or deploy:
+
+```bash
+az provider list --query "[?registrationState=='NotRegistered'].namespace" -o tsv
+# Register any of the following that appear above:
+az provider register --namespace Microsoft.Web               # App Service
+az provider register --namespace Microsoft.DBforPostgreSQL    # Postgres Flexible Server
+az provider register --namespace Microsoft.KeyVault
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.OperationalInsights # Log Analytics
+az provider register --namespace Microsoft.Insights            # Application Insights
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Cdn                 # Front Door
+```
+
+Registration is subscription-wide and typically completes in under a minute, but can take longer on a subscription that has never used a given provider. Most subscriptions have the common ones (`Microsoft.Web`, `Microsoft.Network`) pre-registered; the ones most likely to need an explicit registration on a fresh subscription are `Microsoft.Insights` and `Microsoft.Cdn`.
 
 ---
 
