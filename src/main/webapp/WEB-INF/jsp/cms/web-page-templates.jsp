@@ -55,7 +55,7 @@
         <div class="grid-x grid-margin-x">
       </c:if>
       <div class="small-6 medium-4 large-3 cell">
-        <button type="button" class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})" aria-label="<c:out value="${template.name}"/>">
+        <button type="button" class="template cell card js-mySubmit" data-template-id="${template.id}" data-template-unique-id="${template.uniqueId}" aria-label="<c:out value="${template.name}"/>">
           <c:choose>
             <c:when test="${!empty template.imagePath}">
               <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}" alt="">
@@ -98,4 +98,9 @@
     document.getElementById("templateUniqueId").value = templateUniqueId;
     document.templateForm${widgetContext.uniqueId}.submit();
   }
+  document.querySelectorAll(".js-mySubmit").forEach(function (el) {
+    el.addEventListener("click", function () {
+      mySubmit(el.dataset.templateId, el.dataset.templateUniqueId);
+    });
+  });
 </script>

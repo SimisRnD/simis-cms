@@ -16,7 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -188,10 +190,26 @@ public class FormWidget extends GenericWidget {
       // Determine the user's value. A checkbox-group field (type == checkbox with options) can
       // have several boxes checked, which the browser submits as repeated same-named parameters --
       // getParameter() only ever returns the first one, silently dropping the rest.
-      boolean isCheckboxGroup = "checkbox".equals(formField.getType()) && formField.getListOfOptions() != null;
+      // Must mirror form.jsp's !empty check (JSTL's !empty treats a non-null empty Map as empty)
+      // exactly, not just null-check listOfOptions -- a non-null-but-empty map is reachable via a
+      // malformed XML fields preference (e.g. list=","), and disagreeing here makes form.jsp render
+      // a single-toggle checkbox while this method takes the checkbox-group branch, whose value
+      // resolution can never find a match against zero options -- silently discarding every
+      // submission and making a required field permanently unsatisfiable.
+      boolean isCheckboxGroup = "checkbox".equals(formField.getType())
+          && formField.getListOfOptions() != null
+          && !formField.getListOfOptions().isEmpty();
       String parameterValue = isCheckboxGroup
           ? resolveCheckboxGroupValue(context, formField)
           : context.getParameter(context.getUniqueId() + formField.getName());
+      if ("checkbox".equals(formField.getType()) && !isCheckboxGroup && !"true".equals(StringUtils.trim(parameterValue))) {
+        // A single-toggle checkbox only ever submits the literal "true" when checked -- form.jsp's own
+        // rendering (value="true") and redisplay logic (userValue eq 'true') both depend on this. A
+        // direct POST that skips the rendered HTML (bots routinely do this) could otherwise satisfy a
+        // required checkbox/consent field with any non-blank value, which would then be persisted to
+        // form_data and emailed/displayed verbatim. Treat anything but "true" as unchecked/absent.
+        parameterValue = null;
+      }
       if (StringUtils.isBlank(parameterValue)) {
         // Check if the field is required
         if (formField.isRequired()) {
@@ -207,7 +225,10 @@ public class FormWidget extends GenericWidget {
       parameterValue = parameterValue.trim();
       if (isCheckboxGroup) {
         formField.setUserValue(parameterValue);
-      } else if (formField.getListOfOptions() != null) {
+      } else if (formField.getListOfOptions() != null && !formField.getListOfOptions().isEmpty()) {
+        // Same isEmpty() guard as isCheckboxGroup above -- otherwise a checkbox field with a
+        // non-null-but-empty listOfOptions (single-toggle per form.jsp) would wrongly take the
+        // select-field label-lookup path here and always resolve to null against zero options.
         formField.setUserValue(formField.getListOfOptions().get(parameterValue));
       } else {
         formField.setUserValue(parameterValue);
@@ -318,19 +339,29 @@ public class FormWidget extends GenericWidget {
    * existing single-String FormField.userValue / form_data JSON "value" shape without a schema
    * change. Option order (not submission order) is used so the stored value doesn't depend on
    * checkbox click order, and duplicate submitted values are de-duplicated.
+   *
+   * <p>As a side effect, also records the matched option KEYS on {@code formField} (same option-order,
+   * de-duplicated set as the label join above) via {@link FormField#setCheckedOptionKeys}, regardless
+   * of whether this field or the overall submission ends up valid -- form.jsp needs the keys, not the
+   * labels, to redisplay the right boxes checked after a same-request validation-error round trip, and
+   * the labels alone aren't a safe reverse lookup if two options ever share one.
    */
   private static String resolveCheckboxGroupValue(WidgetContext context, FormField formField) {
     String[] values = context.getParameterMap().get(context.getUniqueId() + formField.getName());
     if (values == null || values.length == 0) {
+      formField.setCheckedOptionKeys(Collections.emptyList());
       return null;
     }
     Set<String> checkedKeys = new HashSet<>(Arrays.asList(values));
+    List<String> matchedKeys = new ArrayList<>();
     StringJoiner joiner = new StringJoiner(",");
     for (Map.Entry<String, String> option : formField.getListOfOptions().entrySet()) {
       if (checkedKeys.contains(option.getKey())) {
         joiner.add(option.getValue());
+        matchedKeys.add(option.getKey());
       }
     }
+    formField.setCheckedOptionKeys(matchedKeys);
     return joiner.length() == 0 ? null : joiner.toString();
   }
 
