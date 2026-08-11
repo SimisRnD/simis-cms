@@ -51,6 +51,6 @@ public class SessionCommand {
     if (botList == null || botList.isEmpty()) {
       return false;
     }
-    return botList.stream().anyMatch(userAgent::contains);
+    return botList.stream().anyMatch(botUserAgent -> StringUtils.containsIgnoreCase(userAgent, botUserAgent));
   }
 }

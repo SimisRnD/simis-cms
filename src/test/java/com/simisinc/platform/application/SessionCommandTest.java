@@ -64,4 +64,19 @@ class SessionCommandTest {
       Assertions.assertTrue(SessionCommand.checkForBot("MyBot"));
     }
   }
+
+  @Test
+  void matchIsCaseInsensitive() {
+    try (MockedStatic<BotUserAgentRepository> staticRepository = mockStatic(BotUserAgentRepository.class)) {
+      BotUserAgent bingBot = new BotUserAgent();
+      bingBot.setUserAgent("Bingbot");
+      List<BotUserAgent> botList = Collections.singletonList(bingBot);
+      staticRepository.when(BotUserAgentRepository::findAll).thenReturn(botList);
+      SessionCommand.load();
+
+      // Real Bingbot user-agent, sent lowercase, against the "Bingbot" seed signature
+      String userAgent = "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
+      Assertions.assertTrue(SessionCommand.checkForBot(userAgent));
+    }
+  }
 }

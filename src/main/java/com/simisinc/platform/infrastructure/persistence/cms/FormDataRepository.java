@@ -260,6 +260,13 @@ public class FormDataRepository {
     SqlUtils updateValues = new SqlUtils()
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
+    if (record.getFormFieldList() != null) {
+      // Only overwrite field_values when the caller has populated formFieldList (e.g. by editing the
+      // list returned from findById()) -- a record built without loading it first (the markAsX()
+      // methods below use their own targeted updates instead of this method) must not wipe out the
+      // existing JSONB value.
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, FormDataJSONCommand.createJSONString(record)));
+    }
     SqlUtils where = new SqlUtils()
         .add("form_data_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -400,6 +407,16 @@ public class FormDataRepository {
    * {@link #createWhereStatement}, the same method {@link #query} uses) so the exported CSV always
    * matches what's currently filtered on screen instead of unconditionally dumping the whole table.
    * A null specification exports every row, unfiltered, same as before this filter existed.
+   * <p>
+   * The "Field Data" column (issue #1149) flattens {@code field_values} -- the JSONB array of
+   * submitted {@code {label, value}} pairs that {@link FormDataJSONCommand} also reads on the
+   * on-screen list -- into one "Label: Value; Label2: Value2" string per row, skipping blank values
+   * the same way {@code form-data-list.jsp} does. This mirrors the same JSONB-flattening-in-SQL
+   * pattern {@code ProductSkuRepository.export()} uses for its "Attributes" column: the underlying
+   * {@link DB#exportToCsvAllFrom} streams the JDBC {@link ResultSet} straight to CSV with no
+   * per-row Java transform hook, and different forms (or the same form edited over time) can have
+   * entirely different field sets, so a single flattened column is used rather than one CSV column
+   * per configured field.
    */
   public static void export(FormDataSpecification specification, DataConstraints constraints, File file) {
     SqlUtils selectFields = new SqlUtils()
@@ -408,7 +425,8 @@ public class FormDataRepository {
             "ip_address AS \"IP Address\"",
             "created AS \"Submitted\"",
             "url AS \"URL\"",
-            "flagged_as_spam AS \"Spam Flagged\""
+            "flagged_as_spam AS \"Spam Flagged\"",
+            "(SELECT STRING_AGG(t ->> 'label' || ': ' || (t ->> 'value'), '; ') FROM JSONB_ARRAY_ELEMENTS(field_values) AS x(t) WHERE t ->> 'value' <> '') AS \"Field Data\""
         );
     SqlUtils where = createWhereStatement(specification);
     if (constraints == null) {
