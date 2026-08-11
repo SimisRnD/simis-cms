@@ -26,29 +26,29 @@
           <autoplayDelay>5000</autoplayDelay>
           <html><![CDATA[
 <figure class="orbit-figure">
-  <img class="orbit-image" src="${ctx}/images/sample/1st.png" alt="image alt text">
+  <img class="orbit-image" src="${ctx}/images/sample/1st.png" alt="Placeholder banner image -- replace with your own photo">
   <figcaption class="orbit-caption">
-    <h3>Welcome to Interplanetary!</h3>
-    <p>We have a lot of information for you to explore. Please take a look around!</p>
-    <a href="${ctx}/about-us" class="button yellow">About Us</a>
+    <h3>Welcome!</h3>
+    <p>This is your home page banner. Replace this image and text to introduce your site, then use the button below to link to a page of your own.</p>
+    <a href="${ctx}/" class="button yellow">Sample Link</a>
   </figcaption>
 </figure>
 <hr />
 <figure class="orbit-figure">
-  <img class="orbit-image" src="${ctx}/images/sample/2nd.png" alt="image alt text">
+  <img class="orbit-image" src="${ctx}/images/sample/2nd.png" alt="Placeholder banner image -- replace with your own photo">
   <figcaption class="orbit-caption">
-    <h3>Ipsum Ornare Ultricies</h3>
-    <p>Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-    <a href="${ctx}/calendar" class="button yellow">Calendar</a>
+    <h3>Second Highlight</h3>
+    <p>Each slide can call out something different -- a service, an announcement, or a featured page. Replace this text with your own.</p>
+    <a href="${ctx}/" class="button yellow">Sample Link</a>
   </figcaption>
 </figure>
 <hr />
 <figure class="orbit-figure">
-  <img class="orbit-image" src="${ctx}/images/sample/3rd.png" alt="image alt text">
+  <img class="orbit-image" src="${ctx}/images/sample/3rd.png" alt="Placeholder banner image -- replace with your own photo">
   <figcaption class="orbit-caption">
-    <h3>Malesuada Parturient</h3>
-    <p>Fusce dapibus, tellus ac cursus commodo, sit amet risus. Cras mattis consectetur purus sit amet fermentum. Maecenas sed diam sit amet non magna.</p>
-    <a href="${ctx}/community" class="button yellow">Community</a>
+    <h3>Third Highlight</h3>
+    <p>A third slide for one more highlight. Delete this slide, or the whole banner, if your site doesn't need one.</p>
+    <a href="${ctx}/" class="button yellow">Sample Link</a>
   </figcaption>
 </figure>
     ]]></html>
@@ -56,28 +56,26 @@
       </column>
     </section>
     <section>
+      <!-- Four feature callouts, left blank on purpose: an editor sees an "Add Content Here"
+           prompt for each; a visitor sees nothing until they're filled in. -->
       <column class="small-6 medium-3 text-center cell">
         <widget name="content">
           <uniqueId>${webPageName}-feature-1</uniqueId>
-          <html><![CDATA[<h5>Welcome to the site!</h5>]]></html>
         </widget>
       </column>
       <column class="small-6 medium-3 text-center cell">
         <widget name="content">
           <uniqueId>${webPageName}-feature-2</uniqueId>
-          <html><![CDATA[<h5>Welcome to the site!</h5>]]></html>
         </widget>
       </column>
       <column class="small-6 medium-3 text-center cell">
         <widget name="content">
           <uniqueId>${webPageName}-feature-3</uniqueId>
-          <html><![CDATA[<h5>Welcome to the site!</h5>]]></html>
         </widget>
       </column>
       <column class="small-6 medium-3 text-center cell">
         <widget name="content">
           <uniqueId>${webPageName}-feature-4</uniqueId>
-          <html><![CDATA[<h5>Welcome to the site!</h5>]]></html>
         </widget>
       </column>
     </section>
@@ -85,7 +83,6 @@
       <column class="small-12 cell">
         <widget name="content">
           <uniqueId>${webPageName}-title</uniqueId>
-          <html><![CDATA[<h3>Welcome to the site!</h3>]]></html>
         </widget>
       </column>
     </section>
@@ -93,19 +90,16 @@
       <column class="medium-7 large-6 cell">
         <widget name="content">
           <uniqueId>${webPageName}-image</uniqueId>
-          <html><![CDATA[<img src="${ctx}/images/sample/blank-panel.png"/>]]></html>
         </widget>
       </column>
       <column class="show-for-large large-3 cell">
         <widget name="content">
           <uniqueId>${webPageName}-callout-1</uniqueId>
-          <html><![CDATA[<p>This is welcome callout #1 for large screens</p>]]></html>
         </widget>
       </column>
       <column class="medium-5 large-3 cell">
         <widget name="content" class="callout primary">
           <uniqueId>${webPageName}-callout-2</uniqueId>
-          <html><![CDATA[<p>This is welcome callout #2</p>]]></html>
         </widget>
       </column>
     </section>
@@ -113,7 +107,6 @@
       <column class="small-12 text-center cell">
         <widget name="content">
           <uniqueId>${webPageName}-welcome</uniqueId>
-          <html><![CDATA[<p>This is the welcome content after the hr</p><p><img src="${ctx}/images/sample/blank-panel.png"/></p>]]></html>
         </widget>
       </column>
     </section>
