@@ -159,6 +159,30 @@ class FormDefinitionFormWidgetTest extends WidgetBase {
     }
   }
 
+  @Test
+  void postWithShowPrivacyNoticeCheckedSavesItAsTrue() throws InvocationTargetException, IllegalAccessException {
+    // issue #1155 -- defaults to false like useCaptcha, so (unlike enabled/checkForSpam) BeanUtils.populate()
+    // alone is sufficient: checked sends the parameter and sets true, unchecked sends nothing and stays false
+    FormDefinition existing = new FormDefinition();
+    existing.setId(5L);
+    existing.setUniqueId("contact-us");
+    existing.setName("Contact Us");
+    existing.setShowPrivacyNotice(false);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "showPrivacyNotice", "true");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(existing);
+      formDefinitionRepository.when(() -> FormDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertTrue(existing.getShowPrivacyNotice());
+    }
+  }
+
   /**
    * Guards against reintroducing the createdBy-on-edit bug this codebase has already hit once in a
    * sibling command (mailing lists) -- editing an existing form must not overwrite createdBy with

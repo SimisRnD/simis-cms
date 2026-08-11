@@ -82,6 +82,7 @@ public class SaveFormDefinitionCommand {
     formDefinition.setUseCaptcha(formDefinitionBean.getUseCaptcha());
     formDefinition.setCheckForSpam(formDefinitionBean.getCheckForSpam());
     formDefinition.setEnabled(formDefinitionBean.getEnabled());
+    formDefinition.setShowPrivacyNotice(formDefinitionBean.getShowPrivacyNotice());
     formDefinition.setModifiedBy(formDefinitionBean.getModifiedBy());
     return FormDefinitionRepository.save(formDefinition);
   }
