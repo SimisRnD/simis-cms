@@ -16,7 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -318,19 +320,29 @@ public class FormWidget extends GenericWidget {
    * existing single-String FormField.userValue / form_data JSON "value" shape without a schema
    * change. Option order (not submission order) is used so the stored value doesn't depend on
    * checkbox click order, and duplicate submitted values are de-duplicated.
+   *
+   * <p>As a side effect, also records the matched option KEYS on {@code formField} (same option-order,
+   * de-duplicated set as the label join above) via {@link FormField#setCheckedOptionKeys}, regardless
+   * of whether this field or the overall submission ends up valid -- form.jsp needs the keys, not the
+   * labels, to redisplay the right boxes checked after a same-request validation-error round trip, and
+   * the labels alone aren't a safe reverse lookup if two options ever share one.
    */
   private static String resolveCheckboxGroupValue(WidgetContext context, FormField formField) {
     String[] values = context.getParameterMap().get(context.getUniqueId() + formField.getName());
     if (values == null || values.length == 0) {
+      formField.setCheckedOptionKeys(Collections.emptyList());
       return null;
     }
     Set<String> checkedKeys = new HashSet<>(Arrays.asList(values));
+    List<String> matchedKeys = new ArrayList<>();
     StringJoiner joiner = new StringJoiner(",");
     for (Map.Entry<String, String> option : formField.getListOfOptions().entrySet()) {
       if (checkedKeys.contains(option.getKey())) {
         joiner.add(option.getValue());
+        matchedKeys.add(option.getKey());
       }
     }
+    formField.setCheckedOptionKeys(matchedKeys);
     return joiner.length() == 0 ? null : joiner.toString();
   }
 
