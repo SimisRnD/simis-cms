@@ -275,6 +275,10 @@ public class WebPageDesignerWidget extends GenericWidget {
     if (StringUtils.isNotBlank(title)) {
       webPage.setTitle(title);
     }
+    String description = context.getParameter("description");
+    if (StringUtils.isNotBlank(description)) {
+      webPage.setDescription(description);
+    }
     webPage.setCreatedBy(context.getUserId());
     webPage.setModifiedBy(context.getUserId());
 
