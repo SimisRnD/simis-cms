@@ -17,11 +17,17 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.UUID;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.mail.ImageHtmlEmail;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveFormDefinitionCommand;
+import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -38,6 +44,8 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 public class FormDefinitionFormWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+
+  private static Log LOG = LogFactory.getLog(FormDefinitionFormWidget.class);
 
   static String JSP = "/admin/form-definition-form.jsp";
 
@@ -64,6 +72,10 @@ public class FormDefinitionFormWidget extends GenericWidget {
   }
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
+
+    if ("sendTestEmail".equals(context.getParameter("action"))) {
+      return sendTestEmail(context);
+    }
 
     // Populate the fields
     FormDefinition formDefinitionBean = new FormDefinition();
@@ -102,6 +114,66 @@ public class FormDefinitionFormWidget extends GenericWidget {
     // Determine the page to return to
     context.setSuccessMessage("Form was saved");
     context.setRedirect("/admin/forms-editor?formDefinitionId=" + formDefinition.getId());
+    return context;
+  }
+
+  /**
+   * Sends a real email to the "Email submissions to" address(es) currently typed in the field --
+   * not necessarily saved yet -- so an admin can confirm right away that a wrong-yet-valid-looking
+   * address (a typo of a real one) actually reaches the intended inbox. Save-time syntax validation
+   * (SaveFormDefinitionCommand) can't catch that class of mistake; this is the only check that can.
+   * Always re-renders the same unsaved form state rather than redirecting away from it, following
+   * the same flash-object pattern the DataException branch above already relies on.
+   */
+  private WidgetContext sendTestEmail(WidgetContext context) {
+
+    FormDefinition formDefinitionBean = new FormDefinition();
+    try {
+      BeanUtils.populate(formDefinitionBean, context.getParameterMap());
+    } catch (InvocationTargetException | IllegalAccessException e) {
+      LOG.error("Could not populate the form for a test email send", e);
+    }
+    formDefinitionBean.setEnabled(context.getParameter("enabled") != null);
+    formDefinitionBean.setCheckForSpam(context.getParameter("checkForSpam") != null);
+
+    context.setRequestObject(formDefinitionBean);
+    if (formDefinitionBean.getId() > -1) {
+      context.setRedirect("/admin/forms-editor?formDefinitionId=" + formDefinitionBean.getId());
+    }
+
+    String emailTo = formDefinitionBean.getEmailTo();
+    if (StringUtils.isBlank(emailTo)) {
+      context.setErrorMessage("Enter an address in \"Email submissions to\" first, then try again.");
+      return context;
+    }
+    String invalidAddress = SaveFormDefinitionCommand.findInvalidEmailAddress(emailTo);
+    if (invalidAddress != null) {
+      context.setErrorMessage("'" + invalidAddress + "' is not a valid email address");
+      return context;
+    }
+
+    String formName = StringUtils.isNotBlank(formDefinitionBean.getName()) ? formDefinitionBean.getName() : "this form";
+    try {
+      ImageHtmlEmail email = EmailCommand.prepareNewEmail();
+      for (String address : emailTo.split(",")) {
+        String trimmed = address.trim();
+        if (StringUtils.isNotBlank(trimmed)) {
+          email.addTo(trimmed);
+        }
+      }
+      email.setSubject("SimIS CMS Form Test Email");
+      email.setMsg("This is a test message confirming that submissions to \"" + formName
+          + "\" can reach this address (" + emailTo + ").");
+      email.send();
+    } catch (Exception e) {
+      String correlationId = UUID.randomUUID().toString();
+      LOG.warn("Form test email failed to send [" + correlationId + "]", e);
+      context.setErrorMessage("Test email failed (" + EmailCommand.categorizeSendFailure(e) + "). Reference: "
+          + correlationId + ". Check the server logs for details.");
+      return context;
+    }
+
+    context.setSuccessMessage("A test email was sent to " + emailTo);
     return context;
   }
 }
