@@ -870,6 +870,15 @@
         </widget>
       </column>
     </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Bot Traffic by Identity</title>
+          <report>bot-traffic-by-identity</report>
+          <days>30</days>
+        </widget>
+      </column>
+    </section>
 
     <section class="grid-container">
       <column class="small-12 cell">

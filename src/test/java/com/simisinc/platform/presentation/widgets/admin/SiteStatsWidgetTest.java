@@ -1460,6 +1460,30 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
   }
 
+  @Test
+  void executeBotTrafficByIdentity() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Bot Traffic by Identity</title>\n" +
+            "  <report>bot-traffic-by-identity</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("Googlebot", "42"), statistic("Unclassified", "3"));
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.findBotSessionsByIdentity(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Bot", request.getAttribute("label"));
+    Assertions.assertEquals("Sessions", request.getAttribute("value"));
+  }
+
   private static StatisticsData statistic(String label, String value) {
     StatisticsData data = new StatisticsData();
     data.setLabel(label);

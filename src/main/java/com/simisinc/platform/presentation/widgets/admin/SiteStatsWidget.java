@@ -293,6 +293,12 @@ public class SiteStatsWidget extends GenericWidget {
       List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, true);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
+    } else if ("bot-traffic-by-identity".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SessionRepository.findBotSessionsByIdentity(intervalValue);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Bot"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Sessions"));
+      return TABLE_JSP;
     } else if ("locations-list".equalsIgnoreCase(report)) {
       List<Session> sessionList = SessionRepository.findDailyUniqueLocations(intervalValue);
       context.getRequest().setAttribute("sessionList", sessionList);

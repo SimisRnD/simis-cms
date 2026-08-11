@@ -142,8 +142,116 @@ class SessionRepositoryTest {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("TRUNCATE TABLE sessions RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE bot_list RESTART IDENTITY");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset sessions table", se);
+    }
+  }
+
+  // --- findBotSessionsByIdentity() coverage -- the per-bot-identity breakdown table on the Site
+  // Analytics page ---
+
+  @Test
+  void findBotSessionsByIdentityGroupsAndCountsByLabelWhenOneIsConfigured() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSession("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", now());
+    seedBotSession("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("Googlebot", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue());
+  }
+
+  @Test
+  void findBotSessionsByIdentityFallsBackToTheSignatureWhenNoLabelIsConfigured() {
+    seedBotUserAgent("Bingbot/2.0", null);
+    seedBotSession("Mozilla/5.0 (compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm)", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("Bingbot/2.0", results.get(0).getLabel());
+  }
+
+  @Test
+  void findBotSessionsByIdentityBucketsUnmatchedUserAgentsAsUnclassified() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSession("SomeOtherCrawler/1.0", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("Unclassified", results.get(0).getLabel());
+  }
+
+  @Test
+  void findBotSessionsByIdentityBucketsBlankUserAgentsSeparatelyFromUnmatched() {
+    seedBotSession(null, now());
+    seedBotSession("SomeOtherCrawler/1.0", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(2, results.size());
+    assertTrue(results.stream().anyMatch(d -> "Unclassified (blank User-Agent)".equals(d.getLabel())));
+    assertTrue(results.stream().anyMatch(d -> "Unclassified".equals(d.getLabel())));
+  }
+
+  @Test
+  void findBotSessionsByIdentityExcludesSessionsOutsideTheWindow() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSession("Googlebot/2.1", Timestamp.from(Instant.now().minus(Duration.ofDays(45))));
+    seedBotSession("Googlebot/2.1", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("1", results.get(0).getValue());
+  }
+
+  @Test
+  void findBotSessionsByIdentitySortsDescendingByCount() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotUserAgent("Bingbot/2.0", "Bingbot");
+    seedBotSession("Bingbot/2.0", now());
+    seedBotSession("Googlebot/2.1", now());
+    seedBotSession("Googlebot/2.1", now());
+    seedBotSession("Googlebot/2.1", now());
+
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertEquals(2, results.size());
+    assertEquals("Googlebot", results.get(0).getLabel());
+    assertEquals("3", results.get(0).getValue());
+    assertEquals("Bingbot", results.get(1).getLabel());
+  }
+
+  @Test
+  void findBotSessionsByIdentityReturnsEmptyListWhenThereIsNoData() {
+    List<StatisticsData> results = SessionRepository.findBotSessionsByIdentity(30);
+
+    assertTrue(results.isEmpty());
+  }
+
+  private static void seedBotUserAgent(String userAgent, String label) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      String labelValue = label == null ? "NULL" : "'" + label + "'";
+      statement.execute("INSERT INTO bot_list (user_agent, label) VALUES ('" + userAgent + "', " + labelValue + ")");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed bot_list", se);
+    }
+  }
+
+  private static void seedBotSession(String userAgent, Timestamp created) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      String userAgentValue = userAgent == null ? "NULL" : "'" + userAgent + "'";
+      statement.execute("INSERT INTO sessions (is_bot, user_agent, created) VALUES (true, "
+          + userAgentValue + ", '" + created + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed bot session", se);
     }
   }
 
@@ -349,9 +457,16 @@ class SessionRepositoryTest {
           + "session_id VARCHAR(255), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "country VARCHAR(100), "
+          + "user_agent VARCHAR(255), "
           + "is_bot BOOLEAN DEFAULT false, "
           + "is_anonymous BOOLEAN NOT NULL DEFAULT false, "
           + "app_id BIGINT)");
+      statement.execute("DROP TABLE IF EXISTS bot_list CASCADE");
+      statement.execute("CREATE TABLE bot_list ("
+          + "bot_list_id BIGSERIAL PRIMARY KEY, "
+          + "user_agent VARCHAR(255) NOT NULL, "
+          + "label VARCHAR(255), "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the sessions schema", se);
     }

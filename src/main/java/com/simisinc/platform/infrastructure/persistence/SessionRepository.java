@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.BotUserAgent;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.Visitor;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
@@ -30,7 +31,10 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves session objects
@@ -170,6 +174,58 @@ public class SessionRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /**
+   * Breaks down bot sessions created in the last {@code daysToLimit} days by identity, classifying
+   * each session's raw user_agent against the known {@link BotUserAgent} signatures (first substring
+   * match wins, same semantics as {@link com.simisinc.platform.application.SessionCommand#checkForBot}).
+   * A blank user_agent or one that matches no known signature falls into an "Unclassified" bucket.
+   */
+  public static List<StatisticsData> findBotSessionsByIdentity(int daysToLimit) {
+    List<BotUserAgent> botUserAgentList = BotUserAgentRepository.findAll();
+    String SQL_QUERY =
+        "SELECT user_agent " +
+            "FROM sessions " +
+            "WHERE is_bot = true " +
+            "AND created > NOW() - INTERVAL '" + daysToLimit + " days'";
+    Map<String, Long> countByIdentity = new LinkedHashMap<>();
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      while (rs.next()) {
+        String userAgent = rs.getString("user_agent");
+        String identity = classifyBotUserAgent(userAgent, botUserAgentList);
+        countByIdentity.merge(identity, 1L, Long::sum);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+      return null;
+    }
+    List<StatisticsData> records = new ArrayList<>();
+    countByIdentity.entrySet().stream()
+        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+        .forEach(entry -> {
+          StatisticsData data = new StatisticsData();
+          data.setLabel(entry.getKey());
+          data.setValue(String.valueOf(entry.getValue()));
+          records.add(data);
+        });
+    return records;
+  }
+
+  private static String classifyBotUserAgent(String userAgent, List<BotUserAgent> botUserAgentList) {
+    if (StringUtils.isBlank(userAgent)) {
+      return "Unclassified (blank User-Agent)";
+    }
+    if (botUserAgentList != null) {
+      for (BotUserAgent botUserAgent : botUserAgentList) {
+        if (StringUtils.isNotBlank(botUserAgent.getUserAgent()) && userAgent.contains(botUserAgent.getUserAgent())) {
+          return StringUtils.isNotBlank(botUserAgent.getLabel()) ? botUserAgent.getLabel() : botUserAgent.getUserAgent();
+        }
+      }
+    }
+    return "Unclassified";
   }
 
   public static long countSessionsToday() {
