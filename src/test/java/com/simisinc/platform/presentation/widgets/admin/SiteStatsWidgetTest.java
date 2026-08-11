@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
@@ -1469,19 +1470,25 @@ class SiteStatsWidgetTest extends WidgetBase {
             "  <days>30</days>\n" +
             "</widget>");
 
-    List<StatisticsData> data = List.of(statistic("Googlebot", "42"), statistic("Unclassified", "3"));
+    BotIdentityStats googlebot = new BotIdentityStats();
+    googlebot.setIdentity("Googlebot");
+    googlebot.setSessionCount(42);
+    googlebot.setFirstSeen("Aug 1, 2026 9:00 AM");
+    googlebot.setLastSeen("Aug 11, 2026 2:00 PM");
+    googlebot.setTopPage("/home");
+    googlebot.setTopPageHits(30);
+    List<BotIdentityStats> data = List.of(googlebot);
     try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      sessionRepository.when(() -> SessionRepository.findBotSessionsByIdentity(30)).thenReturn(data);
+      sessionRepository.when(() -> SessionRepository.findBotSessionStatsByIdentity(30)).thenReturn(data);
 
       setRoles(widgetContext, ADMIN);
       SiteStatsWidget widget = new SiteStatsWidget();
       widget.execute(widgetContext);
     }
 
-    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(SiteStatsWidget.BOT_IDENTITY_TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("botIdentityStatsList"));
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
-    Assertions.assertEquals("Bot", request.getAttribute("label"));
-    Assertions.assertEquals("Sessions", request.getAttribute("value"));
   }
 
   private static StatisticsData statistic(String label, String value) {

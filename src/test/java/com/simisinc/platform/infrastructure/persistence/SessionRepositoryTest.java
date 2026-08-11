@@ -17,6 +17,9 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -38,6 +41,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -143,6 +147,7 @@ class SessionRepositoryTest {
         Statement statement = connection.createStatement()) {
       statement.execute("TRUNCATE TABLE sessions RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE bot_list RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE web_page_hits RESTART IDENTITY");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset sessions table", se);
     }
@@ -234,6 +239,90 @@ class SessionRepositoryTest {
     assertTrue(results.isEmpty());
   }
 
+  // --- findBotSessionStatsByIdentity() coverage -- first/last seen + top crawled page ---
+
+  @Test
+  void findBotSessionStatsByIdentityIncludesFirstAndLastSeen() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSessionWithId("s1", "Googlebot/2.1", Timestamp.from(Instant.now().minus(Duration.ofDays(5))));
+    seedBotSessionWithId("s2", "Googlebot/2.1", Timestamp.from(Instant.now().minus(Duration.ofHours(1))));
+
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertEquals(1, results.size());
+    BotIdentityStats googlebot = results.get(0);
+    assertEquals("Googlebot", googlebot.getIdentity());
+    assertEquals(2, googlebot.getSessionCount());
+    assertNotNull(googlebot.getFirstSeen());
+    assertNotNull(googlebot.getLastSeen());
+    assertNotEquals(googlebot.getFirstSeen(), googlebot.getLastSeen(),
+        "the 5-days-ago and 1-hour-ago sessions must format to visibly different timestamps");
+  }
+
+  @Test
+  void findBotSessionStatsByIdentityFindsTheMostCrawledPage() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSessionWithId("s1", "Googlebot/2.1", now());
+    seedBotSessionWithId("s2", "Googlebot/2.1", now());
+    seedPageHit("s1", "/home");
+    seedPageHit("s2", "/home");
+    seedPageHit("s2", "/about");
+
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("/home", results.get(0).getTopPage());
+    assertEquals(2, results.get(0).getTopPageHits());
+  }
+
+  @Test
+  void findBotSessionStatsByIdentityLeavesTopPageNullWhenNoHitsAreRecorded() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSessionWithId("s1", "Googlebot/2.1", now());
+
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertEquals(1, results.size());
+    assertEquals("Googlebot", results.get(0).getIdentity());
+    assertEquals(1, results.get(0).getSessionCount());
+    assertNull(results.get(0).getTopPage());
+    assertEquals(0, results.get(0).getTopPageHits());
+  }
+
+  @Test
+  void findBotSessionStatsByIdentityOnlyCountsHitsFromSessionsWithinTheWindow() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotSessionWithId("s1", "Googlebot/2.1", Timestamp.from(Instant.now().minus(Duration.ofDays(45))));
+    seedPageHit("s1", "/stale-page");
+
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertTrue(results.isEmpty(), "the session (and its hit) is outside the 30-day window: " + results);
+  }
+
+  @Test
+  void findBotSessionStatsByIdentitySortsDescendingByCount() {
+    seedBotUserAgent("Googlebot/2.1", "Googlebot");
+    seedBotUserAgent("Bingbot/2.0", "Bingbot");
+    seedBotSessionWithId("s1", "Bingbot/2.0", now());
+    seedBotSessionWithId("s2", "Googlebot/2.1", now());
+    seedBotSessionWithId("s3", "Googlebot/2.1", now());
+
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertEquals(2, results.size());
+    assertEquals("Googlebot", results.get(0).getIdentity());
+    assertEquals(2, results.get(0).getSessionCount());
+    assertEquals("Bingbot", results.get(1).getIdentity());
+  }
+
+  @Test
+  void findBotSessionStatsByIdentityReturnsEmptyListWhenThereIsNoData() {
+    List<BotIdentityStats> results = SessionRepository.findBotSessionStatsByIdentity(30);
+
+    assertTrue(results.isEmpty());
+  }
+
   private static void seedBotUserAgent(String userAgent, String label) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -252,6 +341,26 @@ class SessionRepositoryTest {
           + userAgentValue + ", '" + created + "')");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not seed bot session", se);
+    }
+  }
+
+  private static void seedBotSessionWithId(String sessionId, String userAgent, Timestamp created) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO sessions (session_id, is_bot, user_agent, created) VALUES ('"
+          + sessionId + "', true, '" + userAgent + "', '" + created + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed bot session", se);
+    }
+  }
+
+  private static void seedPageHit(String sessionId, String pagePath) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (session_id, page_path) VALUES ('"
+          + sessionId + "', '" + pagePath + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web_page_hits", se);
     }
   }
 
@@ -467,6 +576,12 @@ class SessionRepositoryTest {
           + "user_agent VARCHAR(255) NOT NULL, "
           + "label VARCHAR(255), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+      statement.execute("DROP TABLE IF EXISTS web_page_hits CASCADE");
+      statement.execute("CREATE TABLE web_page_hits ("
+          + "hit_id BIGSERIAL PRIMARY KEY, "
+          + "page_path VARCHAR(255), "
+          + "session_id VARCHAR(255), "
+          + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the sessions schema", se);
     }

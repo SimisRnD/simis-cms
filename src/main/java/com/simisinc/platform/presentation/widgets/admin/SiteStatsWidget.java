@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.audit.AuditLog;
+import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -77,6 +78,7 @@ public class SiteStatsWidget extends GenericWidget {
   public static String LOCATIONS_MAP_JSP = "/admin/site-stats-locations-map.jsp";
   public static String ALERT_CARD_JSP = "/admin/site-stats-alert-card.jsp";
   public static String RECENT_ACTIONS_JSP = "/admin/site-stats-recent-actions.jsp";
+  public static String BOT_IDENTITY_TABLE_JSP = "/admin/site-stats-bot-identity-table.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -298,11 +300,13 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("bot-traffic-by-identity".equalsIgnoreCase(report)) {
-      List<StatisticsData> statisticsDataList = SessionRepository.findBotSessionsByIdentity(intervalValue);
-      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
-      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Bot"));
-      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Sessions"));
-      return TABLE_JSP;
+      List<BotIdentityStats> botIdentityStatsList = SessionRepository.findBotSessionStatsByIdentity(intervalValue);
+      context.getRequest().setAttribute("botIdentityStatsList", botIdentityStatsList);
+      // Also under the generic name so the shared tab-switcher AJAX path (action(), which always
+      // reads "statisticsDataList") can serialize it -- BOT_IDENTITY_TABLE_JSP itself reads the
+      // richer "botIdentityStatsList" attribute for the initial server-rendered table.
+      context.getRequest().setAttribute("statisticsDataList", botIdentityStatsList);
+      return BOT_IDENTITY_TABLE_JSP;
     } else if ("locations-list".equalsIgnoreCase(report)) {
       List<Session> sessionList = SessionRepository.findDailyUniqueLocations(intervalValue);
       context.getRequest().setAttribute("sessionList", sessionList);
