@@ -18,6 +18,7 @@ package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,6 +39,13 @@ public class FormField extends Entity {
   private Map<String, String> listOfOptions = null;
   private String defaultValue = null;
   private String userValue = null;
+
+  // A checkbox-group field's userValue stores the checked options' joined DISPLAY LABELS, which
+  // isn't safely reversible back to option keys if two options ever share a label -- so the
+  // originally-submitted keys are tracked here separately, purely so a validation-error redisplay
+  // (see FormWidget#post) can mark the right boxes checked again. Never persisted -- FormDataJSONCommand
+  // builds the stored JSON from explicit fields and doesn't touch this one.
+  private List<String> checkedOptionKeys = null;
 
   // Database-backed form builder bookkeeping (issue #409). Both default to values the existing
   // XML-preference rendering path (FormFieldCommand#parseFieldContent) never reads or sets, so this
@@ -110,6 +118,14 @@ public class FormField extends Entity {
 
   public void setUserValue(String userValue) {
     this.userValue = userValue;
+  }
+
+  public List<String> getCheckedOptionKeys() {
+    return checkedOptionKeys;
+  }
+
+  public void setCheckedOptionKeys(List<String> checkedOptionKeys) {
+    this.checkedOptionKeys = checkedOptionKeys;
   }
 
   public boolean isRequired() {
