@@ -34,7 +34,9 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.HealthCommand;
+import com.simisinc.platform.domain.model.cms.ServiceError;
 import com.simisinc.platform.domain.model.cms.SystemHealthCheck;
+import com.simisinc.platform.infrastructure.persistence.cms.ServiceErrorRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SystemHealthCheckRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -57,10 +59,12 @@ class HealthDashboardWidgetTest extends WidgetBase {
     setRoles(widgetContext, ADMIN);
     List<SystemHealthCheck> latest = List.of(check("database", true), check("filesystem", false));
 
-    try (MockedStatic<SystemHealthCheckRepository> repository = mockStatic(SystemHealthCheckRepository.class)) {
+    try (MockedStatic<SystemHealthCheckRepository> repository = mockStatic(SystemHealthCheckRepository.class);
+        MockedStatic<ServiceErrorRepository> errors = mockStatic(ServiceErrorRepository.class)) {
       repository.when(SystemHealthCheckRepository::findLatestPerService).thenReturn(latest);
       repository.when(() -> SystemHealthCheckRepository.findUptimePercent("database", 24)).thenReturn(100.0);
       repository.when(() -> SystemHealthCheckRepository.findUptimePercent("filesystem", 24)).thenReturn(50.0);
+      errors.when(() -> ServiceErrorRepository.findRecent(anyInt())).thenReturn(List.of());
 
       WidgetContext result = new HealthDashboardWidget().execute(widgetContext);
 
@@ -80,8 +84,10 @@ class HealthDashboardWidgetTest extends WidgetBase {
     // "No health checks have run yet" branch for exactly this.
     setRoles(widgetContext, ADMIN);
 
-    try (MockedStatic<SystemHealthCheckRepository> repository = mockStatic(SystemHealthCheckRepository.class)) {
+    try (MockedStatic<SystemHealthCheckRepository> repository = mockStatic(SystemHealthCheckRepository.class);
+        MockedStatic<ServiceErrorRepository> errors = mockStatic(ServiceErrorRepository.class)) {
       repository.when(SystemHealthCheckRepository::findLatestPerService).thenReturn(List.of());
+      errors.when(() -> ServiceErrorRepository.findRecent(anyInt())).thenReturn(List.of());
 
       WidgetContext result = new HealthDashboardWidget().execute(widgetContext);
 
@@ -91,6 +97,25 @@ class HealthDashboardWidgetTest extends WidgetBase {
       Map<String, Double> uptimeByService = (Map<String, Double>) result.getRequest().getAttribute("uptimeByService");
       assertTrue(uptimeByService.isEmpty());
       repository.verify(() -> SystemHealthCheckRepository.findUptimePercent(anyString(), anyInt()), never());
+    }
+  }
+
+  @Test
+  void executeLoadsRecentServiceErrorsForAnAdmin() {
+    setRoles(widgetContext, ADMIN);
+    ServiceError error = new ServiceError();
+    error.setExceptionClass("java.lang.NullPointerException");
+    error.setMessage("boom");
+
+    try (MockedStatic<SystemHealthCheckRepository> healthRepository = mockStatic(SystemHealthCheckRepository.class);
+        MockedStatic<ServiceErrorRepository> errors = mockStatic(ServiceErrorRepository.class)) {
+      healthRepository.when(SystemHealthCheckRepository::findLatestPerService).thenReturn(List.of());
+      errors.when(() -> ServiceErrorRepository.findRecent(50)).thenReturn(List.of(error));
+
+      WidgetContext result = new HealthDashboardWidget().execute(widgetContext);
+
+      assertEquals(List.of(error), result.getRequest().getAttribute("recentErrors"));
+      assertEquals(50, result.getRequest().getAttribute("recentErrorLimit"));
     }
   }
 

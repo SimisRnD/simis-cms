@@ -30,6 +30,7 @@ import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SearchAnalyticsCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SessionsPiiScrubJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.ServiceErrorCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthCheckCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitSnapshotJob;
@@ -84,6 +85,7 @@ public class SchedulerManager {
   // Jobs to be run once across many replicas
   public static final String SYSTEM_HEALTH_JOB = "SystemHealth";
   public static final String SYSTEM_HEALTH_CHECK_CLEANUP_JOB = "SystemHealthCheckCleanup";
+  public static final String SERVICE_ERROR_CLEANUP_JOB = "ServiceErrorCleanup";
   public static final String WEB_PAGE_HIT_SNAPSHOT_JOB = "WebPageHitSnapshot";
   public static final String WEB_PAGE_HITS_CLEANUP_JOB = "WebPageHitsCleanup";
   public static final String SEARCH_ANALYTICS_CLEANUP_JOB = "SearchAnalyticsCleanup";
@@ -186,6 +188,7 @@ public class SchedulerManager {
         // see SystemHealthJob's own javadoc for why this isn't a per-replica "every node" job.
         BackgroundJob.scheduleRecurrently(SYSTEM_HEALTH_JOB, Cron.minutely(), SystemHealthJob::execute);
         BackgroundJob.scheduleRecurrently(SYSTEM_HEALTH_CHECK_CLEANUP_JOB, Cron.daily(4, 20), SystemHealthCheckCleanupJob::execute);
+        BackgroundJob.scheduleRecurrently(SERVICE_ERROR_CLEANUP_JOB, Cron.daily(4, 25), ServiceErrorCleanupJob::execute);
         BackgroundJob.scheduleRecurrently(WEB_PAGE_HIT_SNAPSHOT_JOB, Cron.every5minutes(), WebPageHitSnapshotJob::execute);
         BackgroundJob.scheduleRecurrently(WEB_PAGE_HITS_CLEANUP_JOB, Cron.daily(4), WebPageHitsCleanupJob::execute);
         // Offset from the other 4am-ish cleanup jobs so they aren't all competing for DB time at once

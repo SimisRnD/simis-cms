@@ -17,7 +17,9 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.HealthCommand;
+import com.simisinc.platform.domain.model.cms.ServiceError;
 import com.simisinc.platform.domain.model.cms.SystemHealthCheck;
+import com.simisinc.platform.infrastructure.persistence.cms.ServiceErrorRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SystemHealthCheckRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -41,6 +43,7 @@ public class HealthDashboardWidget extends GenericWidget {
   static String JSP = "/admin/health-dashboard.jsp";
 
   private static final int UPTIME_WINDOW_HOURS = 24;
+  private static final int RECENT_ERROR_LIMIT = 50;
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -89,6 +92,10 @@ public class HealthDashboardWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("uptimeByService", uptimeByService);
     context.getRequest().setAttribute("uptimeWindowHours", UPTIME_WINDOW_HOURS);
+
+    List<ServiceError> recentErrors = ServiceErrorRepository.findRecent(RECENT_ERROR_LIMIT);
+    context.getRequest().setAttribute("recentErrors", recentErrors);
+    context.getRequest().setAttribute("recentErrorLimit", RECENT_ERROR_LIMIT);
 
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
