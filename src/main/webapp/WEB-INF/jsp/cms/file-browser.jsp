@@ -38,10 +38,10 @@
         No pages were found
       </c:if>
       <c:forEach items="${menuTabList}" var="menuTab" varStatus="tabStatus">
-        <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}${menuTab.link}" title="<c:out value="${menuTab.name}" />">${ctx}<c:out value="${menuTab.link}" /></a>
+        <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}${menuTab.link}" title="<c:out value="${menuTab.name}" />">${ctx}<c:out value="${menuTab.link}" /></a>
         <c:forEach items="${menuTab.menuItemList}" var="menuItem" varStatus="itemStatus">
           <br />
-          <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}${menuItem.link}" title="<c:out value="${menuItem.name}" />">${ctx}<c:out value="${menuItem.link}" /></a>
+          <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}${menuItem.link}" title="<c:out value="${menuItem.name}" />">${ctx}<c:out value="${menuItem.link}" /></a>
         </c:forEach>
         <c:if test="${!tabStatus.last}"><br /></c:if>
       </c:forEach>
@@ -53,7 +53,7 @@
       </c:if>
       <c:forEach items="${fileItemList}" var="file" varStatus="status">
         <i class="${font:far()} fa-file-pdf"></i>
-        <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+        <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
         <small><c:out value="${file.mimeType}" /></small>
         <small><c:out value="${number:suffix(file.fileLength)}"/></small>
         <c:if test="${!status.last}"><br /></c:if>
@@ -78,4 +78,10 @@
     }
     </c:otherwise>
   </c:choose>
+  document.querySelectorAll(".js-mySubmit").forEach(function (el) {
+    el.addEventListener("click", function (event) {
+      event.preventDefault();
+      mySubmit(el.dataset.src);
+    });
+  });
 </script>

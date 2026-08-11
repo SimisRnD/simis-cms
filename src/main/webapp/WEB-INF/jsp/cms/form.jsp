@@ -209,11 +209,23 @@
         <fieldset>
           <legend><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if></legend>
           <c:forEach items="${formField.listOfOptions}" var="option">
+            <%-- Was this option checked on a previous same-request submission that failed validation
+                 (e.g. a different required field left blank)? userValue only stores the checked
+                 options' joined display LABELS, which isn't a safe reverse lookup if two options ever
+                 share a label, so compare against the originally-submitted KEYS instead (same
+                 membership-check idiom item-full-form.jsp uses for the "tagId" checkbox group). --%>
+            <c:set var="isChecked" value="false" />
+            <c:forEach var="checkedKey" items="${formField.checkedOptionKeys}">
+              <c:if test="${checkedKey eq option.key}">
+                <c:set var="isChecked" value="true" />
+              </c:if>
+            </c:forEach>
             <label>
               <input type="checkbox"
                   id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>-<c:out value="${option.key}"/>"
                   name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-                  value="<c:out value="${option.key}"/>"/>
+                  value="<c:out value="${option.key}"/>"
+                  <c:if test="${isChecked eq 'true'}">checked</c:if>/>
               <c:out value="${option.value}" />
             </label>
           </c:forEach>
