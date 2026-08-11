@@ -118,6 +118,10 @@ public class SiteStatsWidget extends GenericWidget {
         optionsList.put(name, value);
       }
       context.getRequest().setAttribute("optionsList", optionsList);
+      // Which option matches the days/interval actually being rendered, so the JSP can highlight the
+      // right tab regardless of the options' list order (the list order doesn't have to put the
+      // default value first)
+      context.getRequest().setAttribute("currentValue", intervalValue + String.valueOf(intervalType));
     }
 
     // Run the report

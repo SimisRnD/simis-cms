@@ -876,6 +876,11 @@
           <title>Bot Traffic by Identity</title>
           <report>bot-traffic-by-identity</report>
           <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
     </section>
