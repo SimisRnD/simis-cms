@@ -35,7 +35,7 @@
 </c:if>
 <c:forEach items="${fileItemList}" var="file" varStatus="status">
   <i class="fa fa-file-video-o"></i>
-  <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+  <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
   <small><c:out value="${file.mimeType}" /></small>
   <small><c:out value="${number:suffix(file.fileLength)}"/></small>
   <c:if test="${!status.last}"><br /></c:if>
@@ -57,4 +57,10 @@
     }
     </c:otherwise>
   </c:choose>
+  document.querySelectorAll(".js-mySubmit").forEach(function (el) {
+    el.addEventListener("click", function (event) {
+      event.preventDefault();
+      mySubmit(el.dataset.src);
+    });
+  });
 </script>
