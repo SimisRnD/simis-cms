@@ -404,6 +404,58 @@ class SearchAnalyticsRepositoryTest {
   }
 
   @Test
+  void findHighValueTermActivityCountsOnlyConfiguredTermsWithAtLeastOneResult() {
+    addEvent("pricing", "pages", 3);
+    addEvent("pricing", "content", 2);
+    addEvent("pricing", "pages", 0);
+    addEvent("demo", "pages", 1);
+    addEvent("unrelated", "pages", 5);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findHighValueTermActivity(
+        List.of("pricing", "demo"), 30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("pricing", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue());
+    assertEquals("demo", results.get(1).getLabel());
+    assertEquals("1", results.get(1).getValue());
+  }
+
+  @Test
+  void findHighValueTermActivityExcludesEventsOutsideTheWindow() {
+    backdate(addEvent("pricing", "pages", 3).getId(), 40);
+    addEvent("pricing", "pages", 3);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findHighValueTermActivity(
+        List.of("pricing"), 30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("1", results.get(0).getValue());
+  }
+
+  @Test
+  void findHighValueTermActivityReturnsEmptyWithoutQueryingWhenNoTermsConfigured() {
+    addEvent("pricing", "pages", 3);
+
+    assertTrue(SearchAnalyticsRepository.findHighValueTermActivity(List.of(), 30, 10).isEmpty());
+    assertTrue(SearchAnalyticsRepository.findHighValueTermActivity(null, 30, 10).isEmpty());
+  }
+
+  @Test
+  void parseHighValueTermsNormalizesTrimsAndDedupes() {
+    List<String> terms = SearchAnalyticsRepository.parseHighValueTerms(" Pricing, demo , pricing,,Demo ");
+
+    assertEquals(List.of("pricing", "demo"), terms);
+  }
+
+  @Test
+  void parseHighValueTermsReturnsEmptyWhenBlank() {
+    assertTrue(SearchAnalyticsRepository.parseHighValueTerms(null).isEmpty());
+    assertTrue(SearchAnalyticsRepository.parseHighValueTerms("").isEmpty());
+    assertTrue(SearchAnalyticsRepository.parseHighValueTerms("   ").isEmpty());
+  }
+
+  @Test
   void resolveZeroResultAlertThresholdFallsBackToDefaultWhenBlankOrUnparseable() {
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(null));
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(""));

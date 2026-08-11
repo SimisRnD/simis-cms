@@ -1202,8 +1202,17 @@
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
+  <p><strong>High-Value Search Terms</strong> is different from the rest of this page: instead of surfacing whatever visitors happen to search for, it tracks a fixed watchlist of terms configured below and confirms they're being found (result count &gt; 0), rather than failing.</p>
   <p>The reports further down break those same search executions down by content type, originating page, and near-miss (low-but-nonzero) result counts, to help narrow down where to focus. Like the tiles above, these are a floor, not a full census -- searches from logged-in staff and DNT/GPC-opted-out visitors aren't recorded at all.</p>
 </div>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Search Settings</title>
+          <prefix>search</prefix>
         </widget>
       </column>
     </section>
@@ -1248,6 +1257,22 @@
           <label>Search Term</label>
           <value>Searches This Week</value>
           <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star</icon>
+          <title>High-Value Search Terms</title>
+          <report>high-value-search-terms</report>
+          <label>Search Term</label>
+          <value>Successful Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+          <options>
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+            <option name="180 Days" value="180d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">

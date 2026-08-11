@@ -284,6 +284,57 @@ public class SearchAnalyticsRepository {
     return DB.selectGroupedFrom(TABLE_NAME, "query", "query_count", where, orderBy, recordLimit);
   }
 
+  /** Parses the comma-separated search.highValueTerms site property into normalized, deduplicated
+   * terms -- lowercased and trimmed to match how SearchAnalyticsCommand.record() normalizes query
+   * before storing it, so a term configured as "Pricing" still matches a stored "pricing" row.
+   * Returns an empty list when the property is unset. */
+  public static List<String> parseHighValueTerms(String highValueTermsCsv) {
+    if (StringUtils.isBlank(highValueTermsCsv)) {
+      return new ArrayList<>();
+    }
+    List<String> terms = new ArrayList<>();
+    for (String term : highValueTermsCsv.split(",")) {
+      String normalized = term.trim().toLowerCase();
+      if (!normalized.isEmpty() && !terms.contains(normalized)) {
+        terms.add(normalized);
+      }
+    }
+    return terms;
+  }
+
+  /** Search volume for an admin-curated watchlist of business-critical terms (search.highValueTerms,
+   * already parsed by parseHighValueTerms) that returned at least one result, over the last
+   * {@code daysToLimit} days, most-searched first. Unlike findZeroResultTerms/findNearMissTerms
+   * (which surface terms that are failing), this confirms a fixed set of terms an operator cares
+   * about are being found successfully and tracks their volume. Returns an empty list without
+   * querying when no terms are configured. daysToLimit and recordLimit are ints, so placing them in
+   * the interval/limit cannot inject SQL; the term list is bound as PreparedStatement parameters via
+   * the IN clause below, not concatenated. */
+  public static List<StatisticsData> findHighValueTermActivity(List<String> highValueTerms, int daysToLimit, int recordLimit) {
+    if (highValueTerms == null || highValueTerms.isEmpty()) {
+      return new ArrayList<>();
+    }
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add("result_count > 0")
+        .add(inClause("query", highValueTerms.size()), highValueTerms.toArray(new String[0]));
+    SqlUtils orderBy = new SqlUtils().add("query_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "query", "query_count", where, orderBy, recordLimit);
+  }
+
+  /** {@code "column IN (?,?,?)"} with {@code count} placeholders (count must be >= 1), matching
+   * AuditLogRepository's precedent for a safe multi-value IN clause. */
+  private static String inClause(String column, int count) {
+    StringBuilder sb = new StringBuilder(column).append(" IN (");
+    for (int i = 0; i < count; i++) {
+      if (i > 0) {
+        sb.append(",");
+      }
+      sb.append("?");
+    }
+    return sb.append(")").toString();
+  }
+
   /** Resolves the configurable zero-result-search alert threshold (search.zeroResultAlertThreshold),
    * falling back to the default when unset or unparseable, matching
    * MailingListMemberRepository.resolveQuarantineAlertThresholdPercent's precedent. */

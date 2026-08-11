@@ -157,6 +157,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Zero-Result Search Alert Threshold (count/24h)', 'search.zeroResultAlertThreshold', '20', 'text');
 INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Search Log Retention (days)', 'search.retentionDays', '180', 'text');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('High-Value Search Terms (comma-separated)', 'search.highValueTerms', '', 'text');
 
 -- Maps
 
