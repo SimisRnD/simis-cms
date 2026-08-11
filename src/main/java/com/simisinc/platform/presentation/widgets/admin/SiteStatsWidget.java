@@ -465,6 +465,17 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Low-Result Searches"));
       return TABLE_JSP;
+    } else if ("high-value-search-terms".equalsIgnoreCase(report)) {
+      // Admin-curated watchlist (search.highValueTerms) of business-critical terms -- unlike
+      // zero-result-terms/near-miss-search-terms (which surface terms that are failing), this
+      // confirms these specific terms ARE being found and tracks their search volume.
+      List<String> highValueTerms = SearchAnalyticsRepository.parseHighValueTerms(
+          LoadSitePropertyCommand.loadByName("search.highValueTerms"));
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findHighValueTermActivity(highValueTerms, intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Successful Searches"));
+      return TABLE_JSP;
     } else if ("total-form-submissions".equalsIgnoreCase(report)) {
       Long count = FormDataRepository.countTotalSubmissions();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));

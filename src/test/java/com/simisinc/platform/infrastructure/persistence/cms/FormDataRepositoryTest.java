@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -44,6 +45,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -231,6 +233,65 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void exportIncludesTheSubmittedFieldValuesAsAFlattenedColumn(@TempDir File tempDir) throws IOException {
+    // Regression test: FormDataRepository.export() previously selected only metadata columns
+    // (form_unique_id, ip_address, created, url, flagged_as_spam) and never touched field_values --
+    // the JSONB column holding the visitor's actual typed answers -- so the CSV an admin downloaded
+    // never contained the form content itself, only metadata about the submission.
+    FormField name = new FormField();
+    name.setLabel("Name");
+    name.setName("name");
+    name.setType("text");
+    name.setUserValue("Jane Doe");
+
+    FormField email = new FormField();
+    email.setLabel("Email");
+    email.setName("email");
+    email.setType("email");
+    email.setUserValue("jane@example.org");
+
+    FormField unanswered = new FormField();
+    unanswered.setLabel("Company");
+    unanswered.setName("company");
+    unanswered.setType("text");
+    unanswered.setUserValue("");
+
+    FormData record = new FormData();
+    record.setFormUniqueId("contact-us");
+    record.setIpAddress("203.0.113.30");
+    record.setUrl("https://example.org/contact");
+    record.setFormFieldList(List.of(name, email, unanswered));
+    assertNotNull(FormDataRepository.add(record));
+
+    File file = new File(tempDir, "field-data-export.csv");
+    FormDataRepository.export(null, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size(), "a header row plus the one seeded record");
+    assertTrue(lines.get(0).contains("Field Data"), "header should contain the Field Data column: " + lines.get(0));
+
+    String row = lines.get(1);
+    assertTrue(row.contains("Name: Jane Doe"), "row should contain the answered Name field: " + row);
+    assertTrue(row.contains("Email: jane@example.org"), "row should contain the answered Email field: " + row);
+    assertTrue(!row.contains("Company"), "an unanswered field must not appear in the flattened column: " + row);
+  }
+
+  @Test
+  void exportHandlesRecordsWithNoFieldValuesAtAll(@TempDir File tempDir) throws IOException {
+    // field_values is nullable -- a submission saved without any FormField list (e.g. the existing
+    // addFormData() test helper) must still export cleanly rather than erroring on a null JSONB column.
+    FormData saved = addFormData("newsletter-signup", "203.0.113.31", "https://example.org/newsletter", false);
+    assertNotNull(saved);
+
+    File file = new File(tempDir, "no-field-data-export.csv");
+    FormDataRepository.export(null, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size());
+    assertTrue(lines.get(0).contains("Field Data"), "header should still contain the Field Data column: " + lines.get(0));
+  }
+
+  @Test
   void exportWithASpecificationOnlyIncludesRowsMatchingTheFormFilter(@TempDir File tempDir) throws IOException {
     // Regression test: FormDataRepository.export() previously took no filter argument at all and
     // always dumped the whole table, so filtering the on-screen list to one form and clicking
@@ -290,6 +351,55 @@ class FormDataRepositoryTest {
 
     assertTrue(firstCall, "the first call transitions the row from unprocessed to processed");
     assertTrue(!secondCall, "a repeat call on an already-processed row must not report a fresh transition");
+  }
+
+  @Test
+  void updatePersistsEditsMadeToAnAlreadyLoadedFormFieldList() {
+    // Regression test: update() previously only wrote modified_by/modified and silently dropped any
+    // edit to formFieldList, even though findById() populates it from field_values and callers have
+    // no way to know editing it before save()/update() is a no-op.
+    FormData original = new FormData();
+    original.setFormUniqueId("contact-us");
+    List<FormField> fields = new ArrayList<>();
+    FormField name = new FormField();
+    name.setName("name");
+    name.setUserValue("Original Name");
+    fields.add(name);
+    original.setFormFieldList(fields);
+    FormData saved = FormDataRepository.add(original);
+
+    FormData loaded = FormDataRepository.findById(saved.getId());
+    loaded.getFormFieldList().get(0).setUserValue("Corrected Name");
+    FormData updated = FormDataRepository.update(loaded);
+    assertNotNull(updated);
+
+    FormData reloaded = FormDataRepository.findById(saved.getId());
+    assertEquals("Corrected Name", reloaded.getFormFieldList().get(0).getUserValue());
+  }
+
+  @Test
+  void updateWithoutALoadedFormFieldListLeavesFieldValuesUntouched() {
+    // markAsArchived/tryToMarkAsClaimed/markAsProcessed use their own targeted updates rather than
+    // this method, but a caller that builds a FormData with only an id and modifiedBy set (never
+    // loading formFieldList) must not wipe out the existing field_values -- only an explicitly
+    // populated list should overwrite it.
+    FormData original = new FormData();
+    original.setFormUniqueId("contact-us");
+    List<FormField> fields = new ArrayList<>();
+    FormField name = new FormField();
+    name.setName("name");
+    name.setUserValue("Keep Me");
+    fields.add(name);
+    original.setFormFieldList(fields);
+    FormData saved = FormDataRepository.add(original);
+
+    FormData partial = new FormData();
+    partial.setId(saved.getId());
+    partial.setModifiedBy(1L);
+    FormDataRepository.update(partial);
+
+    FormData reloaded = FormDataRepository.findById(saved.getId());
+    assertEquals("Keep Me", reloaded.getFormFieldList().get(0).getUserValue());
   }
 
   @Test
