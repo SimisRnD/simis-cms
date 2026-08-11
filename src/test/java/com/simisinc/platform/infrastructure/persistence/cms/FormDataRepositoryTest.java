@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -350,6 +351,55 @@ class FormDataRepositoryTest {
 
     assertTrue(firstCall, "the first call transitions the row from unprocessed to processed");
     assertTrue(!secondCall, "a repeat call on an already-processed row must not report a fresh transition");
+  }
+
+  @Test
+  void updatePersistsEditsMadeToAnAlreadyLoadedFormFieldList() {
+    // Regression test: update() previously only wrote modified_by/modified and silently dropped any
+    // edit to formFieldList, even though findById() populates it from field_values and callers have
+    // no way to know editing it before save()/update() is a no-op.
+    FormData original = new FormData();
+    original.setFormUniqueId("contact-us");
+    List<FormField> fields = new ArrayList<>();
+    FormField name = new FormField();
+    name.setName("name");
+    name.setUserValue("Original Name");
+    fields.add(name);
+    original.setFormFieldList(fields);
+    FormData saved = FormDataRepository.add(original);
+
+    FormData loaded = FormDataRepository.findById(saved.getId());
+    loaded.getFormFieldList().get(0).setUserValue("Corrected Name");
+    FormData updated = FormDataRepository.update(loaded);
+    assertNotNull(updated);
+
+    FormData reloaded = FormDataRepository.findById(saved.getId());
+    assertEquals("Corrected Name", reloaded.getFormFieldList().get(0).getUserValue());
+  }
+
+  @Test
+  void updateWithoutALoadedFormFieldListLeavesFieldValuesUntouched() {
+    // markAsArchived/tryToMarkAsClaimed/markAsProcessed use their own targeted updates rather than
+    // this method, but a caller that builds a FormData with only an id and modifiedBy set (never
+    // loading formFieldList) must not wipe out the existing field_values -- only an explicitly
+    // populated list should overwrite it.
+    FormData original = new FormData();
+    original.setFormUniqueId("contact-us");
+    List<FormField> fields = new ArrayList<>();
+    FormField name = new FormField();
+    name.setName("name");
+    name.setUserValue("Keep Me");
+    fields.add(name);
+    original.setFormFieldList(fields);
+    FormData saved = FormDataRepository.add(original);
+
+    FormData partial = new FormData();
+    partial.setId(saved.getId());
+    partial.setModifiedBy(1L);
+    FormDataRepository.update(partial);
+
+    FormData reloaded = FormDataRepository.findById(saved.getId());
+    assertEquals("Keep Me", reloaded.getFormFieldList().get(0).getUserValue());
   }
 
   @Test
