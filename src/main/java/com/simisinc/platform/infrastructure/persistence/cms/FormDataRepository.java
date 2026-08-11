@@ -260,6 +260,13 @@ public class FormDataRepository {
     SqlUtils updateValues = new SqlUtils()
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
+    if (record.getFormFieldList() != null) {
+      // Only overwrite field_values when the caller has populated formFieldList (e.g. by editing the
+      // list returned from findById()) -- a record built without loading it first (the markAsX()
+      // methods below use their own targeted updates instead of this method) must not wipe out the
+      // existing JSONB value.
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, FormDataJSONCommand.createJSONString(record)));
+    }
     SqlUtils where = new SqlUtils()
         .add("form_data_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
