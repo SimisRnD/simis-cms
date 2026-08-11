@@ -17,16 +17,21 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.ConnectException;
 
+import org.apache.commons.mail.EmailException;
+import org.apache.commons.mail.ImageHtmlEmail;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -184,6 +189,119 @@ class FormDefinitionFormWidgetTest extends WidgetBase {
 
       Assertions.assertEquals(42L, existing.getCreatedBy());
       Assertions.assertEquals(1L, existing.getModifiedBy());
+    }
+  }
+
+  /**
+   * A real ImageHtmlEmail (not a Mockito mock) so the production addTo/setSubject/setMsg calls run
+   * their normal validation; only send() is overridden to succeed or throw on command. Mirrors the
+   * stub in SendMailWidgetTest.
+   */
+  private static class StubEmail extends ImageHtmlEmail {
+    private final EmailException toThrow;
+
+    StubEmail(EmailException toThrow) {
+      this.toThrow = toThrow;
+    }
+
+    @Override
+    public String send() throws EmailException {
+      if (toThrow != null) {
+        throw toThrow;
+      }
+      return "stub-message-id";
+    }
+  }
+
+  @Test
+  void postSendTestEmailSendsToTheTypedAddressWithoutSaving() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "action", "sendTestEmail");
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "emailTo", "sales@simis.com, technical@simis.com");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
+      emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(null));
+
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertEquals("A test email was sent to sales@simis.com, technical@simis.com", result.getSuccessMessage());
+      Assertions.assertNull(result.getErrorMessage());
+      formDefinitionRepository.verify(() -> FormDefinitionRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void postSendTestEmailWithABlankAddressDoesNotAttemptToSend() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "action", "sendTestEmail");
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+
+    try (MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertNotNull(result.getErrorMessage());
+      Assertions.assertNull(result.getSuccessMessage());
+      emailCommand.verify(EmailCommand::prepareNewEmail, never());
+    }
+  }
+
+  @Test
+  void postSendTestEmailWithAnInvalidAddressDoesNotAttemptToSend() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "action", "sendTestEmail");
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "emailTo", "not-an-email");
+
+    try (MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertNotNull(result.getErrorMessage());
+      Assertions.assertTrue(result.getErrorMessage().contains("not-an-email"));
+      emailCommand.verify(EmailCommand::prepareNewEmail, never());
+    }
+  }
+
+  @Test
+  void postSendTestEmailCategorizesAFailureWithoutLeakingTheRawMessage() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "action", "sendTestEmail");
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "emailTo", "sales@simis.com");
+
+    EmailException toThrow = new EmailException(new ConnectException("Connection refused to internal-relay.simis.local:25"));
+
+    try (MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
+      emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(toThrow));
+
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      String errorMessage = result.getErrorMessage();
+      Assertions.assertNotNull(errorMessage);
+      Assertions.assertTrue(errorMessage.contains("connect"));
+      Assertions.assertFalse(errorMessage.contains("internal-relay.simis.local"));
+    }
+  }
+
+  @Test
+  void postSendTestEmailOnAnExistingFormDoesNotSaveEvenWithoutARepositoryStub() throws InvocationTargetException, IllegalAccessException {
+    // No FormDefinitionRepository stub is set up at all -- if the action dispatch ever fell through
+    // to the save path, FormDefinitionRepository.findById() would return null against the real
+    // (unmocked) class and this would blow up instead of silently passing, so the absence of a stub
+    // here is itself part of the guard against that regression.
+    addQueryParameter(widgetContext, "action", "sendTestEmail");
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "emailTo", "sales@simis.com");
+
+    try (MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
+      emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(null));
+
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertEquals("/admin/forms-editor?formDefinitionId=5", result.getRedirect());
+      Assertions.assertNotNull(result.getRequestObject());
     }
   }
 }
