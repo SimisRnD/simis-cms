@@ -47,6 +47,7 @@ import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.DataSource;
+import com.simisinc.platform.infrastructure.database.DatabaseProperties;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
@@ -100,27 +101,8 @@ public class ContextListener implements ServletContextListener {
       LOG.info("Starting up the web database connection pool...");
       // Use the default properties
       databaseProperties.load(is);
-      // Check for environment variables
-      if (System.getenv().containsKey("DB_SERVER_NAME")) {
-        LOG.info("Found variable DB_SERVER_NAME=" + System.getenv("DB_SERVER_NAME"));
-        databaseProperties.setProperty("dataSource.serverName", System.getenv("DB_SERVER_NAME"));
-      }
-      if (System.getenv().containsKey("DB_USER")) {
-        LOG.info("Found variable DB_USER");
-        databaseProperties.setProperty("dataSource.user", System.getenv("DB_USER"));
-      }
-      if (System.getenv().containsKey("DB_PASSWORD")) {
-        LOG.info("Found variable DB_PASSWORD");
-        databaseProperties.setProperty("dataSource.password", System.getenv("DB_PASSWORD"));
-      }
-      if (System.getenv().containsKey("DB_NAME")) {
-        LOG.info("Found variable DB_NAME=" + System.getenv("DB_NAME"));
-        databaseProperties.setProperty("dataSource.databaseName", System.getenv("DB_NAME"));
-      }
-      if (System.getenv().containsKey("DB_SSL") && "true".equals(System.getenv("DB_SSL"))) {
-        LOG.info("Found variable DB_SSL=" + System.getenv("DB_SSL"));
-        databaseProperties.setProperty("dataSource.ssl", "true");
-      }
+      // Check for environment variables, including optional Azure SPN authentication (#1129)
+      DatabaseProperties.applyEnvironmentOverrides(databaseProperties);
       DataSource.init(databaseProperties);
       // See if this is a new install or an upgrade
       if (!DatabaseCommand.initialize(databaseProperties)) {
