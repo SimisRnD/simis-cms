@@ -31,10 +31,14 @@
     <input type="hidden" name="webPage" value="${webPage.link}" />
     <input type="hidden" id="templateId" name="templateId" value="-1" />
     <input type="hidden" id="templateUniqueId" name="templateUniqueId" value="-1" />
-    <c:if test="${!empty webPage.link && webPage.link ne '/'}">
-      <h4>Set a web page title for this page</h4>
-      <input type="text" name="title" value="<c:out value="${webPage.title}" />" autofocus="autofocus" />
-    </c:if>
+    <h4>Set a web page title for this page</h4>
+    <input type="text" name="title" placeholder="Give it a title..." value="<c:out value="${webPage.title}" />" autofocus="autofocus" />
+    <label>Description (optional, shown in search results)
+      <input type="text" name="description" placeholder="Describe it..." value="<c:out value="${webPage.description}" />" />
+    </label>
+    <p class="help-text">
+      Once this page is saved, add it to the <a href="${ctx}/admin/sitemap">Navigation Menu</a> so visitors can find it -- a page isn't linked from anywhere, or included in on-site search results, until it's added there.
+    </p>
     <h4>Choose a template for this page</h4>
     <c:if test="${empty webPageTemplateList}">
       <p>No templates were found.</p>

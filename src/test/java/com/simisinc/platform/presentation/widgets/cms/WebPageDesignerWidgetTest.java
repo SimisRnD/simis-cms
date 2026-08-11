@@ -142,6 +142,71 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     }
   }
 
+  // Regression coverage for the template-picker onboarding gap: web-page-templates.jsp used to hide
+  // its title field entirely for the home page ("/"), and never collected a description at all --
+  // both are set from the same "title"/"description" request parameters post() already reads/sets, so
+  // this proves the widget's own save logic never excluded the home page (the exclusion was JSP-only)
+  // and that description is now actually persisted.
+
+  @Test
+  void postSetsTitleAndDescriptionForANewPageIncludingTheHomePage() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/");
+    addQueryParameter(widgetContext, "returnPage", "/");
+    addQueryParameter(widgetContext, "title", "My Home Page");
+    addQueryParameter(widgetContext, "description", "A short description shown in search results");
+    addQueryParameter(widgetContext, "pageXml", "<page><section><column><widget name=\"content\" /></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("/")).thenReturn(null);
+
+      try (MockedStatic<SaveWebPageCommand> saveWebPageCommandMockedStatic = mockStatic(SaveWebPageCommand.class)) {
+        ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+        saveWebPageCommandMockedStatic.when(() -> SaveWebPageCommand.saveWebPage(saved.capture())).thenReturn(new WebPage());
+
+        WebPageDesignerWidget widget = new WebPageDesignerWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertNull(widgetContext.getErrorMessage());
+        Assertions.assertEquals("My Home Page", saved.getValue().getTitle());
+        Assertions.assertEquals("A short description shown in search results", saved.getValue().getDescription());
+      }
+    }
+  }
+
+  @Test
+  void postLeavesTitleAndDescriptionUnchangedWhenNotSubmitted() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-page");
+    addQueryParameter(widgetContext, "pageXml", "<page><section><column><widget name=\"content\" /></column></section></page>");
+
+    WebPage existing = new WebPage();
+    existing.setLink("/existing-page");
+    existing.setTitle("Existing Title");
+    existing.setDescription("Existing description");
+
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("/existing-page")).thenReturn(existing);
+
+      try (MockedStatic<SaveWebPageCommand> saveWebPageCommandMockedStatic = mockStatic(SaveWebPageCommand.class)) {
+        ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+        saveWebPageCommandMockedStatic.when(() -> SaveWebPageCommand.saveWebPage(saved.capture())).thenReturn(new WebPage());
+
+        WebPageDesignerWidget widget = new WebPageDesignerWidget();
+        widget.post(widgetContext);
+
+        Assertions.assertEquals("Existing Title", saved.getValue().getTitle());
+        Assertions.assertEquals("Existing description", saved.getValue().getDescription());
+      }
+    }
+  }
+
   @Test
   void postError() {
     // Set POST parameters
