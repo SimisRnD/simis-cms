@@ -595,6 +595,72 @@ class FormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postCheckedRequiredCheckboxWithMalformedEmptyListIsAccepted() {
+    // A legacy XML fields preference with list="," (a realistic typo) parses to a non-null but
+    // EMPTY listOfOptions -- FormFieldCommand.parseFieldContent does list.split(",") with no blank
+    // guard, and ",".split(",") returns a zero-length array. form.jsp's !empty check treats that
+    // the same as null and renders a plain single-toggle checkbox, so a real browser submits
+    // exactly the "...subscribe=true" parameter below. Before the fix, FormWidget.post()'s
+    // isCheckboxGroup only null-checked listOfOptions, so it wrongly took the checkbox-group
+    // branch, which can never match anything against zero options -- permanently rejecting this
+    // required field no matter what the visitor submitted.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>subscribe</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Subscribe to updates\" value=\"subscribe\" type=\"checkbox\" list=\",\" required=\"true\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "subscribe", "true");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+      try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+          MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+        FormWidget widget = new FormWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNull(result);
+        FormField subscribeField = savedFormData.getValue().getFormFieldList().get(0);
+        Assertions.assertEquals("true", subscribeField.getUserValue());
+      }
+    }
+  }
+
+  @Test
+  void postCheckedOptionalCheckboxWithMalformedEmptyListStoresValue() {
+    // Same malformed list="," field as above, but optional -- the checked value must still be
+    // captured, not silently discarded by the checkbox-group branch's empty-options join.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>survey</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Subscribe to updates\" value=\"subscribe\" type=\"checkbox\" list=\",\" required=\"false\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "subscribe", "true");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+      try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+          MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+        FormWidget widget = new FormWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNull(result);
+        FormField subscribeField = savedFormData.getValue().getFormFieldList().get(0);
+        Assertions.assertEquals("true", subscribeField.getUserValue());
+      }
+    }
+  }
+
+  @Test
   void rateLimitError() {
     // Show a form Error
     try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
