@@ -47,6 +47,14 @@
   .error-message.show {
     display: block;
   }
+  /* Honeypot (issue #1153): off-screen rather than display:none/visibility:hidden -- some spam bots
+     specifically skip those two properties when deciding what to fill in, but still find and fill an
+     absolutely-positioned field a screen reader or sighted user would never encounter either. */
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+  }
 </style>
 
 <script nonce="${cspNonce}">
@@ -193,6 +201,15 @@
   <c:if test="${!empty queryString}">
     <input type="hidden" name="queryString" value="<c:out value="${queryString}" />"/>
   </c:if>
+  <%-- Honeypot (issue #1153): a real visitor never sees this field (off-screen, aria-hidden, no tab
+       stop) -- a bot that fills every input it finds, including this one, gets silently dropped by
+       FormWidget#post. Baited with a common autofill-target label/name so scripted fillers are more
+       likely to populate it than skip it. --%>
+  <div class="hp-field" aria-hidden="true">
+    <label for="${widgetContext.uniqueId}_hpWebsite">Website</label>
+    <input type="text" id="${widgetContext.uniqueId}_hpWebsite" name="${widgetContext.uniqueId}_hpWebsite"
+        tabindex="-1" autocomplete="off"/>
+  </div>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>

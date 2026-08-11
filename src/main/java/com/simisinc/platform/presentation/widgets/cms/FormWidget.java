@@ -63,6 +63,12 @@ public class FormWidget extends GenericWidget {
   static String SUCCESS_JSP = "/cms/form-success.jsp";
   static String RATE_LIMITED_JSP = "/cms/error-rate-limited.jsp";
 
+  // Anti-bot honeypot (issue #1153): form.jsp renders a real, visually-hidden input under this exact
+  // name/id -- a genuine visitor never sees or fills it in, so a non-blank value here is a strong bot
+  // signal. Underscore-prefixed so it can never collide with an admin-defined field's own slugified
+  // name (FormFieldCommand#generateHtmlName only ever produces lowercase alphanumerics and hyphens).
+  static final String HONEYPOT_FIELD_NAME = "_hpWebsite";
+
   public WidgetContext execute(WidgetContext context) {
 
     // No need to show widget when rate limiting is triggered
@@ -175,6 +181,15 @@ public class FormWidget extends GenericWidget {
         && !(context.hasRole("admin") || context.hasRole("community-manager"))) {
       // A direct POST to a form an admin has since disabled (issue #563 follow-up) -- previously silent
       recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE);
+      return null;
+    }
+
+    // Honeypot (issue #1153): a real visitor never sees or fills in this field, so a non-blank value
+    // is treated as spam and dropped exactly like a genuine success -- returning null here (the same
+    // no-message redirect a real successful submission takes at the end of this method) gives a bot
+    // nothing to distinguish "caught" from "accepted", so it has no signal to adapt on.
+    if (StringUtils.isNotBlank(context.getParameter(context.getUniqueId() + HONEYPOT_FIELD_NAME))) {
+      recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_HONEYPOT);
       return null;
     }
 
