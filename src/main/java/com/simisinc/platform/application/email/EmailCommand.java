@@ -25,8 +25,16 @@ import org.apache.commons.mail.EmailConstants;
 import org.apache.commons.mail.ImageHtmlEmail;
 import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 
+import javax.mail.AuthenticationFailedException;
+import javax.mail.SendFailedException;
+import javax.net.ssl.SSLException;
+
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
+import java.net.UnknownHostException;
 
 /**
  * Prepares an official site email
@@ -87,5 +95,34 @@ public class EmailCommand {
       }
     }
     return email;
+  }
+
+  /**
+   * Maps a mail-send failure to a stable, non-sensitive category for display to end users. Never
+   * returns raw exception text, which can contain hostnames, ports, or credentials. Shared by any
+   * synchronous, request-thread test-send (as opposed to EmailTask's background-job sends, which
+   * log the full exception instead since nothing renders it to a user).
+   */
+  public static String categorizeSendFailure(Throwable throwable) {
+    Throwable current = throwable;
+    for (int depth = 0; current != null && depth < 5; depth++, current = current.getCause()) {
+      if (current instanceof AuthenticationFailedException) {
+        return "auth";
+      }
+      if (current instanceof SendFailedException) {
+        return "rejected";
+      }
+      if (current instanceof SSLException) {
+        return "tls";
+      }
+      if (current instanceof SocketTimeoutException) {
+        return "timeout";
+      }
+      if (current instanceof ConnectException || current instanceof UnknownHostException
+          || current instanceof NoRouteToHostException) {
+        return "connect";
+      }
+    }
+    return "unknown";
   }
 }
