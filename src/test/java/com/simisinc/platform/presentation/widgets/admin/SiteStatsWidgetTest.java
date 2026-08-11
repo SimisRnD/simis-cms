@@ -1157,6 +1157,36 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeHighValueSearchTerms() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>High-Value Search Terms</title>\n" +
+            "  <report>high-value-search-terms</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<String> parsedTerms = List.of("pricing", "demo");
+    List<StatisticsData> data = List.of(statistic("pricing", "4"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.highValueTerms"))
+          .thenReturn("Pricing, Demo");
+      repository.when(() -> SearchAnalyticsRepository.parseHighValueTerms("Pricing, Demo")).thenReturn(parsedTerms);
+      repository.when(() -> SearchAnalyticsRepository.findHighValueTermActivity(parsedTerms, 30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Search Term", request.getAttribute("label"));
+    Assertions.assertEquals("Successful Searches", request.getAttribute("value"));
+  }
+
+  @Test
   void executeConversionRate() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +
