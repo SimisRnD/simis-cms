@@ -60,7 +60,7 @@
       if (e.keyCode === 13) {
           return false;
       }
-      var errorEl = document.getElementById("error-" + this.id);
+      var errorEl = document.getElementById("error-" + this.name);
       var hasValue = this.type === "checkbox" ? this.checked : this.value.trim() !== "";
       if (errorEl && hasValue) {
         errorEl.classList.remove("show");
