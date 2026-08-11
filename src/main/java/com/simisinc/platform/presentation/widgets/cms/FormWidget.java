@@ -192,6 +192,14 @@ public class FormWidget extends GenericWidget {
       String parameterValue = isCheckboxGroup
           ? resolveCheckboxGroupValue(context, formField)
           : context.getParameter(context.getUniqueId() + formField.getName());
+      if ("checkbox".equals(formField.getType()) && !isCheckboxGroup && !"true".equals(StringUtils.trim(parameterValue))) {
+        // A single-toggle checkbox only ever submits the literal "true" when checked -- form.jsp's own
+        // rendering (value="true") and redisplay logic (userValue eq 'true') both depend on this. A
+        // direct POST that skips the rendered HTML (bots routinely do this) could otherwise satisfy a
+        // required checkbox/consent field with any non-blank value, which would then be persisted to
+        // form_data and emailed/displayed verbatim. Treat anything but "true" as unchecked/absent.
+        parameterValue = null;
+      }
       if (StringUtils.isBlank(parameterValue)) {
         // Check if the field is required
         if (formField.isRequired()) {
