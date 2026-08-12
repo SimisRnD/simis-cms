@@ -199,6 +199,13 @@ public class FormDataListWidget extends GenericWidget {
       context.setErrorMessage("The form record was not found");
       return context;
     }
+    // These mutate the record's review state. The page hosting this widget already gates access to
+    // admin/community-manager (admin-layout.xml), but -- like downloadCSVFile() above -- this gets its
+    // own explicit role check too, so a broken page-level gate or a future non-page dispatch path
+    // (e.g. a JSON/API route) can't reach these actions unauthorized.
+    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      return context;
+    }
     // Execute the action
     context.setRedirect("/admin/form-data");
     String action = context.getParameter("action");
@@ -213,17 +220,27 @@ public class FormDataListWidget extends GenericWidget {
   }
 
   private WidgetContext archiveFormData(WidgetContext context, FormData formData) {
-    FormDataRepository.markAsArchived(formData, context.getUserId());
+    boolean archived = FormDataRepository.markAsArchived(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.archive",
+        archived ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
     return context;
   }
 
   private WidgetContext claimFormData(WidgetContext context, FormData formData) {
-    FormDataRepository.tryToMarkAsClaimed(formData, context.getUserId());
+    boolean claimed = FormDataRepository.tryToMarkAsClaimed(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.claim",
+        claimed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
     return context;
   }
 
   private WidgetContext markAsProcessed(WidgetContext context, FormData formData) {
-    if (FormDataRepository.markAsProcessed(formData, context.getUserId())) {
+    boolean processed = FormDataRepository.markAsProcessed(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.markAsProcessed",
+        processed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
+    if (processed) {
       // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this formUniqueId is the
       // site's admin-configured contact form. This fires from the admin's own session, days after the
       // original submission, so it must reuse the submission's own stored session_id, not the admin's.
