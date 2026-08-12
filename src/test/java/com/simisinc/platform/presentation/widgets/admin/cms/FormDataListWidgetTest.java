@@ -123,7 +123,7 @@ class FormDataListWidgetTest extends WidgetBase {
       FormDataListWidget widget = new FormDataListWidget();
       widget.action(widgetContext);
 
-      // The action must be recorded to the security audit log (issue #1153)
+      // The action must be recorded to the security audit log
       auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
           "form_data.archive", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
@@ -154,7 +154,7 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId()), times(1));
-      // The action must be recorded to the security audit log (issue #1153)
+      // The action must be recorded to the security audit log
       auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
           "form_data.markAsProcessed", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
@@ -212,7 +212,7 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       funnelEventCommand.verifyNoInteractions();
-      // The failed attempt is still recorded to the audit log (issue #1153), with a FAILURE outcome
+      // The failed attempt is still recorded to the audit log, with a FAILURE outcome
       auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
           "form_data.markAsProcessed", AuditEventCommand.FAILURE, "form_data", String.valueOf(formData.getId()),
           "contact-us", null));
