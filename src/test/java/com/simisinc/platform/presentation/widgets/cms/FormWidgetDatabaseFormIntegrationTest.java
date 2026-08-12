@@ -307,6 +307,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
           + "use_captcha BOOLEAN DEFAULT FALSE, "
           + "check_for_spam BOOLEAN DEFAULT TRUE, "
           + "enabled BOOLEAN DEFAULT TRUE, "
+          + "show_privacy_notice BOOLEAN DEFAULT FALSE, "
           + "created_by BIGINT, "
           + "modified_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "

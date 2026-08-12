@@ -53,6 +53,9 @@ public class FormSubmissionFailureRepository {
   public static final String REASON_BLANK = "blank";
   public static final String REASON_CAPTCHA_FAILED = "captcha_failed";
   public static final String REASON_RATE_LIMITED = "rate_limited";
+  /** The hidden anti-bot field (issue #1153) came back non-blank -- a real visitor never sees or
+   *  fills it in, so this is a strong signal the submission is automated. */
+  public static final String REASON_HONEYPOT = "honeypot";
   /** The configured destination form itself could not accept the submission (missing/unresolved formId,
    *  disabled, or has no fields configured) -- distinct from {@link #REASON_MISSING_FIELD}, which is the
    *  submitter leaving one required field blank on an otherwise-valid, available form. */
