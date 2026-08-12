@@ -65,9 +65,11 @@
       <label>Email submissions to
         <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>">
       </label>
-      <p class="help-text" style="margin-top:-8px">Free text, not validated as an email address -- a
-        typo here means notifications silently go nowhere, with no error shown to you or the
-        submitter.</p>
+      <button type="submit" name="action" value="sendTestEmail" formnovalidate class="button radius secondary tiny">Send Test Email</button>
+      <p class="help-text" style="margin-top:-8px">Comma-separated for multiple addresses. Checked
+        for valid email syntax when you save -- but a wrong-yet-valid-looking address (a typo of a
+        real one) can't be caught that way. "Send Test Email" sends a real message to whatever's
+        typed above right now, saved or not, so you can confirm it actually reaches the right inbox.</p>
     </div>
   </div>
   <label>Success Message

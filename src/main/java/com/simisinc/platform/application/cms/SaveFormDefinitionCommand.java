@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -49,6 +50,18 @@ public class SaveFormDefinitionCommand {
         errorMessages.append(", ");
       }
       errorMessages.append("The user saving this form was not set");
+    }
+    // "Email submissions to" is optional (a blank value falls back to the community-manager role),
+    // but if something's there, catch an unusable address before it's saved rather than let
+    // notifications start silently disappearing -- see EmailTask, which only fails loudly on a
+    // syntactically-invalid address, never on one that's merely wrong (a typo of a real address is
+    // unrecoverable by any validation, so this only closes the invalid-syntax half of that gap)
+    String emailToError = findInvalidEmailAddress(formDefinitionBean.getEmailTo());
+    if (emailToError != null) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append(", ");
+      }
+      errorMessages.append("'").append(emailToError).append("' is not a valid email address");
     }
 
     if (errorMessages.length() > 0) {
@@ -85,6 +98,29 @@ public class SaveFormDefinitionCommand {
     formDefinition.setShowPrivacyNotice(formDefinitionBean.getShowPrivacyNotice());
     formDefinition.setModifiedBy(formDefinitionBean.getModifiedBy());
     return FormDefinitionRepository.save(formDefinition);
+  }
+
+  /**
+   * "Email submissions to" accepts a comma-separated list (see EmailTask, which splits on comma
+   * and calls addTo() per entry). Returns the first entry that fails JMail's syntax check -- the
+   * same validator FormWidget.post() already uses for an "email"-type field -- or null if the
+   * value is blank or every entry is valid. Public so FormDefinitionFormWidget's "Send Test Email"
+   * action can run the identical check against an unsaved, just-typed value before sending.
+   */
+  public static String findInvalidEmailAddress(String emailTo) {
+    if (StringUtils.isBlank(emailTo)) {
+      return null;
+    }
+    for (String address : emailTo.split(",")) {
+      String trimmed = address.trim();
+      if (StringUtils.isBlank(trimmed)) {
+        continue;
+      }
+      if (!JMail.isValid(trimmed)) {
+        return trimmed;
+      }
+    }
+    return null;
   }
 
   private static String generateUniqueId(FormDefinition previousItem, FormDefinition item) {
