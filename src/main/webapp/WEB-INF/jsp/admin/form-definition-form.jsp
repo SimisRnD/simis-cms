@@ -65,9 +65,11 @@
       <label>Email submissions to
         <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>">
       </label>
-      <p class="help-text" style="margin-top:-8px">Free text, not validated as an email address -- a
-        typo here means notifications silently go nowhere, with no error shown to you or the
-        submitter.</p>
+      <button type="submit" name="action" value="sendTestEmail" formnovalidate class="button radius secondary tiny">Send Test Email</button>
+      <p class="help-text" style="margin-top:-8px">Comma-separated for multiple addresses. Checked
+        for valid email syntax when you save -- but a wrong-yet-valid-looking address (a typo of a
+        real one) can't be caught that way. "Send Test Email" sends a real message to whatever's
+        typed above right now, saved or not, so you can confirm it actually reaches the right inbox.</p>
     </div>
   </div>
   <label>Success Message
@@ -76,6 +78,11 @@
   <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
   <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>
+  <input id="showPrivacyNotice" type="checkbox" name="showPrivacyNotice" value="true" <c:if test="${formDefinition.showPrivacyNotice}">checked</c:if>/><label for="showPrivacyNotice">Show a privacy notice near the submit button?</label>
+  <p class="help-text" style="margin-top:-8px">
+    Links to the site's Privacy Policy page. Only actually appears on the live form if that page is
+    also turned on under Site Settings -- checking this box here alone does nothing if it isn't.
+  </p>
   <div class="callout radius warning" style="margin-top:10px">
     <p style="margin-bottom:0">
       <i class="fa fa-exclamation-triangle"></i> <strong>Known issue:</strong> unchecking "Enabled?"

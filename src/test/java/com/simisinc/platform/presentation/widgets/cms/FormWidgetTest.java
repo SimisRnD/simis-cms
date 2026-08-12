@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.List;
 
@@ -34,8 +35,11 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.SessionConstants;
@@ -140,6 +144,50 @@ class FormWidgetTest extends WidgetBase {
       FormWidget widget = new FormWidget();
       widget.execute(widgetContext);
       Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void executeExposesShowPrivacyNoticeFromADatabaseBackedForm() {
+    // issue #1155 -- only a database-backed FormDefinition can turn this on; the XML-preference path
+    // has no equivalent setting
+    preferences.put("formId", "5");
+    FormDefinition formDefinition = new FormDefinition();
+    formDefinition.setId(5L);
+    formDefinition.setShowPrivacyNotice(true);
+    FormField field = new FormField();
+    field.setLabel("Email");
+    field.setName("email");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(formDefinition);
+      formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(5L)).thenReturn(List.of(field));
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(Boolean.TRUE, widgetContext.getRequest().getAttribute("showPrivacyNotice"));
+    }
+  }
+
+  @Test
+  void executeDefaultsShowPrivacyNoticeToFalseForAnXmlDefinedForm() {
+    // The XML-preference path (formDefinition == null) has no showPrivacyNotice equivalent -- must
+    // not be left unset (null), which would make form.jsp's ${showPrivacyNotice} check ambiguous
+    initCommonPreferences();
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(Boolean.FALSE, widgetContext.getRequest().getAttribute("showPrivacyNotice"));
     }
   }
 
@@ -303,6 +351,38 @@ class FormWidgetTest extends WidgetBase {
       Assertions.assertNull(result);
       failureRepository.verify(() -> FormSubmissionFailureRepository.record(
           eq("empty-form"), eq(FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE), any(), any()));
+    }
+  }
+
+  @Test
+  void postHoneypotFilledIsSilentlyDroppedLikeARealSuccess() {
+    // issue #1153 -- a real visitor never sees form.jsp's off-screen honeypot field, so a non-blank
+    // value there is treated as a bot. Otherwise-valid, complete field data proves it's specifically
+    // the honeypot causing the rejection, not a missing required field.
+    initCommonPreferences();
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "_hpWebsite", "https://spam-bot.example.com");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+        MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      // Same silent, no-message redirect a genuine successful submission takes -- a bot gets nothing
+      // to distinguish "caught" from "accepted"
+      Assertions.assertNull(result);
+      Assertions.assertNull(widgetContext.getWarningMessage());
+      Assertions.assertNull(widgetContext.getErrorMessage());
+      // But nothing was actually saved or sent
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.save(any()), never());
+      workflowManagerMockedStatic.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("contact"), eq(FormSubmissionFailureRepository.REASON_HONEYPOT), any(), any()));
     }
   }
 
