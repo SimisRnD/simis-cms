@@ -471,6 +471,77 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeWithFormDataIdScopesToThatOneRecordRegardlessOfStatus() {
+    // issue #1162 -- a direct link from the notification email must find the submission even if it's
+    // no longer "awaiting" (the default status filter would otherwise silently exclude it)
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "formDataId", "42");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertEquals(42L, specification.getId());
+    Assertions.assertNull(specification.getFormUniqueId(), "no other filter should be applied alongside a formDataId scope");
+    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getDismissed());
+    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getProcessed());
+    Assertions.assertEquals(Boolean.TRUE, request.getAttribute("singleSubmissionView"));
+  }
+
+  @Test
+  void executeWithoutFormDataIdLeavesSingleSubmissionViewFalse() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(Boolean.FALSE, request.getAttribute("singleSubmissionView"));
+  }
+
+  @Test
+  void downloadCSVFileWithFormDataIdScopesTheExportToThatOneRecord() throws Exception {
+    // The CSV export must stay consistent with whatever's on screen -- if an admin is looking at the
+    // single-submission view from an emailed link, exporting must not silently fall back to exporting
+    // every submission (the same drift this shared-specification helper already guards against for
+    // the formUniqueId/status/date filters).
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+    addQueryParameter(widgetContext, "formDataId", "42");
+
+    setRoles(widgetContext, ADMIN);
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+    }
+
+    Assertions.assertEquals(42L, specCaptor.getValue().getId());
+  }
+
+  @Test
   void postRejectsCallersWithoutTheRequiredRole() {
     // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
     addQueryParameter(widgetContext, "command", "downloadCSVFile");
