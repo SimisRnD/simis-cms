@@ -43,6 +43,28 @@ class FormSubmittedEventTest {
       Assertions.assertEquals(formData.getId(), event.getFormId());
       Assertions.assertTrue(event.getOccurred() <= System.currentTimeMillis());
       Assertions.assertEquals(FormSubmittedEvent.ID, event.getDomainEventType());
+      // issue #1154 -- the 2-arg constructor is a convenience delegate, must not opt any form into
+      // the submitter confirmation email by default
+      Assertions.assertFalse(event.isSendConfirmationToSubmitter());
+      Assertions.assertNull(event.getSubmitterEmail());
+    }
+  }
+
+  @Test
+  void checkEventWithSubmitterConfirmationFields() {
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
+
+      FormSubmittedEvent event = new FormSubmittedEvent(formData, "example@example.com", "submitter@example.com",
+          true, "We received your message", "Thanks for reaching out -- we'll reply soon.");
+
+      Assertions.assertEquals("submitter@example.com", event.getSubmitterEmail());
+      Assertions.assertTrue(event.isSendConfirmationToSubmitter());
+      Assertions.assertEquals("We received your message", event.getConfirmationSubject());
+      Assertions.assertEquals("Thanks for reaching out -- we'll reply soon.", event.getConfirmationMessage());
     }
   }
 }

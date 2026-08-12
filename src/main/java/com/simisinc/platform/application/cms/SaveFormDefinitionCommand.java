@@ -96,6 +96,9 @@ public class SaveFormDefinitionCommand {
     formDefinition.setCheckForSpam(formDefinitionBean.getCheckForSpam());
     formDefinition.setEnabled(formDefinitionBean.getEnabled());
     formDefinition.setShowPrivacyNotice(formDefinitionBean.getShowPrivacyNotice());
+    formDefinition.setSendConfirmationToSubmitter(formDefinitionBean.getSendConfirmationToSubmitter());
+    formDefinition.setConfirmationSubject(formDefinitionBean.getConfirmationSubject());
+    formDefinition.setConfirmationMessage(formDefinitionBean.getConfirmationMessage());
     formDefinition.setModifiedBy(formDefinitionBean.getModifiedBy());
     return FormDefinitionRepository.save(formDefinition);
   }

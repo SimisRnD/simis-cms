@@ -7,6 +7,10 @@
     location: '{{ event.location }}'
     emailTo: '{{ event.emailAddressesTo }}'
     generatedId: '{{ event.generatedId }}'
+    submitterEmail: '{{ event.submitterEmail }}'
+    sendConfirmation: '{{ event.sendConfirmationToSubmitter }}'
+    confirmationSubject: '{{ event.confirmationSubject }}'
+    confirmationMessage: '{{ event.confirmationMessage }}'
   workflow:
     - when: '{{ !formData.flaggedAsSpam }}'
     - block:
@@ -21,6 +25,12 @@
         to-role: 'community-manager'
         subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
         template: 'cms/admin-form-submitted-notification'
+    - block:
+      - when: '{{ sendConfirmation && !empty(submitterEmail) }}'
+      - email:
+        to-email: '{{ submitterEmail }}'
+        subject: '{{ !empty(confirmationSubject) ? confirmationSubject : "We received your submission" }}'
+        template: 'cms/form-submitter-confirmation'
 
 - id: blog-post-published
   vars:

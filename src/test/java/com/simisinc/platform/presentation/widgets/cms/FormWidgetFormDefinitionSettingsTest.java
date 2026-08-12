@@ -255,6 +255,88 @@ class FormWidgetFormDefinitionSettingsTest extends WidgetBase {
   }
 
   @Test
+  void postCarriesSubmitterConfirmationSettingsAndTheSubmittersOwnEmailOntoTheEvent() {
+    // issue #1154 -- a database-backed form can opt into emailing the submitter a confirmation, using
+    // the first email-type field's syntactically valid answer as the reply-to address (there's no
+    // other way to know who submitted).
+    preferences.put("formId", "18");
+    FormDefinition form = new FormDefinition();
+    form.setId(18L);
+    form.setEnabled(true);
+    form.setCheckForSpam(false);
+    form.setSendConfirmationToSubmitter(true);
+    form.setConfirmationSubject("We received your message");
+    form.setConfirmationMessage("Thanks for reaching out -- we'll reply soon.");
+    FormField nameField = new FormField();
+    nameField.setName("name");
+    nameField.setLabel("Name");
+    FormField emailField = new FormField();
+    emailField.setName("email");
+    emailField.setLabel("Email");
+    emailField.setType("email");
+
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "submitter@example.com");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<FormDataRepository> formDataRepository = mockStatic(FormDataRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(18L)).thenReturn(form);
+      formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(18L)).thenReturn(List.of(nameField, emailField));
+      formDataRepository.when(() -> FormDataRepository.save(any())).thenReturn(new FormData());
+
+      new FormWidget().post(widgetContext);
+
+      ArgumentCaptor<FormSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(FormSubmittedEvent.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      FormSubmittedEvent event = eventCaptor.getValue();
+      Assertions.assertTrue(event.isSendConfirmationToSubmitter());
+      Assertions.assertEquals("submitter@example.com", event.getSubmitterEmail());
+      Assertions.assertEquals("We received your message", event.getConfirmationSubject());
+      Assertions.assertEquals("Thanks for reaching out -- we'll reply soon.", event.getConfirmationMessage());
+    }
+  }
+
+  @Test
+  void postLeavesConfirmationOffTheEventWhenTheFormDefinitionDoesNotOptIn() {
+    // A valid email-type field alone must not be enough -- sendConfirmationToSubmitter defaults to
+    // false, and only an explicit opt-in on the form definition should ever trigger the extra email.
+    preferences.put("formId", "19");
+    FormDefinition form = new FormDefinition();
+    form.setId(19L);
+    form.setEnabled(true);
+    form.setCheckForSpam(false);
+    FormField emailField = new FormField();
+    emailField.setName("email");
+    emailField.setLabel("Email");
+    emailField.setType("email");
+
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "submitter@example.com");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<FormDataRepository> formDataRepository = mockStatic(FormDataRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(19L)).thenReturn(form);
+      formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(19L)).thenReturn(List.of(emailField));
+      formDataRepository.when(() -> FormDataRepository.save(any())).thenReturn(new FormData());
+
+      new FormWidget().post(widgetContext);
+
+      ArgumentCaptor<FormSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(FormSubmittedEvent.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      FormSubmittedEvent event = eventCaptor.getValue();
+      Assertions.assertFalse(event.isSendConfirmationToSubmitter());
+      // The submitter's email is still captured onto the event even when unused -- harmless, and
+      // keeps the capture logic independent of whether the form owner opted in
+      Assertions.assertEquals("submitter@example.com", event.getSubmitterEmail());
+    }
+  }
+
+  @Test
   void executeUsesTheFormDefinitionsOwnTitleAndSubtitleInsteadOfTheWidgetPreferences() {
     preferences.put("formId", "13");
     preferences.put("title", "Widget Preference Title");

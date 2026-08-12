@@ -52,9 +52,36 @@ public class FormSubmittedEvent extends Event {
   @Getter
   private String emailAddressesTo = null;
 
+  // issue #1154: the submitter's own address, resolved by FormWidget from the first email-type
+  // field with a syntactically valid answer -- never persisted, only carried through this one event
+  @Setter
+  @Getter
+  private String submitterEmail = null;
+
+  @Setter
+  @Getter
+  private boolean sendConfirmationToSubmitter = false;
+
+  @Setter
+  @Getter
+  private String confirmationSubject = null;
+
+  @Setter
+  @Getter
+  private String confirmationMessage = null;
+
   public FormSubmittedEvent(FormData formData, String emailAddressesTo) {
+    this(formData, emailAddressesTo, null, false, null, null);
+  }
+
+  public FormSubmittedEvent(FormData formData, String emailAddressesTo, String submitterEmail,
+      boolean sendConfirmationToSubmitter, String confirmationSubject, String confirmationMessage) {
     this.formId = formData.getId();
     this.emailAddressesTo = emailAddressesTo;
+    this.submitterEmail = submitterEmail;
+    this.sendConfirmationToSubmitter = sendConfirmationToSubmitter;
+    this.confirmationSubject = confirmationSubject;
+    this.confirmationMessage = confirmationMessage;
     this.location = GeoIPCommand.getCityStateCountryLocation(formData.getIpAddress());
   }
 
