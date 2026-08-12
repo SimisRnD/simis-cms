@@ -111,9 +111,10 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
     addQueryParameter(widgetContext, "action", "archive");
 
-    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
-      formDataRepositoryMockedStatic.when(() -> FormDataRepository.tryToMarkAsClaimed(formData, widgetContext.getUserId())).thenReturn(true);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsArchived(formData, widgetContext.getUserId())).thenReturn(true);
 
       // Use admin
       setRoles(widgetContext, ADMIN);
@@ -121,6 +122,10 @@ class FormDataListWidgetTest extends WidgetBase {
       // Execute the widget
       FormDataListWidget widget = new FormDataListWidget();
       widget.action(widgetContext);
+
+      // The action must be recorded to the security audit log (issue #1153)
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.archive", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
   }
 
@@ -136,7 +141,10 @@ class FormDataListWidgetTest extends WidgetBase {
         // issue #565 phase 1 -- markAsProcessed() now also offers the record to FunnelEventCommand;
         // mocked here (this test isn't about funnel tracking) so it never falls through to a real,
         // unmocked LoadSitePropertyCommand -> CacheManager -> DB round trip
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        // Not about auditing either; mocked so the real AuditEventCommand.record() doesn't attempt a
+        // live DB round trip (it never throws either way, but this keeps the test hermetic)
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
 
@@ -146,6 +154,9 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId()), times(1));
+      // The action must be recorded to the security audit log (issue #1153)
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.markAsProcessed", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
   }
 
@@ -162,7 +173,8 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "action", "markAsProcessed");
 
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
 
@@ -189,7 +201,8 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "action", "markAsProcessed");
 
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(false);
 
@@ -199,6 +212,10 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       funnelEventCommand.verifyNoInteractions();
+      // The failed attempt is still recorded to the audit log (issue #1153), with a FAILURE outcome
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.markAsProcessed", AuditEventCommand.FAILURE, "form_data", String.valueOf(formData.getId()),
+          "contact-us", null));
     }
   }
 
@@ -468,6 +485,65 @@ class FormDataListWidgetTest extends WidgetBase {
     Assertions.assertNull(specification.getFormUniqueId());
     Assertions.assertEquals(DataConstants.FALSE, specification.getDismissed());
     Assertions.assertEquals(DataConstants.FALSE, specification.getProcessed());
+  }
+
+  @Test
+  void actionArchiveRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "archive");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.action(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsArchived(any(), anyLong()), never());
+    }
+  }
+
+  @Test
+  void actionClaimRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "claim");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.action(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.tryToMarkAsClaimed(any(), anyLong()), never());
+    }
+  }
+
+  @Test
+  void actionMarkAsProcessedRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "markAsProcessed");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.action(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(any(), anyLong()), never());
+      funnelEventCommand.verifyNoInteractions();
+    }
   }
 
   @Test
