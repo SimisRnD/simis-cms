@@ -47,49 +47,64 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<%-- Filters (GET so the criteria live in the URL and paging preserves them) --%>
-<form method="get" autocomplete="off" class="margin-bottom-10">
-  <div class="grid-x grid-margin-x">
-    <div class="cell medium-3">
-      <label>Form
-        <input type="text" name="formUniqueId" placeholder="e.g. contact-us" value="<c:out value='${formUniqueId}'/>">
-      </label>
+<c:choose>
+  <c:when test="${singleSubmissionView}">
+    <%-- issue #1162 -- arrived via a "Review this submission" link from the notification email;
+         show just that one record instead of the normal filter form, which would otherwise imply a
+         filter is active that isn't --%>
+    <div class="callout radius primary margin-bottom-10">
+      <p style="margin-bottom:0">
+        <i class="fa fa-link"></i> Showing the one submission linked from your notification email, regardless of its current status.
+        <a href="${widgetContext.uri}">View all submissions</a>
+      </p>
     </div>
-    <div class="cell medium-3">
-      <label>Status
-        <select name="status">
-          <option value="awaiting"<c:if test="${status eq 'awaiting'}"> selected</c:if>>Awaiting review</option>
-          <option value="claimed"<c:if test="${status eq 'claimed'}"> selected</c:if>>Claimed</option>
-          <option value="processed"<c:if test="${status eq 'processed'}"> selected</c:if>>Processed</option>
-          <option value="dismissed"<c:if test="${status eq 'dismissed'}"> selected</c:if>>Dismissed</option>
-        </select>
-      </label>
-    </div>
-    <div class="cell medium-3">
-      <label>Spam
-        <select name="spam">
-          <option value=""<c:if test="${empty spam}"> selected</c:if>>All</option>
-          <option value="flagged"<c:if test="${spam eq 'flagged'}"> selected</c:if>>Spam-Flagged Only</option>
-          <option value="excluded"<c:if test="${spam eq 'excluded'}"> selected</c:if>>Exclude Spam-Flagged</option>
-        </select>
-      </label>
-    </div>
-    <div class="cell medium-3">
-      <label>From date
-        <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
-      </label>
-    </div>
-    <div class="cell medium-3">
-      <label>To date
-        <input type="date" name="toDate" value="<c:out value='${toDate}'/>">
-      </label>
-    </div>
-    <div class="cell medium-12">
-      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
-      <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
-    </div>
-  </div>
-</form>
+  </c:when>
+  <c:otherwise>
+    <%-- Filters (GET so the criteria live in the URL and paging preserves them) --%>
+    <form method="get" autocomplete="off" class="margin-bottom-10">
+      <div class="grid-x grid-margin-x">
+        <div class="cell medium-3">
+          <label>Form
+            <input type="text" name="formUniqueId" placeholder="e.g. contact-us" value="<c:out value='${formUniqueId}'/>">
+          </label>
+        </div>
+        <div class="cell medium-3">
+          <label>Status
+            <select name="status">
+              <option value="awaiting"<c:if test="${status eq 'awaiting'}"> selected</c:if>>Awaiting review</option>
+              <option value="claimed"<c:if test="${status eq 'claimed'}"> selected</c:if>>Claimed</option>
+              <option value="processed"<c:if test="${status eq 'processed'}"> selected</c:if>>Processed</option>
+              <option value="dismissed"<c:if test="${status eq 'dismissed'}"> selected</c:if>>Dismissed</option>
+            </select>
+          </label>
+        </div>
+        <div class="cell medium-3">
+          <label>Spam
+            <select name="spam">
+              <option value=""<c:if test="${empty spam}"> selected</c:if>>All</option>
+              <option value="flagged"<c:if test="${spam eq 'flagged'}"> selected</c:if>>Spam-Flagged Only</option>
+              <option value="excluded"<c:if test="${spam eq 'excluded'}"> selected</c:if>>Exclude Spam-Flagged</option>
+            </select>
+          </label>
+        </div>
+        <div class="cell medium-3">
+          <label>From date
+            <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
+          </label>
+        </div>
+        <div class="cell medium-3">
+          <label>To date
+            <input type="date" name="toDate" value="<c:out value='${toDate}'/>">
+          </label>
+        </div>
+        <div class="cell medium-12">
+          <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
+          <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
+        </div>
+      </div>
+    </form>
+  </c:otherwise>
+</c:choose>
 <c:if test="${!empty formDataList}">
   <p><small>Forms found: <fmt:formatNumber value="${recordPaging.totalRecordCount}" /></small></p>
 </c:if>
@@ -103,8 +118,10 @@
        separate <form> from the GET filter form above, so it wouldn't otherwise see them) --%>
   <input type="hidden" name="formUniqueId" value="<c:out value='${formUniqueId}'/>"/>
   <input type="hidden" name="status" value="<c:out value='${status}'/>"/>
+  <input type="hidden" name="spam" value="<c:out value='${spam}'/>"/>
   <input type="hidden" name="fromDate" value="<c:out value='${fromDate}'/>"/>
   <input type="hidden" name="toDate" value="<c:out value='${toDate}'/>"/>
+  <input type="hidden" name="formDataId" value="<c:out value='${param.formDataId}'/>"/>
   <button type="submit" class="button small secondary radius"><i class="fa fa-download"></i> Download CSV</button>
 </form>
 <table>

@@ -69,6 +69,12 @@ public class FormDataListWidget extends GenericWidget {
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
+    // issue #1162 -- a direct link from the submission-notification email carries formDataId and
+    // must show that one record regardless of its current status/form/date, rather than silently
+    // returning zero rows because it no longer matches whatever the other filters would default to
+    boolean singleSubmissionView = context.getParameterAsLong("formDataId") > -1;
+    context.getRequest().setAttribute("singleSubmissionView", singleSubmissionView);
+
     FormDataSpecification specification = buildSpecificationFromParameters(context);
 
     // Load the latest form data
@@ -108,6 +114,16 @@ public class FormDataListWidget extends GenericWidget {
    * exported the whole form_data table regardless of the active filters.
    */
   private FormDataSpecification buildSpecificationFromParameters(WidgetContext context) {
+    // issue #1162 -- a formDataId (from an emailed direct link) always wins and scopes to exactly
+    // that record; the other filters below don't apply and are skipped so a submission that's
+    // already moved out of the "awaiting" default (or any other filter) is still found
+    long formDataId = context.getParameterAsLong("formDataId");
+    if (formDataId > -1) {
+      FormDataSpecification specification = new FormDataSpecification();
+      specification.setId(formDataId);
+      return specification;
+    }
+
     String formUniqueId = context.getParameter("formUniqueId");
     String status = context.getParameter("status");
     String spam = context.getParameter("spam");
@@ -199,6 +215,13 @@ public class FormDataListWidget extends GenericWidget {
       context.setErrorMessage("The form record was not found");
       return context;
     }
+    // These mutate the record's review state. The page hosting this widget already gates access to
+    // admin/community-manager (admin-layout.xml), but -- like downloadCSVFile() above -- this gets its
+    // own explicit role check too, so a broken page-level gate or a future non-page dispatch path
+    // (e.g. a JSON/API route) can't reach these actions unauthorized.
+    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      return context;
+    }
     // Execute the action
     context.setRedirect("/admin/form-data");
     String action = context.getParameter("action");
@@ -213,17 +236,27 @@ public class FormDataListWidget extends GenericWidget {
   }
 
   private WidgetContext archiveFormData(WidgetContext context, FormData formData) {
-    FormDataRepository.markAsArchived(formData, context.getUserId());
+    boolean archived = FormDataRepository.markAsArchived(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.archive",
+        archived ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
     return context;
   }
 
   private WidgetContext claimFormData(WidgetContext context, FormData formData) {
-    FormDataRepository.tryToMarkAsClaimed(formData, context.getUserId());
+    boolean claimed = FormDataRepository.tryToMarkAsClaimed(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.claim",
+        claimed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
     return context;
   }
 
   private WidgetContext markAsProcessed(WidgetContext context, FormData formData) {
-    if (FormDataRepository.markAsProcessed(formData, context.getUserId())) {
+    boolean processed = FormDataRepository.markAsProcessed(formData, context.getUserId());
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "form_data.markAsProcessed",
+        processed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "form_data", String.valueOf(formData.getId()), formData.getFormUniqueId(), null);
+    if (processed) {
       // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this formUniqueId is the
       // site's admin-configured contact form. This fires from the admin's own session, days after the
       // original submission, so it must reuse the submission's own stored session_id, not the admin's.
