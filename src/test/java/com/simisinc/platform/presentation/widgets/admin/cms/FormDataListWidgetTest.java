@@ -442,6 +442,35 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void downloadCSVFileAppliesTheActiveSpamFilter() throws Exception {
+    // Regression test: the "spam" select is a third on-screen filter (issue #1025) alongside
+    // formUniqueId/status/fromDate/toDate, but the CSV-download <form>'s hidden fields only carried
+    // the original four (PR #1023) -- "spam" was left out, so downloadCSVFile() never saw it even
+    // though buildSpecificationFromParameters() (shared with execute()) already knows how to apply it.
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+    addQueryParameter(widgetContext, "spam", "excluded");
+
+    setRoles(widgetContext, ADMIN);
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+    }
+
+    Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getFlaggedAsSpam(),
+        "the spam filter selected on screen must be applied to the export, not just the on-screen list");
+  }
+
+  @Test
   void downloadCSVFileWithNoFiltersAppliedStillDefaultsToTheAwaitingReviewSpecification() throws Exception {
     // No formUniqueId/status/fromDate/toDate params -- mirrors execute()'s own default (issue #563:
     // the page's original hardcoded "awaiting review" view), so the export continues to match
