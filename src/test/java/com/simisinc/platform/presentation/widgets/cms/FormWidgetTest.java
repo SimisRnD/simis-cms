@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.List;
 
@@ -303,6 +304,38 @@ class FormWidgetTest extends WidgetBase {
       Assertions.assertNull(result);
       failureRepository.verify(() -> FormSubmissionFailureRepository.record(
           eq("empty-form"), eq(FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE), any(), any()));
+    }
+  }
+
+  @Test
+  void postHoneypotFilledIsSilentlyDroppedLikeARealSuccess() {
+    // issue #1153 -- a real visitor never sees form.jsp's off-screen honeypot field, so a non-blank
+    // value there is treated as a bot. Otherwise-valid, complete field data proves it's specifically
+    // the honeypot causing the rejection, not a missing required field.
+    initCommonPreferences();
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "_hpWebsite", "https://spam-bot.example.com");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+        MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      // Same silent, no-message redirect a genuine successful submission takes -- a bot gets nothing
+      // to distinguish "caught" from "accepted"
+      Assertions.assertNull(result);
+      Assertions.assertNull(widgetContext.getWarningMessage());
+      Assertions.assertNull(widgetContext.getErrorMessage());
+      // But nothing was actually saved or sent
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.save(any()), never());
+      workflowManagerMockedStatic.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("contact"), eq(FormSubmissionFailureRepository.REASON_HONEYPOT), any(), any()));
     }
   }
 
