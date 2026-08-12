@@ -69,6 +69,12 @@ public class FormDataListWidget extends GenericWidget {
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
+    // issue #1162 -- a direct link from the submission-notification email carries formDataId and
+    // must show that one record regardless of its current status/form/date, rather than silently
+    // returning zero rows because it no longer matches whatever the other filters would default to
+    boolean singleSubmissionView = context.getParameterAsLong("formDataId") > -1;
+    context.getRequest().setAttribute("singleSubmissionView", singleSubmissionView);
+
     FormDataSpecification specification = buildSpecificationFromParameters(context);
 
     // Load the latest form data
@@ -108,6 +114,16 @@ public class FormDataListWidget extends GenericWidget {
    * exported the whole form_data table regardless of the active filters.
    */
   private FormDataSpecification buildSpecificationFromParameters(WidgetContext context) {
+    // issue #1162 -- a formDataId (from an emailed direct link) always wins and scopes to exactly
+    // that record; the other filters below don't apply and are skipped so a submission that's
+    // already moved out of the "awaiting" default (or any other filter) is still found
+    long formDataId = context.getParameterAsLong("formDataId");
+    if (formDataId > -1) {
+      FormDataSpecification specification = new FormDataSpecification();
+      specification.setId(formDataId);
+      return specification;
+    }
+
     String formUniqueId = context.getParameter("formUniqueId");
     String status = context.getParameter("status");
     String spam = context.getParameter("spam");
