@@ -301,6 +301,7 @@ CREATE TABLE form_definitions (
   use_captcha BOOLEAN DEFAULT FALSE,
   check_for_spam BOOLEAN DEFAULT TRUE,
   enabled BOOLEAN DEFAULT TRUE,
+  show_privacy_notice BOOLEAN DEFAULT FALSE,
   created_by BIGINT REFERENCES users(user_id),
   modified_by BIGINT REFERENCES users(user_id),
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,

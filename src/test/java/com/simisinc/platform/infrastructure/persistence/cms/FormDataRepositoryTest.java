@@ -343,6 +343,48 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void exportWithASpecificationExcludesSpamFlaggedRows(@TempDir File tempDir) throws IOException {
+    // Regression test: the on-screen "Spam" filter (issue #1025) sets FormDataSpecification's
+    // flaggedAsSpam the same way formUniqueId/status do, and createWhereStatement() already applies
+    // it (shared by query() and export()) -- but the CSV-download form never carried "spam" through
+    // to downloadCSVFile(), so an admin excluding spam on screen still got spam rows in the export.
+    // This proves the repository/WHERE-clause half of the fix: once the specification carries the
+    // filter, export() actually honors it.
+    FormData clean = addFormData("contact-us", "203.0.113.30", "https://example.org/contact", false);
+    FormData spam = addFormData("contact-us", "203.0.113.31", "https://example.org/contact", true);
+
+    FormDataSpecification specification = new FormDataSpecification();
+    specification.setFlaggedAsSpam(false);
+
+    File file = new File(tempDir, "spam-excluded-export.csv");
+    FormDataRepository.export(specification, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size(), "header plus exactly the one non-spam row: " + lines);
+    String body = String.join("\n", lines.subList(1, lines.size()));
+    assertTrue(body.contains(clean.getIpAddress()), "the non-spam row should be present: " + body);
+    assertTrue(!body.contains(spam.getIpAddress()), "the spam-flagged row must be excluded: " + body);
+  }
+
+  @Test
+  void exportWithASpecificationOnlyIncludesSpamFlaggedRows(@TempDir File tempDir) throws IOException {
+    FormData clean = addFormData("contact-us", "203.0.113.32", "https://example.org/contact", false);
+    FormData spam = addFormData("contact-us", "203.0.113.33", "https://example.org/contact", true);
+
+    FormDataSpecification specification = new FormDataSpecification();
+    specification.setFlaggedAsSpam(true);
+
+    File file = new File(tempDir, "spam-only-export.csv");
+    FormDataRepository.export(specification, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size(), "header plus exactly the one spam-flagged row: " + lines);
+    String body = String.join("\n", lines.subList(1, lines.size()));
+    assertTrue(body.contains(spam.getIpAddress()), "the spam-flagged row should be present: " + body);
+    assertTrue(!body.contains(clean.getIpAddress()), "the non-spam row must be excluded: " + body);
+  }
+
+  @Test
   void markAsProcessedIsOneShotSoARepeatCallReturnsFalse() {
     FormData formData = addSubmission("contact-us", false);
 

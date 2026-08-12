@@ -43,6 +43,7 @@ public class FormDefinition extends Entity {
   private boolean useCaptcha = false;
   private boolean checkForSpam = true;
   private boolean enabled = true;
+  private boolean showPrivacyNotice = false;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -145,6 +146,14 @@ public class FormDefinition extends Entity {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  public boolean getShowPrivacyNotice() {
+    return showPrivacyNotice;
+  }
+
+  public void setShowPrivacyNotice(boolean showPrivacyNotice) {
+    this.showPrivacyNotice = showPrivacyNotice;
   }
 
   public long getCreatedBy() {

@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 
 import java.net.ConnectException;
@@ -71,7 +72,7 @@ class SendMailWidgetTest extends WidgetBase {
   @Test
   void postSendsATestEmailAndReportsSuccess() throws Exception {
     try (MockedStatic<LoadUserCommand> loadUserCommand = mockStatic(LoadUserCommand.class);
-        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
       loadUserCommand.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
       emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(null));
 
@@ -88,7 +89,7 @@ class SendMailWidgetTest extends WidgetBase {
         "535 5.7.8 Username and Password not accepted, secret-app-password-xyz"));
 
     try (MockedStatic<LoadUserCommand> loadUserCommand = mockStatic(LoadUserCommand.class);
-        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
       loadUserCommand.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
       emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(toThrow));
 
@@ -107,7 +108,7 @@ class SendMailWidgetTest extends WidgetBase {
     EmailException toThrow = new EmailException(new ConnectException("Connection refused to internal-relay.simis.local:25"));
 
     try (MockedStatic<LoadUserCommand> loadUserCommand = mockStatic(LoadUserCommand.class);
-        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
       loadUserCommand.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
       emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(toThrow));
 
@@ -126,7 +127,7 @@ class SendMailWidgetTest extends WidgetBase {
         "Something unexpected involving admin@simisinc.com and other internal details");
 
     try (MockedStatic<LoadUserCommand> loadUserCommand = mockStatic(LoadUserCommand.class);
-        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class, CALLS_REAL_METHODS)) {
       loadUserCommand.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
       emailCommand.when(EmailCommand::prepareNewEmail).thenReturn(new StubEmail(toThrow));
 

@@ -118,6 +118,7 @@
        separate <form> from the GET filter form above, so it wouldn't otherwise see them) --%>
   <input type="hidden" name="formUniqueId" value="<c:out value='${formUniqueId}'/>"/>
   <input type="hidden" name="status" value="<c:out value='${status}'/>"/>
+  <input type="hidden" name="spam" value="<c:out value='${spam}'/>"/>
   <input type="hidden" name="fromDate" value="<c:out value='${fromDate}'/>"/>
   <input type="hidden" name="toDate" value="<c:out value='${toDate}'/>"/>
   <input type="hidden" name="formDataId" value="<c:out value='${param.formDataId}'/>"/>

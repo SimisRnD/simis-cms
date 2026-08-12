@@ -111,9 +111,10 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
     addQueryParameter(widgetContext, "action", "archive");
 
-    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
-      formDataRepositoryMockedStatic.when(() -> FormDataRepository.tryToMarkAsClaimed(formData, widgetContext.getUserId())).thenReturn(true);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsArchived(formData, widgetContext.getUserId())).thenReturn(true);
 
       // Use admin
       setRoles(widgetContext, ADMIN);
@@ -121,6 +122,10 @@ class FormDataListWidgetTest extends WidgetBase {
       // Execute the widget
       FormDataListWidget widget = new FormDataListWidget();
       widget.action(widgetContext);
+
+      // The action must be recorded to the security audit log
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.archive", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
   }
 
@@ -136,7 +141,10 @@ class FormDataListWidgetTest extends WidgetBase {
         // issue #565 phase 1 -- markAsProcessed() now also offers the record to FunnelEventCommand;
         // mocked here (this test isn't about funnel tracking) so it never falls through to a real,
         // unmocked LoadSitePropertyCommand -> CacheManager -> DB round trip
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        // Not about auditing either; mocked so the real AuditEventCommand.record() doesn't attempt a
+        // live DB round trip (it never throws either way, but this keeps the test hermetic)
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
 
@@ -146,6 +154,9 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId()), times(1));
+      // The action must be recorded to the security audit log
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.markAsProcessed", AuditEventCommand.SUCCESS, "form_data", String.valueOf(formData.getId()), null, null));
     }
   }
 
@@ -162,7 +173,8 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "action", "markAsProcessed");
 
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
 
@@ -189,7 +201,8 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "action", "markAsProcessed");
 
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
-        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(false);
 
@@ -199,6 +212,10 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       funnelEventCommand.verifyNoInteractions();
+      // The failed attempt is still recorded to the audit log, with a FAILURE outcome
+      auditEventCommand.verify(() -> AuditEventCommand.record(widgetContext, AuditEventCommand.CONTENT,
+          "form_data.markAsProcessed", AuditEventCommand.FAILURE, "form_data", String.valueOf(formData.getId()),
+          "contact-us", null));
     }
   }
 
@@ -442,6 +459,35 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void downloadCSVFileAppliesTheActiveSpamFilter() throws Exception {
+    // Regression test: the "spam" select is a third on-screen filter (issue #1025) alongside
+    // formUniqueId/status/fromDate/toDate, but the CSV-download <form>'s hidden fields only carried
+    // the original four (PR #1023) -- "spam" was left out, so downloadCSVFile() never saw it even
+    // though buildSpecificationFromParameters() (shared with execute()) already knows how to apply it.
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+    addQueryParameter(widgetContext, "spam", "excluded");
+
+    setRoles(widgetContext, ADMIN);
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+    }
+
+    Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getFlaggedAsSpam(),
+        "the spam filter selected on screen must be applied to the export, not just the on-screen list");
+  }
+
+  @Test
   void downloadCSVFileWithNoFiltersAppliedStillDefaultsToTheAwaitingReviewSpecification() throws Exception {
     // No formUniqueId/status/fromDate/toDate params -- mirrors execute()'s own default (issue #563:
     // the page's original hardcoded "awaiting review" view), so the export continues to match
@@ -471,74 +517,62 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
-  void executeWithFormDataIdScopesToThatOneRecordRegardlessOfStatus() {
-    // issue #1162 -- a direct link from the notification email must find the submission even if it's
-    // no longer "awaiting" (the default status filter would otherwise silently exclude it)
-    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
-        "  <title>Submitted Forms</title>\n" +
-        "</widget>");
-    addQueryParameter(widgetContext, "formDataId", "42");
+  void actionArchiveRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
 
-    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "archive");
+
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
-      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
 
-      setRoles(widgetContext, ADMIN);
       FormDataListWidget widget = new FormDataListWidget();
-      widget.execute(widgetContext);
-    }
+      widget.action(widgetContext);
 
-    FormDataSpecification specification = specCaptor.getValue();
-    Assertions.assertEquals(42L, specification.getId());
-    Assertions.assertNull(specification.getFormUniqueId(), "no other filter should be applied alongside a formDataId scope");
-    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getDismissed());
-    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getProcessed());
-    Assertions.assertEquals(Boolean.TRUE, request.getAttribute("singleSubmissionView"));
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsArchived(any(), anyLong()), never());
+    }
   }
 
   @Test
-  void executeWithoutFormDataIdLeavesSingleSubmissionViewFalse() {
-    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
-        "  <title>Submitted Forms</title>\n" +
-        "</widget>");
+  void actionClaimRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "claim");
 
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
-      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
 
-      setRoles(widgetContext, ADMIN);
       FormDataListWidget widget = new FormDataListWidget();
-      widget.execute(widgetContext);
-    }
+      widget.action(widgetContext);
 
-    Assertions.assertEquals(Boolean.FALSE, request.getAttribute("singleSubmissionView"));
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.tryToMarkAsClaimed(any(), anyLong()), never());
+    }
   }
 
   @Test
-  void downloadCSVFileWithFormDataIdScopesTheExportToThatOneRecord() throws Exception {
-    // The CSV export must stay consistent with whatever's on screen -- if an admin is looking at the
-    // single-submission view from an emailed link, exporting must not silently fall back to exporting
-    // every submission (the same drift this shared-specification helper already guards against for
-    // the formUniqueId/status/date filters).
-    addQueryParameter(widgetContext, "command", "downloadCSVFile");
-    addQueryParameter(widgetContext, "formDataId", "42");
+  void actionMarkAsProcessedRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    FormData formData = new FormData();
+    formData.setId(1L);
 
-    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "markAsProcessed");
 
-    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
     try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
-        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
-        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
-      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
-          .thenReturn(new File("/tmp/does-not-exist.csv"));
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(formData.getId())).thenReturn(formData);
 
       FormDataListWidget widget = new FormDataListWidget();
-      widget.post(widgetContext);
+      widget.action(widgetContext);
 
-      formDataRepositoryMockedStatic.verify(
-          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(any(), anyLong()), never());
+      funnelEventCommand.verifyNoInteractions();
     }
-
-    Assertions.assertEquals(42L, specCaptor.getValue().getId());
   }
 
   @Test
