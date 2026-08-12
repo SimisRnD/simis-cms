@@ -96,9 +96,7 @@ public class FormDefinitionRepository {
         .add("use_captcha", record.getUseCaptcha())
         .add("check_for_spam", record.getCheckForSpam())
         .add("enabled", record.getEnabled())
-        .add("send_confirmation_to_submitter", record.getSendConfirmationToSubmitter())
-        .addIfExists("confirmation_subject", StringUtils.trimToNull(record.getConfirmationSubject()))
-        .addIfExists("confirmation_message", StringUtils.trimToNull(record.getConfirmationMessage()))
+        .add("show_privacy_notice", record.getShowPrivacyNotice())
         .add("created_by", record.getCreatedBy(), -1)
         .add("modified_by", record.getModifiedBy(), -1);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
@@ -122,9 +120,7 @@ public class FormDefinitionRepository {
         .add("use_captcha", record.getUseCaptcha())
         .add("check_for_spam", record.getCheckForSpam())
         .add("enabled", record.getEnabled())
-        .add("send_confirmation_to_submitter", record.getSendConfirmationToSubmitter())
-        .add("confirmation_subject", StringUtils.trimToNull(record.getConfirmationSubject()))
-        .add("confirmation_message", StringUtils.trimToNull(record.getConfirmationMessage()))
+        .add("show_privacy_notice", record.getShowPrivacyNotice())
         .add("modified_by", record.getModifiedBy(), -1)
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
@@ -179,9 +175,7 @@ public class FormDefinitionRepository {
       record.setUseCaptcha(rs.getBoolean("use_captcha"));
       record.setCheckForSpam(rs.getBoolean("check_for_spam"));
       record.setEnabled(rs.getBoolean("enabled"));
-      record.setSendConfirmationToSubmitter(rs.getBoolean("send_confirmation_to_submitter"));
-      record.setConfirmationSubject(rs.getString("confirmation_subject"));
-      record.setConfirmationMessage(rs.getString("confirmation_message"));
+      record.setShowPrivacyNotice(rs.getBoolean("show_privacy_notice"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setModifiedBy(rs.getLong("modified_by"));
       record.setCreated(rs.getTimestamp("created"));
