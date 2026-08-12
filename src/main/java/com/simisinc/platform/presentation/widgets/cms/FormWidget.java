@@ -112,6 +112,10 @@ public class FormWidget extends GenericWidget {
     context.getRequest().setAttribute("title", formDefinition != null ? formDefinition.getTitle() : context.getPreferences().get("title"));
     context.getRequest().setAttribute("subtitle", formDefinition != null ? formDefinition.getSubtitle() : context.getPreferences().get("subtitle"));
 
+    // Privacy notice (issue #1155) -- database-backed forms only (no XML-preference equivalent);
+    // set unconditionally (true/false, never left unset) so form.jsp's check is a simple boolean read
+    context.getRequest().setAttribute("showPrivacyNotice", formDefinition != null && formDefinition.getShowPrivacyNotice());
+
     // Determine the captcha service -- a database-backed form's own "Use Captcha?" setting is
     // authoritative when formId is configured; only the XML-preference path (formDefinition null)
     // still reads this from the widget placement's own preferences

@@ -35,8 +35,11 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.SessionConstants;
@@ -141,6 +144,50 @@ class FormWidgetTest extends WidgetBase {
       FormWidget widget = new FormWidget();
       widget.execute(widgetContext);
       Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void executeExposesShowPrivacyNoticeFromADatabaseBackedForm() {
+    // issue #1155 -- only a database-backed FormDefinition can turn this on; the XML-preference path
+    // has no equivalent setting
+    preferences.put("formId", "5");
+    FormDefinition formDefinition = new FormDefinition();
+    formDefinition.setId(5L);
+    formDefinition.setShowPrivacyNotice(true);
+    FormField field = new FormField();
+    field.setLabel("Email");
+    field.setName("email");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(formDefinition);
+      formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(5L)).thenReturn(List.of(field));
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(Boolean.TRUE, widgetContext.getRequest().getAttribute("showPrivacyNotice"));
+    }
+  }
+
+  @Test
+  void executeDefaultsShowPrivacyNoticeToFalseForAnXmlDefinedForm() {
+    // The XML-preference path (formDefinition == null) has no showPrivacyNotice equivalent -- must
+    // not be left unset (null), which would make form.jsp's ${showPrivacyNotice} check ambiguous
+    initCommonPreferences();
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(Boolean.FALSE, widgetContext.getRequest().getAttribute("showPrivacyNotice"));
     }
   }
 

@@ -78,6 +78,11 @@
   <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
   <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>
+  <input id="showPrivacyNotice" type="checkbox" name="showPrivacyNotice" value="true" <c:if test="${formDefinition.showPrivacyNotice}">checked</c:if>/><label for="showPrivacyNotice">Show a privacy notice near the submit button?</label>
+  <p class="help-text" style="margin-top:-8px">
+    Links to the site's Privacy Policy page. Only actually appears on the live form if that page is
+    also turned on under Site Settings -- checking this box here alone does nothing if it isn't.
+  </p>
   <div class="callout radius warning" style="margin-top:10px">
     <p style="margin-bottom:0">
       <i class="fa fa-exclamation-triangle"></i> <strong>Known issue:</strong> unchecking "Enabled?"

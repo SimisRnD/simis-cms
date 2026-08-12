@@ -295,6 +295,9 @@
       </p>
     </c:if>
   </c:forEach>
+  <c:if test="${showPrivacyNotice && 'true' eq sitePropertyMap['site.privacy.policy']}">
+    <p class="help-text">By submitting this form, you agree to our <a href="${ctx}/legal/privacy" target="_blank">Privacy Policy</a>.</p>
+  </c:if>
   <c:choose>
     <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
       <p>
