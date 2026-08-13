@@ -35,6 +35,28 @@ param postgresAdministratorLogin string = 'simiscmsadmin'
 @secure()
 param postgresAdministratorPassword string
 
+@description('''
+PostgreSQL major version. What is actually offered depends on the region, the
+compute tier, and the subscription -- not on this value alone. A deployment that
+fails with "The value of the 'Version' should be in: []" is reporting an EMPTY set
+of available versions, which means the region/tier/SKU combination below is
+unavailable, not that this version is wrong.
+''')
+@allowed(['14', '15', '16', '17'])
+param postgresVersion string = '16'
+
+@description('''
+PostgreSQL compute SKU. Availability varies by region and by subscription quota,
+and constrained regions can offer none of a family. The portal's "Create Azure
+Database for PostgreSQL flexible server" blade lists what this subscription can
+actually deploy here; take the value from there rather than guessing.
+''')
+param postgresSkuName string = 'Standard_D2ds_v5'
+
+@description('PostgreSQL compute tier. Must match the SKU family above -- a Standard_B* name needs Burstable, Standard_D* needs GeneralPurpose, Standard_E* needs MemoryOptimized.')
+@allowed(['Burstable', 'GeneralPurpose', 'MemoryOptimized'])
+param postgresSkuTier string = 'GeneralPurpose'
+
 @description('Log retention in days. Sentinel ingestion is usage-priced.')
 param logRetentionInDays int = 90
 
@@ -145,6 +167,9 @@ module postgres 'modules/postgres.bicep' = {
     privateDnsZoneId: network.outputs.postgresDnsZoneId
     administratorLogin: postgresAdministratorLogin
     administratorLoginPassword: postgresAdministratorPassword
+    postgresVersion: postgresVersion
+    skuName: postgresSkuName
+    skuTier: postgresSkuTier
   }
 }
 
