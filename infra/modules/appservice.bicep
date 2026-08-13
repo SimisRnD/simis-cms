@@ -83,8 +83,12 @@ param cmsAdminPasswordSecretName string = 'cms-admin-password'
 @allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Disabled'
 
+// The plan is only ever addressed inside this resource group, so its name needs
+// no suffix. The app's does: it becomes app-<prefix>.azurewebsites.net, which is
+// unique across all of Azure. Same suffix as the storage account, registry, and
+// vault -- deterministic, so redeploying reproduces this name.
 var planName = 'plan-${namePrefix}'
-var appName = 'app-${namePrefix}'
+var appName = toLower(take('app-${namePrefix}-${uniqueString(resourceGroup().id)}', 60))
 var cmsPathMount = '/cms-data'
 var cmsUrl = empty(customUrl) ? 'https://${appName}.azurewebsites.net' : customUrl
 
