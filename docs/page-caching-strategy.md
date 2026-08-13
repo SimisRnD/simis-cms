@@ -75,7 +75,10 @@ The strategy checks:
 
 ### 2. AFD Honors Headers
 
-Front Door is configured with `cachingBehavior: HonorOriginCacheControl`. This means:
+Front Door is configured with a `cacheConfiguration` object on the route. Providing that
+object is what enables edge caching at all (omitting it disables caching outright), and an
+enabled cache honors the origin's `Cache-Control`/`Expires` headers unless a Rules Engine
+rule overrides the duration — there is no such rule here. This means:
 - If app says "public" → cache it for 5 minutes
 - If app says "no-cache" → don't cache it
 - If app says "no-store" → never cache it
@@ -286,4 +289,4 @@ Response from origin
 **See Also:**
 - `CacheStrategy.java` — Caching logic implementation
 - `PublishEventCachePurgeHandler.java` — Cache invalidation on publish
-- `infra/modules/frontdoor.bicep` — AFD caching configuration (cachingBehavior, compressionSettings)
+- `infra/modules/frontdoor.bicep` — AFD caching configuration (route `cacheConfiguration`: query-string behavior + compression)

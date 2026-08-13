@@ -207,10 +207,54 @@ resource route 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
     // context) return "public, max-age=300, stale-while-revalidate=3600" and are
     // cached at the edge. Authenticated/session pages return "no-cache, no-store"
     // and bypass cache. Query strings disable caching (search, filters, forms).
-    cachingBehavior: 'HonorOriginCacheControl'
-    // Enable compression for cacheable responses (reduces bandwidth)
-    compressionSettings: {
-      isCompressionEnabled: true
+    //
+    // In the Microsoft.Cdn schema the PRESENCE of cacheConfiguration is itself the
+    // on/off switch -- the API spec is explicit: "To disable caching, do not
+    // provide a cacheConfiguration object." There is no cachingBehavior property
+    // on a route and no 'HonorOriginCacheControl' value anywhere in the type;
+    // honoring the origin's Cache-Control/Expires is simply what an enabled cache
+    // does when no Rules Engine rule overrides the duration, which is the case
+    // here. So this one object IS "cache at the edge, but let the app decide what
+    // is cacheable" -- Front Door honors no-cache/no-store/private from the origin
+    // and will not cache those responses even if a rule tried to force it.
+    //
+    // (An earlier version set cachingBehavior and compressionSettings as direct
+    // siblings of each other here, outside any cacheConfiguration. Neither exists
+    // on RouteProperties, so ARM accepted and ignored both -- leaving the route
+    // with no cacheConfiguration at all, which means caching was DISABLED outright
+    // and compression, which requires caching, could not run either. Nothing failed
+    // at deploy time; the feature was simply absent. Same shape as the
+    // sessionAffinitySettings no-op above; see issues #420 and #397.)
+    cacheConfiguration: {
+      // Each distinct query string is its own cache entry. The app already returns
+      // no-store for any request carrying one, so nothing with a query string is
+      // cached today -- this is the fail-safe setting if that ever changes. The
+      // service default, IgnoreQueryString, is the dangerous direction: it would
+      // let /page?id=1 and /page?id=2 share a single cached response.
+      queryStringCachingBehavior: 'UseQueryString'
+      compressionSettings: {
+        isCompressionEnabled: true
+        // Compression applies only to the MIME types listed here. The portal seeds
+        // a default list when you tick its checkbox, but an ARM/Bicep deployment
+        // sends exactly what is written below -- so the list is spelled out rather
+        // than leaning on a service-side default this template never sees. These
+        // are the types the app actually serves (JSP HTML, REST JSON, the static
+        // js/css/svg/xml under web-content); already-compressed formats such as
+        // woff2 and png are deliberately absent. Front Door compresses responses
+        // between 1 KB and 8 MB, using brotli or gzip.
+        contentTypesToCompress: [
+          'text/html'
+          'text/css'
+          'text/plain'
+          'text/xml'
+          'text/javascript'
+          'application/javascript'
+          'application/json'
+          'application/xml'
+          'application/xhtml+xml'
+          'image/svg+xml'
+        ]
+      }
     }
   }
   dependsOn: [
