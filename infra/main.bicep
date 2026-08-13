@@ -43,7 +43,7 @@ of available versions, which means the region/tier/SKU combination below is
 unavailable, not that this version is wrong.
 ''')
 @allowed(['14', '15', '16', '17'])
-param postgresVersion string = '16'
+param postgresVersion string = '17'
 
 @description('''
 PostgreSQL compute SKU. Availability varies by region and by subscription quota,

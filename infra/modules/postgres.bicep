@@ -35,7 +35,7 @@ param administratorLoginPassword string
 
 @description('PostgreSQL major version.')
 @allowed(['14', '15', '16', '17'])
-param postgresVersion string = '16'
+param postgresVersion string = '17'
 
 @description('Compute SKU. Pilot is scale-up-only (Phase 0 decision #8), so a single server is sufficient.')
 param skuName string = 'Standard_D2ds_v5'
@@ -88,7 +88,13 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' =
     }
     backup: {
       backupRetentionDays: backupRetentionDays
-      geoRedundantBackup: 'Disabled'
+      // Deliberately not a parameter. Backup redundancy cannot be changed after
+      // the server is created -- getting it wrong means rebuilding the database
+      // to fix it -- so this is a policy decision that belongs under review
+      // rather than a value someone can pick differently at each deployment.
+      // Enabled: the site's content is the business asset, and without this a
+      // regional outage loses it with no recovery path.
+      geoRedundantBackup: 'Enabled'
     }
     highAvailability: {
       // Scale-up-only pilot; revisit with the scale-out topology decision.
