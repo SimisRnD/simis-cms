@@ -141,10 +141,28 @@ jobs:
           fi
 
       # Workload-identity federation: no client secret is stored anywhere.
-      # Requires a federated credential in Azure AD scoped to this repo and the
-      # 'publish' environment (or branch/tag, per the federation subject).
       # The three identifiers are non-sensitive and live as repository variables.
       # Skip when ACR_REGISTRY is not set (forks, local branches).
+      #
+      # The federated credential in Entra ID must match the subject GitHub actually
+      # presents. Two things about that, both learned the hard way on 2026-08-13:
+      #
+      #   1. Scope it to the BRANCH, not an environment. This job declares no
+      #      `environment:`, so an environment-scoped credential can never match --
+      #      whatever the Entra portal's wizard steers you toward.
+      #   2. Use the classic name-based subject:
+      #           repo:SimisRnD/simis-cms:ref:refs/heads/main
+      #      NOT the immutable-ID form the portal now defaults to and displays a
+      #      banner recommending:
+      #           repo:SimisRnD@<org-id>/simis-cms@<repo-id>:ref:refs/heads/main
+      #      GitHub only issues the ID form when the org opts into that subject-claim
+      #      template, and this org has not. The portal builds the ID form from the
+      #      numeric ids it asks for, so following its happy path produces a credential
+      #      that cannot match. Use the "Edit (optional)" link beside Subject identifier
+      #      to type the name-based subject directly.
+      #
+      # The failure is AADSTS700213 at this step, and the azure/login output prints the
+      # subject it presented -- compare that against the credential rather than guessing.
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
         uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1

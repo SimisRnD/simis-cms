@@ -98,6 +98,41 @@ The image must also exist in the registry (issue #246's pipeline, or a one-time
 manual push) — App Service pulls it with its managed identity via AcrPull; there is
 no registry password.
 
+### Creating those secrets is harder than it looks
+
+Two things block it, and both are consequences of the design working correctly.
+Neither is obvious from an error message, and both cost time on the first
+deployment.
+
+**Subscription Owner does not let you write secrets.** The vault is created with
+`enableRbacAuthorization: true`, so Owner grants management-plane rights only —
+it can see the vault, change its configuration, and delete it, but cannot read or
+write a single secret. Assign yourself **Key Vault Secrets Officer** on the vault
+itself first (vault → Access control (IAM) → Add role assignment). Allow a couple
+of minutes for the assignment to propagate.
+
+**The vault is not reachable from your laptop.** `publicNetworkAccess` is
+`Disabled` and the network default action is `Deny`, so even holding the right
+role, the portal's secret blade fails with a network error. This is the same gap
+described under "Administrative access to the private data tier" above, and the
+same stopgap applies: vault → Networking → allow your own address, create the
+three secrets, then **set it back to disabled**.
+
+Two details that matter when you do:
+
+- The firewall accepts **IPv4 only**. A "what's my IP" site will hand you an IPv6
+  address if your connection has one; use `curl -4 ifconfig.me` or an IPv4-only
+  lookup instead.
+- Unlike the PostgreSQL connectivity method, Key Vault's public access toggles
+  freely and reversibly. Turning it on briefly is a temporary deviation, not a
+  permanent change to the posture — but it is still a deviation, and the failure
+  mode to avoid is forgetting the second half.
+
+Alternatively, a client running inside the VNet (the VPN gateway above, or the
+App Service's own Kudu console if public ingress were temporarily enabled)
+reaches the vault through its private endpoint with no firewall change at all.
+That is the cleaner path once either is routinely available.
+
 ## Administrative access to the private data tier
 
 Everything in the data path is private-endpoint only, which is the point — and it
