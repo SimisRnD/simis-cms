@@ -24,8 +24,18 @@ param appSubnetPrefix string = '10.20.1.0/24'
 @description('Subnet holding the private endpoints for PostgreSQL and Key Vault.')
 param privateEndpointSubnetPrefix string = '10.20.2.0/24'
 
+@description('''
+Subnet reserved for an optional point-to-site VPN gateway (modules/vpngateway.bicep).
+Always carved out, never charged for while empty. Reserving it up front means
+turning the gateway on later is a additive deployment rather than a change to
+this VNet's subnet list, which is the disruptive kind.
+''')
+param gatewaySubnetPrefix string = '10.20.255.0/27'
+
 var appSubnetName = 'snet-app'
 var privateEndpointSubnetName = 'snet-private-endpoints'
+// Azure requires this exact name; the gateway will not deploy into anything else.
+var gatewaySubnetName = 'GatewaySubnet'
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
   name: 'vnet-${namePrefix}'
@@ -56,6 +66,16 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
         properties: {
           addressPrefix: privateEndpointSubnetPrefix
           privateEndpointNetworkPolicies: 'Disabled'
+        }
+      }
+      {
+        // Declared inline with its siblings on purpose. Bicep lets you define
+        // subnets either inline here or as separate child resources, but mixing
+        // the two makes concurrent deployments overwrite each other's subnet
+        // list -- so every subnet this VNet will ever hold belongs in this array.
+        name: gatewaySubnetName
+        properties: {
+          addressPrefix: gatewaySubnetPrefix
         }
       }
     ]
@@ -103,5 +123,6 @@ resource keyVaultDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@
 output vnetId string = vnet.id
 output appSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, appSubnetName)
 output privateEndpointSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, privateEndpointSubnetName)
+output gatewaySubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, gatewaySubnetName)
 output postgresDnsZoneId string = postgresDnsZone.id
 output keyVaultDnsZoneId string = keyVaultDnsZone.id
