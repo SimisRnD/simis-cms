@@ -60,6 +60,14 @@ rather than trusting this default blindly.
 ''')
 param aadAudience string = 'c632b3df-fb67-4d84-bdcf-b95ad541b5c8'
 
+@description('''
+Token issuer host. Azure Public issues these tokens from sts.windows.net; the
+environment() function exposes no equivalent property, so unlike the login
+endpoint this one cannot be derived and must be overridden by hand in a
+sovereign cloud.
+''')
+param aadIssuerHost string = 'https://sts.windows.net'
+
 var gatewayName = 'vgw-${namePrefix}'
 
 // Standard SKU, static allocation. Basic public IPs reached end of life, and a
@@ -117,9 +125,12 @@ resource vpnGateway 'Microsoft.Network/virtualNetworkGateways@2023-11-01' = {
       vpnAuthenticationTypes: [
         'AAD'
       ]
-      aadTenant: 'https://login.microsoftonline.com/${tenantId}/'
+      // environment() rather than a literal host, so this stays correct if the
+      // deployment ever targets a sovereign cloud. loginEndpoint already carries
+      // its trailing slash.
+      aadTenant: '${environment().authentication.loginEndpoint}${tenantId}/'
       aadAudience: aadAudience
-      aadIssuer: 'https://sts.windows.net/${tenantId}/'
+      aadIssuer: '${aadIssuerHost}/${tenantId}/'
     }
   }
 }

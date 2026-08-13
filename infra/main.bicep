@@ -237,5 +237,7 @@ output appServiceHostName string = appService.outputs.defaultHostName
 output frontDoorEndpointHostName string = frontDoor.outputs.endpointHostName
 output frontDoorId string = frontDoor.outputs.frontDoorId
 
-// Empty unless enableVpnGateway is true.
-output vpnGatewayPublicIp string = enableVpnGateway ? vpnGateway.outputs.gatewayPublicIp : ''
+// Empty unless enableVpnGateway is true. Safe-dereference rather than a ternary:
+// a conditional module is null until it is actually deployed, and reading through
+// it unguarded fails the whole deployment.
+output vpnGatewayPublicIp string = vpnGateway.?outputs.gatewayPublicIp ?? ''
