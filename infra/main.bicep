@@ -63,6 +63,19 @@ param wafMode string = 'Prevention'
 @description('Custom domain for the edge, e.g. www.example.org. Empty until the DNS cutover decision.')
 param customDomainName string = ''
 
+@description('''
+Deploy the point-to-site VPN gateway that gives administrators a private path to
+the database and Key Vault. Off by default: it bills hourly from creation
+whether or not anyone connects, and routine operation does not need it -- Flyway
+migrates unattended on first boot and the app reads its own secrets. Turn it on
+when interactive access becomes routine rather than occasional. See infra/README.md
+for the cheaper stopgap and the DNS step clients need either way.
+''')
+param enableVpnGateway bool = false
+
+@description('Entra ID tenant id that authenticates VPN clients. Required only when enableVpnGateway is true.')
+param vpnTenantId string = ''
+
 var namePrefix = '${workloadName}-${environmentName}'
 
 var tags = {
@@ -192,6 +205,19 @@ module frontDoor 'modules/frontdoor.bicep' = {
   }
 }
 
+// Optional administrative access to the private data tier. Nothing else depends
+// on it, so it can be turned on or off without disturbing the running stack.
+module vpnGateway 'modules/vpngateway.bicep' = if (enableVpnGateway) {
+  name: 'vpngateway'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    tags: tags
+    gatewaySubnetId: network.outputs.gatewaySubnetId
+    tenantId: vpnTenantId
+  }
+}
+
 // Deploy-time reference: hostnames for DNS and verification, ids for the
 // approval and trusted-proxy steps documented in the README.
 output vnetId string = network.outputs.vnetId
@@ -210,3 +236,6 @@ output appServiceName string = appService.outputs.appServiceName
 output appServiceHostName string = appService.outputs.defaultHostName
 output frontDoorEndpointHostName string = frontDoor.outputs.endpointHostName
 output frontDoorId string = frontDoor.outputs.frontDoorId
+
+// Empty unless enableVpnGateway is true.
+output vpnGatewayPublicIp string = enableVpnGateway ? vpnGateway.outputs.gatewayPublicIp : ''
