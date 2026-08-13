@@ -137,7 +137,11 @@ CREATE TABLE web_pages (
   -- for the equivalent change to existing databases, and why role_id_list above wasn't reused for this
   -- (persisted but never actually consulted anywhere for access control).
   internal BOOLEAN DEFAULT false,
-  redirect_notes VARCHAR(500)
+  redirect_notes VARCHAR(500),
+  -- Multi-language content variants (#414). locale is BCP 47;
+  -- translation_group is shared by every locale variant of the same content.
+  locale VARCHAR(35) NOT NULL DEFAULT 'en',
+  translation_group VARCHAR(255)
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);
@@ -162,7 +166,11 @@ CREATE TABLE content (
   approved_by BIGINT DEFAULT -1,
   release_reference VARCHAR(255),
   content_text TEXT,
-  tsv TSVECTOR
+  tsv TSVECTOR,
+  -- Multi-language content variants (#414). locale is BCP 47;
+  -- translation_group is shared by every locale variant of the same content.
+  locale VARCHAR(35) NOT NULL DEFAULT 'en',
+  translation_group VARCHAR(255)
 );
 CREATE INDEX content_uni_idx ON content(content_unique_id);
 CREATE INDEX content_tsv_idx ON content USING gin(tsv);
@@ -537,7 +545,11 @@ CREATE TABLE blog_posts (
   draft_status VARCHAR(20),
   submitted_by BIGINT DEFAULT -1,
   approved_by BIGINT DEFAULT -1,
-  release_reference VARCHAR(255)
+  release_reference VARCHAR(255),
+  -- Multi-language content variants (#414). locale is BCP 47;
+  -- translation_group is shared by every locale variant of the same content.
+  locale VARCHAR(35) NOT NULL DEFAULT 'en',
+  translation_group VARCHAR(255)
 );
 CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id);
 CREATE INDEX blog_posts_geom_gix ON blog_posts USING GIST (geom);
