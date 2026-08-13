@@ -55,7 +55,20 @@ param databaseName string = 'simiscms'
 @maxValue(35)
 param backupRetentionDays int = 14
 
-var serverName = 'psql-${namePrefix}'
+// The name becomes a public DNS label -- psql-<prefix>.postgres.database.azure.com --
+// so it has to be unique across all of Azure, not just this resource group. A bare
+// 'psql-simiscms-pilot' is exactly the name a second team would also pick, and the
+// name stays reserved for a while after a server is deleted, so a failed first
+// attempt blocks the retry. The suffix is the same one the storage account, registry,
+// and vault already use; it is deterministic, so redeploying reproduces this name.
+//
+// The Postgres resource provider reports a taken name as a *malformed* one --
+// "Invalid value given for parameter serverName" -- so a collision does not look like
+// a collision. That misleading message is the reason this is worth a comment.
+//
+// take() is a backstop for the 63-character limit; uniqueString is always 13
+// alphanumeric characters, so the truncated name can never end in a hyphen.
+var serverName = toLower(take('psql-${namePrefix}-${uniqueString(resourceGroup().id)}', 63))
 
 resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: serverName
