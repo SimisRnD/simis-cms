@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-06T16:00:00+00:00",
-  "version": 6,
+  "version": 7,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1106,7 +1106,25 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The CVE's out-of-bounds read requires opening a corrupted HDF5 file through libhdf5's own reader, which is only reachable via GDAL's HDF5 driver -- never loaded here, consistent with the existing CVE-2018-11205 statement for these same two packages."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-58050"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssh2-1@1.10.0-3+b1?distro=debian-12"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
     }
   ],
-  "last_updated": "2026-07-29T23:20:00Z"
+  "last_updated": "2026-08-13T20:00:00Z"
 }
