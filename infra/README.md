@@ -27,6 +27,7 @@ design. Treat it as reviewed-but-unapplied.
 | `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics; public ingress disabled |
 | `modules/rbac.bicep` | The app identity's grants: Key Vault Secrets User + AcrPull |
 | `modules/frontdoor.bicep` | Front Door Premium + WAF (managed rulesets), Private Link origin, optional custom domain with managed TLS, edge logs to the workspace |
+| `modules/vpngateway.bicep` | **Optional, off by default.** Point-to-site VPN gateway giving administrators a private path to the database and Key Vault |
 
 ## What is not here yet
 
@@ -96,6 +97,75 @@ The app resolves three Key Vault references at startup, and IaC deliberately doe
 The image must also exist in the registry (issue #246's pipeline, or a one-time
 manual push) — App Service pulls it with its managed identity via AcrPull; there is
 no registry password.
+
+## Administrative access to the private data tier
+
+Everything in the data path is private-endpoint only, which is the point — and it
+means there is **no path from an administrator's laptop to the database.** Key Vault
+and PostgreSQL reject public traffic, and the App Service has `publicNetworkAccess`
+disabled with FTPS off, so its SCM/Kudu console is not publicly reachable either.
+
+Routine operation does not need one. Flyway migrates unattended on first boot, and
+the app reads its own secrets through its managed identity. The gap only matters for
+occasional work: confirming that first migration, inspecting state during an
+incident, an emergency correction.
+
+Two ways to close it. Pick deliberately — the difference is roughly $150/month.
+
+### Occasional access: temporarily allow one address
+
+PostgreSQL Flexible Server here is `publicNetworkAccess: Disabled` **plus** a private
+endpoint, which is the toggleable arrangement rather than VNet injection. Public
+access can be turned on, scoped to a single address, and turned back off:
+
+```bash
+# open
+az postgres flexible-server update --resource-group <rg> --name <server> --public-access Enabled
+az postgres flexible-server firewall-rule create --resource-group <rg> --name <server> \
+  --rule-name temp-admin --start-ip-address <your.ip> --end-ip-address <your.ip>
+
+# ... do the work ...
+
+# close, and mean it
+az postgres flexible-server firewall-rule delete --resource-group <rg> --name <server> --rule-name temp-admin --yes
+az postgres flexible-server update --resource-group <rg> --name <server> --public-access Disabled
+```
+
+Costs nothing and takes seconds, but it is a deliberate, temporary deviation from
+the private-only posture: for the duration, the database's TLS endpoint is reachable
+from the internet and protected only by that firewall rule and its credentials. It
+is the ISSM's call whether that is acceptable, and it should be logged when used.
+The failure mode to avoid is forgetting the second half.
+
+### Routine access: the VPN gateway
+
+Set `enableVpnGateway: true` and supply `vpnTenantId`. Administrators install the
+Azure VPN Client, authenticate with their normal Entra ID identity — inheriting MFA,
+conditional access, and offboarding — and their laptop joins the VNet. The private
+endpoints then resolve and connect as if from inside.
+
+Chosen over a jumpbox VM deliberately: a gateway has no operating system to patch,
+harden, scan, or carry in the SSP as an in-scope system.
+
+It bills hourly from creation whether or not anyone connects. Confirm the current
+rate before enabling; at the time of writing a `VpnGw1AZ` runs on the order of
+$150/month, which is real money against a pilot budget for something that may be
+used a few times a month.
+
+**Clients need one more step, or this looks broken.** Joining the VNet gives a route,
+not name resolution: the private DNS zones are resolvable from inside the VNet, but a
+connected client still asks its own resolver and gets the *public* address for
+`psql-<prefix>.postgres.database.azure.com`. The connection then fails in a way that
+looks like the VPN is not working. Either add a hosts entry mapping that FQDN to the
+private endpoint's address (keep the FQDN — Flexible Server requires TLS and the
+certificate is issued for the name, so connecting by bare IP fails validation), or
+stand up an Azure DNS Private Resolver, which solves it properly and costs about as
+much again. For a handful of administrators the hosts entry is the proportionate
+answer.
+
+`GatewaySubnet` is carved out of the VNet whether or not the gateway is enabled. An
+empty subnet is free, and reserving it means turning this on later is an additive
+deployment rather than a change to the VNet's subnet list.
 
 ## Edge deploy-time steps (the template cannot do these)
 
