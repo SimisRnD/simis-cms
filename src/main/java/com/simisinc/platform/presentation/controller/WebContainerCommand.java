@@ -389,6 +389,12 @@ public class WebContainerCommand implements Serializable {
             if (widgetContext.getFaqQuestions() != null && !widgetContext.getFaqQuestions().isEmpty()) {
               pageRenderInfo.addFaqQuestions(widgetContext.getFaqQuestions());
             }
+            // Event schema (issue #1181), from CalendarEventDetailsWidget. The widget only sets
+            // this once it has passed its own calendar-enabled visibility check, so reaching here
+            // already means the event is publicly viewable
+            if (widgetContext.getCalendarEvent() != null) {
+              pageRenderInfo.setCalendarEvent(widgetContext.getCalendarEvent());
+            }
           }
 
           // Expect JSON first and return early

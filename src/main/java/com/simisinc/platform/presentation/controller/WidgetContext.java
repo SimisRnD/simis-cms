@@ -28,6 +28,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
@@ -79,6 +80,9 @@ public class WidgetContext implements Serializable {
 
   // FAQPage schema fields (issue #416), bridged from FaqWidget
   private List<FaqQuestion> faqQuestions = null;
+  // Bridged by CalendarEventDetailsWidget for Event schema (issue #1181); the whole record rides
+  // the bridge rather than a dozen scalar fields, as FaqQuestion does
+  private CalendarEvent calendarEvent = null;
 
   private String jsp = null;
   private String html = null;
@@ -304,6 +308,14 @@ public class WidgetContext implements Serializable {
 
   public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
     this.faqQuestions = faqQuestions;
+  }
+
+  public CalendarEvent getCalendarEvent() {
+    return calendarEvent;
+  }
+
+  public void setCalendarEvent(CalendarEvent calendarEvent) {
+    this.calendarEvent = calendarEvent;
   }
 
   public String getJsp() {
