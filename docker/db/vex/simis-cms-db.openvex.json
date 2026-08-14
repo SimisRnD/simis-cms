@@ -1116,7 +1116,7 @@
           "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libssh2-1@1.10.0-3+b1?distro=debian-12"
+              "@id": "pkg:deb/debian/libssh2-1"
             }
           ]
         }
