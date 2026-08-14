@@ -422,12 +422,25 @@ jobs:
       #   - ACR_APP_SERVICE_NAME (repository variable): App Service instance name
       #   - ACR_APP_RESOURCE_GROUP (repository variable): Azure resource group name
       # If not set, the deploy is skipped (e.g., forks, pre-production branches).
+      # Gated OFF by default: set the ENABLE_ROLLING_DEPLOY repository variable to
+      # 'true' to run it. The rolling deploy cannot currently succeed against the
+      # pilot -- the health check polls the staging slot from this runner over the
+      # public internet, and the App Service (and therefore the slot) has
+      # publicNetworkAccess disabled. See #1178 and the header of
+      # tools/rolling-deploy.sh.
+      #
+      # Without this gate the step fails on every merge to main, after every other
+      # step has already succeeded and the image has reached ACR. A red run that
+      # everyone has learned to ignore is worse than no run at all: it trains people
+      # past exactly the signal this pipeline exists to give. Skip cleanly instead,
+      # and turn it back on in the same change that makes it work.
       - name: Deploy to Azure App Service (rolling update)
         if: |
           github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
           env.ACR_REGISTRY != '' &&
-          vars.ACR_APP_SERVICE_NAME != ''
+          vars.ACR_APP_SERVICE_NAME != '' &&
+          vars.ENABLE_ROLLING_DEPLOY == 'true'
         run: |
           bash tools/rolling-deploy.sh \
             --resource-group "${{ vars.ACR_APP_RESOURCE_GROUP }}" \
