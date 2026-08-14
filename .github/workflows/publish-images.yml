@@ -220,10 +220,15 @@ jobs:
           output: trivy-simis-cms.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
-          # --ignore-unfixed: report only actionable CVEs with available fixes.
-          # Reduces noise by filtering out will_not_fix findings (typically in base OS).
-          # The scan gate below enforces the zero-baseline on what remains.
-          args: --ignore-unfixed
+          # Report only actionable CVEs with an available fix, filtering out
+          # will_not_fix findings (typically in the base OS). The scan gate below
+          # enforces the zero-baseline on what remains.
+          #
+          # This MUST be the action's own `ignore-unfixed` input. It was previously
+          # written as `args: --ignore-unfixed`, and this action declares no `args`
+          # input at all -- GitHub Actions drops undeclared inputs silently, so the
+          # flag never reached Trivy and every unfixable finding was uploaded.
+          ignore-unfixed: true
           # Report scan: always exit 0 so the SARIF below reaches the Security
           # tab on every run. Enforcement is the separate gate step after the
           # upload -- splitting them means a failing gate never costs visibility.
@@ -307,9 +312,19 @@ jobs:
           output: trivy-simis-cms-db.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
-          # --ignore-unfixed: report only actionable CVEs with available fixes.
-          # The VEX + .trivyignore gate below handles triaged not_affected findings.
-          args: --ignore-unfixed
+          # Report only actionable CVEs with an available fix. See the note on the
+          # application scan above: this must be the action's own `ignore-unfixed`
+          # input, not `args`, which this action does not declare and silently drops.
+          ignore-unfixed: true
+          # Apply the same triage the gate applies, so the Security tab and the gate
+          # cannot disagree about an accepted finding. Currently a no-op -- every
+          # entry is unfixable and already filtered above -- but it keeps the two in
+          # step the first time a *fixed* CVE is accepted here.
+          #
+          # The VEX file is deliberately NOT passed: this pinned action version
+          # declares no `vex` input, so applying it to the report would need an
+          # action upgrade. That stays a separate, reviewed change.
+          trivyignores: docker/db/.trivyignore
           # Report scan, exit 0 -- same split as the application image above.
           exit-code: '0'
 
