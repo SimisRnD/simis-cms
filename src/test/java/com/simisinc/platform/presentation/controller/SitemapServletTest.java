@@ -28,6 +28,12 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.mockito.ArgumentCaptor;
+
+import com.simisinc.platform.domain.model.cms.CalendarEvent;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
@@ -797,5 +803,78 @@ class SitemapServletTest {
     }
 
     verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+  }
+
+  private static CalendarEvent calendarEvent(String uniqueId) {
+    CalendarEvent calendarEvent = new CalendarEvent();
+    calendarEvent.setUniqueId(uniqueId);
+    calendarEvent.setTitle("Sea Air Space");
+    calendarEvent.setModified(Timestamp.valueOf("2026-03-15 12:30:00"));
+    return calendarEvent;
+  }
+
+  private String runDoGetWithCalendarEvents(List<CalendarEvent> calendarEvents,
+      ArgumentCaptor<CalendarEventSpecification> specCaptor) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<CalendarEventRepository> calendarEventRepository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
+      calendarEventRepository
+          .when(() -> CalendarEventRepository.findAll(specCaptor.capture(), any()))
+          .thenReturn(calendarEvents);
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    return body.toString();
+  }
+
+  @Test
+  void doGetIncludesCalendarEventsAtTheirSingleEventUrl() throws Exception {
+    // Calendar events were absent from the sitemap entirely before issue #1181, so
+    // /calendar-event/... URLs were discoverable only by following a link out of a calendar widget
+    String xml = runDoGetWithCalendarEvents(List.of(calendarEvent("sea-air-space-2026")),
+        ArgumentCaptor.forClass(CalendarEventSpecification.class));
+
+    assertTrue(xml.contains("https://example.org/calendar-event/sea-air-space-2026"),
+        "expected the event URL in the sitemap, got: " + xml);
+  }
+
+  @Test
+  void doGetSkipsACalendarEventWithNoUniqueId() throws Exception {
+    // A uniqueId-less event has no resolvable URL; emitting siteUrl + "/calendar-event/null"
+    // would point crawlers at a guaranteed 404
+    String xml = runDoGetWithCalendarEvents(List.of(calendarEvent(null)),
+        ArgumentCaptor.forClass(CalendarEventSpecification.class));
+
+    assertFalse(xml.contains("/calendar-event/"), "expected no event URL at all, got: " + xml);
+  }
+
+  @Test
+  void doGetQueriesCalendarEventsWithAllThreeVisibilityFilters() throws Exception {
+    // The load-bearing assertion for this feature. calendarEnabledOnly mirrors the check
+    // CalendarEventDetailsWidget performs before it will render an event, so the sitemap can
+    // never advertise a URL that answers 404. publishedOnly/archivedOnly are deliberately
+    // stricter than that widget -- sitemap.xml has leaked non-public records before, and
+    // advertising less than is reachable is the only safe direction for this file.
+    ArgumentCaptor<CalendarEventSpecification> specCaptor =
+        ArgumentCaptor.forClass(CalendarEventSpecification.class);
+
+    runDoGetWithCalendarEvents(List.of(calendarEvent("sea-air-space-2026")), specCaptor);
+
+    CalendarEventSpecification spec = specCaptor.getValue();
+    assertTrue(spec.isCalendarEnabledOnly(), "calendarEnabledOnly must be set");
+    assertEquals(DataConstants.TRUE, spec.getPublishedOnly(), "publishedOnly must be set");
+    assertEquals(DataConstants.FALSE, spec.getArchivedOnly(), "archivedOnly must be false");
   }
 }
