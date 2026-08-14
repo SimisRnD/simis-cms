@@ -141,6 +141,30 @@ RUN mkdir -p /usr/local/tomcat/webapps/ROOT \
 # points -Djna.tmpdir here, a mounted volume (volumes are exec), keeping noexec everywhere else.
 # The stronger long-term posture is a system-installed libargon2 with argon2-jvm-nolibs, which
 # would need no writable-exec surface at all; tracked as a follow-up.
+# TLS trust anchor for the database connection.
+#
+# ContextListener maps DB_SSL=true to the pgjdbc `ssl` property, and pgjdbc treats `ssl=true`
+# as sslmode=verify-full -- so it demands a trust anchor and looks for one at
+# $HOME/.postgresql/root.crt. HOME for the `simis` user below is /usr/local/tomcat, and nothing
+# ever created that file, so the very first connection died with FileNotFoundException before
+# Flyway ran. HikariPool fails fast, ContextListener aborts, the filters fail, the ROOT context
+# never deploys, and Tomcat answers 404 on every path -- a startup failure that reads like a
+# routing problem. Cost the first Azure deploy an afternoon.
+#
+# The file has to be baked in: the root filesystem is read-only at runtime (see the block
+# below), so nothing can write it at boot.
+#
+# The base image's ca-certificates bundle already carries both roots Azure Database for
+# PostgreSQL Flexible Server chains to -- verified against this exact pinned digest:
+#   DigiCert Global Root G2
+#   Microsoft RSA Root Certificate Authority 2017
+# Copying it here keeps full certificate verification. The alternative fix, relaxing sslmode,
+# would leave the connection encrypted but unauthenticated, and would be far easier to leave
+# in place by accident than to notice later.
+RUN mkdir -p /usr/local/tomcat/.postgresql \
+    && cp /etc/ssl/certs/ca-certificates.crt /usr/local/tomcat/.postgresql/root.crt \
+    && chmod 0444 /usr/local/tomcat/.postgresql/root.crt
+
 ARG APP_UID=10001
 ARG APP_GID=10001
 RUN groupadd --gid ${APP_GID} simis \
