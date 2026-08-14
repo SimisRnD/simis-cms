@@ -55,20 +55,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      # base/head are deliberately left unset for push/workflow_dispatch/schedule -- at
-      # scan time HEAD *is* the default branch (this workflow only runs against main),
-      # so an explicit base/head there pins them to the same commit and TruffleHog
-      # refuses to scan ("BASE and HEAD commits are the same"). Leaving them unset lets
-      # the action fall back to its own event-aware detection for those three triggers.
+      # base is left unset only for "push", where the action's own detection works:
+      # a push event carries before/after commits, so it scans exactly what landed.
       #
-      # That built-in detection has no case for the "release" event, though: its bundled
-      # script only branches on push/workflow_dispatch/schedule/pull_request, so on a
-      # release BASE/HEAD silently stay empty and it falls back to an unbounded, full
-      # git-history scan -- surfacing years-old, already-shipped content (vendored jar
-      # bytes, test fixture strings, checksum files) as "new" findings instead of just
-      # what changed since the prior release. The step below computes that explicitly.
-      - name: Determine the previous release tag for an incremental scan range
-        if: github.event_name == 'release'
+      # The other three triggers carry no diff context, and the action's fallback in
+      # that case is an UNBOUNDED scan of all history -- which reports years-old,
+      # already-shipped content (vendored jar bytes, test fixture strings, checksum
+      # files) as though it were newly introduced. Confirmed on run 31733859262, a
+      # workflow_dispatch: 43,233 chunks / 325 MB scanned, and the two "findings"
+      # were both inside restfb jars committed in 2022 and 2023, both unverified,
+      # both matching the string "distributionManagement" -- a Maven POM element
+      # that TruffleHog's TravisCI detector reads as a token. Neither is a secret.
+      #
+      # That matters beyond noise: workflow_dispatch is the documented way to make
+      # the first publish (see the header), so the bootstrap path was the one path
+      # guaranteed to fail. release was fixed earlier; dispatch and schedule have
+      # the same shape and are fixed here.
+      #
+      # A release looks back from itself to the release before it. Manual and
+      # scheduled runs have no "current" release, so the meaningful range is
+      # everything since the most recent one.
+      - name: Determine the incremental scan range
+        if: github.event_name != 'push'
         id: scan-range
         run: |
           git fetch --tags --force --quiet
@@ -79,13 +87,30 @@ jobs:
           # exact unbounded-scan problem this step exists to prevent. Confirmed
           # by hand: v20260807.10001 hit this exact bug before this fix.
           mapfile -t TAGS < <(git tag --list 'v[0-9]*' | sort -V)
-          CURRENT="${{ github.event.release.tag_name }}"
           PREV=""
-          for i in "${!TAGS[@]}"; do
-            if [ "${TAGS[$i]}" = "$CURRENT" ] && [ "$i" -gt 0 ]; then
-              PREV="${TAGS[$((i-1))]}"
+          if [ "${#TAGS[@]}" -gt 0 ]; then
+            if [ "${{ github.event_name }}" = "release" ]; then
+              CURRENT="${{ github.event.release.tag_name }}"
+              for i in "${!TAGS[@]}"; do
+                if [ "${TAGS[$i]}" = "$CURRENT" ] && [ "$i" -gt 0 ]; then
+                  PREV="${TAGS[$((i-1))]}"
+                fi
+              done
+            else
+              # Newest tag first, skipping any that resolves to HEAD itself: a
+              # rebuild run straight after a release would otherwise set base to
+              # the commit it is already on, and TruffleHog aborts with "BASE and
+              # HEAD commits are the same" -- which fails the run just as hard as
+              # a real finding would.
+              HEAD_SHA="$(git rev-parse HEAD)"
+              for (( i=${#TAGS[@]}-1; i>=0; i-- )); do
+                if [ "$(git rev-parse "${TAGS[$i]}^{commit}")" != "$HEAD_SHA" ]; then
+                  PREV="${TAGS[$i]}"
+                  break
+                fi
+              done
             fi
-          done
+          fi
           echo "base=$PREV" >> "$GITHUB_OUTPUT"
 
       # Secret scanning: detect hardcoded credentials (passwords, API keys, tokens)
@@ -141,10 +166,28 @@ jobs:
           fi
 
       # Workload-identity federation: no client secret is stored anywhere.
-      # Requires a federated credential in Azure AD scoped to this repo and the
-      # 'publish' environment (or branch/tag, per the federation subject).
       # The three identifiers are non-sensitive and live as repository variables.
       # Skip when ACR_REGISTRY is not set (forks, local branches).
+      #
+      # The federated credential in Entra ID must match the subject GitHub actually
+      # presents. Two things about that, both learned the hard way on 2026-08-13:
+      #
+      #   1. Scope it to the BRANCH, not an environment. This job declares no
+      #      `environment:`, so an environment-scoped credential can never match --
+      #      whatever the Entra portal's wizard steers you toward.
+      #   2. Use the classic name-based subject:
+      #           repo:SimisRnD/simis-cms:ref:refs/heads/main
+      #      NOT the immutable-ID form the portal now defaults to and displays a
+      #      banner recommending:
+      #           repo:SimisRnD@<org-id>/simis-cms@<repo-id>:ref:refs/heads/main
+      #      GitHub only issues the ID form when the org opts into that subject-claim
+      #      template, and this org has not. The portal builds the ID form from the
+      #      numeric ids it asks for, so following its happy path produces a credential
+      #      that cannot match. Use the "Edit (optional)" link beside Subject identifier
+      #      to type the name-based subject directly.
+      #
+      # The failure is AADSTS700213 at this step, and the azure/login output prints the
+      # subject it presented -- compare that against the credential rather than guessing.
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
         uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
