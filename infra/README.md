@@ -8,10 +8,24 @@ convenience.
 
 ## Status
 
-**Authored and type-checked. Not deployed.** Everything compiles clean with
-`az bicep build`, but nothing here has been applied or run through `what-if` — that
-needs an Azure subscription, which is the hard dependency called out in the Phase 0
-design. Treat it as reviewed-but-unapplied.
+**Deployed.** First applied to a real subscription on 13–14 August 2026; the pilot
+runs on these templates. Everything still compiles clean with `az bicep build`.
+
+Two things the first deployment established, because neither is visible in the
+templates:
+
+- **Region availability is a subscription-level constraint, not a template one.**
+  The first attempt failed because PostgreSQL Flexible Server was not permitted in
+  the requested region for that subscription. Confirm regional availability for the
+  *database* before choosing a region for everything else.
+- **`environmentName` is permanent.** It feeds every resource name through
+  `uniqueString(resourceGroup().id)`, so changing it later means redeploying the
+  whole group rather than renaming anything.
+
+Operating the deployed environment — releasing an image, reading container logs,
+diagnosing a failed start — is documented internally alongside the other runbooks
+rather than here. This file stays scoped to what the templates provision and the
+deploy-time steps they cannot perform themselves.
 
 ## What is here
 
