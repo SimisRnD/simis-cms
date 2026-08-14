@@ -16,6 +16,35 @@ set -euo pipefail
 #
 # Rollback on failure: if staging health check fails, delete staging and restore old instance
 #
+# ---------------------------------------------------------------------------
+# KNOWN LIMITATION -- this script cannot currently succeed against the Azure
+# pilot, and the reason is architectural rather than a misconfiguration.
+#
+# Step 3 polls https://<staging-slot>/healthz from the GitHub Actions runner,
+# over the public internet. The pilot's App Service runs with
+# `publicNetworkAccess: Disabled` (ingress is Front Door's Private Link origin
+# only), and a slot inherits that setting. Verified 2026-08-14 against a real
+# staging slot: the slot's hostname answers HTTP 403 "Web App - Unavailable"
+# from outside Azure. The health check can therefore never pass; the script
+# would poll for the full timeout, delete staging, and exit non-zero on every
+# run. Production is never touched, so this fails safe -- it simply never
+# succeeds.
+#
+# Two further gaps found in the same test:
+#   - The CI service principal has AcrPush but no rights to create or swap
+#     slots, so step 1 fails before any of the above is reached.
+#   - `--configuration-source` clones app settings but NOT VNet integration
+#     (the created slot had virtualNetworkSubnetId = null), so a staging slot
+#     cannot reach PostgreSQL or Key Vault through their private endpoints and
+#     would not start even if it were reachable.
+#
+# Making this work needs a health signal that originates inside Azure rather
+# than from the runner -- App Service's own warm-up/health-check on swap is the
+# most likely answer. Tracked as its own issue; do not "fix" this by exposing
+# the staging slot publicly, which would put an unprotected copy of the app
+# outside Front Door and the WAF.
+# ---------------------------------------------------------------------------
+#
 # Usage:
 #   rolling-deploy.sh \
 #     --resource-group my-rg \
@@ -93,7 +122,7 @@ SLOTS=$(az webapp deployment slot list \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
   --query "[].name" \
-  --output tsv 2>/dev/null || echo "")
+  --output tsv || echo "")
 
 if echo "$SLOTS" | grep -qx "staging"; then
   log "  staging slot already exists"
@@ -104,7 +133,7 @@ else
     --name "$APP_SERVICE_NAME" \
     --slot staging \
     --configuration-source "$APP_SERVICE_NAME" \
-    2>/dev/null || die "Failed to create staging slot"
+    || die "Failed to create staging slot -- see the Azure error above"
   log "  ✓ staging slot created"
 fi
 
@@ -135,7 +164,7 @@ az webapp config container set \
   --slot staging \
   --docker-custom-image-name "$IMAGE_URI" \
   --docker-registry-server-url "https://$(echo "$IMAGE_URI" | cut -d'/' -f1)" \
-  2>/dev/null || die "Failed to deploy image to staging slot"
+  || die "Failed to deploy image to staging slot -- see the Azure error above"
 
 log "  Deployment queued. Container pulling..."
 
@@ -174,7 +203,7 @@ if [[ $HEALTH_CHECK_PASSED -eq 0 ]]; then
     --resource-group "$RESOURCE_GROUP" \
     --name "$APP_SERVICE_NAME" \
     --slot staging \
-    --yes 2>/dev/null || log "  Warning: failed to delete staging slot"
+    --yes || log "  Warning: failed to delete staging slot (see the Azure error above)"
 
   die "Health check failed; rolled back staging deployment"
 fi
@@ -189,7 +218,7 @@ az webapp deployment slot swap \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
   --slot staging \
-  2>/dev/null || die "Failed to swap slots"
+  || die "Failed to swap slots -- see the Azure error above"
 
 log "  ✓ Slot swap complete (traffic now on production; staging holds the previous build)"
 
@@ -219,7 +248,7 @@ az webapp deployment slot delete \
   --name "$APP_SERVICE_NAME" \
   --slot staging \
   --yes \
-  2>/dev/null || log "  Warning: failed to delete staging slot (manual cleanup may be needed; next run will reuse and overwrite it either way)"
+  || log "  Warning: failed to delete staging slot (see the Azure error above; manual cleanup may be needed -- the next run reuses and overwrites it either way)"
 
 log "  ✓ Old slot deleted"
 
