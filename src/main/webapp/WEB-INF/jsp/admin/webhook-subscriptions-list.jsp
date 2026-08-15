@@ -62,13 +62,13 @@
           <a href="${ctx}/admin/webhook-deliveries?webhookSubscriptionId=${webhookSubscription.id}" title="Delivery log"><i class="fa fa-list"></i></a>
           <c:choose>
             <c:when test="${webhookSubscription.enabled}">
-              <a href="#" title="Disable" onclick="return confirmPostAction('Disable this webhook subscription?', '${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}');"><i class="fa fa-toggle-on"></i></a>
+              <a href="#" title="Disable" data-confirm-post="Disable this webhook subscription?" data-post-url="${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}"><i class="fa fa-toggle-on"></i></a>
             </c:when>
             <c:otherwise>
-              <a href="#" title="Enable" onclick="return confirmPostAction('Enable this webhook subscription?', '${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}');"><i class="fa fa-toggle-off"></i></a>
+              <a href="#" title="Enable" data-confirm-post="Enable this webhook subscription?" data-post-url="${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}"><i class="fa fa-toggle-off"></i></a>
             </c:otherwise>
           </c:choose>
-          <a href="#" title="Delete" onclick="return confirmPostAction('Are you sure you want to delete the webhook for <c:out value="${js:escape(webhookSubscription.url)}" />? This cannot be undone.', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}');"><i class="fa fa-remove"></i></a>
+          <a href="#" title="Delete" data-confirm-post="Are you sure you want to delete the webhook for <c:out value="${webhookSubscription.url}" />? This cannot be undone." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}"><i class="fa fa-remove"></i></a>
         </td>
       </tr>
     </c:forEach>

@@ -30,6 +30,18 @@
 #    Nothing catches it on a branch in isolation -- the collision only exists once both sides are
 #    in one tree -- so it lands on whichever PR merges second, which is exactly when it is most
 #    confusing. This check runs in about a second and names both offenders.
+#
+# 5. Inline event handlers dead under the CSP: fails when a served JSP carries an inline on*=
+#    attribute (onclick, onchange, onsubmit, ...). PageServlet sends Content-Security-Policy:
+#    script-src 'self' 'nonce-<random>' with no 'unsafe-inline' and no 'unsafe-hashes', so the
+#    browser refuses to run inline handlers -- they fall under script-src-attr, which a nonce
+#    does not cover -- and the control silently does nothing (a logo upload, issue #1190; the
+#    Media Library sort dropdown, #1194; admin Delete/Enable/Disable links). See
+#    tools/check-inline-handlers.py and issue #1188. ENFORCING (--strict) against a baseline
+#    ALLOWLIST of the handlers still to be converted to addEventListener; that number only
+#    shrinks, and a NEW inline handler -- or a count bumped above the recorded baseline -- fails
+#    here. JSP/HTML comments and <script> bodies are blanked out first (preserving line numbers),
+#    so prose that merely mentions onclick= or a JS "el.onclick = fn" assignment is not a finding.
 name: Static checks
 
 on:
@@ -59,3 +71,5 @@ jobs:
         run: python3 tools/check-widget-duplicate-tags.py . --strict
       - name: Fail on two Flyway migrations sharing a version
         run: python3 tools/check-duplicate-migration-versions.py . --strict
+      - name: Fail on inline on*= event handlers that the CSP makes dead
+        run: python3 tools/check-inline-handlers.py . --strict

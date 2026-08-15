@@ -31,7 +31,7 @@
 </div>
 
 <p>
-  <a href="#" onclick="return confirmPostAction('Clear ALL caches? This cannot be undone.', '${widgetContext.uri}?command=clearAll&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button alert">Clear All Caches</a>
+  <a href="#" data-confirm-post="Clear ALL caches? This cannot be undone." data-post-url="${widgetContext.uri}?command=clearAll&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button alert">Clear All Caches</a>
 </p>
 
 <div style="overflow-x: auto">
@@ -74,7 +74,7 @@
           </c:choose>
         </td>
         <td>
-          <a href="#" onclick="return confirmPostAction('Clear the ${fn:escapeXml(cacheSummary.name)} cache?', '${widgetContext.uri}?command=clearCache&cache=${fn:escapeXml(cacheSummary.name)}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button tiny secondary">Clear</a>
+          <a href="#" data-confirm-post="Clear the ${fn:escapeXml(cacheSummary.name)} cache?" data-post-url="${widgetContext.uri}?command=clearCache&cache=${fn:escapeXml(cacheSummary.name)}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button tiny secondary">Clear</a>
         </td>
       </tr>
     </c:forEach>

@@ -61,13 +61,13 @@
           <a href="${ctx}/admin/web-redirect?webRedirectId=${webRedirect.id}" title="Edit"><i class="fa fa-edit"></i></a>
           <c:choose>
             <c:when test="${webRedirect.enabled}">
-              <a href="#" title="Disable" onclick="return confirmPostAction('Disable this redirect?', '${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}');"><i class="fa fa-toggle-on"></i></a>
+              <a href="#" title="Disable" data-confirm-post="Disable this redirect?" data-post-url="${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}"><i class="fa fa-toggle-on"></i></a>
             </c:when>
             <c:otherwise>
-              <a href="#" title="Enable" onclick="return confirmPostAction('Enable this redirect?', '${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}');"><i class="fa fa-toggle-off"></i></a>
+              <a href="#" title="Enable" data-confirm-post="Enable this redirect?" data-post-url="${widgetContext.uri}?action=toggleEnabled&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}"><i class="fa fa-toggle-off"></i></a>
             </c:otherwise>
           </c:choose>
-          <a href="#" title="Delete" onclick="return confirmPostAction('Are you sure you want to delete the redirect for <c:out value="${js:escape(webRedirect.fromPath)}" />? This cannot be undone.', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}');"><i class="fa fa-remove"></i></a>
+          <a href="#" title="Delete" data-confirm-post="Are you sure you want to delete the redirect for <c:out value="${webRedirect.fromPath}" />? This cannot be undone." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webRedirectId=${webRedirect.id}"><i class="fa fa-remove"></i></a>
         </td>
       </tr>
     </c:forEach>
