@@ -20,12 +20,14 @@ import java.io.File;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.AddImageToLibraryCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -55,6 +57,48 @@ import static org.mockito.Mockito.times;
  * so a rejected upload was reported to the admin as a success ("N files uploaded. Refreshing...").
  */
 class FolderFileDropZoneWidgetTest extends WidgetBase {
+
+  /**
+   * The drop zone must advertise the same limit the server enforces, read from the one
+   * system.upload.maxBytes property (issue #1198). Dropzone.js's maxFilesize is in whole
+   * megabytes, so 52428800 bytes has to reach the JSP as 50 -- not the old hardcoded 55 that
+   * matched nothing.
+   */
+  @Test
+  void executeAdvertisesTheConfiguredUploadCeilingInWholeMegabytes() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+
+    try (MockedStatic<FolderRepository> folderRepository = mockStatic(FolderRepository.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      folderRepository.when(() -> FolderRepository.findById(1L)).thenReturn(new Folder());
+      props.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn("52428800");
+
+      WidgetContext result = new FolderFileDropZoneWidget().execute(widgetContext);
+
+      Assertions.assertEquals("50", widgetContext.getRequest().getAttribute("maxUploadSize"));
+      Assertions.assertEquals("/admin/folder-file-drop-zone.jsp", result.getJsp());
+    }
+  }
+
+  @Test
+  void executeFallsBackToTheDefaultCeilingWhenThePropertyIsUnset() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+
+    try (MockedStatic<FolderRepository> folderRepository = mockStatic(FolderRepository.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      folderRepository.when(() -> FolderRepository.findById(1L)).thenReturn(new Folder());
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      new FolderFileDropZoneWidget().execute(widgetContext);
+
+      // SaveFilePartCommand.resolveMaxUploadBytes()'s 10 MB code default, rendered as whole MB
+      Assertions.assertEquals("10", widgetContext.getRequest().getAttribute("maxUploadSize"));
+    }
+  }
 
   @Test
   void postUploadingANewFileRecordsAFolderFileCreateSuccessEvent() throws Exception {
