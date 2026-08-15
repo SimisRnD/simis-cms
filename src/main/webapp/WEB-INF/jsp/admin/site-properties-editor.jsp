@@ -873,12 +873,20 @@
       return;
     }
     event.preventDefault();
-    target[targetAttr] = el.getAttribute('data-src');
+    var src = el.getAttribute('data-src');
+    // targetAttr is read from the AJAX-injected fragment, so treat it as an
+    // allowlist of known destinations rather than a dynamic property name: a
+    // computed member write (target[targetAttr] = ...) could resolve to
+    // innerHTML/outerHTML and reinterpret the fragment-supplied value as HTML.
+    // See issue #1207. (CodeQL js/xss-through-dom)
     if (targetAttr === 'value') {
+      target.value = src;
       var preview = document.getElementById(targetId + 'Preview');
       if (preview) {
-        preview.src = el.getAttribute('data-src');
+        preview.src = src;
       }
+    } else if (targetAttr === 'href') {
+      target.href = src;
     }
     $('#imageBrowserReveal').foundation('close');
   });
