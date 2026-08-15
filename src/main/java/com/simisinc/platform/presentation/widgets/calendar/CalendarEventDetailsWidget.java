@@ -51,10 +51,32 @@ public class CalendarEventDetailsWidget extends GenericWidget {
       return null;
     }
 
+    // An admin/content-manager previews content the public cannot see yet; the same pair of roles
+    // gates the calendar's "Online?" check below, and CalendarAjaxEvents/CalendarEventAjax name
+    // this exact bypass canSeeUnpublished.
+    boolean isPreviewer = context.hasRole("admin") || context.hasRole("content-manager");
+
+    // Check the event's own visibility. findByUniqueId() applies no filtering, so the two states
+    // CalendarEventSpecification exposes as publishedOnly/archivedOnly ("published IS NOT NULL" /
+    // "archived IS NULL" in CalendarEventRepository.createWhereStatement) are checked here
+    // instead. Without this, a draft or archived event on an enabled calendar rendered in full to
+    // any visitor who knew its uniqueId, while every list/feed surface correctly hid it.
+    if (calendarEvent.getPublished() == null && !isPreviewer) {
+      LOG.debug("Calendar event is not published: " + eventUniqueId);
+      return null;
+    }
+    // issue #882: archived is a distinct "no longer relevant" state rather than a preview-gate
+    // concern, so it is honored for every visitor, previewer included -- matching the
+    // unconditional setArchivedOnly(false) in CalendarEventAjax, CalendarAjaxEvents,
+    // CalendarSearchResultsWidget and UpcomingCalendarEventsWidget.
+    if (calendarEvent.getArchived() != null) {
+      LOG.debug("Calendar event is archived: " + eventUniqueId);
+      return null;
+    }
+
     // Check the calendar
     Calendar calendar = LoadCalendarCommand.loadCalendarById(calendarEvent.getCalendarId());
-    if (!calendar.getEnabled() &&
-        !(context.hasRole("admin") || context.hasRole("content-manager"))) {
+    if (!calendar.getEnabled() && !isPreviewer) {
       return null;
     }
     context.getRequest().setAttribute("calendar", calendar);
@@ -67,6 +89,11 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     // Determine the view
     context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     context.setPageTitle(calendarEvent.getTitle());
+    // Bridge the event for Event JSON-LD (issue #1181). This is set only after the calendar-enabled
+    // check above, so PageServlet never sees an event the visitor could not already read. PageServlet
+    // cannot resolve the event itself -- /calendar-event{/event-unique-id} is a wildcard page and
+    // this widget performs the lookup -- which is the same reason Product schema is bridged.
+    context.setCalendarEvent(calendarEvent);
     context.setJsp(JSP);
     return context;
   }

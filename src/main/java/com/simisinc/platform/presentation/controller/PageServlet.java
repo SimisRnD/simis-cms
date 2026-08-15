@@ -26,6 +26,7 @@ import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
+import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
@@ -1303,6 +1304,13 @@ public class PageServlet extends HttpServlet {
         graph.add(product);
       }
 
+      // Add Event schema for a single calendar event page (issue #1181); bridged like Product,
+      // since a calendar event is not resolvable from the URL by PageServlet itself
+      Map<String, Object> event = computeEventSchema(pageRenderInfo, siteUrl);
+      if (event != null) {
+        graph.add(event);
+      }
+
       jsonLd.put("@graph", graph);
       return escapeForInlineScript(mapper.writeValueAsString(jsonLd));
     } catch (Exception e) {
@@ -1386,6 +1394,140 @@ public class PageServlet extends HttpServlet {
     }
 
     return product;
+  }
+
+  /**
+   * Builds the Event schema for a single calendar event page (issue #1181). Gated on the bridged
+   * CalendarEvent, which CalendarEventDetailsWidget only sets after its own calendar-enabled
+   * visibility check -- so a non-null event here is already one the visitor can read. Like Product,
+   * the record is bridged rather than resolved here: /calendar-event{/event-unique-id} is a
+   * wildcard page and only the widget performs the uniqueId lookup.
+   */
+  static Map<String, Object> computeEventSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
+    CalendarEvent calendarEvent = pageRenderInfo.getCalendarEvent();
+    if (calendarEvent == null || StringUtils.isBlank(calendarEvent.getTitle())) {
+      return null;
+    }
+
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("@type", "Event");
+    event.put("name", calendarEvent.getTitle());
+
+    if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(calendarEvent.getUniqueId())) {
+      event.put("url", siteUrl + "/calendar-event/" + calendarEvent.getUniqueId());
+    }
+
+    // startDate is required by Google for Event rich results; endDate is optional but strongly
+    // recommended. An all-day event is a calendar date rather than an instant, so it's emitted as
+    // a bare yyyy-MM-dd resolved in the site's timezone -- rendering it as a UTC instant would
+    // shift the day for any site west of Greenwich.
+    String startDate = formatEventDate(calendarEvent.getStartDate(), calendarEvent.getAllDay());
+    if (startDate != null) {
+      event.put("startDate", startDate);
+    }
+    String endDate = formatEventDate(calendarEvent.getEndDate(), calendarEvent.getAllDay());
+    if (endDate != null) {
+      event.put("endDate", endDate);
+    }
+
+    // Prefer the curated summary; fall back to the body with markup stripped, since JSON-LD
+    // description is plain text and raw HTML there is ignored at best
+    String description = StringUtils.trimToNull(calendarEvent.getSummary());
+    if (description == null && StringUtils.isNotBlank(calendarEvent.getBody())) {
+      description = StringUtils.trimToNull(HtmlCommand.text(calendarEvent.getBody()));
+    }
+    if (description != null) {
+      event.put("description", description);
+    }
+
+    if (StringUtils.isNotBlank(calendarEvent.getImageUrl())) {
+      String imageUrl = calendarEvent.getImageUrl();
+      if (imageUrl.startsWith("/") && StringUtils.isNotBlank(siteUrl)) {
+        imageUrl = siteUrl + imageUrl;
+      }
+      event.put("image", imageUrl);
+    }
+
+    Map<String, Object> location = computeEventLocation(calendarEvent);
+    if (location != null) {
+      event.put("location", location);
+      // Only claim an attendance mode when there's a real place backing it; asserting "offline"
+      // for an event with no location at all would be inventing data
+      event.put("eventAttendanceMode", "https://schema.org/OfflineEventAttendanceMode");
+    }
+
+    event.put("eventStatus", "https://schema.org/EventScheduled");
+
+    return event;
+  }
+
+  /**
+   * Formats a calendar event date for schema.org: a bare calendar date for an all-day event
+   * (resolved in the site timezone) and a full ISO-8601 instant otherwise. Returns null for a
+   * missing date so the caller can omit the property rather than emit an empty one.
+   */
+  static String formatEventDate(Timestamp timestamp, boolean allDay) {
+    if (timestamp == null) {
+      return null;
+    }
+    if (allDay) {
+      return timestamp.toInstant().atZone(FormatDateCommand.getSiteZoneId()).toLocalDate().toString();
+    }
+    return timestamp.toInstant().toString();
+  }
+
+  /**
+   * Builds the Place sub-object for an Event (issue #1181). Returns null when the record carries
+   * neither a location name nor any address line, since a Place with no identifying detail adds
+   * nothing and Google treats an empty location as a validation error.
+   */
+  static Map<String, Object> computeEventLocation(CalendarEvent calendarEvent) {
+    boolean hasAddress = StringUtils.isNotBlank(calendarEvent.getStreet())
+        || StringUtils.isNotBlank(calendarEvent.getCity())
+        || StringUtils.isNotBlank(calendarEvent.getState())
+        || StringUtils.isNotBlank(calendarEvent.getPostalCode())
+        || StringUtils.isNotBlank(calendarEvent.getCountry());
+    if (StringUtils.isBlank(calendarEvent.getLocation()) && !hasAddress) {
+      return null;
+    }
+
+    Map<String, Object> place = new LinkedHashMap<>();
+    place.put("@type", "Place");
+    if (StringUtils.isNotBlank(calendarEvent.getLocation())) {
+      place.put("name", calendarEvent.getLocation());
+    }
+
+    if (hasAddress) {
+      Map<String, Object> address = new LinkedHashMap<>();
+      address.put("@type", "PostalAddress");
+      if (StringUtils.isNotBlank(calendarEvent.getStreet())) {
+        address.put("streetAddress", calendarEvent.getStreet());
+      }
+      if (StringUtils.isNotBlank(calendarEvent.getCity())) {
+        address.put("addressLocality", calendarEvent.getCity());
+      }
+      if (StringUtils.isNotBlank(calendarEvent.getState())) {
+        address.put("addressRegion", calendarEvent.getState());
+      }
+      if (StringUtils.isNotBlank(calendarEvent.getPostalCode())) {
+        address.put("postalCode", calendarEvent.getPostalCode());
+      }
+      if (StringUtils.isNotBlank(calendarEvent.getCountry())) {
+        address.put("addressCountry", calendarEvent.getCountry());
+      }
+      place.put("address", address);
+    }
+
+    // 0.0/0.0 is the model's default for "never geocoded", not a real point in the Atlantic
+    if (calendarEvent.getLatitude() != 0.0 || calendarEvent.getLongitude() != 0.0) {
+      Map<String, Object> geo = new LinkedHashMap<>();
+      geo.put("@type", "GeoCoordinates");
+      geo.put("latitude", calendarEvent.getLatitude());
+      geo.put("longitude", calendarEvent.getLongitude());
+      place.put("geo", geo);
+    }
+
+    return place;
   }
 
   /**
