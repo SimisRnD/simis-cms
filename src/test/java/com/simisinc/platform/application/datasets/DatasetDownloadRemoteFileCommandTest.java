@@ -35,6 +35,7 @@ import org.mockito.MockedStatic;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.http.HttpDownloadFileCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
@@ -128,6 +129,66 @@ class DatasetDownloadRemoteFileCommandTest {
       httpGet.verify(() -> HttpGetCommand.executeUserUrl(FIRST_PAGE_URL));
       httpGet.verify(() -> HttpGetCommand.executeUserUrl(secondPageUrl));
       httpGet.verify(() -> HttpGetCommand.execute(anyString()), never());
+    }
+  }
+
+  /**
+   * Issue #1211 / #363: the accumulated-row cap must be re-evaluated as pages accumulate.
+   *
+   * <p>This is the case the original implementation could not catch. Its check sat above the
+   * append loop, reading the size of the records node while it still held only page one -- so it
+   * fired only if the very first page already exceeded the cap, and never truncated
+   * mid-pagination. Here each page is comfortably under the cap on its own and only their sum
+   * exceeds it, so a check evaluated once on entry would let every row through.
+   */
+  @Test
+  void pagedDownloadStopsAccumulatingAtTheConfiguredRowCap(@TempDir File tempDir) throws Exception {
+    File tempFile = new File(tempDir, "out.json");
+    String secondPageUrl = "http://93.184.216.34/page2";
+    String thirdPageUrl = "http://93.184.216.34/page3";
+    // 2 rows per page, cap of 3: page one is under the cap, page two crosses it mid-page, and
+    // page three must never be fetched at all.
+    String firstPageJson = "{\"records\":[{\"id\":1},{\"id\":2}],\"next\":\"" + secondPageUrl + "\"}";
+    String secondPageJson = "{\"records\":[{\"id\":3},{\"id\":4}],\"next\":\"" + thirdPageUrl + "\"}";
+
+    try (MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("dataset.maxRows")).thenReturn("3");
+      httpGet.when(() -> HttpGetCommand.executeUserUrl(FIRST_PAGE_URL)).thenReturn(firstPageJson);
+      httpGet.when(() -> HttpGetCommand.executeUserUrl(secondPageUrl)).thenReturn(secondPageJson);
+
+      boolean result = DatasetDownloadRemoteFileCommand.downloadPagedFile(FIRST_PAGE_URL, "next", "records", tempFile);
+
+      assertTrue(result);
+      JsonNode records = JsonLoader.fromFile(tempFile).get("records");
+      assertEquals(3, records.size(), "accumulation must stop exactly at the cap, mid-page");
+      assertEquals(1, records.get(0).get("id").asInt());
+      assertEquals(2, records.get(1).get("id").asInt());
+      assertEquals(3, records.get(2).get("id").asInt());
+
+      // Having hit the cap while merging page two, the third page is never requested.
+      httpGet.verify(() -> HttpGetCommand.executeUserUrl(thirdPageUrl), never());
+    }
+  }
+
+  /** A blank or unparseable dataset.maxRows must fall back to the default, not remove the bound. */
+  @Test
+  void rowCapFallsBackToTheDefaultWhenThePropertyIsUnusable() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("dataset.maxRows")).thenReturn(null);
+      assertEquals(DatasetDownloadRemoteFileCommand.DEFAULT_MAX_ROWS,
+          DatasetDownloadRemoteFileCommand.resolveMaxRows(), "null property");
+
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("dataset.maxRows")).thenReturn("not-a-number");
+      assertEquals(DatasetDownloadRemoteFileCommand.DEFAULT_MAX_ROWS,
+          DatasetDownloadRemoteFileCommand.resolveMaxRows(), "unparseable property");
+
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("dataset.maxRows")).thenReturn("0");
+      assertEquals(DatasetDownloadRemoteFileCommand.DEFAULT_MAX_ROWS,
+          DatasetDownloadRemoteFileCommand.resolveMaxRows(), "a non-positive cap must not disable the bound");
+
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("dataset.maxRows")).thenReturn(" 500 ");
+      assertEquals(500, DatasetDownloadRemoteFileCommand.resolveMaxRows(), "a valid value is honored");
     }
   }
 

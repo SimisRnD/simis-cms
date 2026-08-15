@@ -33,6 +33,11 @@ INSERT INTO site_properties (property_label, property_name, property_value) VALU
 -- deployment hold the same row. Existing installs got this from that migration; without it here,
 -- fresh installs relied on the 10 MB default hardcoded at each of the four read sites instead.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Maximum upload size (bytes)', 'system.upload.maxBytes', '10485760');
+-- Mirrors UPGRADE_20260725.1003__dataset_max_rows.sql for the same reason (issue #1211): the row
+-- existed only in the upgrade path, so fresh installs never had it. Read by
+-- DatasetDownloadRemoteFileCommand.resolveMaxRows() to bound accumulated rows during a paged
+-- remote dataset download.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Dataset max rows (paged download)', 'dataset.maxRows', '100000');
 
 -- Site
 
