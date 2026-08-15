@@ -153,6 +153,15 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
       appSettings: [
         // The container listens on 8080 (non-root cannot bind below 1024).
         { name: 'WEBSITES_PORT', value: '8080' }
+        // --- Slot swap warm-up (issue #1178) ---
+        // These make App Service itself probe a slot before completing a swap, and abort the swap
+        // if the probe never succeeds. That matters because the app runs with
+        // publicNetworkAccess Disabled and a slot inherits it: a staging slot answers HTTP 403 from
+        // outside Azure, so a health check run from a GitHub Actions runner can never pass. The
+        // probe has to originate inside Azure, and this is the supported way to arrange that.
+        // WEBSITE_SWAP_WARMUP_PING_PATH intentionally matches healthCheckPath below.
+        { name: 'WEBSITE_SWAP_WARMUP_PING_PATH', value: '/healthz' }
+        { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200' }
         // --- Application contract (issue #244): plain env vars ---
         { name: 'CMS_URL', value: cmsUrl }
         { name: 'CMS_FORCE_SSL', value: 'true' }
