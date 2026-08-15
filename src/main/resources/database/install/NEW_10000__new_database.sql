@@ -29,10 +29,10 @@ INSERT INTO site_properties (property_label, property_name, property_value) VALU
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Customizations path', 'system.customizations.filepath', '/opt/simis/customization');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config');
--- Maximum permitted upload size in bytes, enforced before writing to disk on every upload path
--- (folder drop zone, image upload, dataset upload, media API). 50 MB (issue #1198); tunable via
--- Admin > Site Properties. The @MultipartConfig hard limit on PageServlet is 100 MB.
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Maximum upload size (bytes)', 'system.upload.maxBytes', '52428800');
+-- Mirrors UPGRADE_20260725.1004__upload_max_bytes.sql so a fresh install and an upgraded
+-- deployment hold the same row. Existing installs got this from that migration; without it here,
+-- fresh installs relied on the 10 MB default hardcoded at each of the four read sites instead.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Maximum upload size (bytes)', 'system.upload.maxBytes', '10485760');
 
 -- Site
 

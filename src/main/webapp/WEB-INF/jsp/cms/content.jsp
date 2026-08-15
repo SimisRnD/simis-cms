@@ -15,7 +15,6 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
-<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
@@ -37,11 +36,11 @@
                  reusabilityWarning carries the real affected-page list (see
                  ContentUsageCommand#buildReusabilityWarning); the confirm is enriched with it. The
                  non-shared case renders the exact same 'Publish this content?' confirm as before. --%>
-            <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('<c:if test="${!empty reusabilityWarning}"><c:out value="${js:escape(reusabilityWarning)}"/> </c:if>Publish this content?');">DRAFT</a>
+            <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="<c:if test="${!empty reusabilityWarning}"><c:out value="${reusabilityWarning}"/> </c:if>Publish this content?">DRAFT</a>
           </c:if>
         </c:when>
         <c:when test="${reviewOffer eq 'submit'}">
-          <a class="hollow button small warning" href="${widgetContext.uri}?action=submitForReview&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Submit this content for review?');">SUBMIT FOR REVIEW</a>
+          <a class="hollow button small warning" href="${widgetContext.uri}?action=submitForReview&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Submit this content for review?">SUBMIT FOR REVIEW</a>
         </c:when>
         <c:when test="${reviewOffer eq 'awaiting'}">
           <span class="label warning" title="Another reviewer must approve this change">AWAITING REVIEW</span>
@@ -51,7 +50,7 @@
                trail ("cleared per PA case ...", "CO email dated ..."), which is what makes the trail
                exportable assessment evidence rather than just a timestamp. A GET form produces the
                same request shape as the action links beside it. --%>
-          <form method="post" action="${widgetContext.uri}" class="platform-content-review-form">
+          <form method="post" action="${widgetContext.uri}" class="platform-content-review-form" data-confirm-submit="Approve and publish this content?">
             <input type="hidden" name="action" value="approve"/>
             <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
             <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -61,14 +60,14 @@
             <input type="password" name="stepUpCredential" maxlength="255"
                    placeholder="Your password or authenticator code"
                    title="Re-authentication required to approve content"/>
-            <button type="submit" class="hollow button small success"
-                    onclick="return confirm('Approve and publish this content?');">APPROVE</button>
+            <button type="submit" class="hollow button small success">APPROVE</button>
           </form>
-          <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Return this content to the author?');">REJECT</a>
+          <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Return this content to the author?">REJECT</a>
         </c:when>
       </c:choose>
       <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
     </div>
+    <%@include file="../confirm_submit.jspf" %>
   </c:if>
   <c:choose>
     <c:when test="${!empty videoBackgroundUrl}">
