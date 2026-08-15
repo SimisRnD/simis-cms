@@ -16,12 +16,17 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.io.File;
+
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.AddImageToLibraryCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -31,8 +36,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 /**
@@ -153,6 +161,175 @@ class FolderFileDropZoneWidgetTest extends WidgetBase {
       Assertions.assertTrue(result.getJson().contains("\"error\""), "The JSON response must carry an error field");
       Assertions.assertTrue(result.getJson().contains("File type '.png' is not allowed in this folder"));
       Assertions.assertFalse(result.getJson().contains("location"), "A rejected upload must not report a success-shaped location");
+    }
+  }
+
+  /**
+   * Issue #1197: a file uploaded here lands in the folder file system, which the image picker on
+   * Site Settings / Theme Settings cannot see -- so a logo uploaded to a folder could never be
+   * selected as one. Ticking "Also add images to the Image Library" registers the image in the
+   * library too, via the same write path the site properties editor's own uploader uses.
+   */
+  private FileItem uploadedImagePart() {
+    FileItem uploadedPart = new FileItem();
+    uploadedPart.setFilename("logo.png");
+    uploadedPart.setExtension("png");
+    uploadedPart.setFileLength(4096);
+    return uploadedPart;
+  }
+
+  private FileItem savedImageFileItem(String fileType) {
+    FileItem savedFileItem = new FileItem();
+    savedFileItem.setId(60L);
+    savedFileItem.setFilename("logo.png");
+    savedFileItem.setFileLength(4096);
+    savedFileItem.setWebPath("20260814120000");
+    savedFileItem.setFileServerPath("uploads/2026/08/14/unique-name.png");
+    // ValidateFileCommand.checkFile() derives this from the file's detected mime type -- the same
+    // value the folder listing uses to decide whether a row gets an image thumbnail
+    savedFileItem.setFileType(fileType);
+    return savedFileItem;
+  }
+
+  @Test
+  void postWithAddToImageLibraryAddsTheUploadedImageToTheLibrary() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+    addQueryParameter(widgetContext, "addToImageLibrary", "true");
+
+    FileItem uploadedPart = uploadedImagePart();
+    FileItem savedFileItem = savedImageFileItem("Image");
+
+    Image savedImage = new Image();
+    savedImage.setId(77L);
+    savedImage.setFilename("logo.png");
+    savedImage.setWebPath("20260814120000");
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<AddImageToLibraryCommand> addImage = mockStatic(AddImageToLibraryCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(uploadedPart);
+      saveFileCommand.when(() -> SaveFileCommand.saveFile(uploadedPart)).thenReturn(savedFileItem);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn("/files/");
+      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenReturn(new File("/files/uploads/2026/08/14/unique-name.png"));
+      addImage.when(() -> AddImageToLibraryCommand.addFromFile(any(File.class), anyString(), anyLong()))
+          .thenReturn(savedImage);
+
+      WidgetContext result = new FolderFileDropZoneWidget().post(widgetContext);
+
+      // The library copy goes through the shared command, keeping the record identical to one
+      // uploaded through the site properties editor (validation, unique filename, srcset variants)
+      addImage.verify(() -> AddImageToLibraryCommand.addFromFile(any(File.class), eq("logo.png"), anyLong()), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
+          eq("image.create"), eq(AuditEventCommand.SUCCESS), eq("image"), eq("77"), eq("logo.png"), any()), times(1));
+      Assertions.assertTrue(result.hasJson());
+      Assertions.assertTrue(result.getJson().contains("location"));
+      Assertions.assertFalse(result.getJson().contains("libraryError"),
+          "A library add that worked must not report an error");
+    }
+  }
+
+  @Test
+  void postWithoutAddToImageLibraryLeavesTheImageLibraryAlone() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+
+    FileItem uploadedPart = uploadedImagePart();
+    FileItem savedFileItem = savedImageFileItem("Image");
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<AddImageToLibraryCommand> addImage = mockStatic(AddImageToLibraryCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(uploadedPart);
+      saveFileCommand.when(() -> SaveFileCommand.saveFile(uploadedPart)).thenReturn(savedFileItem);
+
+      WidgetContext result = new FolderFileDropZoneWidget().post(widgetContext);
+
+      // Unticked (and every upload predating this option) must behave exactly as before -- no
+      // duplicate bytes and no library records nobody asked for
+      addImage.verify(() -> AddImageToLibraryCommand.addFromFile(any(File.class), anyString(), anyLong()), never());
+      Assertions.assertTrue(result.hasJson());
+      Assertions.assertFalse(result.getJson().contains("libraryError"));
+    }
+  }
+
+  @Test
+  void postWithAddToImageLibrarySkipsFilesThatAreNotImages() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+    addQueryParameter(widgetContext, "addToImageLibrary", "true");
+
+    FileItem uploadedPart = uploadedImagePart();
+    FileItem savedFileItem = savedImageFileItem("PDF");
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<AddImageToLibraryCommand> addImage = mockStatic(AddImageToLibraryCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(uploadedPart);
+      saveFileCommand.when(() -> SaveFileCommand.saveFile(uploadedPart)).thenReturn(savedFileItem);
+
+      WidgetContext result = new FolderFileDropZoneWidget().post(widgetContext);
+
+      // The option names images; a ticked box must not turn a good PDF upload into an error
+      addImage.verify(() -> AddImageToLibraryCommand.addFromFile(any(File.class), anyString(), anyLong()), never());
+      Assertions.assertTrue(result.hasJson());
+      Assertions.assertTrue(result.getJson().contains("location"));
+      Assertions.assertFalse(result.getJson().contains("libraryError"));
+    }
+  }
+
+  @Test
+  void postReportsAFailedImageLibraryAddWithoutFailingTheFolderUpload() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "folderId", "1");
+    addQueryParameter(widgetContext, "subFolderId", "-1");
+    addQueryParameter(widgetContext, "addToImageLibrary", "true");
+
+    FileItem uploadedPart = uploadedImagePart();
+    FileItem savedFileItem = savedImageFileItem("Image");
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
+        MockedStatic<AddImageToLibraryCommand> addImage = mockStatic(AddImageToLibraryCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(uploadedPart);
+      saveFileCommand.when(() -> SaveFileCommand.saveFile(uploadedPart)).thenReturn(savedFileItem);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn("/files/");
+      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenReturn(new File("/files/uploads/2026/08/14/unique-name.png"));
+      addImage.when(() -> AddImageToLibraryCommand.addFromFile(any(File.class), anyString(), anyLong()))
+          .thenThrow(new DataException("Image could not be read"));
+
+      WidgetContext result = new FolderFileDropZoneWidget().post(widgetContext);
+
+      // The folder file saved, so this is a partial success: still report the location so Dropzone
+      // counts it as uploaded, but say what didn't happen rather than skipping the step in silence
+      Assertions.assertTrue(result.hasJson());
+      Assertions.assertTrue(result.getJson().contains("location"),
+          "The folder file saved, so its location must still be reported");
+      Assertions.assertTrue(result.getJson().contains("libraryError"),
+          "A skipped library add must be reported, not swallowed");
+      Assertions.assertTrue(result.getJson().contains("Image could not be read"));
+      Assertions.assertFalse(result.getJson().contains("\"error\""),
+          "A partial success must not be reported to Dropzone as a failed upload");
+      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
+          eq("image.create"), eq(AuditEventCommand.FAILURE), eq("image"), eq("-1"), eq("logo.png"),
+          eq("Image could not be read")), times(1));
     }
   }
 }
