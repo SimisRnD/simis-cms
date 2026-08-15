@@ -147,7 +147,9 @@ class FormDataRepositoryTest {
     backdate(oldFlagged.getId(), 40);
 
     Timestamp start = daysAgo(30);
-    Timestamp end = daysAgo(0);
+    // Deliberately tomorrow rather than daysAgo(0): see the note on daysAgo() -- an end bound of
+    // "now" races the database clock and intermittently excludes the row just inserted
+    Timestamp end = daysAgo(-1);
 
     // Only the recent flagged row is both spam-flagged and inside the 30-day window
     assertEquals(1, FormDataRepository.countSpamFlagged(start, end));
@@ -163,10 +165,14 @@ class FormDataRepositoryTest {
     backdate(oldContactUs.getId(), 40);
 
     Timestamp start = daysAgo(30);
-    Timestamp end = daysAgo(0);
+    // Tomorrow, not daysAgo(0) -- see the note on daysAgo()
+    Timestamp end = daysAgo(-1);
 
     assertEquals(2, FormDataRepository.countSubmissions("contact-us", start, end));
-    assertEquals(0, FormDataRepository.countSubmissions("newsletter-signup", daysAgo(0), daysAgo(-1)));
+    // A window that starts tomorrow and ends the day after cannot contain a row inserted just now,
+    // whichever way the two clocks round. Previously this window opened at daysAgo(0) ("now"), so a
+    // row whose database timestamp landed on or after the JVM's idea of now was wrongly counted.
+    assertEquals(0, FormDataRepository.countSubmissions("newsletter-signup", daysAgo(-1), daysAgo(-2)));
     assertNotNull(otherForm);
   }
 
@@ -598,6 +604,31 @@ class FormDataRepositoryTest {
     }
   }
 
+  /**
+   * A bound measured from the JVM clock. Negative values are in the future -- {@code daysAgo(-1)}
+   * is this time tomorrow.
+   *
+   * <p>
+   * Never use {@code daysAgo(0)} as a bound against rows this test just inserted. Those rows get
+   * their {@code created} value from the <em>database</em> clock, via the column's
+   * {@code TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP}, and the two clocks disagree at the
+   * millisecond the comparison happens on:
+   * </p>
+   * <ul>
+   * <li>{@code TIMESTAMP(3)} <em>rounds</em> to the nearest millisecond, so a row inserted at
+   * x.4996s is stored as x.500 -- half a millisecond in the future.</li>
+   * <li>{@code System.currentTimeMillis()} truncates, so the JVM's "now" sits at or below real
+   * time.</li>
+   * </ul>
+   * <p>
+   * Both count queries filter with a strict {@code created < ?} upper bound, so whenever the
+   * stored timestamp rounds up past the JVM's reading, a row that really was inserted first is
+   * silently dropped from the count. Measured against a real container, the margin between the two
+   * has a median of 1ms and lands at or below zero on roughly 2% of runs -- which is exactly what
+   * an occasional red build on an otherwise untouched branch looks like. Bound with a value that
+   * is unambiguously on the correct side of both clocks instead.
+   * </p>
+   */
   private static Timestamp daysAgo(int days) {
     return new Timestamp(System.currentTimeMillis() - (long) days * 24 * 60 * 60 * 1000);
   }

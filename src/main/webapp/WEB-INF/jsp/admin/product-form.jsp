@@ -55,7 +55,19 @@
           document.getElementById("imageUrlPreview").src = fileData.location;
         } else {
           document.getElementById("imageFile").value = "";
-          alert('There was an error with the file. Make sure to use a .jpg or .png');
+          // Report what the server actually rejected (issue #1189). This used to always claim the
+          // file was not a .jpg or .png, which is wrong -- and actively misleading -- for a
+          // permission, storage, or size failure, all of which land here too.
+          var message = 'There was an error with the file. Make sure to use a .jpg or .png';
+          try {
+            var errorData = JSON.parse(this.responseText);
+            if (errorData && errorData.error) {
+              message = errorData.error;
+            }
+          } catch (ignored) {
+            // Not a JSON body (e.g. an HTML error page), so keep the generic message
+          }
+          alert(message);
         }
       }
     };
