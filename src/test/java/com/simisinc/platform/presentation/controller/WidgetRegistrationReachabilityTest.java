@@ -19,7 +19,9 @@ package com.simisinc.platform.presentation.controller;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -51,6 +53,7 @@ class WidgetRegistrationReachabilityTest {
 
   private static final File WIDGET_LIBRARY = new File("src/main/webapp/WEB-INF/widgets/widget-library.xml");
   private static final File LAYOUT_DIR = new File("src/main/webapp/WEB-INF/web-layouts/page");
+  private static final File TEMPLATE_DIR = new File("src/main/webapp/WEB-INF/web-templates");
 
   @Test
   void everyWidgetReferencedByAPageLayoutIsRegistered() throws Exception {
@@ -87,6 +90,65 @@ class WidgetRegistrationReachabilityTest {
             + "fail to resolve at render time. Unregistered references: " + unregistered);
     // Guard against a path/parser change silently turning this into a no-op that always passes.
     assertTrue(referencesScanned > 0, "scanned zero <widget> elements in the page layouts -- check the parser/path");
+  }
+
+  /**
+   * Same guarantee for the designer's starter templates (issue #1218): every {@code <widget name>}
+   * a template seeds into a new page's XML must be a registered widget, or a page created from that
+   * template silently drops it. Covers the whole {@code web-templates/} tree recursively, so a new
+   * template referencing a misspelled or unregistered widget fails here instead of at page render.
+   */
+  @Test
+  void everyWidgetReferencedByAWebTemplateIsRegistered() throws Exception {
+    assertTrue(WIDGET_LIBRARY.isFile(),
+        "widget-library.xml not found (run from the project root): " + WIDGET_LIBRARY.getAbsolutePath());
+    assertTrue(TEMPLATE_DIR.isDirectory(),
+        "web-templates directory not found (run from the project root): " + TEMPLATE_DIR.getAbsolutePath());
+
+    Set<String> registeredWidgets = parseRegisteredWidgetNames();
+    assertTrue(registeredWidgets.size() > 50,
+        "parsed suspiciously few widget registrations (" + registeredWidgets.size()
+            + ") -- check the parser/path");
+
+    List<File> templates = new ArrayList<>();
+    collectXmlFiles(TEMPLATE_DIR, templates);
+    assertTrue(templates.size() > 20,
+        "found suspiciously few page templates (" + templates.size() + ") under "
+            + TEMPLATE_DIR.getAbsolutePath() + " -- check the path");
+
+    Set<String> unregistered = new TreeSet<>();
+    int referencesScanned = 0;
+    for (File template : templates) {
+      Document document = parse(template);
+      NodeList widgets = document.getElementsByTagName("widget");
+      for (int i = 0; i < widgets.getLength(); i++) {
+        referencesScanned++;
+        Element widget = (Element) widgets.item(i);
+        String name = widget.getAttribute("name");
+        if (!name.isEmpty() && !registeredWidgets.contains(name)) {
+          unregistered.add(template.getName() + " -> widget name=\"" + name + "\"");
+        }
+      }
+    }
+
+    assertTrue(unregistered.isEmpty(),
+        "Starter templates reference widgets that aren't registered in widget-library.xml -- a page "
+            + "created from the template would silently drop them. Unregistered references: " + unregistered);
+    assertTrue(referencesScanned > 0, "scanned zero <widget> elements across the web templates -- check the parser/path");
+  }
+
+  private static void collectXmlFiles(File dir, List<File> out) {
+    File[] entries = dir.listFiles();
+    if (entries == null) {
+      return;
+    }
+    for (File entry : entries) {
+      if (entry.isDirectory()) {
+        collectXmlFiles(entry, out);
+      } else if (entry.getName().endsWith(".xml")) {
+        out.add(entry);
+      }
+    }
   }
 
   private static Set<String> parseRegisteredWidgetNames() throws Exception {
