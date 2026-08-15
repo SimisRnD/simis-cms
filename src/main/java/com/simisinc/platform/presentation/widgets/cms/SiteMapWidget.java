@@ -31,7 +31,10 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -152,16 +155,101 @@ public class SiteMapWidget extends GenericWidget {
     }
 
 
-    // Check for a new tab order
+    // The Navigation Menu Editor's "Add Tab" and delete ("x") controls used to POST to the server
+    // immediately, bypassing Save/Cancel entirely -- a tab added or deleted was permanent before
+    // Save was ever clicked, and Cancel could not undo it. Both are now staged client-side and only
+    // reach here as part of this one batched save.
+
+    // New tabs arrive as a list of client-generated temporary ids (never real database ids), each
+    // with menuTab<tempId>name/link/icon fields using the exact same naming convention as the
+    // rename/add-item handling above, just keyed by a temp id instead of a real one. Resolving each
+    // to its new real id here lets a staged tab's own "Add Item" fields (also keyed by its temp id)
+    // and its position in menuTabOrder below (also keyed by its temp id) be applied in this same save.
+    Map<String, Long> newMenuTabIdMap = new HashMap<>();
+    String newMenuTabIds = context.getParameter("newMenuTabIds");
+    if (StringUtils.isNotBlank(newMenuTabIds)) {
+      for (String tempId : newMenuTabIds.split(",")) {
+        tempId = tempId.trim();
+        if (tempId.isEmpty()) {
+          continue;
+        }
+        MenuTab menuTabBean = new MenuTab();
+        menuTabBean.setName(context.getParameter("menuTab" + tempId + "name"));
+        menuTabBean.setLink(context.getParameter("menuTab" + tempId + "link"));
+        menuTabBean.setIcon(context.getParameter("menuTab" + tempId + "icon"));
+        try {
+          MenuTab createdTab = SaveMenuTabCommand.appendNewTab(menuTabBean);
+          if (createdTab != null) {
+            newMenuTabIdMap.put(tempId, createdTab.getId());
+            String menuItemName = context.getParameter("menuTab" + tempId + "menuItemName");
+            if (StringUtils.isNotBlank(menuItemName)) {
+              try {
+                SaveMenuTabCommand.appendNewMenuItem(createdTab, menuItemName, context.getParameter("menuTab" + tempId + "menuItemLink"));
+              } catch (DataException e) {
+                LOG.error("Add menu item to new tab error: " + e.getMessage());
+              }
+            }
+          }
+        } catch (DataException e) {
+          LOG.error("Create new tab error: " + e.getMessage());
+        }
+      }
+    }
+
+    // Staged tab/item deletions -- the "x" controls now remove the row from the page and record its
+    // id client-side rather than posting a delete immediately, so nothing is removed until this save.
+    String menuTabsToDelete = context.getParameter("menuTabsToDelete");
+    if (StringUtils.isNotBlank(menuTabsToDelete)) {
+      for (String tabIdStr : menuTabsToDelete.split(",")) {
+        tabIdStr = tabIdStr.trim();
+        if (tabIdStr.isEmpty()) {
+          continue;
+        }
+        try {
+          MenuTab menuTab = MenuTabRepository.findById(Long.parseLong(tabIdStr));
+          DeleteMenuTabCommand.deleteMenuTab(menuTab);
+        } catch (NumberFormatException | DataException e) {
+          LOG.error("Delete tab error: " + e.getMessage());
+        }
+      }
+    }
+
+    String menuItemsToDelete = context.getParameter("menuItemsToDelete");
+    if (StringUtils.isNotBlank(menuItemsToDelete)) {
+      for (String itemIdStr : menuItemsToDelete.split(",")) {
+        itemIdStr = itemIdStr.trim();
+        if (itemIdStr.isEmpty()) {
+          continue;
+        }
+        try {
+          MenuItem menuItem = MenuItemRepository.findById(Long.parseLong(itemIdStr));
+          DeleteMenuTabCommand.deleteMenuItem(menuItem);
+        } catch (NumberFormatException | DataException e) {
+          LOG.error("Delete menu item error: " + e.getMessage());
+        }
+      }
+    }
+
+    // Check for a new tab order -- entries are DOM ids like "site-map-menu-tab-container-<id>";
+    // <id> is either a real database id or one of the temporary ids resolved above. A tab that
+    // failed to create, or any other unresolvable value, is skipped rather than aborting the save.
     String menuTabOrder = context.getParameter("menuTabOrder");
     if (StringUtils.isNotBlank(menuTabOrder)) {
       String[] strArray = menuTabOrder.split(",");
-      Long[] longArray = new Long[strArray.length];
-      for (int i = 0; i < strArray.length; i++) {
-        String item = strArray[i];
-        longArray[i] = Long.parseLong(item.substring(item.lastIndexOf("-") + 1));
+      List<Long> resolvedOrder = new ArrayList<>();
+      for (String item : strArray) {
+        String token = item.substring(item.lastIndexOf("-") + 1);
+        Long resolvedId = newMenuTabIdMap.get(token);
+        if (resolvedId == null) {
+          try {
+            resolvedId = Long.parseLong(token);
+          } catch (NumberFormatException e) {
+            continue;
+          }
+        }
+        resolvedOrder.add(resolvedId);
       }
-      SaveMenuTabCommand.updateTabOrder(longArray);
+      SaveMenuTabCommand.updateTabOrder(resolvedOrder.toArray(new Long[0]));
     }
 
     // Check for new menu item order...

@@ -29,8 +29,10 @@
 </c:if>
 <p class="help-text">
   This page designs the drop-down navigation menu shown across the very top of every page on your website --
-  not an XML sitemap and not a visual map of your pages. Everything you add or reorder here shows up immediately,
-  site-wide, for every visitor.
+  not an XML sitemap and not a visual map of your pages. Adding or removing a tab, and reordering tabs or items,
+  only takes effect once you click <strong>Save Site Map Changes</strong> below -- nothing is live, and nothing is
+  lost if you leave the page, until then. Adding a submenu item under an existing tab is the one exception: its own
+  <strong>Add Item</strong> button saves immediately, the same as it always has.
 </p>
 <div class="callout radius" style="max-width:460px;">
   <p style="margin-bottom:8px;"><strong>Example: what a tab and its items look like to a visitor</strong></p>
@@ -53,10 +55,12 @@
   </p>
 </div>
 <p class="help-text">
-  Add tabs and items below, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
-  handles to reorder them, or click <i class="fa fa-circle-xmark"></i> to delete one. Changes take effect as soon as you save.
-  This page can add and delete tabs/items but not change an existing one's link -- to rename an existing tab/item or change
-  where it links, use <a href="${ctx}/admin/sitemap-editor">Navigation Menu Editor - Edit Links</a> instead.
+  Add a tab above, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> handles to reorder tabs
+  and items, or click <i class="fa fa-circle-xmark"></i> to remove a tab or item -- click
+  <strong>Save Site Map Changes</strong> below when you're happy with the result, or <strong>Cancel</strong> to
+  leave without saving any of it. This page can add and delete tabs/items but not change an existing one's link --
+  to rename an existing tab/item or change where it links, use
+  <a href="${ctx}/admin/sitemap-editor">Navigation Menu Editor - Edit Links</a> instead.
 </p>
 <p class="help-text">
   The first tab shown below (usually "Home") has no delete icon, no drag handle, and no "Add Item" box --
@@ -66,27 +70,21 @@
   <code>/</code>, whichever tab happens to sort first gets this same locked treatment instead.
 </p>
 <%@include file="../page_messages.jspf" %>
-<form method="post">
-  <%-- Required by controller --%>
-  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
-  <input type="hidden" name="token" value="${userSession.formToken}"/>
-  <%-- Form values --%>
-  <input type="hidden" name="id" value="${menuTab.id}"/>
-  <div class="grid-x grid-margin-x">
-    <div class="small-12 medium-5 cell">
-      <div class="input-group">
-        <%--<span class="input-group-label">$</span>--%>
-        <input class="input-group-field" type="text" name="name" placeholder="New tab name" title="The name shown in the menu, e.g. Solutions" value="<c:out value="${menuTab.name}" />" required>
-        <input class="input-group-field" type="text" name="link" placeholder="Optional /link" title="Page path starting with /, e.g. /solutions. Leave blank if this tab should only open a submenu." value="<c:out value="${menuTab.link}" />">
-        <input class="input-group-field" type="text" name="icon" placeholder="Optional icon" title="Icon name from the site's icon set, without the fa- prefix, e.g. briefcase" value="<c:out value="${menuTab.icon}" />">
-        <div class="input-group-button">
-          <input type="submit" class="button success" value="Add Tab">
-        </div>
+<div class="grid-x grid-margin-x">
+  <div class="small-12 medium-5 cell">
+    <div class="input-group">
+      <input class="input-group-field" type="text" id="siteMapNewTabName" placeholder="New tab name" title="The name shown in the menu, e.g. Solutions" value="">
+      <input class="input-group-field" type="text" id="siteMapNewTabLink" placeholder="Optional /link" title="Page path starting with /, e.g. /solutions. Leave blank if this tab should only open a submenu." value="">
+      <input class="input-group-field" type="text" id="siteMapNewTabIcon" placeholder="Optional icon" title="Icon name from the site's icon set, without the fa- prefix, e.g. briefcase" value="">
+      <div class="input-group-button">
+        <input type="button" id="siteMapAddTabButton" class="button success" value="Add Tab">
       </div>
-      <p class="help-text">Name is required. Link must start with / (e.g. /solutions) and is optional. Icon is an optional icon name -- do not include the fa- prefix.</p>
     </div>
+    <p class="help-text">Name is required. Link must start with / (e.g. /solutions) and is optional. Icon is an
+      optional icon name -- do not include the fa- prefix. Added here, this tab isn't saved until you click
+      Save Site Map Changes below.</p>
   </div>
-</form>
+</div>
 <c:if test="${empty menuTabList}">
   <p class="subheader">No tabs were found, add one!</p>
 </c:if>
@@ -98,6 +96,10 @@
   <input type="hidden" name="method" value="sitemap-editor"/>
   <input type="hidden" id="menuTabOrder" name="menuTabOrder" value=""/>
   <input type="hidden" id="menuItemOrder" name="menuItemOrder" value=""/>
+  <%-- Populated by checkSiteMapOrder() from the client-side staged-add-tab/staged-delete state below --%>
+  <input type="hidden" id="newMenuTabIds" name="newMenuTabIds" value=""/>
+  <input type="hidden" id="menuTabsToDelete" name="menuTabsToDelete" value=""/>
+  <input type="hidden" id="menuItemsToDelete" name="menuItemsToDelete" value=""/>
   <div id="site-map-container" class="site-map-container">
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
       <div id="site-map-menu-tab-container-${status.first ? 0 : menuTab.id}" class="site-map-menu-tab">
@@ -173,8 +175,8 @@
     nor Edit Links checks that a Link actually points to a real page, and nothing here checks for duplicate
     links either -- two tabs (or two items) can point at the same page, or at a page that doesn't exist, with no
     warning.</li>
-  <li><strong>There's no way to temporarily hide a tab or item without deleting it.</strong> Everything added here
-    is immediately live to every visitor; there's no draft or disabled state exposed on this page.</li>
+  <li><strong>There's no way to temporarily hide a tab or item without deleting it.</strong> Once you save, a tab
+    or item is visible to every visitor; there's no draft or disabled state exposed on this page.</li>
   <li><strong>Known issue, fixed in progress:</strong> the server-side check that's supposed to block deleting
     the Home tab even if someone bypasses this page's UI (e.g. by directly hitting the delete action with the
     Home tab's id) doesn't currently fire. This page's own UI never exposes a way to do that -- the delete icon
@@ -199,40 +201,148 @@
     }
   });
 
-  function deleteMenuTab(index, name, itemCount) {
-    var itemsPhrase = itemCount > 0 ? (" and its " + itemCount + " submenu item" + (itemCount === 1 ? "" : "s")) : "";
-    if (!confirm("Delete the menu tab \"" + name + "\"" + itemsPhrase + "? This cannot be undone.")) {
-      return;
-    }
-    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
+  // Deleting a tab or item used to POST immediately (an "x" click hit the server on the spot),
+  // bypassing Save/Cancel entirely -- the deletion was permanent before Save was ever clicked, and
+  // Cancel could not undo it. Both now just remove the row from the page and record its id here;
+  // nothing reaches the server until the whole form is submitted (checkSiteMapOrder() below writes
+  // these into hidden fields on submit), and SiteMapWidget applies them there.
+  var pendingTabDeletes = [];
+  var pendingItemDeletes = [];
+  var stagedNewTabIds = [];
+  var newTabCounter = 0;
+
+  function wireDeleteTabLink(link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      var tabId = link.getAttribute('data-menu-tab-id');
+      var isNew = link.getAttribute('data-menu-tab-new') === 'true';
+      if (!isNew) {
+        var tabName = link.getAttribute('data-menu-tab-name');
+        var itemCount = parseInt(link.getAttribute('data-menu-item-count'), 10) || 0;
+        var itemsPhrase = itemCount > 0 ? (" and its " + itemCount + " submenu item" + (itemCount === 1 ? "" : "s")) : "";
+        if (!confirm("Remove the menu tab \"" + tabName + "\"" + itemsPhrase + "? This will be permanent once you save.")) {
+          return;
+        }
+        pendingTabDeletes.push(tabId);
+      }
+      var tabContainer = document.getElementById('site-map-menu-tab-container-' + tabId);
+      if (tabContainer) {
+        tabContainer.parentNode.removeChild(tabContainer);
+      }
+    });
   }
 
-  function deleteMenuItem(index, name) {
-    if (!confirm("Delete the menu item \"" + name + "\"? This cannot be undone.")) {
-      return;
-    }
-    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
+  function wireDeleteItemLink(link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      var itemId = link.getAttribute('data-menu-item-id');
+      var itemName = link.getAttribute('data-menu-item-name');
+      if (!confirm("Remove the menu item \"" + itemName + "\"? This will be permanent once you save.")) {
+        return;
+      }
+      pendingItemDeletes.push(itemId);
+      var itemRow = document.getElementById('site-map-menu-item-' + itemId);
+      if (itemRow) {
+        itemRow.parentNode.removeChild(itemRow);
+      }
+    });
   }
 
-  // issue #1188: the delete "x" links were href="javascript:deleteMenuTab(...)"/deleteMenuItem(...).
-  // A javascript: URI is script that script-src governs, so under the page CSP (script-src 'self'
-  // 'nonce-...', no 'unsafe-inline') the browser refuses to run it and the click silently did
-  // nothing -- there was no other way to delete a tab or item. The reorder arrows in this file were
-  // converted earlier but these were missed; they are now plain links bound here in this nonce'd block.
+  // Renders a tab exactly like the server-rendered ones above, but unsaved: name/link/icon are set
+  // via textContent/value (never innerHTML) since they're admin-typed text, not markup.
+  function buildNewMenuTabBlock(tempId, name, link, icon) {
+    var container = document.createElement('div');
+    container.id = 'site-map-menu-tab-container-' + tempId;
+    container.className = 'site-map-menu-tab';
+    container.innerHTML =
+      '<div>' +
+        '<div style="position: absolute;right: 5px;top: 0;">' +
+          '<small><a href="#" class="site-map-delete-tab" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></small>' +
+        '</div>' +
+        '<div class="float-left">' +
+          '<small class="subheader">' +
+            '<i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i> ' +
+            '<span class="site-map-new-tab-link"></span>' +
+          '</small>' +
+        '</div>' +
+      '</div>' +
+      '<div class="clear-float"></div>' +
+      '<div><strong class="site-map-new-tab-name"></strong></div>' +
+      '<div id="site-map-submenu-tab-container-' + tempId + '" class="site-map-submenu-container"></div>';
+
+    var deleteLink = container.querySelector('.site-map-delete-tab');
+    deleteLink.setAttribute('data-menu-tab-id', tempId);
+    deleteLink.setAttribute('data-menu-tab-name', name);
+    deleteLink.setAttribute('data-menu-item-count', '0');
+    deleteLink.setAttribute('data-menu-tab-new', 'true');
+    container.querySelector('.site-map-new-tab-link').textContent = link;
+    container.querySelector('.site-map-new-tab-name').textContent = name;
+
+    ['name', 'link', 'icon'].forEach(function (field) {
+      var value = field === 'name' ? name : (field === 'link' ? link : icon);
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'menuTab' + tempId + field;
+      hidden.value = value;
+      container.appendChild(hidden);
+    });
+
+    // Lets an item be staged for this brand-new tab too, submitted together with it -- the "Add
+    // Item" button is unchanged from the server-rendered version (still saves immediately, on the
+    // whole form, exactly as it always has for an existing tab).
+    var itemsMarkup = document.createElement('div');
+    itemsMarkup.innerHTML =
+      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemName" placeholder="New item..." title="Adds a new submenu item under this tab" value="">' +
+      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="">' +
+      '<div class="button-container"><input type="submit" class="button tiny expanded success" value="Add Item"></div>' +
+      '<p class="help-text">Adds a submenu item under <strong class="site-map-new-tab-name-2"></strong>. Link must start with /.</p>';
+    itemsMarkup.querySelector('.site-map-new-tab-name-2').textContent = name;
+    while (itemsMarkup.firstChild) {
+      container.appendChild(itemsMarkup.firstChild);
+    }
+
+    return container;
+  }
+
+  function stageNewTab() {
+    var nameInput = document.getElementById('siteMapNewTabName');
+    var linkInput = document.getElementById('siteMapNewTabLink');
+    var iconInput = document.getElementById('siteMapNewTabIcon');
+    var name = nameInput.value.trim();
+    var link = linkInput.value.trim();
+    var icon = iconInput.value.trim();
+    if (!name) {
+      alert('A tab name is required.');
+      nameInput.focus();
+      return;
+    }
+    if (name === '/') {
+      alert('A valid tab name is required.');
+      nameInput.focus();
+      return;
+    }
+    newTabCounter++;
+    var tempId = 'new' + newTabCounter;
+    var block = buildNewMenuTabBlock(tempId, name, link, icon);
+    document.getElementById('site-map-container').appendChild(block);
+    // A brand-new tab's (currently empty) item container isn't in dragula's fixed container list
+    // below, which is built once from the server-rendered tabs -- push it in so it participates too.
+    menuItems.containers.push(document.getElementById('site-map-submenu-tab-container-' + tempId));
+    stagedNewTabIds.push(tempId);
+    wireDeleteTabLink(block.querySelector('.site-map-delete-tab'));
+    nameInput.value = '';
+    linkInput.value = '';
+    iconInput.value = '';
+    nameInput.focus();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.site-map-delete-tab').forEach(function (link) {
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
-        deleteMenuTab(link.getAttribute('data-menu-tab-id'), link.getAttribute('data-menu-tab-name'),
-            parseInt(link.getAttribute('data-menu-item-count'), 10));
-      });
-    });
-    document.querySelectorAll('.site-map-delete-item').forEach(function (link) {
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
-        deleteMenuItem(link.getAttribute('data-menu-item-id'), link.getAttribute('data-menu-item-name'));
-      });
-    });
+    document.querySelectorAll('.site-map-delete-tab').forEach(wireDeleteTabLink);
+    document.querySelectorAll('.site-map-delete-item').forEach(wireDeleteItemLink);
+    var addTabButton = document.getElementById('siteMapAddTabButton');
+    if (addTabButton) {
+      addTabButton.addEventListener('click', stageNewTab);
+    }
   });
 
   <%--
@@ -290,6 +400,13 @@
 
     var menuItemOrderField = document.getElementById("menuItemOrder");
     menuItemOrderField.value = menuItemOrder;
+
+    // Staged tab creates/deletes -- see the addTabButton/wireDeleteTabLink/wireDeleteItemLink
+    // handlers above. These are populated fresh from the in-memory arrays on every submit of this
+    // form, whether that's the Save button or an individual tab's Add Item button.
+    document.getElementById("newMenuTabIds").value = stagedNewTabIds.join(",");
+    document.getElementById("menuTabsToDelete").value = pendingTabDeletes.join(",");
+    document.getElementById("menuItemsToDelete").value = pendingItemDeletes.join(",");
 
     return true;
   }
