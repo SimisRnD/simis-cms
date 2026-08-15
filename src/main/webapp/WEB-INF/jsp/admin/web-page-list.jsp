@@ -107,7 +107,7 @@
         </c:when>
         <c:otherwise>
           <td>
-            <a href="${ctx}${menuTab.link}"><i class="fa fa-plus"></i></a>
+            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
           </td>
           <td>
             <span class="alert label">404</span>
@@ -193,7 +193,7 @@
           </c:when>
           <c:otherwise>
             <td>
-              <a href="${ctx}${menuItem.link}"><i class="fa fa-plus"></i></a>
+              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
             </td>
             <td>
               <c:choose>
