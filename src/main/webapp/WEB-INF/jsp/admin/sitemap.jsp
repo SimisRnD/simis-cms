@@ -90,7 +90,7 @@
 <c:if test="${empty menuTabList}">
   <p class="subheader">No tabs were found, add one!</p>
 </c:if>
-<form method="post" onsubmit="return checkSiteMapOrder()" >
+<form method="post" id="siteMapOrderForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -272,4 +272,21 @@
 
     return true;
   }
+
+  // issue #1188: this ran from an inline onsubmit attribute, which CSP blocks -- inline handler
+  // attributes fall under script-src-attr and the nonce authorises this block, not an attribute
+  // calling into it. Because a blocked handler is skipped rather than treated as a cancel, the form
+  // still posted, but with menuTabOrder and menuItemOrder left empty. SiteMapWidget.post() guards
+  // both updates with StringUtils.isNotBlank(...) and then redirects either way, so a reordered
+  // menu saved as a no-op and reported nothing.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('siteMapOrderForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!checkSiteMapOrder()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
