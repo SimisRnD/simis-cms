@@ -274,7 +274,9 @@
         if (imagePreview) {
           imagePreview.src = itemUrl;
         }
-        $('#imageBrowserReveal').foundation('close');
+        // Loaded inside the parent's reveal modal via an <iframe> (issue #1207), so close
+        // it through the parent window's jQuery rather than this frame's own scope.
+        top.jQuery('#imageBrowserReveal').foundation('close');
       }
     </c:when>
     <c:otherwise>

@@ -479,56 +479,18 @@
   </div>
 </form>
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
-  <h3>Loading...</h3>
+  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
 </div>
 <script nonce="${cspNonce}">
+  // Load the image browser in an iframe so its own nonce-valid script runs and can populate
+  // the parent field via top.document. Injecting the fragment's HTML with .html() instead
+  // stripped the nonce (issue #1207) and reinterpreted the fetched markup as HTML
+  // (CodeQL js/xss-through-dom). The iframe src is a server-rendered constant; the fragment
+  // itself closes this modal via top.jQuery once an image is selected.
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
-    $('#imageBrowserReveal').html("<h3>Loading...</h3>");
-    $.ajax({
-      url: '${ctx}/image-browser?inputId=imageUrl&view=reveal',
-      cache: false,
-      dataType: 'html'
-    }).done(function (content) {
-      setTimeout(function () {
-        $('#imageBrowserReveal').html(content);
-        $('#imageBrowserReveal').trigger('resizeme.zf.trigger');
-      }, 1000);
-    });
-  })
-
-  // Bind here rather than relying on the injected fragment's own <script> (issue #1207). The
-  // fragment loads via $.ajax + .html(content), which strips/orphans its script's nonce -- a
-  // nonce only authorises the document it was minted for, and jQuery's re-execution via
-  // globalEval doesn't carry it over anyway. Delegating the click from this page's own nonce'd
-  // block means nothing has to survive the injection; the fragment just describes what to do
-  // via data-target-id/data-target-attr, set server-side from the same inputId it was loaded with.
-  document.getElementById('imageBrowserReveal').addEventListener('click', function (event) {
-    var el = event.target.closest('.js-mySubmit');
-    if (!el) {
-      return;
-    }
-    var targetId = el.getAttribute('data-target-id');
-    var targetAttr = el.getAttribute('data-target-attr');
-    var target = targetId ? document.getElementById(targetId) : null;
-    if (!target || !targetAttr) {
-      return;
-    }
-    event.preventDefault();
-    var src = el.getAttribute('data-src');
-    // targetAttr is read from the AJAX-injected fragment, so treat it as an
-    // allowlist of known destinations rather than a dynamic property name: a
-    // computed member write (target[targetAttr] = ...) could resolve to
-    // innerHTML/outerHTML and reinterpret the fragment-supplied value as HTML.
-    // See issue #1207. (CodeQL js/xss-through-dom)
-    if (targetAttr === 'value') {
-      target.value = src;
-      var preview = document.getElementById(targetId + 'Preview');
-      if (preview) {
-        preview.src = src;
-      }
-    } else if (targetAttr === 'href') {
-      target.href = src;
-    }
-    $('#imageBrowserReveal').foundation('close');
+    document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl&view=reveal';
+  });
+  $('#imageBrowserReveal').on('closed.zf.reveal', function () {
+    document.getElementById('imageBrowserFrame').removeAttribute('src');
   });
 </script>
