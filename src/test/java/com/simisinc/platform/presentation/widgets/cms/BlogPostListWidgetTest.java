@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.JSP;
+import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.PANEL_JSP;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -84,6 +85,42 @@ class BlogPostListWidgetTest extends WidgetBase {
     Assertions.assertNotNull(widgetContext);
     Assertions.assertTrue(widgetContext.hasJsp());
     Assertions.assertEquals(JSP, widgetContext.getJsp());
+  }
+
+  @Test
+  void executeSelectsThePanelJspForThePanelView() {
+    preferences.put("blogUniqueId", "news");
+    preferences.put("view", "panel");
+    preferences.put("viewAllUrl", "/news");
+
+    Blog blog = new Blog();
+    blog.setId(1L);
+    blog.setUniqueId("news");
+    blog.setName("News");
+    blog.setEnabled(true);
+
+    List<BlogPost> blogPostList = new ArrayList<>();
+    BlogPost blogPost = new BlogPost();
+    blogPost.setId(1L);
+    blogPost.setBlogId(blog.getId());
+    blogPost.setUniqueId("blog-post-1");
+    blogPost.setTitle("This is blog post 1");
+    blogPostList.add(blogPost);
+
+    try (MockedStatic<LoadBlogCommand> loadBlogCommandMockedStatic = mockStatic(LoadBlogCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
+      loadBlogCommandMockedStatic.when(() -> LoadBlogCommand.loadBlogByUniqueId(eq("news"))).thenReturn(blog);
+      blogPostRepositoryMockedStatic.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(blogPostList);
+
+      widgetContext = new BlogPostListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertNotNull(widgetContext);
+    Assertions.assertTrue(widgetContext.hasJsp());
+    Assertions.assertEquals(PANEL_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("/news", widgetContext.getRequest().getAttribute("viewAllUrl"));
+    Assertions.assertEquals("View all", widgetContext.getRequest().getAttribute("viewAllText"),
+        "default view-all label when the preference is left unset");
   }
 
   @Test
