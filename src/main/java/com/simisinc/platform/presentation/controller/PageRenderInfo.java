@@ -22,6 +22,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
 
 /**
@@ -71,6 +72,8 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   // FAQPage schema (issue #416); a list rather than the single-value pattern above since more
   // than one FaqWidget on the same page should combine into one FAQPage's mainEntity, not overwrite
   private List<FaqQuestion> faqQuestions = null;
+  // Bridged by CalendarEventDetailsWidget for Event schema (issue #1181)
+  private CalendarEvent calendarEvent = null;
 
   public PageRenderInfo() {
   }
@@ -297,6 +300,14 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
       faqQuestions = new ArrayList<>();
     }
     faqQuestions.addAll(faqQuestionsToAdd);
+  }
+
+  public CalendarEvent getCalendarEvent() {
+    return calendarEvent;
+  }
+
+  public void setCalendarEvent(CalendarEvent calendarEvent) {
+    this.calendarEvent = calendarEvent;
   }
 
 }
