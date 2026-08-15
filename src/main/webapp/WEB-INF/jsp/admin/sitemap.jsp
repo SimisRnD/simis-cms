@@ -104,7 +104,7 @@
         <div>
           <div style="position: absolute;right: 5px;top: 0;">
             <small>
-              <c:if test="${!status.first}"><a href="javascript:deleteMenuTab(${menuTab.id}, '<c:out value="${js:escape(menuTab.name)}" />', ${fn:length(menuTab.menuItemList)});" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></c:if>
+              <c:if test="${!status.first}"><a href="#" class="site-map-delete-tab" data-menu-tab-id="${menuTab.id}" data-menu-tab-name="<c:out value="${menuTab.name}" />" data-menu-item-count="${fn:length(menuTab.menuItemList)}" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></c:if>
                 <%--<a href="javascript:addTabAfter(${menuTab.id});"><i class="fa fa-plus"></i></a>--%>
             </small>
           </div>
@@ -133,7 +133,7 @@
               <div id="site-map-menu-item-${menuItem.id}" class="site-map-submenu-tab">
                 <div style="position: absolute;right: 5px;top: 0;">
                   <small>
-                    <a href="javascript:deleteMenuItem(${menuItem.id}, '<c:out value="${js:escape(menuItem.name)}" />');" title="Delete this item"><i class="fa fa-circle-xmark"></i></a>
+                    <a href="#" class="site-map-delete-item" data-menu-item-id="${menuItem.id}" data-menu-item-name="<c:out value="${menuItem.name}" />" title="Delete this item"><i class="fa fa-circle-xmark"></i></a>
                   </small>
                 </div>
                 <div class="float-left">
@@ -213,6 +213,27 @@
     }
     postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
   }
+
+  // issue #1188: the delete "x" links were href="javascript:deleteMenuTab(...)"/deleteMenuItem(...).
+  // A javascript: URI is script that script-src governs, so under the page CSP (script-src 'self'
+  // 'nonce-...', no 'unsafe-inline') the browser refuses to run it and the click silently did
+  // nothing -- there was no other way to delete a tab or item. The reorder arrows in this file were
+  // converted earlier but these were missed; they are now plain links bound here in this nonce'd block.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.site-map-delete-tab').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        deleteMenuTab(link.getAttribute('data-menu-tab-id'), link.getAttribute('data-menu-tab-name'),
+            parseInt(link.getAttribute('data-menu-item-count'), 10));
+      });
+    });
+    document.querySelectorAll('.site-map-delete-item').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        deleteMenuItem(link.getAttribute('data-menu-item-id'), link.getAttribute('data-menu-item-name'));
+      });
+    });
+  });
 
   <%--
   function addTabAfter(index) {
