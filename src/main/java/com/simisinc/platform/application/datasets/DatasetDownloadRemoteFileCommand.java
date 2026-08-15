@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SaveTextFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.http.HttpDownloadFileCommand;
@@ -48,6 +49,35 @@ public class DatasetDownloadRemoteFileCommand {
 
   private static Log LOG = LogFactory.getLog(DatasetDownloadRemoteFileCommand.class);
   private static final int MAX_PAGES = 1000;
+  /** Fallback when dataset.maxRows is missing or unparseable; matches the value seeded for it. */
+  static final int DEFAULT_MAX_ROWS = 100000;
+
+  /**
+   * Resolves the accumulated-row cap for paged downloads from {@code dataset.maxRows} (issue #363).
+   *
+   * <p>MAX_PAGES bounds the number of <em>requests</em>, not the number of rows -- a source serving
+   * very large pages can still accumulate without bound inside the page budget, which is the case
+   * this cap exists to stop. Non-positive or unparseable values fall back to the default rather
+   * than disabling the cap, so a bad property value cannot silently remove the bound.
+   */
+  static int resolveMaxRows() {
+    try {
+      String prop = LoadSitePropertyCommand.loadByName("dataset.maxRows");
+      if (prop != null && !prop.isBlank()) {
+        int value = Integer.parseInt(prop.trim());
+        if (value > 0) {
+          return value;
+        }
+      }
+    } catch (Exception e) {
+      // Reading a tuning property must never be able to fail the download itself. Anything here --
+      // an unparseable value, or the property lookup being unavailable -- falls back to the
+      // default bound. Note the caller wraps this in a broad catch that returns false, so an
+      // exception escaping here would abort an otherwise-fine sync rather than just cap it.
+      LOG.debug("Could not read dataset.maxRows; using the default", e);
+    }
+    return DEFAULT_MAX_ROWS;
+  }
 
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
@@ -202,8 +232,8 @@ public class DatasetDownloadRemoteFileCommand {
         return false;
       }
 
-      // Append any pages
-      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath);
+      // Append any pages, bounded by the configured row cap
+      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath, resolveMaxRows());
 
       // Write the whole JSON to a file
       SaveTextFileCommand.save(json.toPrettyString(), tempFile);
@@ -216,7 +246,7 @@ public class DatasetDownloadRemoteFileCommand {
   }
 
   private static void appendNextUrls(JsonNode jsonRecordsNode, JsonNode currentJson, String jsonPagingPath,
-      String jsonRecordsPath) throws IOException {
+      String jsonRecordsPath, int maxRows) throws IOException {
 
     if (currentJson == null) {
       throw new IOException("currentJson is null");
@@ -271,6 +301,16 @@ public class DatasetDownloadRemoteFileCommand {
         throw new IOException("No records in nextJson");
       }
       for (JsonNode element : newRecordsJson) {
+        // Re-checked as rows accumulate, not once on entry (issue #1211). The original #363 check
+        // sat above this loop where jsonRecordsNode still held only page one, so it could fire only
+        // if the very first page already exceeded the cap -- it never truncated mid-pagination,
+        // which is the only case that matters.
+        if (((ArrayNode) jsonRecordsNode).size() >= maxRows) {
+          LOG.warn("Dataset paged download reached the configured row cap of " + maxRows
+              + " (dataset.maxRows) after " + (page + 1)
+              + " additional page(s); remaining rows were not accumulated");
+          return;
+        }
         ((ArrayNode) jsonRecordsNode).add(element);
       }
 
