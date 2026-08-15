@@ -76,10 +76,6 @@
     <tr>
       <td></td>
       <c:choose>
-        <c:when test="${menuTab.link eq '/'}">
-          <td></td>
-          <td><span class="success label">live</span></td>
-        </c:when>
         <c:when test="${fn:contains(standardPages, menuTab.link)}">
           <td>
             <%--<a href="${ctx}${menuTab.link}"><i class="fa fa-check-circle"></i></a>--%>
@@ -111,7 +107,7 @@
         </c:when>
         <c:otherwise>
           <td>
-            <a href="${ctx}${menuTab.link}"><i class="fa fa-plus"></i></a>
+            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
           </td>
           <td>
             <span class="alert label">404</span>
@@ -197,7 +193,7 @@
           </c:when>
           <c:otherwise>
             <td>
-              <a href="${ctx}${menuItem.link}"><i class="fa fa-plus"></i></a>
+              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
             </td>
             <td>
               <c:choose>

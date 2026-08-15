@@ -166,7 +166,7 @@
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
-<h5>Common problems and how to fix them</h5>
+<h5 style="margin-top: var(--sc-space-6);">Common problems and how to fix them</h5>
 <ul>
   <li><strong>Deleting a tab also deletes every submenu item under it.</strong> The confirmation prompt tells you
     how many items will go with it, but there's no way to keep the items and only remove the tab -- move anything
