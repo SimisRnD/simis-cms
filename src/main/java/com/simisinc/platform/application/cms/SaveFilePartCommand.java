@@ -78,6 +78,11 @@ public class SaveFilePartCommand {
       LOG.debug("Writing file " + fileLength + " bytes");
       filePart.write(tempFile.getAbsolutePath());
 
+    } catch (DataException de) {
+      // Preserve the specific validation message (e.g. the upload-size limit) instead of masking it
+      // with the generic message below. These are thrown deliberately before any bytes are written,
+      // so there is no partial upload to clean up here.
+      throw de;
     } catch (Exception e) {
       LOG.warn("Could not handle file: " + e.getMessage());
       // Clean up the file

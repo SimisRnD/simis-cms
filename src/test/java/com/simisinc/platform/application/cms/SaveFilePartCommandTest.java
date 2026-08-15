@@ -116,4 +116,26 @@ class SaveFilePartCommandTest {
       verify(filePart).write(anyString());
     }
   }
+
+  @Test
+  void saveFileSurfacesTheSpecificOversizeReasonNotTheGenericMessage(@TempDir Path tempDir) throws Exception {
+    // One byte over the 50 MB ceiling
+    Part filePart = mockFilePart("huge.png", 52_428_801L);
+    when(request.getPart("file")).thenReturn(filePart);
+    WidgetContext context = newContext();
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      stubFileSystemCommand(fsc, tempDir);
+      props.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn("52428800");
+
+      DataException thrown = Assertions.assertThrows(DataException.class,
+          () -> SaveFilePartCommand.saveFile(context));
+      // The drop-zone widgets show this message to the user (context.setErrorMessage / setJson), so
+      // the specific reason must survive saveFile()'s try/catch. Before the fix the deliberate
+      // size-limit DataException was caught by the broad catch and masked as the generic
+      // "There was an issue with the file", hiding the real reason on bypass uploads (curl / no JS).
+      Assertions.assertEquals("The file exceeds the maximum allowed upload size", thrown.getMessage());
+    }
+  }
 }
