@@ -48,7 +48,7 @@
 <c:if test="${empty menuTabList}">
   <p class="subheader">No tabs were found, add one!</p>
 </c:if>
-<form method="post" onsubmit="return checkSiteMapOrder()" >
+<form method="post" id="siteMapOrderForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -69,9 +69,9 @@
                 <c:otherwise>
                   <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
                   <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab left"
-                          onclick="moveTabLeft('site-map-menu-tab-container-${menuTab.id}')">&#9664;</button>
+                          data-move="tabLeft" data-move-target="site-map-menu-tab-container-${menuTab.id}">&#9664;</button>
                   <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab right"
-                          onclick="moveTabRight('site-map-menu-tab-container-${menuTab.id}')">&#9654;</button>
+                          data-move="tabRight" data-move-target="site-map-menu-tab-container-${menuTab.id}">&#9654;</button>
                 </c:otherwise>
               </c:choose>
             </small>
@@ -105,9 +105,9 @@
                   <small class="subheader">
                     <i class="fa fa-arrows site-map-submenu-tab-drag-handle" aria-hidden="true"></i>
                     <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item up"
-                            onclick="moveItemUp('site-map-menu-item-${menuItem.id}')">&#9650;</button>
+                            data-move="itemUp" data-move-target="site-map-menu-item-${menuItem.id}">&#9650;</button>
                     <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item down"
-                            onclick="moveItemDown('site-map-menu-item-${menuItem.id}')">&#9660;</button>
+                            data-move="itemDown" data-move-target="site-map-menu-item-${menuItem.id}">&#9660;</button>
                     <%--<a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a>--%>
                   </small>
                 </div>
@@ -247,4 +247,41 @@
     var next = el.nextElementSibling;
     if (next) el.parentNode.insertBefore(next, el);
   }
+
+  // issue #1188: the tab/item arrow buttons carried inline onclick attributes, blocked the same
+  // way. They are the keyboard-accessible alternative to the drag handles, so while they were dead
+  // the only way to reorder anything on this page was a mouse drag.
+  document.addEventListener('DOMContentLoaded', function () {
+    var moves = {
+      tabLeft: moveTabLeft,
+      tabRight: moveTabRight,
+      itemUp: moveItemUp,
+      itemDown: moveItemDown
+    };
+    document.querySelectorAll('[data-move]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var move = moves[button.getAttribute('data-move')];
+        if (move) {
+          move(button.getAttribute('data-move-target'));
+        }
+      });
+    });
+  });
+
+  // issue #1188: checkSiteMapOrder ran from an inline onsubmit attribute, which CSP blocks --
+  // inline handler attributes fall under script-src-attr and the nonce authorises this block, not
+  // an attribute calling into it. Because a blocked handler is skipped rather than treated as a
+  // cancel, the form still posted, but with menuTabOrder and menuItemOrder left empty.
+  // SiteMapEditorWidget.post() guards both updates with StringUtils.isNotBlank(...) and then
+  // redirects either way, so a reordered menu saved as a no-op and reported nothing.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('siteMapOrderForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!checkSiteMapOrder()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>

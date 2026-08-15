@@ -131,7 +131,7 @@
       <td><small><c:out value="${empty member.ipAddress ? '--' : member.ipAddress}" /></small></td>
       <td><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${member.created}" /></td>
       <td>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${member.emailId}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape(member.emailAddress)}" />?');" title="Remove member"><i class="fa fa-remove"></i></a>
+        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${member.emailId}" data-confirm-href="Are you sure you want to remove <c:out value="${member.emailAddress}" />?" title="Remove member"><i class="fa fa-remove"></i></a>
         <c:if test="${!empty member.ipAddress}">
           <a href="#" onclick="return confirmPostAction('Block IP <c:out value="${js:escape(member.ipAddress)}" />? This will prevent that IP from accessing the site. The member itself is not removed.', '${widgetContext.uri}?command=blockIP&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${member.emailId}');" title="Block this IP"><i class="fa fa-ban"></i></a>
         </c:if>
@@ -181,3 +181,4 @@
     </div>
   </form>
 </div>
+<%@include file="../confirm_submit.jspf" %>

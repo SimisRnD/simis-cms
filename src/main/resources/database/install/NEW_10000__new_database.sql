@@ -24,8 +24,8 @@ CREATE TABLE site_properties (
 
 -- System
 
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SSL Required', 'system.ssl', 'true');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('WWW Context', 'system.www.context', '/web-content');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SSL required', 'system.ssl', 'true');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('WWW context', 'system.www.context', '/web-content');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Customizations path', 'system.customizations.filepath', '/opt/simis/customization');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config');
@@ -37,11 +37,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- Site
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (5, 'Name of the site', 'site.name', 'New Site');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (8, 'Site Url', 'site.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (8, 'Site URL', 'site.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Additional title keyword or brand name', 'site.name.keyword', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (12, 'Search engine description', 'site.description', 'A site for sharing information with others');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (14, 'Search engine keywords', 'site.keywords', 'community, groups, calendar');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Site Open Graph Image', 'site.image', '', 'image');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Site Open Graph image', 'site.image', '', 'image');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Is online?', 'site.online', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (21, 'Is API enabled?', 'site.api', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Is Sitemap.xml enabled?', 'site.sitemap.xml', 'false', 'boolean');
@@ -61,116 +61,116 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (51, 'Footer line 2', 'site.footer.line2', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Show privacy policy link?', 'site.privacy.policy', 'true', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (61, 'Show terms and conditions link?', 'site.terms.conditions', 'true', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (100, 'Default Timezone', 'site.timezone', 'America/New_York', 'timezone');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (100, 'Default timezone', 'site.timezone', 'America/New_York', 'timezone');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (150, 'Show site confirmation?', 'site.confirmation', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (152, 'Confirmation line 1', 'site.confirmation.line1', 'To visit this site, you must be 21.');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (153, 'Confirmation line 2', 'site.confirmation.line2', 'Please confirm that you are 21 years of age or older.');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (155, 'Message when declined', 'site.confirmation.declined.text', 'Sorry, you must be 21 years of age or older to visit this site');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (160, 'Show subscribe to newsletter overlay?', 'site.newsletter.overlay', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (161, 'Newsletter Headline', 'site.newsletter.headline', 'Be the first to know');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (162, 'Newsletter Message', 'site.newsletter.message', 'Enter your email for the latest trends, product info, and deals.');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (165, 'Newsletter Text Color', 'site.newsletter.color', '#000000', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (166, 'Newsletter Background Color', 'site.newsletter.backgroundColor', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (200, 'Full Color Logo', 'site.logo', '', 'image');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (210, 'All White Logo', 'site.logo.white', '', 'image');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (220, 'Mixed Color Logo', 'site.logo.mixed', '', 'image');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (161, 'Newsletter headline', 'site.newsletter.headline', 'Be the first to know');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (162, 'Newsletter message', 'site.newsletter.message', 'Enter your email for the latest trends, product info, and deals.');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (165, 'Newsletter text color', 'site.newsletter.color', '#000000', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (166, 'Newsletter background color', 'site.newsletter.backgroundColor', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (200, 'Full color logo', 'site.logo', '', 'image');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (210, 'All white logo', 'site.logo.white', '', 'image');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (220, 'Mixed color logo', 'site.logo.mixed', '', 'image');
 
 -- Theme
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Menu Theme', 'theme.menu.location', 'custom', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Color Scheme', 'theme.ui.mode', 'light', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo Color', 'theme.logo.color', 'text-only', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Menu theme', 'theme.menu.location', 'custom', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Color scheme', 'theme.ui.mode', 'light', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo color', 'theme.logo.color', 'text-only', 'text');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Headlines Font', 'theme.fonts.headlines', '', 'font');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (11, 'Body Font', 'theme.fonts.body', '', 'font');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Headlines font', 'theme.fonts.headlines', '', 'font');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (11, 'Body font', 'theme.fonts.body', '', 'font');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Web Page Background', 'theme.body.backgroundColor', '#ffffff', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Web Page Text Color', 'theme.body.text.color', '#000000', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Link Color', 'theme.link.color', '#0067ff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Web page background', 'theme.body.backgroundColor', '#ffffff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Web page text color', 'theme.body.text.color', '#000000', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Link color', 'theme.link.color', '#0067ff', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (17, 'System Alert Bar', 'theme.utilitybar.backgroundColor', '#000000', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'System Alert Text Color', 'theme.utilitybar.text.color', '#ffffff', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (19, 'System Alert Link Color', 'theme.utilitybar.link.color', '#ffffff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (17, 'System alert bar', 'theme.utilitybar.backgroundColor', '#000000', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'System alert text color', 'theme.utilitybar.text.color', '#ffffff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (19, 'System alert link color', 'theme.utilitybar.link.color', '#ffffff', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Top Bar', 'theme.topbar.backgroundColor', '#353535', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (21, 'Top Bar Text Color', 'theme.topbar.text.color', '#ffffff', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Menu Tab Text', 'theme.topbar.menu.text.color', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Menu Tab Arrow', 'theme.topbar.menu.arrow.color', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Menu Tab Hover Text', 'theme.topbar.menu.hoverTextColor', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Menu Tab Hover Bg', 'theme.topbar.menu.text.hoverBackgroundColor', '#4d4d4d', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'Menu Tab Active Text', 'theme.topbar.menu.activeTextColor', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Menu Tab Active Bg', 'theme.topbar.menu.activeBackgroundColor', '#4d4d4d', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (31, 'Drop Down Menu', 'theme.topbar.menu.dropdown.backgroundColor', '#2e2e2e', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Drop Down Menu Text', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
--- INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'Drop Down Menu Hover Text', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
--- INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (35, 'Drop Down Menu Hover Bg', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Top bar', 'theme.topbar.backgroundColor', '#353535', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (21, 'Top bar text color', 'theme.topbar.text.color', '#ffffff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Menu tab text', 'theme.topbar.menu.text.color', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Menu tab arrow', 'theme.topbar.menu.arrow.color', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Menu tab hover text', 'theme.topbar.menu.hoverTextColor', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Menu tab hover bg', 'theme.topbar.menu.text.hoverBackgroundColor', '#4d4d4d', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'Menu tab active text', 'theme.topbar.menu.activeTextColor', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Menu tab active bg', 'theme.topbar.menu.activeBackgroundColor', '#4d4d4d', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (31, 'Drop down menu', 'theme.topbar.menu.dropdown.backgroundColor', '#2e2e2e', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Drop down menu text', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
+-- INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'Drop down menu hover text', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
+-- INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (35, 'Drop down menu hover bg', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Button Text', 'theme.button.text.color', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (52, 'Default Button', 'theme.button.default.backgroundColor', '#53575c', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (54, 'Default Button Hover', 'theme.button.default.hoverBackgroundColor', '#3e4045', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (56, 'Primary Button', 'theme.button.primary.backgroundColor', '#53575c', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (58, 'Primary Button Hover', 'theme.button.primary.hoverBackgroundColor', '#3e4045', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Secondary Button', 'theme.button.secondary.backgroundColor', '#767676', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (62, 'Secondary Button Hover', 'theme.button.secondary.hoverBackgroundColor', '#5e5e5e', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (64, 'Success Button', 'theme.button.success.backgroundColor', '#43AC6A', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (66, 'Success Button Hover', 'theme.button.success.hoverBackgroundColor', '#3a9158', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (68, 'Warning Button', 'theme.button.warning.backgroundColor', '#ffae00', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (70, 'Warning Button Hover', 'theme.button.warning.hoverBackgroundColor', '#cc8b00', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (72, 'Alert Button', 'theme.button.alert.backgroundColor', '#cc4b37', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (74, 'Alert Button Hover', 'theme.button.alert.hoverBackgroundColor', '#a53b2a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Button text', 'theme.button.text.color', '#FFFFFF', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (52, 'Default button', 'theme.button.default.backgroundColor', '#53575c', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (54, 'Default button hover', 'theme.button.default.hoverBackgroundColor', '#3e4045', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (56, 'Primary button', 'theme.button.primary.backgroundColor', '#53575c', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (58, 'Primary button hover', 'theme.button.primary.hoverBackgroundColor', '#3e4045', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Secondary button', 'theme.button.secondary.backgroundColor', '#767676', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (62, 'Secondary button hover', 'theme.button.secondary.hoverBackgroundColor', '#5e5e5e', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (64, 'Success button', 'theme.button.success.backgroundColor', '#43AC6A', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (66, 'Success button hover', 'theme.button.success.hoverBackgroundColor', '#3a9158', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (68, 'Warning button', 'theme.button.warning.backgroundColor', '#ffae00', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (70, 'Warning button hover', 'theme.button.warning.hoverBackgroundColor', '#cc8b00', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (72, 'Alert button', 'theme.button.alert.backgroundColor', '#cc4b37', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (74, 'Alert button hover', 'theme.button.alert.hoverBackgroundColor', '#a53b2a', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (80, 'Callout Background', 'theme.callout.backgroundColor', '#ffffea', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (81, 'Callout Text Color', 'theme.callout.text.color', '#0a0a0a', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (83, 'Primary Callout Background', 'theme.callout.primary.backgroundColor', '#d7ecfa', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (84, 'Primary Callout Text Color', 'theme.callout.primary.text.color', '#0a0a0a', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (86, 'Secondary Callout Background', 'theme.callout.secondary.backgroundColor', '#eaeaea', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (87, 'Secondary Callout Text Color', 'theme.callout.secondary.text.color', '#0a0a0a', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (89, 'Success Callout Background', 'theme.callout.success.backgroundColor', '#e1faea', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (90, 'Success Callout Text Color', 'theme.callout.success.text.color', '#0a0a0a', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (92, 'Warning Callout Background', 'theme.callout.warning.backgroundColor', '#fff3d9', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (93, 'Warning Callout Text Color', 'theme.callout.warning.text.color', '#0a0a0a', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (95, 'Alert Callout Background', 'theme.callout.alert.backgroundColor', '#f7e4e1', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (96, 'Alert Callout Text Color', 'theme.callout.alert.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (80, 'Callout background', 'theme.callout.backgroundColor', '#ffffea', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (81, 'Callout text color', 'theme.callout.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (83, 'Primary callout background', 'theme.callout.primary.backgroundColor', '#d7ecfa', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (84, 'Primary callout text color', 'theme.callout.primary.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (86, 'Secondary callout background', 'theme.callout.secondary.backgroundColor', '#eaeaea', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (87, 'Secondary callout text color', 'theme.callout.secondary.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (89, 'Success callout background', 'theme.callout.success.backgroundColor', '#e1faea', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (90, 'Success callout text color', 'theme.callout.success.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (92, 'Warning callout background', 'theme.callout.warning.backgroundColor', '#fff3d9', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (93, 'Warning callout text color', 'theme.callout.warning.text.color', '#0a0a0a', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (95, 'Alert callout background', 'theme.callout.alert.backgroundColor', '#f7e4e1', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (96, 'Alert callout text color', 'theme.callout.alert.text.color', '#0a0a0a', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (110, 'Footer Theme', 'theme.footer.style', 'custom', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (111, 'Footer Layout', 'theme.footer.layout', 'footer.default', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (112, 'Footer Background', 'theme.footer.backgroundColor', '#353535', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (114, 'Footer Text Color', 'theme.footer.text.color', '#acacac', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (116, 'Footer Links Color', 'theme.footer.links.color', '#cdcdcd', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (120, 'Footer Logo Color', 'theme.footer.logo.color', 'text-only', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (110, 'Footer theme', 'theme.footer.style', 'custom', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (111, 'Footer layout', 'theme.footer.layout', 'footer.default', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (112, 'Footer background', 'theme.footer.backgroundColor', '#353535', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (114, 'Footer text color', 'theme.footer.text.color', '#acacac', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (116, 'Footer links color', 'theme.footer.links.color', '#cdcdcd', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (120, 'Footer logo color', 'theme.footer.logo.color', 'text-only', 'text');
 
 -- Mail
 
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Default From Address', 'mail.from_address', 'auto-sender@site.local');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Default From Name', 'mail.from_name', 'New Site');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Host Name', 'mail.host_name', '127.0.0.1');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP Port', 'mail.port', '25');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP Username', 'mail.username', '');
-INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP Password', 'mail.password', '');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Default from address', 'mail.from_address', 'auto-sender@site.local');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Default from name', 'mail.from_name', 'New Site');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Host name', 'mail.host_name', '127.0.0.1');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP port', 'mail.port', '25');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP username', 'mail.username', '');
+INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP password', 'mail.password', '');
 INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('SMTP SSL', 'mail.ssl', 'false', 'boolean');
 
 -- Mailing List
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Mailing List Service', 'mailing-list.service', 'None', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'MailChimp API Key', 'mailing-list.mailchimp.apiKey', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp List Id', 'mailing-list.mailchimp.listId', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing List Quarantine Alert Threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Mailing List Confirmation Link Expiry (days)', 'mailing-list.confirmation.expiryDays', '7', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Mailing list service', 'mailing-list.service', 'None', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'MailChimp API key', 'mailing-list.mailchimp.apiKey', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp list ID', 'mailing-list.mailchimp.listId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API key', 'mailing-list.zerobounce.apiKey', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing list quarantine alert threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Mailing list confirmation link expiry (days)', 'mailing-list.confirmation.expiryDays', '7', 'text');
 
 -- Search
 
-INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Zero-Result Search Alert Threshold (count/24h)', 'search.zeroResultAlertThreshold', '20', 'text');
-INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Search Log Retention (days)', 'search.retentionDays', '180', 'text');
-INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('High-Value Search Terms (comma-separated)', 'search.highValueTerms', '', 'text');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Zero-result search alert threshold (count/24h)', 'search.zeroResultAlertThreshold', '20', 'text');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Search log retention (days)', 'search.retentionDays', '180', 'text');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('High-value search terms (comma-separated)', 'search.highValueTerms', '', 'text');
 
 -- Maps
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Map Tiles Service', 'maps.service.tiles', 'openstreetmap');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Map Geocoder Service', 'maps.service.geocoder', 'nominatim');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Map tiles service', 'maps.service.tiles', 'openstreetmap');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Map geocoder service', 'maps.service.geocoder', 'nominatim');
 -- UPDATE site_properties SET property_value = 'custom' WHERE property_name = 'maps.service.tiles';
 -- No property_type: the url validator rejects the required {z}/{x}/{y} placeholders; FindMapTilesCredentialsCommand validates instead
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Custom Map Tiles URL ({z}/{x}/{y} template)', 'maps.custom.tileserver.url', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Custom map tiles URL ({z}/{x}/{y} template)', 'maps.custom.tileserver.url', '');
 
 -- Analytics
 
@@ -178,7 +178,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password age warning threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 -- Only applies to form_data rows that have reached a terminal state (processed or dismissed by an
 -- admin) -- rows still awaiting review are never deleted by this, regardless of age. See
@@ -186,31 +186,31 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (14, 'Form data retention (days, terminal-state only)', 'formData.retentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Web page version history limit (per page)', 'webPage.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'Content block version history limit (per block)', 'content.versionHistoryLimit', '20', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (9, 'Require visitor consent before loading analytics?', 'analytics.consentRequired', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google Analytics GA Key', 'analytics.google.key', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (22, 'Google Tag Manager GTM Key', 'analytics.google.tagmanager', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (25, 'SimpliFi Tag Value', 'analytics.simplifi.value', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (26, 'Brand CDN Path Value', 'analytics.brandcdn.value', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Brand CDN Path Value 2', 'analytics.brandcdn.value2', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google Analytics GA key', 'analytics.google.key', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (22, 'Google Tag Manager GTM key', 'analytics.google.tagmanager', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (25, 'SimpliFi tag value', 'analytics.simplifi.value', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (26, 'Brand CDN path value', 'analytics.brandcdn.value', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Brand CDN path value 2', 'analytics.brandcdn.value2', '');
 
 -- Conversion funnel (issue #565, phase 1): pairs a page path and a formUniqueId to instrument as the
 -- contact-form funnel (view -> submitted -> processed). Blank by default -- every site names its
 -- contact page/form differently, so recording must stay off until an admin opts in with real values,
 -- the same way the pre-existing #563 conversion-rate tile ships commented out until configured.
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Contact Form Funnel: Page Path', 'funnel.contactForm.pagePath', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Contact Form Funnel: Form Unique ID', 'funnel.contactForm.formUniqueId', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Funnel Event Retention (days)', 'funnel.retentionDays', '90', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Contact form funnel: page path', 'funnel.contactForm.pagePath', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Contact form funnel: form unique ID', 'funnel.contactForm.formUniqueId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Funnel event retention (days)', 'funnel.retentionDays', '90', 'text');
 
 -- Captcha
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha Service', 'captcha.service', 'google');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA Site Key', 'captcha.google.sitekey', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA Secret Key', 'captcha.google.secretkey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha service', 'captcha.service', 'google');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA site key', 'captcha.google.sitekey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA secret key', 'captcha.google.secretkey', '');
 -- Issue #519: Cloudflare Turnstile, a second captcha.service option alongside Google reCAPTCHA above.
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile Site Key', 'captcha.turnstile.sitekey', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile Secret Key', 'captcha.turnstile.secretkey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile site key', 'captcha.turnstile.sitekey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile secret key', 'captcha.turnstile.secretkey', '');
 
 -- Social Media
 -- issue #516: platform link fields (Facebook/Instagram/LinkedIn/Twitter/Flickr/YouTube) moved to the
@@ -218,55 +218,55 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- a fixed set of hardcoded properties. Contact info and the Instagram feed-embed integration stay here,
 -- since they aren't platform links.
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (5, 'Email Address', 'social.email', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (5, 'Email address', 'social.email', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Telephone', 'social.phone', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Instagram Access Token', 'social.instagram.accessToken', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Instagram Facebook Page Value', 'social.instagram.facebookPageValue', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Instagram access token', 'social.instagram.accessToken', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Instagram Facebook page value', 'social.instagram.facebookPageValue', '', 'text');
 
 -- BI
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable Superset?', 'bi.enabled', 'true', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Superset URL', 'bi.superset.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Superset ID', 'bi.superset.id', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Superset Secret', 'bi.superset.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Superset secret', 'bi.superset.secret', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Enable Metabase?', 'bi.metabase.enabled', 'true', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'Metabase URL', 'bi.metabase.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Metabase Secret', 'bi.metabase.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Metabase secret', 'bi.metabase.secret', '', 'text');
 
 -- E-Commerce
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-commerce?', 'ecommerce.enabled', 'true', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Enable real orders?', 'ecommerce.production', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Last Order Date', 'ecommerce.lastOrderDate', 'None', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Payment Processor API', 'ecommerce.paymentProcessor', 'None', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Sales Tax API', 'ecommerce.salesTaxService', 'None', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Order Fulfillment API', 'ecommerce.orderFulfillment', 'None', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (25, 'Order Number Format', 'ecommerce.orderNumberFormat', 'yymmdd-####-****', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Customer Number Format', 'ecommerce.customerNumberFormat', 'C-#######-*****-??', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Vendor Number Format', 'ecommerce.vendorNumberFormat', 'V-#######-*****-??', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Order From Name', 'ecommerce.from.name', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (41, 'Order From Phone Number', 'ecommerce.from.phone', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (42, 'Order From Email Address', 'ecommerce.from.email', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (43, 'Order From Address Line 1', 'ecommerce.from.address1', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (44, 'Order From Address Line 2', 'ecommerce.from.address2', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (45, 'Order From Address City', 'ecommerce.from.city', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (46, 'Order From Address State Code', 'ecommerce.from.stateCode', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (47, 'Order From Address Country Code', 'ecommerce.from.countryCode', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (48, 'Order From Address Postal Code', 'ecommerce.from.postalCode', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Default Currency', 'ecommerce.defaultCurrency', 'USD', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (200, 'Stripe Test Key', 'ecommerce.stripe.test.key', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (205, 'Stripe Test Secret', 'ecommerce.stripe.test.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (210, 'Stripe Production Key', 'ecommerce.stripe.production.key', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (215, 'Stripe Production Secret', 'ecommerce.stripe.production.secret', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (220, 'Square Test App Id', 'ecommerce.square.test.key', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (221, 'Square Test Secret', 'ecommerce.square.test.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (222, 'Square Test Location Id', 'ecommerce.square.test.location', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (223, 'Square Production App Id', 'ecommerce.square.production.key', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (224, 'Square Production Secret', 'ecommerce.square.production.secret', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (225, 'Square Production LocationId', 'ecommerce.square.production.location', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (230, 'Boxzooka Customer Id', 'ecommerce.boxzooka.production.id', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (231, 'Boxzooka Secret', 'ecommerce.boxzooka.production.secret', '', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (240, 'TaxJar API Key', 'ecommerce.taxjar.apiKey', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Last order date', 'ecommerce.lastOrderDate', 'None', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Payment processor API', 'ecommerce.paymentProcessor', 'None', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Sales tax API', 'ecommerce.salesTaxService', 'None', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Order fulfillment API', 'ecommerce.orderFulfillment', 'None', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (25, 'Order number format', 'ecommerce.orderNumberFormat', 'yymmdd-####-****', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Customer number format', 'ecommerce.customerNumberFormat', 'C-#######-*****-??', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Vendor number format', 'ecommerce.vendorNumberFormat', 'V-#######-*****-??', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Order from name', 'ecommerce.from.name', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (41, 'Order from phone number', 'ecommerce.from.phone', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (42, 'Order from email address', 'ecommerce.from.email', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (43, 'Order from address line 1', 'ecommerce.from.address1', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (44, 'Order from address line 2', 'ecommerce.from.address2', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (45, 'Order from address city', 'ecommerce.from.city', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (46, 'Order from address state code', 'ecommerce.from.stateCode', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (47, 'Order from address country code', 'ecommerce.from.countryCode', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (48, 'Order from address postal code', 'ecommerce.from.postalCode', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Default currency', 'ecommerce.defaultCurrency', 'USD', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (200, 'Stripe test key', 'ecommerce.stripe.test.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (205, 'Stripe test secret', 'ecommerce.stripe.test.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (210, 'Stripe production key', 'ecommerce.stripe.production.key', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (215, 'Stripe production secret', 'ecommerce.stripe.production.secret', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (220, 'Square test app ID', 'ecommerce.square.test.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (221, 'Square test secret', 'ecommerce.square.test.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (222, 'Square test location ID', 'ecommerce.square.test.location', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (223, 'Square production app ID', 'ecommerce.square.production.key', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (224, 'Square production secret', 'ecommerce.square.production.secret', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (225, 'Square production location ID', 'ecommerce.square.production.location', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (230, 'Boxzooka customer ID', 'ecommerce.boxzooka.production.id', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (231, 'Boxzooka secret', 'ecommerce.boxzooka.production.secret', '', 'disabled');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (240, 'TaxJar API key', 'ecommerce.taxjar.apiKey', '', 'text');
 
 -- E-Learning
 
@@ -277,33 +277,33 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- historical/future purposes but sort after it.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Moodle URL', 'elearning.moodle.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Moodle Token', 'elearning.moodle.token', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Moodle token', 'elearning.moodle.token', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'LRS URL', 'elearning.lrs.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'LRS Key', 'elearning.lrs.key', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'LRS key', 'elearning.lrs.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'LRS secret', 'elearning.lrs.secret', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Enable PERLS?', 'elearning.perls.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'PERLS Client Id', 'elearning.perls.clientId', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (36, 'PERLS Secret', 'elearning.perls.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'PERLS client ID', 'elearning.perls.clientId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (36, 'PERLS secret', 'elearning.perls.secret', '', 'text');
 
 -- Authentication
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'OpenAuth Provider', 'oauth.provider', 'None', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'OpenAuth Client Id', 'oauth.clientId', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'OpenAuth Client Secret', 'oauth.clientSecret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'OpenAuth Service URL', 'oauth.serviceUrl', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'OpenAuth Redirect Guests', 'oauth.redirectGuests', 'true', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'OpenAuth Enabled', 'oauth.enabled', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'OpenAuth Role Attribute', 'oauth.role.attribute', 'roles', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'OpenAuth Group Attribute', 'oauth.group.attribute', 'groups', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'OpenAuth provider', 'oauth.provider', 'None', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'OpenAuth client ID', 'oauth.clientId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'OpenAuth client secret', 'oauth.clientSecret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'OpenAuth service URL', 'oauth.serviceUrl', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'OpenAuth redirect guests', 'oauth.redirectGuests', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'OpenAuth enabled', 'oauth.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'OpenAuth role attribute', 'oauth.role.attribute', 'roles', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'OpenAuth group attribute', 'oauth.group.attribute', 'groups', 'text');
 
 -- Security
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum Password Length', 'security.password.minLength', '15', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require Password Complexity?', 'security.password.requireComplexity', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum password length', 'security.password.minLength', '15', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require password complexity?', 'security.password.requireComplexity', 'true', 'boolean');
 
 CREATE TABLE lookup_role (
   role_id SERIAL PRIMARY KEY,

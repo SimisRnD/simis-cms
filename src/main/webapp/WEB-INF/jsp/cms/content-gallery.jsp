@@ -29,10 +29,11 @@
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
     <div class="platform-content-editor">
       <c:if test="${isDraft eq 'true'}">
-        <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Publish this content?');">DRAFT</a>
+        <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Publish this content?">DRAFT</a>
       </c:if>
       <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
     </div>
+    <%@include file="../confirm_submit.jspf" %>
   </c:if>
   <c:if test="${!empty card1}">
     <div id="gallery-image${widgetContext.uniqueId}">

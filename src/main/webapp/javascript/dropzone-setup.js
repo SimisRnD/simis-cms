@@ -16,11 +16,13 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
       var statusRegion = document.querySelector("#upload-status");
       var errorCount   = 0;
       var successCount = 0;
+      var noticeCount  = 0;
       var myDropzone = this;
 
       submitButton.addEventListener("click", function() {
         errorCount = 0;
         successCount = 0;
+        noticeCount = 0;
         errorRegion.innerHTML = '';
         statusRegion.textContent = '';
         myDropzone.processQueue();
@@ -48,6 +50,16 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
           errorRegion.appendChild(msg);
         } else {
           successCount++;
+          // The file itself uploaded, but something optional alongside it did not (issue #1197: the
+          // "also add to the Image Library" option). Not a failed upload, so it does not raise
+          // errorCount -- but it must not be swallowed either, since a silently-skipped step is
+          // exactly what made that issue so hard to diagnose from the UI.
+          if (response && typeof response === 'object' && response.libraryError) {
+            noticeCount++;
+            var notice = document.createElement('p');
+            notice.textContent = file.name + ': ' + response.libraryError;
+            errorRegion.appendChild(notice);
+          }
         }
         myDropzone.processQueue();
       });
@@ -61,6 +73,12 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
 
       this.on("queuecomplete", function() {
         if (errorCount === 0 && successCount > 0) {
+          if (noticeCount > 0) {
+            // Don't auto-reload past a notice the admin hasn't read yet
+            statusRegion.textContent = successCount + (successCount === 1 ? ' file' : ' files')
+              + ' uploaded. Reload the page to see them.';
+            return;
+          }
           statusRegion.textContent = successCount + (successCount === 1 ? ' file' : ' files') + ' uploaded. Refreshing…';
           setTimeout(function() { window.location.reload(); }, 1200);
         }
@@ -70,6 +88,7 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
         myDropzone.removeAllFiles(true);
         errorCount = 0;
         successCount = 0;
+        noticeCount = 0;
         errorRegion.innerHTML = '';
         statusRegion.textContent = '';
         submitButton.disabled = true;

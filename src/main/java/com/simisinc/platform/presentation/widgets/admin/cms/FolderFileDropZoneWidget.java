@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -23,13 +24,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.AddImageToLibraryCommand;
 import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
+import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
@@ -146,6 +150,14 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       LOG.debug("Finished!");
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.SUCCESS,
           "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "bytes=" + fileItem.getFileLength());
+      String libraryError = addToImageLibrary(context, fileItem);
+      if (libraryError != null) {
+        // The folder file itself saved, so this is a partial success, not a failed upload -- report
+        // it alongside the location rather than as an {"error": ...} the drop zone counts as a failure
+        context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\", \"libraryError\": \""
+            + JsonCommand.toJson(libraryError) + "\"}");
+        return context;
+      }
       context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
@@ -164,6 +176,51 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       // sees real content instead.
       context.setJson("{\"error\": \"" + JsonCommand.toJson(data.getMessage()) + "\"}");
       return context;
+    }
+  }
+
+  /**
+   * Issue #1197: folders and the image library are separate stores, so a logo uploaded here was
+   * never visible to the image picker on Site Settings / Theme Settings -- with no upload control on
+   * the Media Library either, a new site had no working route to getting a logo onto itself.
+   *
+   * <p>When the drop zone's "Also add images to the Image Library" box is ticked, an uploaded image
+   * is registered in the library too, through {@link AddImageToLibraryCommand} -- the same write path
+   * the site properties editor's own uploader uses, so the record is indistinguishable from one
+   * uploaded there (mime/dimension validation, unique filename, srcset variants from issue #411).
+   *
+   * <p>The library gets its own copy of the bytes rather than a second record pointing at the folder
+   * file's copy: sharing them would mean deleting either record silently breaks the other, and a
+   * logo that vanishes when someone tidies up a folder is worse than a duplicated file.
+   *
+   * <p>Non-image uploads are skipped silently -- the option names images, and a ticked box should not
+   * turn a perfectly good PDF upload into an error. "Is this an image?" is decided by the file type
+   * {@link ValidateFileCommand#checkFile} already derived from the file's detected mime type, which
+   * is the same value the folder listing uses to decide whether to show a thumbnail.
+   *
+   * @return null when there is nothing to report, otherwise a message explaining why the image did
+   *         not make it into the library (the folder file itself is saved either way)
+   */
+  private String addToImageLibrary(WidgetContext context, FileItem fileItem) {
+    if (!context.getParameterAsBoolean("addToImageLibrary")) {
+      return null;
+    }
+    if (!"image".equalsIgnoreCase(fileItem.getFileType())) {
+      LOG.debug("Not an image, skipping the image library: " + fileItem.getFileType());
+      return null;
+    }
+    File sourceFile = FileSystemCommand.resolveWithinRoot(FileSystemCommand.getFileServerRootPath(),
+        fileItem.getFileServerPath());
+    try {
+      Image image = AddImageToLibraryCommand.addFromFile(sourceFile, fileItem.getFilename(), context.getUserId());
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.create", AuditEventCommand.SUCCESS,
+          "image", String.valueOf(image.getId()), image.getFilename(), "source=folder_file:" + fileItem.getId());
+      return null;
+    } catch (DataException e) {
+      LOG.warn("Could not add the uploaded file to the image library: " + e.getMessage());
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.create", AuditEventCommand.FAILURE,
+          "image", "-1", fileItem.getFilename(), e.getMessage());
+      return "uploaded to the folder, but could not be added to the Image Library (" + e.getMessage() + ")";
     }
   }
 }
