@@ -14,13 +14,12 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
 <c:if test="${item.id gt 0}">
-<form method="post" action="${widgetContext.uri}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete <c:out value="${js:escape(item.name)}" /> and all related information?');">
+<form method="post" action="${widgetContext.uri}" style="display:inline;" data-confirm-submit="Are you sure you want to delete <c:out value="${item.name}" /> and all related information?">
   <input type="hidden" name="command" value="delete"/>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -28,4 +27,5 @@
   <c:if test="${!empty returnPage}"><input type="hidden" name="returnPage" value="${returnPage}"/></c:if>
   <button type="submit" class="radius button <c:out value="${buttonClass}"/>"><i class="fa fa-trash"></i> <c:out value="${buttonName}" /></button>
 </form>
+<%@include file="../confirm_submit.jspf" %>
 </c:if>

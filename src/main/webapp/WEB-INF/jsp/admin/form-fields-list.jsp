@@ -43,7 +43,7 @@
 <c:if test="${empty fieldList}">
   <p class="subheader">No fields were found, add one!</p>
 </c:if>
-<form method="post" onsubmit="return checkFieldOrder()">
+<form method="post" id="fieldOrderForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -106,4 +106,21 @@
     document.getElementById("fieldOrder").value = order;
     return true;
   }
+
+  // issue #1188: this ran from an inline onsubmit attribute, which CSP blocks -- inline handler
+  // attributes fall under script-src-attr and the nonce authorises this block, not an attribute
+  // calling into it. Because a blocked handler is skipped rather than treated as a cancel, the form
+  // still posted, but with the hidden fieldOrder input left empty. FormFieldsListWidget.post()
+  // guards the reorder with StringUtils.isNotBlank(fieldOrder) and then redirects either way, so
+  // "Save Field Order" silently discarded the drag and reported nothing.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('fieldOrderForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!checkFieldOrder()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
