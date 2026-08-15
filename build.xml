@@ -494,7 +494,7 @@
           <jvmarg value="-javaagent:${lib.test.dir}/byte-buddy-agent-1.14.10.jar"/>
           <jvmarg value="-Djava.awt.headless=true"/>
         </fork>
-        <listener classname="com.simisinc.platform.ContainerFailureReportingListener"/>
+        <listener classname="com.simisinc.platform.TestFailureReportingListener"/>
       </testclasses>
     </junitlauncher>
     <fail if="hasFailingTest" />
