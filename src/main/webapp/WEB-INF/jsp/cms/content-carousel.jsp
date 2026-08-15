@@ -37,7 +37,7 @@
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>
-  <div class="orbit<c:if test="${!empty carouselClass}"> <c:out value="${carouselClass}" /></c:if>" role="region"<c:if test="${!empty carouselTitle}"> aria-label="<c:out value="${carouselTitle}" />"</c:if> data-orbit<c:if test="${!empty dataOptions}"> <c:out value="${dataOptions}" /></c:if>>
+  <div id="orbit${widgetContext.uniqueId}" class="orbit<c:if test="${!empty carouselClass}"> <c:out value="${carouselClass}" /></c:if>" role="region"<c:if test="${!empty carouselTitle}"> aria-label="<c:out value="${carouselTitle}" />"</c:if> data-orbit<c:if test="${!empty dataOptions}"> <c:out value="${dataOptions}" /></c:if>>
     <div class="orbit-wrapper">
       <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
       <div class="orbit-controls">
@@ -78,4 +78,64 @@
     </nav>
     </c:if>
   </div>
+  <c:if test="${fn:length(cardList) gt 1}">
+    <%-- WCAG 2.2.2 (Pause, Stop, Hide): Foundation Orbit auto-advances by default (autoPlay: true)
+         and the widget never disables it, so give the visitor a keyboard-reachable control to stop
+         the timer. Wired to Orbit's timer in the script below (issue #1225). --%>
+    <div class="orbit-autoplay-control text-center">
+      <button type="button" id="orbit-autoplay-toggle${widgetContext.uniqueId}" class="button clear small orbit-autoplay-toggle" aria-pressed="false" aria-label="Pause automatic slide rotation">
+        <i class="${font:fas()} fa-pause" aria-hidden="true"></i>
+      </button>
+    </div>
+  </c:if>
 </div>
+<c:if test="${fn:length(cardList) gt 1}">
+<script nonce="${cspNonce}">
+  // WCAG 2.2.2: give the visitor a way to stop Foundation Orbit's auto-advance, and honor the
+  // OS-level reduced-motion preference (Orbit's timer is a JS timer, so a CSS media query alone
+  // cannot stop it -- issue #1225). $(document).foundation() runs at the bottom of main.jsp during
+  // parse, before any ready handler, so Orbit is already initialised by the time this runs.
+  $(function () {
+    var orbit = $('#orbit${widgetContext.uniqueId}').data('zfPlugin');
+    if (!orbit || !orbit.timer) {
+      return;
+    }
+    var toggle = document.getElementById('orbit-autoplay-toggle${widgetContext.uniqueId}');
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var paused = false;
+    function setPaused(next) {
+      paused = next;
+      if (paused) {
+        orbit.timer.pause();
+        // Match Orbit's own clicked-to-pause state so it does not restart the timer on
+        // mouseleave or a slide change.
+        orbit.$element.data('clickedOn', true);
+      } else {
+        orbit.$element.data('clickedOn', false);
+        orbit.timer.start();
+      }
+      if (toggle) {
+        toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+        toggle.setAttribute('aria-label', paused ? 'Resume automatic slide rotation' : 'Pause automatic slide rotation');
+        var icon = toggle.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-pause', !paused);
+          icon.classList.toggle('fa-play', paused);
+        }
+      }
+    }
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        setPaused(!paused);
+      });
+    }
+    // Start paused when the visitor prefers reduced motion, and honor a live change.
+    if (reduceMotion.matches) {
+      setPaused(true);
+    }
+    reduceMotion.addEventListener('change', function (event) {
+      setPaused(event.matches);
+    });
+  });
+</script>
+</c:if>
