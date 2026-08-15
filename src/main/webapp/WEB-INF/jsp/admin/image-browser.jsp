@@ -36,7 +36,7 @@
     <input class="input-group-field" type="search" name="query" aria-label="Search images by filename"
            placeholder="<c:if test="${empty query}">Search filenames...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
     <label for="imageSortBy" class="show-for-sr">Sort by</label>
-    <select id="imageSortBy" name="sortBy" class="input-group-field" style="max-width:220px;" onchange="this.form.submit();">
+    <select id="imageSortBy" name="sortBy" class="input-group-field" style="max-width:220px;">
       <option value="date" <c:if test="${sortBy eq 'date'}">selected</c:if>>Date (Newest First)</option>
       <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
       <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
@@ -213,6 +213,19 @@
 </div>
 <script nonce="${cspNonce}">
   (function () {
+    // Submit the search form when the sort dropdown changes. Bound here rather than with an
+    // onchange= attribute (issue #1188): PageServlet sends Content-Security-Policy with
+    // script-src 'self' 'nonce-...' and no 'unsafe-inline', so the browser refuses to run inline
+    // event handlers -- they fall under script-src-attr, which a nonce does not cover. The
+    // onchange="this.form.submit();" this replaces was silently blocked, so changing the sort
+    // dropdown did nothing at all and no error surfaced anywhere in the UI.
+    var sortBySelect = document.getElementById('imageSortBy');
+    if (sortBySelect && sortBySelect.form) {
+      sortBySelect.addEventListener('change', function () {
+        sortBySelect.form.submit();
+      });
+    }
+
     // Per-image usage lookups are cached client-side for the life of the page and computed on
     // demand -- never eagerly for the whole list -- see ImageUsageCommand's class docs for why.
     var usageCache = {};
