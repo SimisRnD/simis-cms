@@ -117,10 +117,32 @@
     }
     </c:otherwise>
     </c:choose>
+
+    // issue #1188: this ran from an inline onsubmit attribute, which CSP blocks -- inline handler
+    // attributes fall under script-src-attr and the nonce authorises this block, not an attribute
+    // calling into it. Every branch of emailSignUp() above submits over AJAX and returns false, so
+    // with it skipped the form fell through to its native GET: nobody was subscribed, and because
+    // the email input carried a name attribute the visitor's address ended up in the query string
+    // of a page URL -- reaching the access log, the CDN log and browser history. That name
+    // attribute is dropped too; submitEmailSignUp() reads the field by id.  The Google reCAPTCHA
+    // branch was the least visible of the four, and the reason this took a while to spot: there the
+    // button carries the g-recaptcha class and Google's own script intercepts the click and fires
+    // data-callback, so clicking Sign Up still worked. Only pressing Enter in the email field fell
+    // through to the leaking native GET. The Turnstile, image-captcha and no-captcha branches had
+    // no such interception and were broken outright.
+    document.addEventListener('DOMContentLoaded', function () {
+        var form = document.getElementById('emailSignUpForm${widgetContext.uniqueId}');
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                emailSignUp${widgetContext.uniqueId}();
+            });
+        }
+    });
 </script>
-<form method="get" onsubmit="return emailSignUp${widgetContext.uniqueId}()">
+<form method="get" id="emailSignUpForm${widgetContext.uniqueId}">
   <div class="input-group">
-    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" name="email${widgetContext.uniqueId}" placeholder="name@email.com" required>
+    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" placeholder="name@email.com" required>
     <div class="input-group-button">
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">

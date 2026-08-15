@@ -23,7 +23,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<form method="post" onsubmit="return sendOrderCancellationConfirmation()">
+<form method="post" id="sendOrderCancellationConfirmationForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -42,4 +42,18 @@
     }
     return false;
   }
+
+  // issue #1188: this guard was an inline onsubmit attribute. CSP (script-src-attr) blocks inline
+  // handler attributes -- the nonce authorises this block, not an attribute calling into it -- so
+  // the confirm and the double-submit guard were both skipped and the mail went out anyway.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('sendOrderCancellationConfirmationForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!sendOrderCancellationConfirmation()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>

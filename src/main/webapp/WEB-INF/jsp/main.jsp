@@ -662,9 +662,9 @@
             <h4><c:out value="${requestOverlayHeadline}" /></h4>
             <p><c:out value="${requestOverlayMessage}" /></p>
               <%-- Form Content --%>
-            <form method="get" onsubmit="return platformNewsletterOverlaySignUp()">
+            <form method="get" id="platformNewsletterOverlayForm">
               <div class="input-group">
-                <input class="input-group-field" type="text" id="platformOverlayEmail" name="email" placeholder="name@example.com" required>
+                <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" required>
                 <div class="input-group-button">
                   <button type="submit" class="button small">Sign Up</button>
                 </div>
@@ -786,6 +786,26 @@
           });
           return false;
         }
+        <%--
+          issue #1188: this ran from an inline onsubmit attribute, which CSP blocks -- inline
+          handler attributes fall under script-src-attr and the nonce authorises this block, not an
+          attribute calling into it. platformNewsletterOverlaySignUp() does the whole signup over
+          AJAX and always returns false, so with it skipped nothing subscribed and the form fell
+          through to its native GET. The email input also carried name="email", so that GET put the
+          visitor's address in the query string of a page URL -- reaching the access log, the CDN
+          log and browser history -- while silently not subscribing them. The name attribute is
+          dropped here as well: the handler reads the field by id, so it was only ever a way for a
+          failed submit to leak the address.
+        --%>
+        document.addEventListener('DOMContentLoaded', function () {
+          var overlayForm = document.getElementById('platformNewsletterOverlayForm');
+          if (overlayForm) {
+            overlayForm.addEventListener('submit', function (event) {
+              event.preventDefault();
+              platformNewsletterOverlaySignUp();
+            });
+          }
+        });
       </c:if>
       $(document).ready(function() {
         <%-- // Elements can animate when they are visible on screen --%>

@@ -55,8 +55,27 @@
         });
         return false;
     }
+
+    // issue #1188: this ran from an inline onsubmit attribute, which CSP blocks -- inline handler
+    // attributes fall under script-src-attr and the nonce authorises this block, not an attribute
+    // calling into it. emailSignUp() does the whole signup over AJAX and always returns false, so
+    // with it skipped nobody was subscribed and the form fell through to its native GET. The name
+    // and email inputs also carried name attributes, so that GET put the visitor's first name and
+    // address into the query string of a page URL -- reaching the access log, the CDN log and
+    // browser history -- while silently not subscribing them. Those name attributes are dropped
+    // too: this function reads both fields by id, so they only ever served to leak on a failed
+    // submit.
+    document.addEventListener('DOMContentLoaded', function () {
+        var form = document.getElementById('emailSignUpForm${widgetContext.uniqueId}');
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                emailSignUp${widgetContext.uniqueId}();
+            });
+        }
+    });
 </script>
-<form method="get" onsubmit="return emailSignUp${widgetContext.uniqueId}()">
+<form method="get" id="emailSignUpForm${widgetContext.uniqueId}">
   <c:if test="${!empty title}">
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
@@ -65,12 +84,12 @@
   </c:if>
   <c:if test="${showName eq 'true'}">
     <div class="small-12 cell">
-      <input type="text" id="name${widgetContext.uniqueId}" name="name${widgetContext.uniqueId}" placeholder="Your first name" required>
+      <input type="text" id="name${widgetContext.uniqueId}" placeholder="Your first name" required>
       <p class="help-text" id="nameHelpText${widgetContext.uniqueId}"></p>
     </div>
   </c:if>
   <div class="small-12 cell">
-    <input type="text" id="email${widgetContext.uniqueId}" name="email${widgetContext.uniqueId}" placeholder="Your email address" required>
+    <input type="text" id="email${widgetContext.uniqueId}" placeholder="Your email address" required>
     <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
   </div>
   <c:if test="${!empty footerHtml}">
