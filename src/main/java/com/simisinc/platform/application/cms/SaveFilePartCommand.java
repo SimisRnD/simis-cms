@@ -63,7 +63,8 @@ public class SaveFilePartCommand {
       }
       long maxBytes = resolveMaxUploadBytes();
       if (fileLength > maxBytes) {
-        throw new DataException("The file exceeds the maximum allowed upload size");
+        long maxMegabytes = Math.max(1L, maxBytes / 1_048_576L);
+        throw new DataException("The file exceeds the maximum allowed upload size of " + maxMegabytes + " MB");
       }
 
       LOG.debug("Found a file...");
@@ -78,6 +79,13 @@ public class SaveFilePartCommand {
       LOG.debug("Writing file " + fileLength + " bytes");
       filePart.write(tempFile.getAbsolutePath());
 
+    } catch (DataException de) {
+      // A deliberate, user-facing rejection (e.g. the size limit above) keeps its own specific
+      // message instead of being flattened into the generic message below.
+      if (tempFile != null && tempFile.exists()) {
+        tempFile.delete();
+      }
+      throw de;
     } catch (Exception e) {
       LOG.warn("Could not handle file: " + e.getMessage());
       // Clean up the file
@@ -99,7 +107,13 @@ public class SaveFilePartCommand {
     return fileItemBean;
   }
 
-  private static long resolveMaxUploadBytes() {
+  /**
+   * The configured maximum upload size in bytes, from the {@code system.upload.maxBytes} site
+   * property (default 10 MB). This is the single source for the folder upload path's cap:
+   * {@link #saveFile(WidgetContext)} enforces it here, and FolderFileDropZoneWidget reads this same
+   * value to display it, so the advertised limit and the enforced limit cannot drift (issue #1198).
+   */
+  public static long resolveMaxUploadBytes() {
     long maxBytes = 10_485_760L; // 10MB default
     String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
     if (prop != null && !prop.isBlank()) {
