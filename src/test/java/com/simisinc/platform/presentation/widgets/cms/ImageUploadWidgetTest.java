@@ -16,17 +16,22 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,6 +72,7 @@ class ImageUploadWidgetTest {
   private WidgetContext newContext() {
     WidgetContext context = new WidgetContext(request, response, "widget1", "/admin/image-upload");
     context.setParameterMap(new HashMap<>());
+    context.setPreferences(new HashMap<>());
     context.setCoreData(Map.of("userId", "1"));
     return context;
   }
@@ -155,6 +161,169 @@ class ImageUploadWidgetTest {
 
       assertNotNull(result);
       jobRequest.verify(() -> BackgroundJobRequest.enqueue(any(ImageVariantJob.class)), never());
+    }
+  }
+
+  /**
+   * Issue #1189: before this the widget was POST-only, so /admin/images had no upload control at
+   * all and a GET fell through to GenericWidget.execute()'s "MUST OVERRIDE" error branch.
+   */
+  @Test
+  void executeShowsTheDropZoneWithTheConfiguredUploadCeiling() {
+    WidgetContext context = newContext();
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn("26214400");
+
+      WidgetContext result = new ImageUploadWidget().execute(context);
+
+      assertNotNull(result);
+      assertEquals("/cms/image-upload-drop-zone.jsp", result.getJsp());
+      // Dropzone.js expects whole megabytes, so 26214400 bytes has to reach the JSP as 25
+      verify(request).setAttribute("maxUploadSize", "25");
+    }
+  }
+
+  @Test
+  void executeFallsBackToTheDefaultCeilingWhenThePropertyIsUnset() {
+    WidgetContext context = newContext();
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      new ImageUploadWidget().execute(context);
+
+      verify(request).setAttribute("maxUploadSize", "10");
+    }
+  }
+
+  /**
+   * Issue #1189: a rejected upload has to answer with a real error status and a JSON body.
+   *
+   * <p>Setting only an error message produces no response body, so the container falls through to
+   * a redirect that the caller's XHR follows transparently -- reporting the reloaded page's HTTP
+   * 200 back as if the upload had succeeded. Dropzone.js and the editors' image pickers both
+   * decide success purely from the status code, so without this a rejected file looked accepted.
+   */
+  @Test
+  void postWithNoFilePartAnswersWithA400AndTheReason() throws Exception {
+    when(request.getPart("file")).thenReturn(null);
+    WidgetContext context = newContext();
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      WidgetContext result = new ImageUploadWidget().post(context);
+
+      assertNotNull(result);
+      assertTrue(result.hasJson());
+      assertEquals("{\"error\": \"A file was not found, please choose a file and try again\"}", result.getJson());
+      verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+    }
+  }
+
+  @Test
+  void postAnswersWithA400AndTheLimitWhenTheFileIsTooLarge(@TempDir Path tempDir) throws Exception {
+    Part filePart = mockFilePart("huge.png", 20_971_520L);
+    when(request.getPart("file")).thenReturn(filePart);
+    WidgetContext context = newContext();
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      stubFileSystemCommand(fsc, tempDir);
+      props.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn("10485760");
+
+      WidgetContext result = new ImageUploadWidget().post(context);
+
+      assertNotNull(result);
+      assertTrue(result.hasJson());
+      // The real ceiling, not a blanket "wrong file type" -- this is the message an admin needs
+      assertEquals("{\"error\": \"The file exceeds the maximum allowed upload size of 10 MB\"}", result.getJson());
+      verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+    }
+  }
+
+  /**
+   * The storage-failure branch used to swallow its exception whole -- no log, no message, no error
+   * status -- which is exactly the case that matters when a mounted file server root is not
+   * writable by the container. The reason has to reach the (already admin-gated) caller.
+   */
+  @Test
+  void postSurfacesTheUnderlyingReasonWhenTheFileCannotBeWritten(@TempDir Path tempDir) throws Exception {
+    Part filePart = mockFilePart("photo.png", 100L);
+    when(request.getPart("file")).thenReturn(filePart);
+    doThrow(new IOException("Read-only file system")).when(filePart).write(anyString());
+    WidgetContext context = newContext();
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      stubFileSystemCommand(fsc, tempDir);
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      WidgetContext result = new ImageUploadWidget().post(context);
+
+      assertNotNull(result);
+      assertTrue(result.hasJson());
+      assertEquals("{\"error\": \"The file could not be saved: Read-only file system\"}", result.getJson());
+      verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      jobRequest.verify(() -> BackgroundJobRequest.enqueue(any(ImageVariantJob.class)), never());
+    }
+  }
+
+  @Test
+  void postAnswersWithA400WhenTheImageFailsValidation(@TempDir Path tempDir) throws Exception {
+    Part filePart = mockFilePart("photo.png", 100L);
+    when(request.getPart("file")).thenReturn(filePart);
+    WidgetContext context = newContext();
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ValidateImageCommand> validate = mockStatic(ValidateImageCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      stubFileSystemCommand(fsc, tempDir);
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      validate.when(() -> ValidateImageCommand.checkFile(any(Image.class)))
+          .thenThrow(new DataException("Could not determine image type"));
+
+      WidgetContext result = new ImageUploadWidget().post(context);
+
+      assertNotNull(result);
+      assertTrue(result.hasJson());
+      assertEquals("{\"error\": \"Could not determine image type\"}", result.getJson());
+      verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      jobRequest.verify(() -> BackgroundJobRequest.enqueue(any(ImageVariantJob.class)), never());
+    }
+  }
+
+  @Test
+  void postAnswersWithJsonAndNoErrorStatusOnSuccess(@TempDir Path tempDir) throws Exception {
+    Part filePart = mockFilePart("photo.png", 100L);
+    when(request.getPart("file")).thenReturn(filePart);
+    WidgetContext context = newContext();
+
+    Image savedImage = new Image();
+    savedImage.setId(42L);
+    savedImage.setFilename("photo.png");
+    savedImage.setWebPath("20260803120000");
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ValidateImageCommand> validate = mockStatic(ValidateImageCommand.class);
+        MockedStatic<SaveImageCommand> save = mockStatic(SaveImageCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      stubFileSystemCommand(fsc, tempDir);
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      save.when(() -> SaveImageCommand.saveImage(any(Image.class))).thenReturn(savedImage);
+
+      WidgetContext result = new ImageUploadWidget().post(context);
+
+      assertNotNull(result);
+      assertTrue(result.hasJson());
+      // A success keeps the {"location": ...} shape the embedded editors already read
+      assertTrue(result.getJson().contains("\"location\""));
+      verify(response, never()).setStatus(eq(HttpServletResponse.SC_BAD_REQUEST));
     }
   }
 }

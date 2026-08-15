@@ -64,8 +64,18 @@
     <input type="text" placeholder="Name" name="title" id="title" value="" required>
   </label>
   <label>URL <span class="required">*</span>
-    <input type="text" placeholder="URL" name="filename" id="filename" value="" required>
+    <input type="text" placeholder="URL" name="filename" id="filename" value="" required aria-describedby="externalLinkHelpText">
   </label>
+  <%-- Issue #1191: this form adds a pointer, not a copy. Someone arriving from the folder listing
+       reasonably reads it as a second way to upload, so say plainly what it does and what the
+       trade-off is -- a linked document sits outside this system's access control and audit trail,
+       which matters more here than on a general-purpose CMS. --%>
+  <p class="help-text" id="externalLinkHelpText">
+    This adds a link to a file stored somewhere else &mdash; nothing is uploaded and no copy is kept.
+    The link breaks if the file moves or its permissions change, and its access is controlled by
+    wherever it lives rather than by this site. To store a file here instead, close this form and
+    drag it onto the folder.
+  </p>
   <label>Summary
     <input type="text" placeholder="Summary" name="summary" id="summary" value="">
   </label>
