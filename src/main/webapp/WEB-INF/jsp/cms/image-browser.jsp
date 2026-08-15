@@ -247,7 +247,7 @@
         <div class="image-browser">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
           <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
-          <button type="button" class="image-browser-select js-mySubmit" data-src="<c:out value="${ctx}${imageHref}"/>" aria-label="Select <c:out value="${image.filename}"/>">
+          <button type="button" class="image-browser-select js-mySubmit" data-src="<c:out value="${ctx}${imageHref}"/>" data-target-id="<c:out value="${inputId}"/>" data-target-attr="value" aria-label="Select <c:out value="${image.filename}"/>">
             <img src="<c:out value="${ctx}${imageHref}"/>" alt=""
               <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
               decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
@@ -274,7 +274,9 @@
         if (imagePreview) {
           imagePreview.src = itemUrl;
         }
-        $('#imageBrowserReveal').foundation('close');
+        // Loaded inside the parent's reveal modal via an <iframe> (issue #1207), so close
+        // it through the parent window's jQuery rather than this frame's own scope.
+        top.jQuery('#imageBrowserReveal').foundation('close');
       }
     </c:when>
     <c:otherwise>
