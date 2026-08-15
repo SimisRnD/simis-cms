@@ -16,7 +16,6 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="pageListWiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
@@ -48,8 +47,32 @@
       "Are you sure you want to DELETE \"" + title + "\"? This cannot be undone.",
       "${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&wikiPageId=" + wikiPageId + "&returnPage=" + returnPage);
   }
+
+  // issue #1188: both controls below ran from inline attributes, which CSP blocks -- inline handler
+  // attributes fall under script-src-attr and the nonce authorises this block, not an attribute
+  // calling into it.  "New Page" never navigates anywhere itself: createWikiPage() sets
+  // window.location.href and always returns false. With the handler skipped the browser submitted
+  // the form instead, and because the title input has no name attribute that was a bare GET back to
+  // this same page -- so the button simply reloaded the list and the only way to create a page was
+  // the wiki editor URL by hand. The delete icon lost its confirm the same way, leaving a dead
+  // control.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('newWikiPageForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        createWikiPage();
+      });
+    }
+    document.querySelectorAll('[data-delete-wiki-page]').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        deleteWikiPage(link.getAttribute('data-delete-wiki-page'), link.getAttribute('data-delete-wiki-page-title'));
+      });
+    });
+  });
 </script>
-<form onsubmit="return createWikiPage();" class="margin-bottom-10">
+<form id="newWikiPageForm" class="margin-bottom-10">
   <div class="input-group">
     <input id="newWikiPageTitle" class="input-group-field" type="text" placeholder="New page title&#8230;" required>
     <div class="input-group-button">
@@ -83,7 +106,7 @@
         <td class="text-center">
           <a href="${ctx}/${pageListWiki.uniqueId}/${wikiPage.uniqueId}" title="View"><i class="fa fa-eye"></i></a>
           <a href="${ctx}/wiki-editor?wikiUniqueId=${pageListWiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${widgetContext.uri}%3FwikiId%3D${pageListWiki.id}" title="Edit"><i class="fa fa-edit"></i></a>
-          <a href="#" title="Delete" onclick="return deleteWikiPage(${wikiPage.id}, '<c:out value="${js:escape(wikiPage.title)}" />');"><i class="fa fa-remove"></i></a>
+          <a href="#" title="Delete" data-delete-wiki-page="${wikiPage.id}" data-delete-wiki-page-title="<c:out value="${wikiPage.title}" />"><i class="fa fa-remove"></i></a>
         </td>
       </tr>
     </c:forEach>
