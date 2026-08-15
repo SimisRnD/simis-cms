@@ -99,7 +99,13 @@ public class SaveFilePartCommand {
     return fileItemBean;
   }
 
-  private static long resolveMaxUploadBytes() {
+  /**
+   * The configured maximum upload size in bytes, from the {@code system.upload.maxBytes} site
+   * property (default 10 MB). This is the single source for the folder upload path's cap:
+   * {@link #saveFile(WidgetContext)} enforces it here, and FolderFileDropZoneWidget reads this same
+   * value to display it, so the advertised limit and the enforced limit cannot drift (issue #1198).
+   */
+  public static long resolveMaxUploadBytes() {
     long maxBytes = 10_485_760L; // 10MB default
     String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
     if (prop != null && !prop.isBlank()) {

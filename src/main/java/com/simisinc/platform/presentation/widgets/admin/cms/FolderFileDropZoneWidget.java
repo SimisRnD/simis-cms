@@ -92,6 +92,13 @@ public class FolderFileDropZoneWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // Advertise the same limit the server enforces. This widget's upload path (post() ->
+    // SaveFilePartCommand.saveFile()) rejects anything over SaveFilePartCommand.resolveMaxUploadBytes();
+    // surface that same value as whole megabytes so the drop zone's "max N MB" label and its
+    // client-side check read the one source and cannot drift from what is actually allowed (#1198).
+    long maxUploadMegabytes = Math.max(1L, SaveFilePartCommand.resolveMaxUploadBytes() / 1_048_576L);
+    context.getRequest().setAttribute("maxUploadSize", String.valueOf(maxUploadMegabytes));
+
     // Show the JSP
     context.setJsp(JSP);
     return context;
