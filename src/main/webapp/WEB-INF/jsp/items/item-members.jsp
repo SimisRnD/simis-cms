@@ -16,7 +16,6 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -46,9 +45,10 @@
         </c:if>
         <c:if test="${!empty user.city}"><small class="subheader"><c:out value="${user.city}" /></small></c:if>
         <c:if test="${canDelete eq 'true'}">
-          <a title="Remove member" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&memberId=${member.id}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape(user:name(member.userId))}" />?');"><i class="fa fa-remove"></i></a>
+          <a title="Remove member" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&memberId=${member.id}" data-confirm-href="Are you sure you want to remove <c:out value="${user:name(member.userId)}" />?"><i class="fa fa-remove"></i></a>
         </c:if>
       </li>
     </c:forEach>
   </ul>
 </c:if>
+<%@include file="../confirm_submit.jspf" %>

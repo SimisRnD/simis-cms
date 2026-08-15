@@ -30,10 +30,10 @@
        is reflected here as well as enforced on the action: a submitter is never shown Approve. --%>
   <c:choose>
     <c:when test="${reviewOffer eq 'publish'}">
-      <a class="button warning" href="${widgetContext.uri}?action=publish&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Publish this post?');">PUBLISH</a>
+      <a class="button warning" href="${widgetContext.uri}?action=publish&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Publish this post?">PUBLISH</a>
     </c:when>
     <c:when test="${reviewOffer eq 'submit'}">
-      <a class="button warning" href="${widgetContext.uri}?action=submitForReview&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Submit this post for review?');">SUBMIT FOR REVIEW</a>
+      <a class="button warning" href="${widgetContext.uri}?action=submitForReview&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Submit this post for review?">SUBMIT FOR REVIEW</a>
     </c:when>
     <c:when test="${reviewOffer eq 'awaiting'}">
       <span class="label warning" title="Another reviewer must approve this change">AWAITING REVIEW</span>
@@ -42,7 +42,7 @@
       <%-- The release-authority reference travels with the approval and is recorded in the audit
            trail ("cleared per PA case ...", "CO email dated ..."), which is what makes the trail
            exportable assessment evidence rather than just a timestamp. --%>
-      <form method="post" action="${widgetContext.uri}" class="platform-content-review-form">
+      <form method="post" action="${widgetContext.uri}" class="platform-content-review-form" data-confirm-submit="Approve and publish this post?">
         <input type="hidden" name="action" value="approve"/>
         <input type="hidden" name="blogPostId" value="${blogPost.id}"/>
         <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -56,13 +56,13 @@
           <input type="password" name="stepUpCredential" maxlength="255"
                  placeholder="Your password or authenticator code"/>
         </label>
-        <button type="submit" class="button success"
-                onclick="return confirm('Approve and publish this post?');">APPROVE</button>
+        <button type="submit" class="button success">APPROVE</button>
       </form>
-      <a class="button alert" href="${widgetContext.uri}?action=reject&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Return this post to the author?');">REJECT</a>
+      <a class="button alert" href="${widgetContext.uri}?action=reject&blogPostId=${blogPost.id}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Return this post to the author?">REJECT</a>
     </c:when>
     <c:otherwise>
       <p class="small">There is no pending draft to review.</p>
     </c:otherwise>
   </c:choose>
 </c:if>
+<%@include file="../confirm_submit.jspf" %>
