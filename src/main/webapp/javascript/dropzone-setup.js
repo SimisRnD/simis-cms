@@ -1,9 +1,13 @@
 // Initialize Dropzone with consistent options and behavior
-function initializeDropzone(containerId, maxFilesize) {
+// acceptedFiles is optional -- when omitted, Dropzone's own default (accept anything) applies, so
+// existing callers that pass only two arguments are unaffected. The image library passes 'image/*'
+// so a non-image is rejected in the browser instead of after a round trip.
+function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
   Dropzone.options[containerId] = {
     autoProcessQueue: false,
     parallelUploads: 2,
     maxFilesize: maxFilesize,
+    acceptedFiles: acceptedFiles,
     clickable: '#dz-browse',
     dictDefaultMessage: 'Drag and drop files here (max ' + maxFilesize + ' MB)<br/><br/>or use the Browse button below',
     init: function() {
