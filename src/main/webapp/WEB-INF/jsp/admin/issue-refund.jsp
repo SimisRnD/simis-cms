@@ -30,7 +30,7 @@
     <span aria-hidden="true">&times;</span>
   </button>
   <h4 id="refundFormRevealTitle">Issue a Refund</h4>
-  <form id="issueRefundForm" method="post" autocomplete="off" onsubmit="return issueRefund()">
+  <form id="issueRefundForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -68,4 +68,19 @@
     }
     return false;
   }
+
+  // issue #1188: this guard was an inline onsubmit attribute. CSP (script-src-attr) blocks inline
+  // handler attributes -- the nonce authorises this block, not an attribute calling into it -- so
+  // neither the "cannot be undone" confirm nor the double-submit guard ran, and the refund posted
+  // on the first click.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('issueRefundForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!issueRefund()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>

@@ -25,7 +25,7 @@
 <hr/>
 <%-- Page Scripts --%>
 <%@include file="../page_messages.jspf" %>
-<form method="post" onsubmit="return placeOrder()" >
+<form method="post" id="placeOrderForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -42,4 +42,19 @@
     button.textContent = "Processing your order…";
     return true;
   }
+
+  // issue #1188: this guard was an inline onsubmit attribute. CSP (script-src-attr) blocks inline
+  // handler attributes -- the nonce authorises this block, not an attribute calling into it -- so
+  // the button was never disabled and never showed "Processing your order…", leaving a double-click
+  // free to place the same order twice.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('placeOrderForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!placeOrder()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
