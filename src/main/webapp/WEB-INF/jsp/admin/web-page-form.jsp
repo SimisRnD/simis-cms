@@ -224,4 +224,32 @@
             }, 1000);
         });
     })
+
+    // Bind here rather than relying on the injected fragment's own <script> (issue #1207). The
+    // fragment loads via $.ajax + .html(content), which strips/orphans its script's nonce -- a
+    // nonce only authorises the document it was minted for, and jQuery's re-execution via
+    // globalEval doesn't carry it over anyway. Delegating the click from this page's own nonce'd
+    // block means nothing has to survive the injection; the fragment just describes what to do
+    // via data-target-id/data-target-attr, set server-side from the same inputId it was loaded with.
+    document.getElementById('imageBrowserReveal').addEventListener('click', function (event) {
+        var el = event.target.closest('.js-mySubmit');
+        if (!el) {
+            return;
+        }
+        var targetId = el.getAttribute('data-target-id');
+        var targetAttr = el.getAttribute('data-target-attr');
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (!target || !targetAttr) {
+            return;
+        }
+        event.preventDefault();
+        target[targetAttr] = el.getAttribute('data-src');
+        if (targetAttr === 'value') {
+            var preview = document.getElementById(targetId + 'Preview');
+            if (preview) {
+                preview.src = el.getAttribute('data-src');
+            }
+        }
+        $('#imageBrowserReveal').foundation('close');
+    });
 </script>
