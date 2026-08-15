@@ -157,6 +157,11 @@
   <c:if test="${!empty pageRenderInfo.canonicalUrl}">
     <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
   </c:if>
+  <%-- Atom feed autodiscovery (issue #1182). Gated on the same site property FeedServlet checks,
+       so the tag never advertises a feed that would answer 404. --%>
+  <c:if test="${sitePropertyMap['site.feed.xml'] eq 'true' && !empty sitePropertyMap['site.url']}">
+    <link rel="alternate" type="application/atom+xml" title="<c:out value="${sitePropertyMap['site.name']}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed.xml" />
+  </c:if>
   <%-- Issue #419: a draft preview link renders unreviewed content -- keep it out of search indexes --%>
   <c:if test="${previewingDraft eq 'true'}">
     <meta name="robots" content="noindex" />

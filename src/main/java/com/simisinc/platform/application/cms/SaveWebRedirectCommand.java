@@ -70,7 +70,7 @@ public class SaveWebRedirectCommand {
   private static final String[] RESERVED_FROM_PATH_PREFIXES = {
       "/admin", "/login", "/logout", "/api", "/healthz", "/.well-known",
       "/favicon", "/css", "/fonts", "/html", "/images", "/javascript",
-      "/combined.css", "/combined.js", "/sitemap.xml"
+      "/combined.css", "/combined.js", "/sitemap.xml", "/feed.xml", "/feed"
   };
 
   private SaveWebRedirectCommand() {

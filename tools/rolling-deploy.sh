@@ -17,32 +17,36 @@ set -euo pipefail
 # Rollback on failure: if staging health check fails, delete staging and restore old instance
 #
 # ---------------------------------------------------------------------------
-# KNOWN LIMITATION -- this script cannot currently succeed against the Azure
-# pilot, and the reason is architectural rather than a misconfiguration.
+# HEALTH SIGNAL DESIGN -- read this before changing step 3.
 #
-# Step 3 polls https://<staging-slot>/healthz from the GitHub Actions runner,
-# over the public internet. The pilot's App Service runs with
+# The health check that gates a swap runs INSIDE Azure, not from the CI runner.
+# This is not a stylistic preference. The App Service runs with
 # `publicNetworkAccess: Disabled` (ingress is Front Door's Private Link origin
-# only), and a slot inherits that setting. Verified 2026-08-14 against a real
-# staging slot: the slot's hostname answers HTTP 403 "Web App - Unavailable"
-# from outside Azure. The health check can therefore never pass; the script
-# would poll for the full timeout, delete staging, and exit non-zero on every
-# run. Production is never touched, so this fails safe -- it simply never
-# succeeds.
+# only) and a deployment slot inherits that setting. Verified 2026-08-14
+# against a real staging slot: the slot's hostname answers HTTP 403
+# "Web App - Unavailable" from outside Azure. An earlier version of this script
+# polled https://<staging-slot>/healthz with curl from the GitHub Actions
+# runner, which could never pass -- it would poll for the full timeout, delete
+# staging, and exit non-zero on every run.
 #
-# Two further gaps found in the same test:
-#   - The CI service principal has AcrPush but no rights to create or swap
-#     slots, so step 1 fails before any of the above is reached.
+# The fix is App Service's own swap warm-up. `WEBSITE_SWAP_WARMUP_PING_PATH`
+# and `WEBSITE_SWAP_WARMUP_PING_STATUSES` (set in
+# infra/modules/appservice.bicep) tell Azure to request that path on the slot
+# from inside the platform and to abort the swap unless it answers 200. So the
+# swap in step 4 IS the health gate: if the new build cannot serve /healthz,
+# `az webapp deployment slot swap` fails and production is never touched.
+#
+# Do NOT "fix" a swap failure by exposing the staging slot publicly. That would
+# put an unprotected copy of the app outside Front Door and the WAF.
+#
+# Two further requirements, both easy to miss:
+#   - The CI service principal needs rights to create and swap slots on this
+#     one App Service (roughly Website Contributor, scoped to the resource).
+#     AcrPush alone is not enough; without it step 1 fails immediately.
 #   - `--configuration-source` clones app settings but NOT VNet integration
-#     (the created slot had virtualNetworkSubnetId = null), so a staging slot
+#     (a slot created that way has virtualNetworkSubnetId = null), so the slot
 #     cannot reach PostgreSQL or Key Vault through their private endpoints and
-#     would not start even if it were reachable.
-#
-# Making this work needs a health signal that originates inside Azure rather
-# than from the runner -- App Service's own warm-up/health-check on swap is the
-# most likely answer. Tracked as its own issue; do not "fix" this by exposing
-# the staging slot publicly, which would put an unprotected copy of the app
-# outside Front Door and the WAF.
+#     will never pass warm-up. Step 1b below adds it explicitly.
 # ---------------------------------------------------------------------------
 #
 # Usage:
@@ -137,6 +141,41 @@ else
   log "  ✓ staging slot created"
 fi
 
+# ============================================================================
+# Step 1b: Attach the slot to the VNet
+# ============================================================================
+#
+# --configuration-source clones app settings but NOT VNet integration, so a
+# freshly created slot has virtualNetworkSubnetId = null and cannot reach
+# PostgreSQL or Key Vault through their private endpoints. It would start,
+# fail every dependency, and never answer /healthz -- which the swap warm-up
+# would then correctly refuse to accept. Attach it explicitly.
+#
+# Idempotent: re-adding an already-integrated subnet is a no-op.
+
+SLOT_SUBNET_ID=$(az webapp show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --query "virtualNetworkSubnetId" \
+  --output tsv)
+
+if [[ -z "$SLOT_SUBNET_ID" || "$SLOT_SUBNET_ID" == "None" ]]; then
+  # Production itself is not VNet-integrated, so the slot does not need to be
+  # either -- but say so rather than silently skipping a step this script
+  # claims to perform.
+  log "  production has no VNet integration; skipping slot VNet attach"
+else
+  log "  Attaching staging slot to the production subnet..."
+  az webapp vnet-integration add \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_SERVICE_NAME" \
+    --slot staging \
+    --vnet "$(echo "$SLOT_SUBNET_ID" | cut -d'/' -f9)" \
+    --subnet "$(echo "$SLOT_SUBNET_ID" | cut -d'/' -f11)" \
+    || die "Failed to attach the staging slot to the VNet -- see the Azure error above"
+  log "  ✓ staging slot attached to the VNet"
+fi
+
 NEXT_FQDN=$(az webapp show \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
@@ -144,7 +183,9 @@ NEXT_FQDN=$(az webapp show \
   --query "defaultHostName" \
   --output tsv)
 
-log "  Deploying to: staging (FQDN: $NEXT_FQDN)"
+# Logged as a diagnostic only -- this hostname answers 403 from outside Azure by design
+# (publicNetworkAccess Disabled, inherited by the slot). Do not try to reach it from CI.
+log "  Deploying to: staging (internal FQDN, not publicly reachable: $NEXT_FQDN)"
 
 # ============================================================================
 # Step 2: Deploy new image to the staging slot
@@ -169,35 +210,44 @@ az webapp config container set \
 log "  Deployment queued. Container pulling..."
 
 # ============================================================================
-# Step 3: Wait for health check to pass
+# Step 3: Give the container time to pull and start
+# ============================================================================
+#
+# This is a settle window, NOT a health gate. The health gate is the swap
+# itself (step 4): App Service pings WEBSITE_SWAP_WARMUP_PING_PATH on the slot
+# from inside Azure and refuses to complete the swap unless it answers 200.
+#
+# An earlier version of this script polled the slot with curl from the runner.
+# That could never succeed -- see the HEALTH SIGNAL DESIGN note at the top of
+# this file. Do not reintroduce it.
+#
+# Waiting here at all is a courtesy to the swap: a container that has not begun
+# starting will burn warm-up retries. HEALTH_CHECK_TIMEOUT is reused as the
+# name for this window so the workflow's existing arguments keep working.
+
+log "Step 3: Allowing ${HEALTH_CHECK_TIMEOUT}s for the container to pull and start..."
+log "  (readiness is enforced by App Service swap warm-up in step 4, not from this runner)"
+
+sleep "$HEALTH_CHECK_TIMEOUT"
+
+log "  ✓ Settle window complete"
+
+# ============================================================================
+# Step 4: Swap slots (traffic redirect)
 # ============================================================================
 
-log "Step 3: Polling /healthz for readiness (timeout: ${HEALTH_CHECK_TIMEOUT}s)..."
+log "Step 4: Swapping slots (production ↔ staging)..."
+log "  App Service will ping the slot's warm-up path from inside Azure and abort if it fails."
 
-HEALTH_CHECK_PASSED=0
-ELAPSED=0
-INTERVAL=5
-
-while [[ $ELAPSED -lt $HEALTH_CHECK_TIMEOUT ]]; do
-  RESPONSE=$(curl -s -w "\n%{http_code}" "https://$NEXT_FQDN/healthz" 2>/dev/null || echo "")
-  HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-  BODY=$(echo "$RESPONSE" | head -1)
-
-  log_debug "  Attempt $((ELAPSED / INTERVAL + 1)): HTTP $HTTP_CODE"
-
-  if [[ "$HTTP_CODE" == "200" ]] && echo "$BODY" | grep -q '"status":"UP"'; then
-    log "  ✓ Health check PASSED (HTTP 200, status=UP)"
-    HEALTH_CHECK_PASSED=1
-    break
-  fi
-
-  sleep "$INTERVAL"
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
-
-if [[ $HEALTH_CHECK_PASSED -eq 0 ]]; then
-  log "❌ Health check FAILED (timeout after ${HEALTH_CHECK_TIMEOUT}s)"
-  log "Initiating rollback: deleting staging slot (production was never touched)..."
+if ! az webapp deployment slot swap \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging; then
+  # A failed swap means warm-up never got a 200 from the new build. Azure leaves
+  # production untouched, so this fails safe -- the old build is still serving.
+  log "❌ Swap FAILED -- the new build did not pass App Service warm-up"
+  log "Production was not modified and is still serving the previous build."
+  log "Deleting the staging slot so the next run starts clean..."
 
   az webapp deployment slot delete \
     --resource-group "$RESOURCE_GROUP" \
@@ -205,20 +255,8 @@ if [[ $HEALTH_CHECK_PASSED -eq 0 ]]; then
     --slot staging \
     --yes || log "  Warning: failed to delete staging slot (see the Azure error above)"
 
-  die "Health check failed; rolled back staging deployment"
+  die "Swap failed warm-up; production untouched"
 fi
-
-# ============================================================================
-# Step 4: Swap slots (traffic redirect)
-# ============================================================================
-
-log "Step 4: Swapping slots (production ↔ staging)..."
-
-az webapp deployment slot swap \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "$APP_SERVICE_NAME" \
-  --slot staging \
-  || die "Failed to swap slots -- see the Azure error above"
 
 log "  ✓ Slot swap complete (traffic now on production; staging holds the previous build)"
 

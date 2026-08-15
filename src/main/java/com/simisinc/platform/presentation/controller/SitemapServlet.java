@@ -20,6 +20,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -27,6 +28,8 @@ import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
@@ -208,6 +211,7 @@ public class SitemapServlet extends HttpServlet {
     entries.addAll(itemEntries(siteUrl));
     entries.addAll(blogPostEntries(siteUrl));
     entries.addAll(wikiPageEntries(siteUrl));
+    entries.addAll(calendarEventEntries(siteUrl));
     return entries;
   }
 
@@ -412,6 +416,49 @@ public class SitemapServlet extends HttpServlet {
       }
     } catch (Exception e) {
       LOG.warn("Error adding wiki pages to sitemap: " + e.getMessage());
+    }
+    return entries;
+  }
+
+  /**
+   * One entry per publicly-viewable calendar event (issue #1181). Events were previously absent
+   * from the sitemap entirely, so /calendar-event/... URLs were discoverable only by following a
+   * link out of a rendered calendar widget.
+   *
+   * <p>Visibility is enforced with three filters rather than one. calendarEnabledOnly mirrors the
+   * check CalendarEventDetailsWidget performs before it will render an event at all, so the
+   * sitemap can never advertise a URL that answers 404 to a visitor. publishedOnly and
+   * archivedOnly are deliberately stricter than that widget, which today gates on the parent
+   * calendar alone: an unpublished or archived event is not something to hand a crawler, and
+   * erring toward advertising less is the only safe direction for a file whose whole purpose is
+   * to tell search engines what to index.
+   *
+   * <p>No changefreq/priority is set -- like BlogPost, CalendarEvent has no per-record override
+   * for either, and inventing one would be a guess rather than real data.
+   */
+  private List<SitemapUrlEntry> calendarEventEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
+    try {
+      CalendarEventSpecification spec = new CalendarEventSpecification();
+      spec.setCalendarEnabledOnly(true);
+      spec.setPublishedOnly(true);
+      spec.setArchivedOnly(false);
+      List<CalendarEvent> calendarEvents = CalendarEventRepository.findAll(spec, null);
+
+      if (calendarEvents != null) {
+        for (CalendarEvent calendarEvent : calendarEvents) {
+          if (calendarEvent == null || StringUtils.isBlank(calendarEvent.getUniqueId())) {
+            continue;
+          }
+          String lastmod = calendarEvent.getModified() != null ? formatDate(calendarEvent.getModified()) : null;
+          long modifiedTimestamp = calendarEvent.getModified() != null ? calendarEvent.getModified().getTime() : 0L;
+          entries.add(new SitemapUrlEntry(
+              escapeXml(siteUrl + "/calendar-event/" + calendarEvent.getUniqueId()), lastmod, null, null,
+              modifiedTimestamp));
+        }
+      }
+    } catch (Exception e) {
+      LOG.warn("Error adding calendar events to sitemap: " + e.getMessage());
     }
     return entries;
   }
