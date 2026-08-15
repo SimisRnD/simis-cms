@@ -19,3 +19,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- as the properties above.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Geo Anomaly Baseline Window (days)', 'security.geoAnomalyBaselineDays', '30', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (41, 'Geo Anomaly Recent Window (hours)', 'security.geoAnomalyRecentHours', '24', 'text');
+
+-- Issue #419: how long a generated draft-preview link stays valid. Mirrors the insert in
+-- UPGRADE_20260804.1002__web_page_preview_tokens.sql, which seeded this on existing deployments
+-- only -- fresh installs never got the row, so GeneratePreviewLinkCommand fell back to its
+-- DEFAULT_TTL_HOURS and the setting never appeared on this page for an admin to change.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Draft Preview Link Expiry (hours)', 'security.previewLinkTtlHours', '24', 'text');
