@@ -17,7 +17,6 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
-<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
@@ -71,9 +70,10 @@
         </c:when>
       </c:choose>
       <c:if test="${canDelete eq 'true'}">
-        <a title="Delete file" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?');"><i class="fa fa-remove"></i></a>
+        <a title="Delete file" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}" data-confirm-href="Are you sure you want to delete <c:out value="${file.filename}" />?"><i class="fa fa-remove"></i></a>
       </c:if>
     </li>
   </c:forEach>
   </ul>
 </c:if>
+<%@include file="../confirm_submit.jspf" %>

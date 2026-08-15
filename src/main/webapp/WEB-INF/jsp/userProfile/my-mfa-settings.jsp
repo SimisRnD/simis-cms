@@ -48,22 +48,20 @@
       </div>
     </c:if>
     <p>Recovery codes remaining: <strong><c:out value="${recoveryRemaining}"/></strong></p>
-    <form method="post">
+    <form method="post" data-confirm-submit="Replace your recovery codes? Your current codes will stop working.">
       <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
       <input type="hidden" name="token" value="${userSession.formToken}"/>
       <input type="hidden" name="action" value="regenerate"/>
-      <input type="submit" class="button secondary radius" value="Generate new recovery codes"
-             onclick="return confirm('Replace your recovery codes? Your current codes will stop working.');"/>
+      <input type="submit" class="button secondary radius" value="Generate new recovery codes"/>
     </form>
-    <form method="post">
+    <form method="post" data-confirm-submit="Turn off two-factor authentication for your account?">
       <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
       <input type="hidden" name="token" value="${userSession.formToken}"/>
       <input type="hidden" name="action" value="disable"/>
       <input type="password" name="stepUpCredential" maxlength="255"
              placeholder="Your password or authenticator code" required
              title="Enter your password or 6-digit authenticator code to confirm"/>
-      <input type="submit" class="button alert radius" value="Turn off two-factor authentication"
-             onclick="return confirm('Turn off two-factor authentication for your account?');"/>
+      <input type="submit" class="button alert radius" value="Turn off two-factor authentication"/>
     </form>
   </c:when>
   <%-- Enrollment in progress: scan/enter the secret, then confirm a code --%>
@@ -104,3 +102,4 @@
 </c:choose>
 <script src="${ctx}/javascript/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="${ctx}/javascript/mfa-qrcode.js"></script>
+<%@include file="../confirm_submit.jspf" %>
