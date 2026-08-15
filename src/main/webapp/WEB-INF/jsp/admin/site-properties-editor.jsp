@@ -847,7 +847,11 @@
   // (CodeQL js/xss-through-dom). currentPhotoId selects which property field to target; the
   // fragment itself closes this modal via top.jQuery once an image is selected.
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
-    document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl' + currentPhotoId + '&view=reveal';
+    // currentPhotoId comes from a data-photo-id attribute; a site-property id is always
+    // numeric, so restrict it to digits before composing the iframe src -- this keeps
+    // DOM-derived text out of the URL (CodeQL js/xss-through-dom).
+    var photoId = String(currentPhotoId).replace(/[^0-9]/g, '');
+    document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl' + photoId + '&view=reveal';
   });
   $('#imageBrowserReveal').on('closed.zf.reveal', function () {
     document.getElementById('imageBrowserFrame').removeAttribute('src');
