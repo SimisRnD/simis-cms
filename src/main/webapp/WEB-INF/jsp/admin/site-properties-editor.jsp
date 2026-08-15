@@ -713,7 +713,7 @@
   </div>
 </form>
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
-  <h3>Loading...</h3>
+  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
 </div>
 <script nonce="${cspNonce}">
   <%-- Map the variable property to the mapped CSS classes --%>
@@ -841,17 +841,19 @@
   });
 </script>
 <script nonce="${cspNonce}">
+  // Load the image browser in an iframe so its own nonce-valid script runs and can populate
+  // the parent field via top.document. Injecting the fragment's HTML with .html() instead
+  // stripped the nonce (issue #1207) and reinterpreted the fetched markup as HTML
+  // (CodeQL js/xss-through-dom). currentPhotoId selects which property field to target; the
+  // fragment itself closes this modal via top.jQuery once an image is selected.
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
-    $('#imageBrowserReveal').html("<h3>Loading...</h3>");
-    $.ajax({
-      url: '${ctx}/image-browser?inputId=imageUrl' + currentPhotoId + '&view=reveal',
-      cache: false,
-      dataType: 'html'
-    }).done(function (content) {
-      setTimeout(function () {
-        $('#imageBrowserReveal').html(content);
-        $('#imageBrowserReveal').trigger('resizeme.zf.trigger');
-      }, 1000);
-    });
-  })
+    // currentPhotoId comes from a data-photo-id attribute; a site-property id is always
+    // numeric, so restrict it to digits before composing the iframe src -- this keeps
+    // DOM-derived text out of the URL (CodeQL js/xss-through-dom).
+    var photoId = String(currentPhotoId).replace(/[^0-9]/g, '');
+    document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl' + photoId + '&view=reveal';
+  });
+  $('#imageBrowserReveal').on('closed.zf.reveal', function () {
+    document.getElementById('imageBrowserFrame').removeAttribute('src');
+  });
 </script>

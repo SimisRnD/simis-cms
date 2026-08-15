@@ -35,7 +35,7 @@
 </c:if>
 <c:forEach items="${fileItemList}" var="file" varStatus="status">
   <i class="fa fa-file-video-o"></i>
-  <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+  <a href="#" style="text-decoration: underline;" class="js-mySubmit" data-src="${ctx}/assets/view/${file.url}" data-target-id="<c:out value="${inputId}"/>" data-target-attr="href"><c:out value="${file.title}" /></a>
   <small><c:out value="${file.mimeType}" /></small>
   <small><c:out value="${number:suffix(file.fileLength)}"/></small>
   <c:if test="${!status.last}"><br /></c:if>
