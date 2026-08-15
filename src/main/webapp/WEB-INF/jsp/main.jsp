@@ -880,11 +880,10 @@
         });
         <%-- CSP-safe admin action links (issue #1188). PageServlet sends Content-Security-Policy
              with script-src 'self' 'nonce-...' and no 'unsafe-inline'/'unsafe-hashes', so an inline
-             onclick= never runs: an action link that used onclick="return confirmPostAction('msg','url')"
-             silently did nothing (and confirmPostAction is scoped to this ready() closure, so an inline
-             handler could not reach it either). Such links now declare data-confirm-post (the confirm
-             message) and data-post-url (the POST target) and are bound here instead. confirmPostAction
-             and postAction are defined below in this same nonce'd $(document).ready block. --%>
+             onclick= never runs -- an action link that used onclick="return confirmPostAction('msg','url')"
+             silently did nothing. Such links now declare data-confirm-post (the confirm message) and
+             data-post-url (the POST target) and are bound here instead. confirmPostAction/postAction are
+             the same globals those inline handlers called, defined further down in this nonce'd block. --%>
         $(document).on('click', 'a[data-confirm-post]', function (event) {
           event.preventDefault();
           confirmPostAction($(this).attr('data-confirm-post'), $(this).attr('data-post-url'));
