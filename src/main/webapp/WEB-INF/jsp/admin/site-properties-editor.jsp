@@ -369,7 +369,7 @@
             <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
-            <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer Style above is set to "Custom XML".</p>
+            <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer theme above is set to "Custom XML".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
@@ -585,13 +585,13 @@
             <p class="help-text" id="siteNewsletterBackgroundColorHelpText">The background color of the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo'}">
-            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo color setting on the Theme Settings page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.white'}">
-            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo color setting on the Theme Settings page. It is also used automatically as the dark-mode logo, whichever variant Logo color selects for light mode; when it's left blank, the light-mode logo is reused in dark mode.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
-            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo color setting on the Theme Settings page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
@@ -692,7 +692,7 @@
   </c:if>
   <c:if test="${prefix eq 'site'}">
     <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
-    <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Enable API?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
+    <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Is API enabled?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
   </c:if>
   <c:if test="${prefix eq 'theme'}">
     <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu Theme or Footer Theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color Scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
