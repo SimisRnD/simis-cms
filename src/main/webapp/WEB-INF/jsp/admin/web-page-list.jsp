@@ -76,10 +76,6 @@
     <tr>
       <td></td>
       <c:choose>
-        <c:when test="${menuTab.link eq '/'}">
-          <td></td>
-          <td><span class="success label">live</span></td>
-        </c:when>
         <c:when test="${fn:contains(standardPages, menuTab.link)}">
           <td>
             <%--<a href="${ctx}${menuTab.link}"><i class="fa fa-check-circle"></i></a>--%>
