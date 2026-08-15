@@ -29,10 +29,11 @@ INSERT INTO site_properties (property_label, property_name, property_value) VALU
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Customizations path', 'system.customizations.filepath', '/opt/simis/customization');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config');
--- Mirrors UPGRADE_20260725.1004__upload_max_bytes.sql so a fresh install and an upgraded
--- deployment hold the same row. Existing installs got this from that migration; without it here,
--- fresh installs relied on the 10 MB default hardcoded at each of the four read sites instead.
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Maximum upload size (bytes)', 'system.upload.maxBytes', '10485760');
+-- The single server-enforced upload ceiling for every upload path (folder drop zone, image
+-- upload, dataset upload, media API). Introduced at 10 MB by UPGRADE_20260725.1004 and raised to
+-- 50 MB by UPGRADE_20260815.1000 for issue #1198; seeded here at the raised value so a fresh
+-- install enforces the same ceiling as an upgraded deployment rather than the older 10 MB.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Maximum upload size (bytes)', 'system.upload.maxBytes', '52428800');
 -- Mirrors UPGRADE_20260725.1003__dataset_max_rows.sql for the same reason (issue #1211): the row
 -- existed only in the upgrade path, so fresh installs never had it. Read by
 -- DatasetDownloadRemoteFileCommand.resolveMaxRows() to bound accumulated rows during a paged

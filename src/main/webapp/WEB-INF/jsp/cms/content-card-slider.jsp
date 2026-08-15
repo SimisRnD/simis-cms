@@ -58,6 +58,14 @@
       </div>
     </div>
     <div id="swiper-pagination${widgetContext.uniqueId}" class="swiper-pagination"></div>
+<c:if test="${autoplayDelay ne '-1' && fn:length(cardList) gt 1}">
+    <%-- WCAG 2.2.2 (Pause, Stop, Hide): a keyboard-reachable control to stop the auto-advance. --%>
+    <div class="swiper-autoplay-control text-center">
+      <button type="button" id="swiper-autoplay-toggle${widgetContext.uniqueId}" class="button clear small swiper-autoplay-toggle" aria-pressed="false" aria-label="Pause automatic slide rotation">
+        <i class="${font:fas()} fa-pause" aria-hidden="true"></i>
+      </button>
+    </div>
+</c:if>
 <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
   <c:if test="${showLeftControl eq 'true'}">
     <div id="swiper-button-prev${widgetContext.uniqueId}" class="swiper-button-prev"></div>
@@ -106,4 +114,48 @@
           }
         </c:if>
     });
+<c:if test="${autoplayDelay ne '-1' && fn:length(cardList) gt 1}">
+    // WCAG 2.2.2: give the visitor a way to stop the auto-advance, and honor the OS-level
+    // reduced-motion preference (Swiper's autoplay is a JS timer, so a CSS media query alone
+    // cannot stop it -- issue #1217).
+    (function () {
+      var sw = swiper${widgetContext.uniqueId};
+      if (!sw || !sw.autoplay) {
+        return;
+      }
+      var toggle = document.getElementById('swiper-autoplay-toggle${widgetContext.uniqueId}');
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      var paused = false;
+      function setPaused(next) {
+        paused = next;
+        if (paused) {
+          sw.autoplay.stop();
+        } else {
+          sw.autoplay.start();
+        }
+        if (toggle) {
+          toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+          toggle.setAttribute('aria-label', paused ? 'Resume automatic slide rotation' : 'Pause automatic slide rotation');
+          var icon = toggle.querySelector('i');
+          if (icon) {
+            icon.classList.remove('fa-pause', 'fa-play');
+            icon.classList.add(paused ? 'fa-play' : 'fa-pause');
+          }
+        }
+      }
+      // Start paused when the visitor prefers reduced motion, and react if they change that
+      // OS setting without reloading the page.
+      if (reduceMotion.matches) {
+        setPaused(true);
+      }
+      reduceMotion.addEventListener('change', function (event) {
+        setPaused(event.matches);
+      });
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          setPaused(!paused);
+        });
+      }
+    })();
+</c:if>
 </script>
