@@ -63,7 +63,8 @@ public class SaveFilePartCommand {
       }
       long maxBytes = resolveMaxUploadBytes();
       if (fileLength > maxBytes) {
-        throw new DataException("The file exceeds the maximum allowed upload size");
+        long maxMegabytes = Math.max(1L, maxBytes / 1_048_576L);
+        throw new DataException("The file exceeds the maximum allowed upload size of " + maxMegabytes + " MB");
       }
 
       LOG.debug("Found a file...");
@@ -78,6 +79,13 @@ public class SaveFilePartCommand {
       LOG.debug("Writing file " + fileLength + " bytes");
       filePart.write(tempFile.getAbsolutePath());
 
+    } catch (DataException de) {
+      // A deliberate, user-facing rejection (e.g. the size limit above) keeps its own specific
+      // message instead of being flattened into the generic message below.
+      if (tempFile != null && tempFile.exists()) {
+        tempFile.delete();
+      }
+      throw de;
     } catch (Exception e) {
       LOG.warn("Could not handle file: " + e.getMessage());
       // Clean up the file

@@ -91,7 +91,11 @@ class SaveFilePartCommandTest {
       stubFileSystemCommand(fsc, tempDir);
       props.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn("52428800");
 
-      Assertions.assertThrows(DataException.class, () -> SaveFilePartCommand.saveFile(context));
+      DataException thrown = Assertions.assertThrows(DataException.class,
+          () -> SaveFilePartCommand.saveFile(context));
+      // The specific size-limit message must survive the method's catch block, not be flattened
+      // into the generic "There was an issue with the file"
+      Assertions.assertEquals("The file exceeds the maximum allowed upload size of 50 MB", thrown.getMessage());
       // The file must be rejected before anything is written to disk
       verify(filePart, never()).write(anyString());
     }
