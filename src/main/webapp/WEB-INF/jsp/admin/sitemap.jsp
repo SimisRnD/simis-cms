@@ -111,7 +111,7 @@
           <div class="float-left">
             <small class="subheader">
               <c:if test="${!status.first}"><i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i></c:if>
-              <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a>
+              <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a><c:if test="${menuTab.link eq '/'}"> (Homepage)</c:if>
             </small>
           </div>
         </div>

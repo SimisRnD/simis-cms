@@ -64,7 +64,7 @@
             <small class="subheader">
               <c:choose>
                 <c:when test="${status.first}">
-                  <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a>
+                  <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a><c:if test="${menuTab.link eq '/'}"> (Homepage)</c:if>
                 </c:when>
                 <c:otherwise>
                   <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
