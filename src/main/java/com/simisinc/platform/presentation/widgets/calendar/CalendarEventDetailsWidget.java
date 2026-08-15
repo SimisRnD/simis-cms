@@ -67,6 +67,11 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     // Determine the view
     context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     context.setPageTitle(calendarEvent.getTitle());
+    // Bridge the event for Event JSON-LD (issue #1181). This is set only after the calendar-enabled
+    // check above, so PageServlet never sees an event the visitor could not already read. PageServlet
+    // cannot resolve the event itself -- /calendar-event{/event-unique-id} is a wildcard page and
+    // this widget performs the lookup -- which is the same reason Product schema is bridged.
+    context.setCalendarEvent(calendarEvent);
     context.setJsp(JSP);
     return context;
   }
