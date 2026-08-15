@@ -24,7 +24,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
-<form method="post" onsubmit="return checkOrderTracking()">
+<form method="post" id="checkOrderTrackingForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -43,4 +43,18 @@
     }
     return false;
   }
+
+  // issue #1188: this guard was an inline onsubmit attribute. CSP (script-src-attr) blocks inline
+  // handler attributes -- the nonce authorises this block, not an attribute calling into it -- so
+  // the confirm and the double-submit guard were both skipped and the carrier lookup ran anyway.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('checkOrderTrackingForm');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!checkOrderTracking()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
