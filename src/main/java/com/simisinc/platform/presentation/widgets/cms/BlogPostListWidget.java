@@ -52,6 +52,7 @@ public class BlogPostListWidget extends GenericWidget {
   static String JSP = "/cms/blog-post-list.jsp";
   static String OVERVIEW_JSP = "/cms/blog-post-list-overview.jsp";
   static String TITLES_JSP = "/cms/blog-post-list-titles.jsp";
+  static String PANEL_JSP = "/cms/blog-post-list-panel.jsp";
   static String CARDS_JSP = "/cms/blog-post-list-cards.jsp";
   static String FEATURED_JSP = "/cms/blog-post-list-featured.jsp";
   static String MASONRY_JSP = "/cms/blog-post-list-masonry.jsp";
@@ -189,6 +190,14 @@ public class BlogPostListWidget extends GenericWidget {
     } else if ("titles".equals(view)) {
       context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
       context.setJsp(TITLES_JSP);
+    } else if ("panel".equals(view)) {
+      // A compact, static list intended for a sidebar/rail placement (e.g. a "Latest News" panel) --
+      // no slider, no auto-advancing motion, so there is nothing here that needs a pause control or
+      // a prefers-reduced-motion check. Every item is a plain server-rendered link, which also keeps
+      // it fully crawlable -- unlike carousel slide state, a search engine sees every entry.
+      context.getRequest().setAttribute("viewAllUrl", context.getPreferences().get("viewAllUrl"));
+      context.getRequest().setAttribute("viewAllText", context.getPreferences().getOrDefault("viewAllText", "View all"));
+      context.setJsp(PANEL_JSP);
     } else if ("cards".equals(view)) {
 
       // Determine the number of cards to use across
