@@ -52,6 +52,25 @@
     xhr.open("POST", '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}');
     xhr.send(formData);
   }
+
+  // Bind here rather than with onclick=/onchange= attributes (issue #1188). PageServlet sends
+  // Content-Security-Policy with script-src 'self' 'nonce-...' and no 'unsafe-inline', which makes
+  // the browser refuse to run inline event handlers -- they fall under script-src-attr, and a
+  // nonce does not cover them. The nonce authorises THIS block to define SavePhoto; an
+  // onchange="SavePhoto(...)" attribute calling it was silently blocked, so choosing a file did
+  // nothing at all and no error surfaced anywhere in the UI.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-photo-id]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        SetPhotoId(el.getAttribute('data-photo-id'));
+      });
+    });
+    document.querySelectorAll('[data-photo-upload]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        SavePhoto(el, el.getAttribute('data-photo-upload'));
+      });
+    });
+  });
 </script>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
@@ -194,10 +213,10 @@
                         <c:if test="${siteProperty.name eq 'site.logo.white'}"> aria-describedby="siteLogoWhiteHelpText"</c:if>
                         <c:if test="${siteProperty.name eq 'site.logo.mixed'}"> aria-describedby="siteLogoMixedHelpText"</c:if>
                         >
-                    <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal" onclick="SetPhotoId(${siteProperty.id});">Browse Images</a></span>
+                    <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal" data-photo-id="${siteProperty.id}">Browse Images</a></span>
                   </div>
                   <label for="imageFile${siteProperty.id}" class="button">Upload Image File...</label>
-                  <input type="file" id="imageFile${siteProperty.id}" class="show-for-sr" onchange="SavePhoto(this,${siteProperty.id})">
+                  <input type="file" id="imageFile${siteProperty.id}" class="show-for-sr" data-photo-upload="${siteProperty.id}">
                 </div>
                 <div class="small-4 cell">
                   <c:set var="previewSrcset" value="${image:srcset(siteProperty.value)}"/>
