@@ -17,5 +17,12 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- Issue #569 slice 2: configurable windows for the geographic-anomaly dashboard tile (a country
 -- newly appearing in the top 5 by session count). Same "security" prefix / step-up-auth placement
 -- as the properties above.
-  INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Geo anomaly baseline window (days)', 'security.geoAnomalyBaselineDays', '30', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Geo anomaly baseline window (days)', 'security.geoAnomalyBaselineDays', '30', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (41, 'Geo anomaly recent window (hours)', 'security.geoAnomalyRecentHours', '24', 'text');
+
+-- Issue #419: how long a generated draft-preview link stays valid. Seeded on existing deployments
+-- by UPGRADE_20260804.1002__web_page_preview_tokens.sql, then sentence-cased by
+-- UPGRADE_20260814.1500, so the label here is the one an upgraded deployment ends on. Without this
+-- row a fresh install falls back to GeneratePreviewLinkCommand's DEFAULT_TTL_HOURS and the setting
+-- never appears on this page for an admin to change.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Draft preview link expiry (hours)', 'security.previewLinkTtlHours', '24', 'text');
