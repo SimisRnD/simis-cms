@@ -49,7 +49,7 @@
           </c:choose>
         </td>
         <td class="text-center">
-          <form method="post" action="${widgetContext.uri}" onsubmit="return confirm('Restore this version to the draft slot? You will need to publish it to make it live.');">
+          <form method="post" action="${widgetContext.uri}" data-confirm-submit="Restore this version to the draft slot? You will need to publish it to make it live.">
             <input type="hidden" name="widget" value="${widgetContext.uniqueId}" />
             <input type="hidden" name="token" value="${userSession.formToken}" />
             <input type="hidden" name="action" value="restore" />
@@ -68,3 +68,4 @@
   </tbody>
 </table>
 <%@include file="../paging_control.jspf" %>
+<%@include file="../confirm_submit.jspf" %>
