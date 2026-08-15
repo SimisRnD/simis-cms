@@ -29,12 +29,25 @@
 <jsp:useBean id="sampleRow" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
 <script nonce="${cspNonce}">
-  function checkForm() {
-    return true;
-  }
   function confirmDelete() {
     return confirm('This will delete all items that were created by this dataset, are you sure?')
   }
+
+  // issue #1188: "Remove All Sync'd Records" carried an inline onclick attribute. CSP (script-src-
+  // attr) blocks inline handler attributes -- the nonce authorises this block, not an attribute
+  // calling into it -- so the prompt never appeared and the first click deleted every item this
+  // dataset had created. Bound on the button rather than the form because the form's other submit
+  // buttons (Save, Save & Sync) must stay unprompted.
+  document.addEventListener('DOMContentLoaded', function () {
+    var removeAll = document.getElementById('removeAllSyncedRecordsButton');
+    if (removeAll) {
+      removeAll.addEventListener('click', function (event) {
+        if (!confirmDelete()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
@@ -47,7 +60,7 @@
 <div class="callout warning radius">
   <p style="margin-bottom:0">If scheduled downloads keep failing, retries back off from every 5 minutes up to once a day. After 30 consecutive failed attempts the dataset is marked permanently failed and the schedule stops retrying on its own -- there's no email or other proactive notice, only the Schedule Status badge on the <a href="${ctx}/admin/datasets">Datasets list</a> turning to "Failed". Check that page on a regular cadence, or set up external monitoring against it, if a dataset's freshness matters.</p>
 </div>
-<form method="post" onsubmit="return checkForm()">
+<form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -106,7 +119,7 @@
     <br />
     Sync'd Record Count: <span class="label round success" id="rowCount"><fmt:formatNumber value="${syncCount}" /></span>
     <div class="button-container">
-      <input type="submit" class="button radius alert" name="removeAll" value="Remove All Sync'd Records" onclick="return confirmDelete();"/>
+      <input type="submit" class="button radius alert" name="removeAll" id="removeAllSyncedRecordsButton" value="Remove All Sync'd Records"/>
     </div>
   </p>
   <%-- Form --%>  

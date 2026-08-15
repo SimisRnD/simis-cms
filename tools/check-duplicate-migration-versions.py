@@ -24,7 +24,7 @@ ItemOrderMigrationTest fail in @BeforeAll, so junitlauncher records a
 *container-level* failure: every per-class "Tests run:" line still reports
 ``Failures: 0`` while roughly twenty tests silently never execute, and the build
 dies on build.xml's ``<fail if="hasFailingTest"/>`` with no visible failing test.
-(ContainerFailureReportingListener prints the real cause, but it is buried in
+(TestFailureReportingListener prints the real cause, but it is buried in
 several thousand lines of test output.) This check surfaces the same problem in
 about a second, before any of that.
 

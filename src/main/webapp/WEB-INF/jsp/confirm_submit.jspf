@@ -1,0 +1,46 @@
+<%--
+  ~ Copyright 2022 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%--
+  Asks for confirmation before submitting any form carrying data-confirm-submit="<message>".
+
+  These were written as onsubmit="return confirm('...')" attributes (issue #1188). PageServlet
+  sends script-src 'self' 'nonce-<random>' with no 'unsafe-inline', and inline event handler
+  attributes fall under script-src-attr, which a nonce does not authorise -- the nonce covers a
+  <script> block, not an attribute that calls into one. So the dialog never appeared, and because
+  a blocked onsubmit means the browser simply skips the handler rather than cancelling the event,
+  the form submitted anyway. Every one of these guarded a destructive action, so the failure mode
+  was an irreversible operation running with no prompt at all.
+
+  Delegated from document rather than bound per form so that one listener covers forms rendered
+  inside a <c:forEach>, and registered on the capture phase so the prompt cannot be bypassed by a
+  form-level handler that stops propagation. The window flag keeps a page that pulls this in from
+  two different widgets down to a single dialog.
+  --%>
+<script nonce="${cspNonce}">
+  if (!window.platformConfirmSubmitBound) {
+    window.platformConfirmSubmitBound = true;
+    document.addEventListener('submit', function (event) {
+      var form = event.target;
+      if (!form || typeof form.getAttribute !== 'function') {
+        return;
+      }
+      var message = form.getAttribute('data-confirm-submit');
+      if (message && !window.confirm(message)) {
+        event.preventDefault();
+      }
+    }, true);
+  }
+</script>

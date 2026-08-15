@@ -16,28 +16,18 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Paths;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.thymeleaf.util.StringUtils;
-
-import org.jobrunr.scheduling.BackgroundJobRequest;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.cms.SaveImageCommand;
-import com.simisinc.platform.application.cms.ValidateImageCommand;
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.cms.AddImageToLibraryCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Image;
-import com.simisinc.platform.infrastructure.scheduler.cms.ImageVariantJob;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -79,95 +69,31 @@ public class ImageUploadWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    // Prepare to save the file
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    String serverSubPath = FileSystemCommand.generateFileServerSubPath("images");
-    String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
-
-    // Find the file in the request and save it
-    String submittedFilename = null;
-    String extension = null;
-    long fileLength = 0;
-    File tempFile = null;
+    // Find the file in the request
+    Part filePart;
     try {
-      Part filePart = context.getRequest().getPart("file");
-      if (filePart == null) {
-        LOG.warn("File part was not found in request");
-        return respondWithError(context, "A file was not found, please choose a file and try again");
-      }
-      submittedFilename = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
-      if (submittedFilename.startsWith("mceclip0")) {
-        submittedFilename = StringUtils.replace(submittedFilename, "mceclip0", "clip");
-      }
-      extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
-      // Resolve the target inside the file server root so user-derived values cannot traverse outside it
-      tempFile = FileSystemCommand.resolveWithinRoot(serverRootPath, serverSubPath + uniqueFilename + "." + extension);
-      if (tempFile == null) {
-        LOG.warn("The upload target resolved outside the file server root: " + serverSubPath);
-        return respondWithError(context, "The file could not be saved");
-      }
-      fileLength = filePart.getSize();
-      long maxBytes = resolveMaxUploadBytes();
-      if (fileLength > maxBytes) {
-        return respondWithError(context,
-            "The file exceeds the maximum allowed upload size of " + toMegabytes(maxBytes) + " MB");
-      }
-      if (fileLength > 0) {
-        filePart.write(tempFile.getAbsolutePath());
-      }
+      filePart = context.getRequest().getPart("file");
     } catch (Exception e) {
-      // Report what actually went wrong. This branch previously swallowed the exception entirely --
-      // no log, no message, no error status -- so a storage-layer failure (an unwritable volume, a
-      // full disk, a permissions problem on the mounted file server root) was indistinguishable
-      // from a bad file, and the browser was told nothing at all. Both audiences for this endpoint
-      // are already admin/content-manager gated, so the underlying reason is safe to show them and
+      // Report what actually went wrong rather than swallowing it -- both audiences for this
+      // endpoint are admin/content-manager gated, so the underlying reason is safe to show them and
       // is the whole point: it is the difference between "use a .jpg" and "the mount is read-only"
-      LOG.error("The uploaded file could not be saved to " + (tempFile != null ? tempFile.getPath() : "(unresolved)"), e);
-      // Clean up the file
-      if (tempFile != null && tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
-        tempFile.delete();
-      }
+      LOG.error("The uploaded file part could not be read", e);
       return respondWithError(context, "The file could not be saved: " + e.getMessage());
     }
-
-    // Make sure a file was processed
-    if (fileLength <= 0) {
-      if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
-        tempFile.delete();
-      }
-      return respondWithError(context, "The file size was 0 and could not be saved");
+    if (filePart == null) {
+      LOG.warn("File part was not found in request");
+      return respondWithError(context, "A file was not found, please choose a file and try again");
     }
 
-    // Populate the fields
-    Image imageBean = new Image();
-    imageBean.setFilename(submittedFilename);
-    imageBean.setFileLength(fileLength);
-    imageBean.setFileServerPath(serverSubPath + uniqueFilename + "." + extension);
-    imageBean.setCreatedBy(context.getUserId());
-
-    // Save the record
-    Image image = null;
+    // Store it in the image library. AddImageToLibraryCommand is the single write path into the
+    // library (issue #1197), so an image added from the folder drop zone's "also add to the Image
+    // Library" option lands a record indistinguishable from one uploaded here.
+    Image image;
     try {
-      ValidateImageCommand.checkFile(imageBean);
-      image = SaveImageCommand.saveImage(imageBean);
-      if (image == null) {
-        throw new DataException("Your information could not be saved due to a system error. Please try again.");
-      }
+      image = AddImageToLibraryCommand.addFromPart(filePart, context.getUserId());
     } catch (DataException e) {
-      // Clean up the file
-      if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
-        tempFile.delete();
-      }
-      context.setRequestObject(imageBean);
       return respondWithError(context, e.getMessage());
     }
-
-    // Generate srcset-ready variants in the background (issue #411) -- not inline, so upload
-    // response time does not depend on ImageMagick's speed
-    BackgroundJobRequest.enqueue(new ImageVariantJob(image.getId()));
 
     // Return Json with the new image's URL
     context.setJson("{\"location\": \"" + "/assets/img/" + image.getUrl() + "\"}");
@@ -194,28 +120,12 @@ public class ImageUploadWidget extends GenericWidget {
     return context;
   }
 
-  private static long resolveMaxUploadBytes() {
-    long maxBytes = 10_485_760L; // 10MB default
-    String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
-    if (prop != null && !prop.isBlank()) {
-      try {
-        maxBytes = Long.parseLong(prop.trim());
-      } catch (NumberFormatException ignored) {
-      }
-    }
-    return maxBytes;
-  }
-
   /**
-   * The configured ceiling in whole megabytes, for Dropzone.js's maxFilesize and for the
-   * too-large message. Rounds down, but never below 1, so a sub-megabyte limit still leaves the
-   * drop zone with a usable number instead of 0.
+   * The configured ceiling in whole megabytes, for Dropzone.js's maxFilesize. Read from
+   * {@link AddImageToLibraryCommand}, which is what actually enforces the cap, so the number shown
+   * in the browser cannot drift from the one the upload is rejected against.
    */
   private static long resolveMaxUploadMegabytes() {
-    return toMegabytes(resolveMaxUploadBytes());
-  }
-
-  private static long toMegabytes(long bytes) {
-    return Math.max(1L, bytes / 1_048_576L);
+    return AddImageToLibraryCommand.toMegabytes(AddImageToLibraryCommand.resolveMaxUploadBytes());
   }
 }
