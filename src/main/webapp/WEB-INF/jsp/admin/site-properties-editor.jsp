@@ -312,13 +312,13 @@
             <p class="help-text" id="analyticsServiceHelpText">Chooses which analytics provider the GA Key below is sent to. The only supported value is "google" (Google Analytics/GA4) -- any other value, including blank, disables analytics tracking entirely. This is independent of the SimpliFi and Brand CDN tags further down, which load whenever their own value is set, regardless of what's entered here.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'analytics.google.key'}">
-            <p class="help-text" id="analyticsGoogleKeyHelpText">The Measurement ID for a Google Analytics 4 property, formatted like G-XXXXXXXXXX. Find it in the Google Analytics admin console under Data Streams for the site's web stream. Only takes effect when Analytics Service above is set to "google".</p>
+            <p class="help-text" id="analyticsGoogleKeyHelpText">The Measurement ID for a Google Analytics 4 property, formatted like G-XXXXXXXXXX. Find it in the Google Analytics admin console under Data Streams for the site's web stream. Only takes effect when Analytics service above is set to "google".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}">
             <p class="help-text" id="analyticsGoogleTagmanagerHelpText">A Google Tag Manager container ID, formatted like GTM-XXXXXXX. Optional -- only set this if the site manages its tags through GTM rather than (or in addition to) the GA Key above. Find it in the Google Tag Manager admin console.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'analytics.simplifi.value'}">
-            <p class="help-text" id="analyticsSimplifiValueHelpText">A SimpliFi tag id, provided by SimpliFi when setting up a conversion-tracking campaign with them. Loads a SimpliFi tracking script on every public page whenever this is set, independent of the Analytics Service setting above. Leave blank if the site isn't running a SimpliFi campaign.</p>
+            <p class="help-text" id="analyticsSimplifiValueHelpText">A SimpliFi tag id, provided by SimpliFi when setting up a conversion-tracking campaign with them. Loads a SimpliFi tracking script on every public page whenever this is set, independent of the Analytics service setting above. Leave blank if the site isn't running a SimpliFi campaign.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}">
             <p class="help-text" id="analyticsBrandcdnValueHelpText">Two path values that together form a Brand CDN autoscript tag URL (tag.brandcdn.com/autoscript/&lt;value&gt;/&lt;value 2&gt;), provided by Brand CDN when setting up tracking with them. Both fields must be set for the tag to load; leave both blank if the site isn't using Brand CDN.</p>
@@ -342,10 +342,10 @@
             <p class="help-text" id="captchaServiceHelpText">Chooses which CAPTCHA challenge protects the site's public forms. Supported values are "google" (Google reCAPTCHA v2, using the Google Site Key and Secret Key below) and "turnstile" (Cloudflare Turnstile, using the Turnstile Site Key and Secret Key below). This is a single site-wide choice -- every form uses the same provider. Leave this blank, or leave the chosen provider's Site Key blank, to fall back to the platform's built-in text-image challenge instead.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.google.sitekey'}">
-            <p class="help-text" id="captchaGoogleSitekeyHelpText">The public key that connects the site's forms to Google reCAPTCHA v2. It's sent to every visitor's browser, so it's safe to expose. To get one, sign in to the <a href="https://www.google.com/recaptcha/admin/" target="_blank" rel="noreferrer">Google reCAPTCHA admin console</a>, register the site, and choose reCAPTCHA v2, Invisible reCAPTCHA badge, since these forms render a button rather than a checkbox. Google issues a Site Key and Secret Key together. Example format: 6LfPTnQUAAAAALSynteQ3vrs5MxxFd9NaSPyitRj (40 characters, letters and numbers only). A value that looks much shorter, much longer, or contains spaces was likely copied incorrectly. Only takes effect when Captcha Service above is set to "google".</p>
+            <p class="help-text" id="captchaGoogleSitekeyHelpText">The public key that connects the site's forms to Google reCAPTCHA v2. It's sent to every visitor's browser, so it's safe to expose. To get one, sign in to the <a href="https://www.google.com/recaptcha/admin/" target="_blank" rel="noreferrer">Google reCAPTCHA admin console</a>, register the site, and choose reCAPTCHA v2, Invisible reCAPTCHA badge, since these forms render a button rather than a checkbox. Google issues a Site Key and Secret Key together. Example format: 6LfPTnQUAAAAALSynteQ3vrs5MxxFd9NaSPyitRj (40 characters, letters and numbers only). A value that looks much shorter, much longer, or contains spaces was likely copied incorrectly. Only takes effect when Captcha service above is set to "google".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.turnstile.sitekey'}">
-            <p class="help-text" id="captchaTurnstileSitekeyHelpText">The public key that connects the site's forms to <a href="https://developers.cloudflare.com/turnstile/" target="_blank" rel="noreferrer">Cloudflare Turnstile</a>, a free CAPTCHA alternative to Google reCAPTCHA. It's sent to every visitor's browser, so it's safe to expose. Unlike Google reCAPTCHA v3, Turnstile needs no score-threshold tuning -- it's a pass/fail challenge, matching how this site's reCAPTCHA v2 integration already behaves. To get one, sign in to the Cloudflare dashboard's Turnstile section, add a site, and choose the widget mode of your choice; Cloudflare issues a Site Key and Secret Key together. Only takes effect when Captcha Service above is set to "turnstile".</p>
+            <p class="help-text" id="captchaTurnstileSitekeyHelpText">The public key that connects the site's forms to <a href="https://developers.cloudflare.com/turnstile/" target="_blank" rel="noreferrer">Cloudflare Turnstile</a>, a free CAPTCHA alternative to Google reCAPTCHA. It's sent to every visitor's browser, so it's safe to expose. Unlike Google reCAPTCHA v3, Turnstile needs no score-threshold tuning -- it's a pass/fail challenge, matching how this site's reCAPTCHA v2 integration already behaves. To get one, sign in to the Cloudflare dashboard's Turnstile section, add a site, and choose the widget mode of your choice; Cloudflare issues a Site Key and Secret Key together. Only takes effect when Captcha service above is set to "turnstile".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'mailing-list.service'}">
             <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including the shipped default of "None", or a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
@@ -366,7 +366,7 @@
             <p class="help-text" id="mailingListConfirmationExpiryDaysHelpText">How many days a double opt-in confirmation link stays valid before it expires. Only relevant for mailing lists with double opt-in enabled -- a subscriber who confirms after this window has passed needs to sign up again. Default is 7 days.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.style'}">
-            <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
+            <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
             <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer Style above is set to "Custom XML".</p>
@@ -429,7 +429,7 @@
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
-            <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS Key and LRS Secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
+            <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.key'}">
             <p class="help-text" id="elearningLrsKeyHelpText">Not currently used by any code path -- see the LRS URL field's help text above.</p>
@@ -459,7 +459,7 @@
             <p class="help-text" id="biSupersetUrlHelpText">The base URL of your organization's Superset instance, for example <code>https://superset.example.com</code>. That instance must have the <code>EMBEDDED_SUPERSET</code> feature flag enabled and CORS configured to allow this site's domain before embedding will work.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.superset.id'}">
-            <p class="help-text" id="biSupersetIdHelpText">Despite the label, this is not an API client ID -- it's the <strong>username</strong> of a Superset user account. Sent together with the Superset Secret below to log in to your Superset instance's API. Use a dedicated service account (with permission to read the dashboards you plan to embed and to request guest tokens) rather than a personal login.</p>
+            <p class="help-text" id="biSupersetIdHelpText">Despite the label, this is not an API client ID -- it's the <strong>username</strong> of a Superset user account. Sent together with the Superset secret below to log in to your Superset instance's API. Use a dedicated service account (with permission to read the dashboards you plan to embed and to request guest tokens) rather than a personal login.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.superset.secret'}">
             <p class="help-text" id="biSupersetSecretHelpText">Despite the label, this is not a static API secret -- it's the <strong>password</strong> for the Superset account named above. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current password, or enter a new value to replace it.</p>
@@ -510,7 +510,7 @@
             <p class="help-text" id="siteKeywordsHelpText">The default keywords meta tag, used on any page that doesn't set its own. Most modern search engines no longer use this tag for ranking, but it's still included on the page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.image'}">
-            <p class="help-text" id="siteImageHelpText">The default image shown when a page is shared on social media (Open Graph and Twitter Card), used on any page without its own. Enter a site-relative path (for example /images/share.png) rather than a full URL -- it's combined with the Site Url above to form the complete address.</p>
+            <p class="help-text" id="siteImageHelpText">The default image shown when a page is shared on social media (Open Graph and Twitter Card), used on any page without its own. Enter a site-relative path (for example /images/share.png) rather than a full URL -- it's combined with the Site URL above to form the complete address.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.online'}">
             <p class="help-text" id="siteOnlineHelpText">When off, anonymous visitors are blocked from viewing the site -- logged-in users, including admins, can still get in, so this is safe to use for maintenance without locking yourself out. The XML sitemap also stops generating while offline, independent of the Sitemap toggle below (both must be on for the sitemap to work).</p>
@@ -540,7 +540,7 @@
             <p class="help-text" id="mapsServiceTilesHelpText">Chooses where map background tiles load from. Must be exactly <code>openstreetmap</code> (the default; no account or key needed) or <code>custom</code> (a self-hosted tile server, using the URL below). Any other value -- including "google" or "apple" -- silently falls back to openstreetmap; there's no Google Maps or Apple Maps tile integration in this app today.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'maps.custom.tileserver.url'}">
-            <p class="help-text" id="mapsCustomTileserverUrlHelpText">Only used when Map Tiles Service above is exactly "custom". Must be a tile URL template containing the literal <code>{z}</code>, <code>{x}</code>, and <code>{y}</code> placeholders, for example <code>https://tiles.example.com/{z}/{x}/{y}.png</code>. An invalid or missing value here falls back to openstreetmap even with "custom" selected above.</p>
+            <p class="help-text" id="mapsCustomTileserverUrlHelpText">Only used when Map tiles service above is exactly "custom". Must be a tile URL template containing the literal <code>{z}</code>, <code>{x}</code>, and <code>{y}</code> placeholders, for example <code>https://tiles.example.com/{z}/{x}/{y}.png</code>. An invalid or missing value here falls back to openstreetmap even with "custom" selected above.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'maps.service.geocoder'}">
             <p class="help-text" id="mapsServiceGeocoderHelpText">Chooses the service used to turn an item's street address into map coordinates automatically. The only supported value is <code>nominatim</code> (OpenStreetMap's free geocoder); any other value, including blank, turns this off -- items keep whatever coordinates were entered by hand. Nominatim's own usage policy caps this at 1 request per second, which the app enforces itself; if deployed across multiple instances, each instance enforces that limit independently, so the effective rate can multiply with instance count.</p>
@@ -585,13 +585,13 @@
             <p class="help-text" id="siteNewsletterBackgroundColorHelpText">The background color of the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo'}">
-            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo color scheme setting on the Theme Settings page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.white'}">
-            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo color scheme setting on the Theme Settings page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
-            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo color scheme setting on the Theme Settings page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
@@ -609,7 +609,7 @@
             <p class="help-text" id="socialEmailHelpText">A contact email address shown in the site footer, next to the Telephone number below if both are set. Leave blank to omit the whole contact line from the footer.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'social.phone'}">
-            <p class="help-text" id="socialPhoneHelpText">A contact phone number shown in the site footer, next to the Email Address above if both are set. Leave blank to omit the whole contact line from the footer.</p>
+            <p class="help-text" id="socialPhoneHelpText">A contact phone number shown in the site footer, next to the Email address above if both are set. Leave blank to omit the whole contact line from the footer.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}">
             <p class="help-text" id="socialInstagramAccessTokenHelpText">A long-lived Instagram Graph API access token, used only by the Instagram feed-embed integration -- unrelated to the Social Profile Links above, which just link out to the platform. Generate one from a Facebook Developer app with the Instagram Graph API product added. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current token.</p>
@@ -623,13 +623,13 @@
     </tbody>
   </table>
   <c:if test="${prefix eq 'analytics'}">
-    <p class="help-text">The four privacy toggles above (Cookieless, Anonymize IP, Honor Do-Not-Track, Require consent) each control a different, independent slice of tracking -- turning one on doesn't turn on the others. Analytics Service and the keys below it are unaffected by any of them and load whenever they're set.</p>
+    <p class="help-text">The four privacy toggles above (Cookieless, Anonymize IP, Honor Do-Not-Track, Require consent) each control a different, independent slice of tracking -- turning one on doesn't turn on the others. Analytics service and the keys below it are unaffected by any of them and load whenever they're set.</p>
   </c:if>
   <c:if test="${prefix eq 'social'}">
     <p class="help-text">The Social Profile Links list above (Facebook, Instagram, etc.) controls the footer icon row. Everything on this page below is unrelated contact info and the separate Instagram feed-embed integration, not more platform links.</p>
   </c:if>
   <c:if test="${prefix eq 'captcha'}">
-    <p class="help-text">Google reCAPTCHA v2 or Cloudflare Turnstile -- whichever is chosen above as the Captcha Service -- protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
+    <p class="help-text">Google reCAPTCHA v2 or Cloudflare Turnstile -- whichever is chosen above as the Captcha service -- protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
   </c:if>
   <c:if test="${prefix eq 'robots'}">
@@ -695,7 +695,7 @@
     <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Enable API?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
   </c:if>
   <c:if test="${prefix eq 'theme'}">
-    <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu Theme or Footer Theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color Scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
+    <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu theme or Footer theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
     <p class="help-text">The three System Alert colors below are the same values shown on the Utility Bar Settings page -- editing either page changes what the other shows.</p>
   </c:if>
   <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
