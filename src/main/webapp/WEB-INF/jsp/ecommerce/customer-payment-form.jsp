@@ -70,7 +70,7 @@
 </script>
 <%@include file="../page_messages.jspf" %>
 <%-- Form body--%>
-<form method="post" onsubmit="return checkForm${widgetContext.uniqueId}()" autocomplete="on">
+<form method="post" id="paymentForm${widgetContext.uniqueId}" autocomplete="on">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -162,4 +162,21 @@
     }
   }
   ccInput.addEventListener('input',   updateType);
+
+  // issue #1188: checkForm ran from an inline onsubmit attribute, which CSP blocks -- inline
+  // handler attributes fall under script-src-attr and the nonce authorises this block, not an
+  // attribute calling into it. These payform checks (Luhn, expiry, CVC) are the only card-format
+  // validation there is -- ProcessPaymentCommand.validatePayment() only checks the number is non-
+  // blank -- so the "Please check the card number" help text never appeared and a mistyped card
+  // went straight to the processor to be rejected there instead.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('paymentForm${widgetContext.uniqueId}');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        if (!checkForm${widgetContext.uniqueId}()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>

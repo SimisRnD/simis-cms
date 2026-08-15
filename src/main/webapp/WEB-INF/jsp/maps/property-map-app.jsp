@@ -81,7 +81,7 @@
 </div>
 <div class="grid-x grid-margin-x map-container">
   <div class="cell small-12 medium-4 large-3" style="padding: 30px 0 30px 30px;">
-    <form id="searchForm${widgetContext.uniqueId}" onsubmit="return updateMap${widgetContext.uniqueId}()" autocomplete="off">
+    <form id="searchForm${widgetContext.uniqueId}" autocomplete="off">
       <div class="input-group">
         <span class="input-group-label">
           <i class="fa fa-search"></i>
@@ -106,7 +106,7 @@
         <span class="input-group-label">
           Zoning
         </span>
-        <select class="input-group-field" id="zoning" onchange="updateMap${widgetContext.uniqueId}()">
+        <select class="input-group-field" id="zoning" data-map-update>
           <option value=""></option>
           <c:forEach items="${zoningList}" var="zone">
             <option value="<c:out value="${zone}"/>"><c:out value="${zone}" /></option>
@@ -118,10 +118,10 @@
           Enterprise Zone #
         </span>
         <div class="input-group-button">
-          <input type="button" class="button secondary" id="enterpriseZone0" value="1" onclick="updateEnterpriseZone(0)">
+          <input type="button" class="button secondary" id="enterpriseZone0" value="1" data-enterprise-zone="0">
         </div>
         <div class="input-group-button">
-          <input type="button" class="button secondary" id="enterpriseZone1" value="2" onclick="updateEnterpriseZone(1)">
+          <input type="button" class="button secondary" id="enterpriseZone1" value="2" data-enterprise-zone="1">
         </div>
       </div>
       <div class="input-group">
@@ -129,14 +129,14 @@
           Hub Zone
         </span>
         <div class="input-group-button">
-          <input type="button" class="button primary" id="hubZone0" value="Unset" onclick="updateHubZone(0)">
+          <input type="button" class="button primary" id="hubZone0" value="Unset" data-hub-zone="0">
         </div>
         <div class="input-group-button">
-          <input type="button" class="button secondary" id="hubZone1" value="Yes" onclick="updateHubZone(1)">
+          <input type="button" class="button secondary" id="hubZone1" value="Yes" data-hub-zone="1">
         </div>
       </div>
       <input type="submit" class="button success" value="Show Properties" />
-      <input type="reset" class="button secondary" value="Reset Form" onClick="resetForm${widgetContext.uniqueId}()" />
+      <input type="reset" class="button secondary" value="Reset Form" data-map-reset />
     </form>
   </div>
   <div class="cell small-12 medium-4 large-3" style="padding: 30px 0">
@@ -513,15 +513,15 @@
       var newRow = newTbody.insertRow(newTbody.rows.length);
 
       var newCell = newRow.insertCell(0);
-      // var nameText = document.createTextNode(feature.name);
-      // newCell.appendChild(nameText);
-      newCell.innerHTML = '<a href="javascript:centerMap${widgetContext.uniqueId}(' + feature.objectId + ',' + feature.latitude + ',' + feature.longitude + ')">' + feature.name + '</a>';
+      newCell.appendChild(centerMapLink${widgetContext.uniqueId}(feature, document.createTextNode(feature.name)));
 
       var newCell2 = newRow.insertCell(1);
       newCell2.innerHTML = '<small><span class="label radius">' + feature.zoning + '</span></small>';
 
       var newCell3 = newRow.insertCell(2);
-      newCell3.innerHTML = '<a href="javascript:centerMap${widgetContext.uniqueId}(' + feature.objectId + ',' + feature.latitude + ',' + feature.longitude + ')"><i class="fa fa-info-circle"></i></a>';
+      var infoIcon = document.createElement('i');
+      infoIcon.className = 'fa fa-info-circle';
+      newCell3.appendChild(centerMapLink${widgetContext.uniqueId}(feature, infoIcon));
     }
 
     document.getElementById('propertyTitle').textContent = 'Property (' + count + ')';
@@ -530,10 +530,60 @@
     return false;
   }
 
+  // Builds a result-row link that re-centres the map. This was previously assembled as an
+  // innerHTML string whose href was a javascript: URL calling centerMap (issue #1188). Those are
+  // governed
+  // by script-src just as inline handler attributes are, and a nonce does not authorise them
+  // either, so both result links were inert. Building the node here also means feature.name is
+  // appended as a text node rather than interpolated into markup.
+  function centerMapLink${widgetContext.uniqueId}(feature, child) {
+    var link = document.createElement('a');
+    link.href = '#';
+    link.appendChild(child);
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      centerMap${widgetContext.uniqueId}(feature.objectId, feature.latitude, feature.longitude);
+    });
+    return link;
+  }
+
   // Auto-update on input
   $('#searchText').on('input', updateMap${widgetContext.uniqueId});
   $('#acresMin').on('input', updateMap${widgetContext.uniqueId});
   $('#acresMax').on('input', updateMap${widgetContext.uniqueId});
   $('#sqFtMin').on('input', updateMap${widgetContext.uniqueId});
   $('#sqFtMax').on('input', updateMap${widgetContext.uniqueId});
+
+  // issue #1188: the remaining controls ran from inline attributes, which CSP blocks -- they fall
+  // under script-src-attr and the nonce authorises this block, not an attribute calling into it.
+  // The four text/number filters above kept working because they are bound here with jQuery, which
+  // is what made the rest easy to miss: the Zoning, Enterprise Zone and Hub Zone filters did
+  // nothing at all, "Reset Form" did the browser's native field reset without clearing the widget's
+  // own zone state, and "Show Properties" fell through to a native GET that reloaded the page and
+  // discarded the map.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('searchForm${widgetContext.uniqueId}');
+    if (form) {
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        updateMap${widgetContext.uniqueId}();
+      });
+    }
+    document.querySelectorAll('[data-map-update]').forEach(function (el) {
+      el.addEventListener('change', updateMap${widgetContext.uniqueId});
+    });
+    document.querySelectorAll('[data-enterprise-zone]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        updateEnterpriseZone(parseInt(el.getAttribute('data-enterprise-zone'), 10));
+      });
+    });
+    document.querySelectorAll('[data-hub-zone]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        updateHubZone(parseInt(el.getAttribute('data-hub-zone'), 10));
+      });
+    });
+    document.querySelectorAll('[data-map-reset]').forEach(function (el) {
+      el.addEventListener('click', resetForm${widgetContext.uniqueId});
+    });
+  });
 </script>
