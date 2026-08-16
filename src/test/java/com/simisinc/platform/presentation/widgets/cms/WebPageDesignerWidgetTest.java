@@ -232,6 +232,49 @@ class WebPageDesignerWidgetTest extends WidgetBase {
         Assertions.assertNotNull(result);
         Assertions.assertNotNull(widgetContext.getErrorMessage());
         Assertions.assertNull(widgetContext.getRedirect());
+        // #1237: the submitted content must be preserved so the redisplayed form shows what
+        // failed to save, instead of coming back blank.
+        Assertions.assertNotNull(widgetContext.getRequestObject(),
+            "the in-progress webPage must be set as the request object on a DataException save failure");
+      }
+    }
+  }
+
+  // Regression coverage for issue #1237: SaveWebPageCommand.saveWebPage() (and
+  // WebPageRepository.save() on the governed-review branch) return null rather than throwing when
+  // the underlying insert/update fails -- DB.insertInto()/DB.update() swallow the SQLException and
+  // report failure by returning -1/false, not by propagating an exception. That's a genuinely
+  // different failure path than postError() above (which covers the thrown-DataException case): the
+  // webPage == null branch, not the catch block. Both must set the request object so the form
+  // redisplays the user's in-progress content.
+  @Test
+  void postShowsAnErrorAndPreservesTheSubmittedContentWhenSaveReturnsNullWithoutThrowing() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/new-page");
+    addQueryParameter(widgetContext, "returnPage", "/new-page");
+    addQueryParameter(widgetContext, "pageXml", "<page><section><column><widget name=\"content\" /></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("/new-page")).thenReturn(null);
+
+      try (MockedStatic<SaveWebPageCommand> saveWebPageCommandMockedStatic = mockStatic(SaveWebPageCommand.class)) {
+        saveWebPageCommandMockedStatic.when(() -> SaveWebPageCommand.saveWebPage(any())).thenReturn(null);
+
+        WebPageDesignerWidget widget = new WebPageDesignerWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertNotNull(widgetContext.getErrorMessage());
+        Assertions.assertNull(widgetContext.getRedirect());
+        Object requestObject = widgetContext.getRequestObject();
+        Assertions.assertNotNull(requestObject,
+            "the in-progress webPage must be set as the request object when save() returns null");
+        Assertions.assertInstanceOf(WebPage.class, requestObject);
+        Assertions.assertEquals("<page><section><column><widget name=\"content\" /></column></section></page>",
+            ((WebPage) requestObject).getPageXml(),
+            "the redisplayed page must show what the user actually submitted, not a blank editor");
       }
     }
   }

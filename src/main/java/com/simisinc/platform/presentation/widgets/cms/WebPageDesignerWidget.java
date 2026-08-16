@@ -402,6 +402,10 @@ public class WebPageDesignerWidget extends GenericWidget {
 
     // Save the page
     webPage.setSearchable(true);
+    // #1237: both failure branches below reassign webPage to the save call's result (null on
+    // failure), losing the in-progress content the user just picked/typed. Without this, the
+    // redisplayed form comes back blank instead of showing what failed to save.
+    WebPage webPageBeforeSave = webPage;
     try {
       if (mayPublishDirectly) {
         webPage = SaveWebPageCommand.saveWebPage(webPage);
@@ -410,6 +414,7 @@ public class WebPageDesignerWidget extends GenericWidget {
       }
     } catch (DataException de) {
       LOG.warn("Web page record was not saved!");
+      context.setRequestObject(webPageBeforeSave);
       context.setErrorMessage("An error occurred");
       return context;
     }
@@ -417,6 +422,7 @@ public class WebPageDesignerWidget extends GenericWidget {
     // Check for final errors
     if (webPage == null) {
       LOG.warn("Web page record was not saved!");
+      context.setRequestObject(webPageBeforeSave);
       context.setErrorMessage("An error occurred");
       return context;
     }

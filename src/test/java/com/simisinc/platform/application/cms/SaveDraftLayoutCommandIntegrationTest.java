@@ -225,7 +225,12 @@ class SaveDraftLayoutCommandIntegrationTest {
           // issue #497 cheap-tier slice: see NEW_10010__new_cms.sql/UPGRADE_20260810.1300 for the
           // real migration this mirrors.
           + "internal BOOLEAN DEFAULT false, "
-          + "redirect_notes VARCHAR(500))");
+          + "redirect_notes VARCHAR(500), "
+          // issue #414/#1237: mirrors NEW_50030__locale_content_variants.sql, which made both of
+          // these NOT NULL on the real table -- WebPageRepository.add() sets translation_group
+          // unconditionally now, so this column must exist even though this test never asserts on it.
+          + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
+          + "translation_group VARCHAR(255) NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages/users schema", se);
     }
