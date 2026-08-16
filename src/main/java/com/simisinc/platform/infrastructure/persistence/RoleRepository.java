@@ -150,6 +150,28 @@ public class RoleRepository {
   }
 
   /**
+   * Roles with at least one MFA-enrolled member -- used by the MFA Enforcement Settings page so
+   * an admin can see, before turning enforcement on for a role, whether that role already has
+   * anyone enrolled (the page's own help text warns that enabling enforcement for a role with no
+   * enrolled member locks out every member of it). A role with SOME but not all members enrolled
+   * still appears here; this answers "has anyone", not "has everyone".
+   */
+  public static List<Role> findAllWithMfaEnrolledMember() {
+    SqlUtils where = new SqlUtils()
+        .add("EXISTS (SELECT 1 FROM user_roles ur JOIN users u ON u.user_id = ur.user_id "
+            + "WHERE ur.role_id = lookup_role.role_id AND u.mfa_enabled = true)");
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME,
+        where,
+        new DataConstraints().setDefaultColumnToSortBy("level").setUseCount(false),
+        RoleRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<Role>) result.getRecords();
+    }
+    return null;
+  }
+
+  /**
    * Build the record from the database
    *
    * @param rs
