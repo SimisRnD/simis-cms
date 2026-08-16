@@ -34,6 +34,7 @@ A few things worth knowing:
 - **Run `ant clean` before trusting a build.** Stale classes in `build/` can produce misleading errors (phantom "cannot find symbol", tests that no longer exist still running).
 - **Dependencies are vendored** in `lib/`. If you change a library version, update **both** the jar in `lib/` and the version in `pom.xml` — they can silently drift apart otherwise.
 - **CI enforces security-critical test coverage.** After the targets above, CI runs `.github/scripts/check-security-coverage.sh`, which fails the build if a hardened security class drops below its test-coverage floor — so removing or weakening those tests will turn CI red.
+- **`PlatformEditorMutateButtonsTest` requires a system Node.js install** (Playwright's driver is a Node.js program; the vendored `driver` jar doesn't embed one) **and downloads a real Chromium on its first run** (cached afterward at `~/Library/Caches/ms-playwright` or `~/.cache/ms-playwright`) — it needs network access the first time it runs on a given machine.
 
 ## Making changes
 
