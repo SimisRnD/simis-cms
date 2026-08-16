@@ -27,6 +27,11 @@
   margin-right: 5px;
   padding: 2px;
   display: inline-block;
+  /* Neither this nor the name/link/icon inputs inside it ever set a width, so an inline-block
+     with no width of its own falls back to each input's browser-default size -- wide enough that
+     only 3-4 tabs fit in view before the row needs horizontal scrolling. A fixed width lets more
+     tabs stay visible at once; the inputs' own width:100% (Foundation) then fits them to it. */
+  width: 220px;
   vertical-align:top;
   position: relative;
 }
