@@ -127,6 +127,41 @@ class WebPageRepositoryTest {
     }
   }
 
+  // --- add() sets translation_group so a brand-new web page can be inserted (issue #1237) ---
+  //
+  // web_pages.translation_group has been NOT NULL (with a UNIQUE(translation_group, locale) index)
+  // since issue #414's locale-content-variants migration, but WebPageRepository.add() never set it,
+  // so every brand-new web page -- including the Home page and any page saved via the template
+  // picker -- failed with a not-null-constraint violation, DB.insertInto() swallowed the
+  // SQLException into a bare -1, and add() returned null. Reproduced here against a real Postgres
+  // NOT NULL/UNIQUE constraint (not a mock), so it fails on the pre-fix code the same way the live
+  // rehearsal did and passes once add() sets translation_group.
+
+  @Test
+  void addingABrandNewWebPageSucceedsDespiteTheTranslationGroupNotNullConstraint() {
+    WebPage saved = addWebPage("/new-page", "New Page", null, null, true, true, false);
+
+    assertNotNull(saved, "the web page save must not fail on the translation_group NOT NULL constraint");
+    assertTrue(saved.getId() > -1, "a successful insert must come back with a generated id");
+    assertNotNull(WebPageRepository.findByLink("/new-page"),
+        "the web page row must actually be persisted, not just returned in memory");
+  }
+
+  @Test
+  void addingSeveralBrandNewWebPagesDoesNotCollideOnTheUniqueTranslationGroupLocaleIndex() {
+    // A fixed/shared placeholder translation_group value would satisfy the NOT NULL constraint on
+    // the first insert but violate uq_web_pages_group_locale on the second (and DB.insertInto()
+    // would swallow that failure into the same silent -1/null as the original bug) -- this proves
+    // each new web page gets a distinct value.
+    WebPage first = addWebPage("/first-new-page", "First", null, null, true, true, false);
+    WebPage second = addWebPage("/second-new-page", "Second", null, null, true, true, false);
+
+    assertNotNull(first);
+    assertNotNull(second);
+    assertTrue(second.getId() > -1,
+        "a second brand-new web page must not fail to insert because of a reused translation_group value");
+  }
+
   @Test
   void searchRanksATitleMatchAboveADescriptionOnlyMatch() {
     addWebPage("/about", "Widgets", null, "A page about our company", true, true, false);
@@ -714,7 +749,13 @@ class WebPageRepositoryTest {
           // real migration this mirrors.
           + "internal BOOLEAN DEFAULT false, "
           + "redirect_notes VARCHAR(500), "
+          // issue #414/#1237: mirrors NEW_50030__locale_content_variants.sql, which made both of
+          // these NOT NULL on the real table -- reproduced here so this test schema fails an INSERT
+          // the same way the real database does when translation_group is left unset.
+          + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
+          + "translation_group VARCHAR(255) NOT NULL, "
           + "tsv tsvector)");
+      statement.execute("CREATE UNIQUE INDEX uq_web_pages_group_locale ON web_pages (translation_group, locale)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");
       statement.execute("CREATE TEXT SEARCH CONFIGURATION title_stem (copy = english)");
