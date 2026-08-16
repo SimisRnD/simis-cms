@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -106,5 +107,71 @@ class WikiWidgetTest extends WidgetBase {
   void canManageWikiPagesDeniesAnUnrelatedRole() {
     setRoles(widgetContext, DATA_MANAGER);
     Assertions.assertFalse(WikiWidget.canManageWikiPages(widgetContext));
+  }
+
+  /**
+   * Covers the wikiUniqueIdProperty resolution added for /admin/documentation -- previously that
+   * page hardcoded a wiki uniqueId ("simis-documentation") that no install ever had, so the link
+   * always showed "Wiki Has Not Been Setup" no matter what wiki an admin created. Now the page
+   * declares wikiUniqueIdProperty instead, and execute() resolves the actual uniqueId from that
+   * site property at render time.
+   */
+  @Test
+  void executeResolvesTheWikiFromTheSitePropertyWhenWikiUniqueIdPropertyIsSet() {
+    preferences.put("wikiUniqueIdProperty", "documentation.wiki.uniqueId");
+
+    Wiki wiki = new Wiki();
+    wiki.setId(5L);
+    wiki.setUniqueId("website-documentation");
+    wiki.setEnabled(true);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadWikiCommand> loadWiki = mockStatic(LoadWikiCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("documentation.wiki.uniqueId"))
+          .thenReturn("website-documentation");
+      loadWiki.when(() -> LoadWikiCommand.loadWikiByUniqueId("website-documentation")).thenReturn(null);
+
+      new WikiWidget().execute(widgetContext);
+
+      loadWiki.verify(() -> LoadWikiCommand.loadWikiByUniqueId("website-documentation"), times(1));
+    }
+  }
+
+  @Test
+  void executeShowsTheNotSetUpPageWhenTheSitePropertyIsBlank() {
+    preferences.put("wikiUniqueIdProperty", "documentation.wiki.uniqueId");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("documentation.wiki.uniqueId")).thenReturn("");
+
+      WidgetContext result = new WikiWidget().execute(widgetContext);
+
+      Assertions.assertNotNull(result, "an admin who hasn't chosen a wiki yet should see a status page, not a blank one");
+      Assertions.assertEquals("/cms/wiki-not-setup.jsp", result.getJsp());
+    }
+  }
+
+  @Test
+  void executeShowsTheNotSetUpPageWhenTheSitePropertyPointsToANonexistentWiki() {
+    preferences.put("wikiUniqueIdProperty", "documentation.wiki.uniqueId");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadWikiCommand> loadWiki = mockStatic(LoadWikiCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("documentation.wiki.uniqueId"))
+          .thenReturn("deleted-wiki");
+      loadWiki.when(() -> LoadWikiCommand.loadWikiByUniqueId("deleted-wiki")).thenReturn(null);
+
+      WidgetContext result = new WikiWidget().execute(widgetContext);
+
+      Assertions.assertEquals("/cms/wiki-not-setup.jsp", result.getJsp());
+    }
+  }
+
+  @Test
+  void executeReturnsNullWhenNeitherWikiUniqueIdNorItsPropertyIsSet() {
+    // Unchanged prior behavior for a page built from the "Wiki" web-template with no config yet.
+    WidgetContext result = new WikiWidget().execute(widgetContext);
+
+    Assertions.assertNull(result);
   }
 }

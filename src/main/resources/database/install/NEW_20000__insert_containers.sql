@@ -59,6 +59,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
       </widget>
       <widget name="searchForm" class="float-right header-search">
         <expand>true</expand>
+        <placeholder>What can we help you with?</placeholder>
       </widget>
       <widget name="mainMenu" class="float-left header-item">
         <submenuIcon>fa-angle-right</submenuIcon>

@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.application.cms.RenderWikiMarkdownCommand;
@@ -51,9 +52,24 @@ public class WikiWidget extends GenericWidget {
       context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
     }
 
-    // Determine the wiki
+    // Determine the wiki -- either a fixed uniqueId baked into this page's own layout config
+    // (the normal case: a page built from the "Wiki" web-template), or, when this widget instance
+    // declares wikiUniqueIdProperty instead, a site property the admin can repoint without editing
+    // the layout (used by the built-in /admin/documentation page so an admin can choose which of
+    // their own wikis appears there).
     String wikiUniqueId = context.getPreferences().get("wikiUniqueId");
-    if (wikiUniqueId == null) {
+    String wikiUniqueIdProperty = context.getPreferences().get("wikiUniqueIdProperty");
+    boolean wikiUniqueIdFromProperty = StringUtils.isNotBlank(wikiUniqueIdProperty);
+    if (wikiUniqueIdFromProperty) {
+      wikiUniqueId = LoadSitePropertyCommand.loadByName(wikiUniqueIdProperty);
+    }
+    if (StringUtils.isBlank(wikiUniqueId)) {
+      if (wikiUniqueIdFromProperty) {
+        // Nothing has been chosen yet -- show the same status page as an unresolved wiki id below,
+        // rather than silently rendering nothing.
+        context.setJsp(WIKI_NOT_SETUP_JSP);
+        return context;
+      }
       LOG.warn("Wiki preference not found");
       return null;
     }
