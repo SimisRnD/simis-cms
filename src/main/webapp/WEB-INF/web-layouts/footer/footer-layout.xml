@@ -10,11 +10,6 @@
         <widget name="content" class="margin-top-15">
           <uniqueId>site-footer</uniqueId>
         </widget>
-        <widget name="button">
-          <title>Learn more about us</title>
-          <link>/about-us</link>
-          <class>primary round</class>
-        </widget>
         <widget name="copyright" class="width-full margin-bottom-40" />
       </column>
       <column class="small-6 medium-offset-1 medium-2 cell small-margin-bottom-20 medium-order-2 small-order-3">
