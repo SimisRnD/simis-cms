@@ -95,12 +95,6 @@
 
 <h5>Common problems and how to fix them</h5>
 <ul>
-  <li><strong>Unchecking "Enabled" on a form's settings doesn't actually take it offline, and neither
-    does unchecking "Check for spam."</strong> This is a known bug in the current build, not expected
-    behavior -- both checkboxes are silently saved as still-on regardless of what's checked, so a form
-    can't currently be disabled through this UI at all once created. A fix is in progress; until it
-    ships, the only way to stop a form from accepting submissions is to remove the "Form" widget from
-    the page it's placed on.</li>
   <li><strong>"Form could not be deleted."</strong> Unlike some other admin pages, nothing here is
     designed to block a delete (no existing-submissions check, no "still referenced elsewhere"
     guard) -- if you see this, it's most likely a transient database-level failure. Try again, and
