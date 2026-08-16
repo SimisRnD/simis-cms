@@ -72,6 +72,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # init/analyze/upload-sarif are pinned separately across codeql.yml and
+      # publish-images.yml but must stay on the same release: analyze refuses to run
+      # if the config file init wrote doesn't match its own version. Bumping them in
+      # separate PRs (the 4.37.6->4.37.7 bump did exactly this) leaves every PR but the
+      # last-merged one permanently red. Group them so the bump lands atomically.
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
   # Maintains the base-image digest pins in the Dockerfiles (FROM name:tag@sha256:...):
   # Dependabot proposes the new digest when the tag moves, so pinning stays current
   # instead of freezing the images in time.
