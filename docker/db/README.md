@@ -61,6 +61,12 @@ what was verified:
 - **zlib1g / CVE-2023-45853** — `vulnerable_code_not_present`. The flaw is in zlib's MiniZip
   contrib component, which Debian does not build into the shared libz shipped here (hence
   Debian's will-not-fix).
+- **postgis and postgresql-\*-postgis-3(-scripts) / CVE-2026-73515** —
+  `vulnerable_code_not_in_execute_path`. The flaw is in PostGIS's own
+  `ST_FromFlatGeobuf()`/`ST_AsFlatGeobuf()` functions (memory disclosure and DoS via a
+  malformed FlatGeobuf buffer) — this is PostGIS's native code, not the GDAL/OGR chain covered
+  above, so it needed its own entry. The application never calls either function (a
+  full-repository search finds zero references), so the vulnerable parser is never invoked.
 
 Everything else — a handful of general-purpose OS utilities (ncurses, gzip, util-linux,
 libldap, sysstat, libacl1) — is marked **`under_investigation`**, not `not_affected`. We make
