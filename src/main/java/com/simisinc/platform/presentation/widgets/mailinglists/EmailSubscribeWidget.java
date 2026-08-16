@@ -22,11 +22,13 @@ import static java.util.stream.Collectors.toList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -39,6 +41,7 @@ import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.ShippingCountryRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -91,12 +94,15 @@ public class EmailSubscribeWidget extends GenericWidget {
       context.getRequest().setAttribute("onlineMailingLists", MailingListRepository.findOnlineLists());
     } else if ("vertical".equals(context.getPreferences().get("view"))) {
       context.setJsp(VERTICAL_FORM_JSP);
+    } else if ("true".equals(context.getPreferences().get("showName"))) {
+      context.setJsp(WITH_NAME_JSP);
+      // Same multi-list opt-in support as the inline form (issue #598), and a Country dropdown
+      // reusing the same list ShippingAddressFormWidget already offers at checkout instead of
+      // maintaining a second copy of every country name.
+      context.getRequest().setAttribute("onlineMailingLists", MailingListRepository.findOnlineLists());
+      context.getRequest().setAttribute("countryList", ShippingCountryRepository.findAll());
     } else {
-      if ("true".equals(context.getPreferences().get("showName"))) {
-        context.setJsp(WITH_NAME_JSP);
-      } else {
-        context.setJsp(JSP);
-      }
+      context.setJsp(JSP);
     }
 
     // Preferences
@@ -121,8 +127,11 @@ public class EmailSubscribeWidget extends GenericWidget {
       CaptchaCommand.populateWidgetAttributes(context);
     }
 
-    // Previous post had error
-    //    Email email = (Email) context.getRequestObject();
+    // Previous post had error -- redisplay what the visitor already typed (e.g. after a failed
+    // captcha attempt) instead of making them retype every field, matching the pattern
+    // ShippingAddressFormWidget uses for the same reason.
+    Email email = context.getRequestObject() != null ? (Email) context.getRequestObject() : new Email();
+    context.getRequest().setAttribute("email", email);
 
     // Show the JSP
     return context;
@@ -197,7 +206,25 @@ public class EmailSubscribeWidget extends GenericWidget {
         }
         SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
       } else {
-        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingListName);
+        // Issue #598's multi-list opt-in (the with-name form's own checkboxes, not just the
+        // inline form's AJAX path): one or more mailingListId values means the visitor chose
+        // from several public lists rather than this widget's single mailingList preference.
+        String[] selectedListIds = context.getParameterMap().get("mailingListId");
+        if (selectedListIds != null && selectedListIds.length > 0) {
+          List<MailingList> selectedLists = new ArrayList<>();
+          for (String listId : selectedListIds) {
+            MailingList mailingList = MailingListRepository.findById(NumberUtils.toLong(listId, -1));
+            if (mailingList != null) {
+              selectedLists.add(mailingList);
+            }
+          }
+          if (selectedLists.isEmpty()) {
+            throw new DataException("Please choose at least one list to subscribe to");
+          }
+          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, selectedLists);
+        } else {
+          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingListName);
+        }
       }
     } catch (DataException e) {
       context.setWarningMessage(e.getMessage());

@@ -128,7 +128,13 @@ public class SaveEmailCommand {
       if (geoIP != null) {
         emailBean.setContinent(geoIP.getContinent());
         emailBean.setCountryIso(geoIP.getCountryISOCode());
-        emailBean.setCountry(geoIP.getCountry());
+        // A caller that already resolved a country (e.g. the subscribe form's explicit Country
+        // field) knows it more reliably than an IP-based guess -- a visitor behind a VPN or
+        // corporate proxy routinely resolves to the wrong country by IP. Every other geo field
+        // below has no form-input path, so it stays unconditionally GeoIP-derived.
+        if (StringUtils.isBlank(emailBean.getCountry())) {
+          emailBean.setCountry(geoIP.getCountry());
+        }
         emailBean.setCity(geoIP.getCity());
         emailBean.setStateIso(geoIP.getStateISOCode());
         emailBean.setState(geoIP.getState());
