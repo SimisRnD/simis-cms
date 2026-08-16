@@ -23,16 +23,21 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.ecommerce.ShippingCountry;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.ShippingCountryRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -63,6 +68,29 @@ class EmailSubscribeWidgetTest extends WidgetBase {
     WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
 
     assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+  }
+
+  @Test
+  void executeExposesAnEmptyEmailBeanWhenThereWasNoPriorFailedSubmission() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"emailSubscribe\"><useCaptcha>false</useCaptcha></widget>");
+
+    WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+    Email email = (Email) result.getRequest().getAttribute("email");
+    assertNull(email.getFirstName());
+  }
+
+  @Test
+  void executeRedisplaysThePreviouslySubmittedValuesAfterAFailedAttempt() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"emailSubscribe\"><useCaptcha>false</useCaptcha></widget>");
+    Email previousAttempt = new Email();
+    previousAttempt.setFirstName("Jane");
+    previousAttempt.setEmail("jane@example.com");
+    widgetContext.setRequestObject(previousAttempt);
+
+    WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+    assertEquals(previousAttempt, result.getRequest().getAttribute("email"));
   }
 
   @Test
@@ -156,6 +184,93 @@ class EmailSubscribeWidgetTest extends WidgetBase {
   void postUsesTheNamedMailingListPreferenceWithoutABlogUniqueId() throws Exception {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><useCaptcha>false</useCaptcha></widget>");
+    addQueryParameter(widgetContext, "email", "subscriber@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+
+      new EmailSubscribeWidget().post(widgetContext);
+
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq("Newsletter")));
+    }
+  }
+
+  @Test
+  void executeWithShowNamePopulatesOnlineMailingListsAndCountryList() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><showName>true</showName><useCaptcha>false</useCaptcha></widget>");
+    MailingList list = new MailingList();
+    list.setId(1L);
+    ShippingCountry country = new ShippingCountry();
+    country.setTitle("United States");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<ShippingCountryRepository> countryRepo = mockStatic(ShippingCountryRepository.class)) {
+      listRepo.when(MailingListRepository::findOnlineLists).thenReturn(List.of(list));
+      countryRepo.when(ShippingCountryRepository::findAll).thenReturn(List.of(country));
+
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(EmailSubscribeWidget.WITH_NAME_JSP, result.getJsp());
+      assertEquals(List.of(list), result.getRequest().getAttribute("onlineMailingLists"));
+      assertEquals(List.of(country), result.getRequest().getAttribute("countryList"));
+    }
+  }
+
+  @Test
+  void postWithSeveralCheckedMailingListsSubscribesToAllOfThem() throws Exception {
+    // Issue #598's multi-list opt-in, ported to the with-name form's native POST (the inline
+    // form's own version of this already goes through a separate AJAX endpoint).
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><showName>true</showName><useCaptcha>false</useCaptcha></widget>");
+    addQueryParameter(widgetContext, "email", "subscriber@example.com");
+    widgetContext.getParameterMap().put("mailingListId", new String[]{"1", "2"});
+    MailingList listA = new MailingList();
+    listA.setId(1L);
+    MailingList listB = new MailingList();
+    listB.setId(2L);
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      listRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(listA);
+      listRepo.when(() -> MailingListRepository.findById(2L)).thenReturn(listB);
+
+      new EmailSubscribeWidget().post(widgetContext);
+
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(List.of(listA, listB))));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), any(String.class)), never());
+    }
+  }
+
+  @Test
+  void postFailsClosedWhenEveryCheckedMailingListIdIsInvalid() throws Exception {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><showName>true</showName><useCaptcha>false</useCaptcha></widget>");
+    addQueryParameter(widgetContext, "email", "subscriber@example.com");
+    widgetContext.getParameterMap().put("mailingListId", new String[]{"999"});
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      listRepo.when(() -> MailingListRepository.findById(999L)).thenReturn(null);
+
+      WidgetContext result = new EmailSubscribeWidget().post(widgetContext);
+
+      assertEquals("Please choose at least one list to subscribe to", result.getWarningMessage());
+      saveEmail.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void postWithoutAnyMailingListIdFallsBackToTheNamedPreference() throws Exception {
+    // Regression check: a page whose admin never configured any public (show_online) list must
+    // keep behaving exactly as it did before issue #598's checkboxes existed.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><showName>true</showName><useCaptcha>false</useCaptcha></widget>");
     addQueryParameter(widgetContext, "email", "subscriber@example.com");
 
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);

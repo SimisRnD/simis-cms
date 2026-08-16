@@ -12,6 +12,8 @@ CREATE TABLE emails (
   first_name VARCHAR(100),
   last_name VARCHAR(100),
   organization VARCHAR(100),
+  title VARCHAR(150),
+  phone VARCHAR(50),
   source VARCHAR(50),
   ip_address VARCHAR(200),
   session_id VARCHAR(255),
