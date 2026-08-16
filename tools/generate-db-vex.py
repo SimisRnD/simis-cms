@@ -82,6 +82,18 @@ CVE_POLICY = {
         "shipped in this image - which is why Debian classifies it will-not-fix. The "
         "vulnerable code is not present in the delivered library.",
     ),
+    "CVE-2026-73515": (
+        NOT_IN_PATH,
+        "This vulnerability is in PostGIS's native ST_FromFlatGeobuf()/ST_AsFlatGeobuf() "
+        "functions (memory disclosure and DoS via a malformed FlatGeobuf buffer passed to "
+        "them), not the GDAL/OGR FlatGeobuf driver - it affects the postgis and "
+        "postgresql-*-postgis-3(-scripts) packages directly. The application never calls "
+        "either function: a full-repository search for FlatGeobuf/ST_FromFlatGeobuf/"
+        "ST_AsFlatGeobuf finds zero references in src/. The schema does use PostGIS "
+        "geometry/geography columns (world_cities, item locations), but nothing in the "
+        "codebase serializes or parses FlatGeobuf, so the vulnerable code path is never "
+        "reached by anything this application does.",
+    ),
 }
 
 PACKAGE_POLICY = {}

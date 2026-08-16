@@ -135,6 +135,20 @@
     <session-timeout>60</session-timeout>
     <tracking-mode>COOKIE</tracking-mode>
   </session-config>
+  <!-- Per the JSP spec, a .jsp file with no pageEncoding/contentType directive of its own is read
+       as ISO-8859-1 at compile time, independent of the JVM's own file.encoding default (JEP 400
+       does not apply here; this is Jasper's own JSP-spec-mandated fallback). Only 3 of ~354 JSPs in
+       this project declare pageEncoding explicitly, so any other JSP with a literal non-ASCII
+       character in its static template text (an em dash, a curly quote, etc.) gets that character
+       silently corrupted into mojibake at compile time, reproducibly, since the wrong bytes are
+       baked into the compiled class, not mis-served at runtime. This default applies UTF-8 to every
+       JSP so newly-written pages don't need their own pageEncoding directive to render correctly. -->
+  <jsp-config>
+    <jsp-property-group>
+      <url-pattern>*.jsp</url-pattern>
+      <page-encoding>UTF-8</page-encoding>
+    </jsp-property-group>
+  </jsp-config>
   <!-- Errors -->
   <error-page>
     <error-code>401</error-code>

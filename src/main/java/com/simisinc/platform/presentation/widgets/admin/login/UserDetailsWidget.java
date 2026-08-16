@@ -397,11 +397,11 @@ public class UserDetailsWidget extends GenericWidget {
    * legacy role at all -- and this is the only check standing between that access and acting on an
    * admin account.
    * <p>
-   * Package-private (not private): UsersListWidget.bulkSuspendAction() re-checks this identical rule
-   * per selected account so the bulk path can't reach an account the single-account suspendAccount()
-   * below would refuse to touch.
+   * Public (not private): UsersListWidget.bulkSuspendAction() and MfaEnrolledRolesWidget's
+   * bulk MFA reset both re-check this identical rule per affected account so neither bulk path can
+   * reach an account the single-account suspendAccount()/resetMfa() below would refuse to touch.
    */
-  static boolean targetOutranksActor(WidgetContext context, User user) {
+  public static boolean targetOutranksActor(WidgetContext context, User user) {
     List<Role> allRoles = RoleRepository.findAll();
     int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
     int targetLevel = highestRoleLevel(user.getRoleList());

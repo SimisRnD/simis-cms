@@ -2,8 +2,8 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
-  "timestamp": "2026-08-06T16:00:00+00:00",
-  "version": 7,
+  "timestamp": "2026-08-16T03:40:00+00:00",
+  "version": 8,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1124,7 +1124,43 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-73515"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/postgis"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-17-postgis-3"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-17-postgis-3-scripts"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-18-postgis-3"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-18-postgis-3-scripts"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-postgis"
+            },
+            {
+              "@id": "pkg:deb/debian/postgresql-postgis-scripts"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "This vulnerability is in PostGIS's native ST_FromFlatGeobuf()/ST_AsFlatGeobuf() functions (memory disclosure and DoS via a malformed FlatGeobuf buffer passed to them), not the GDAL/OGR FlatGeobuf driver -- it affects the postgis and postgresql-*-postgis-3(-scripts) packages directly, not the GDAL dependency chain covered above. The application never calls either function: a full-repository search for FlatGeobuf/ST_FromFlatGeobuf/ST_AsFlatGeobuf finds zero references in src/. The schema does use PostGIS geometry/geography columns (world_cities, item locations), but nothing in the codebase serializes or parses FlatGeobuf, so the vulnerable code path is never reached by anything this application does."
     }
   ],
-  "last_updated": "2026-08-13T20:00:00Z"
+  "last_updated": "2026-08-16T03:40:00Z"
 }
