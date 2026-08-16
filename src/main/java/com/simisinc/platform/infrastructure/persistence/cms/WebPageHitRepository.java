@@ -562,6 +562,12 @@ public class WebPageHitRepository {
     return Math.max(threshold, 0);
   }
 
+  /**
+   * Backs the admin "Top Pages" report, which is documented to exclude admin/login/asset paths.
+   * /web-content/ is a distinct static-asset path (favicons, logos) from /assets/ -- without its
+   * own exclusion, a hit like /web-content/images/favicon.png (fired on every page load) shows up
+   * in the traffic ranking as if it were a real page view.
+   */
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +
@@ -575,6 +581,7 @@ public class WebPageHitRepository {
             "' " +
             "AND page_path NOT LIKE '/admin%' " +
             "AND page_path NOT LIKE '/assets/%' " +
+            "AND page_path NOT LIKE '/web-content/%' " +
             "AND page_path NOT LIKE '/json/%' " +
             "AND page_path NOT LIKE '%/*' " +
             "AND page_path <> '/content-editor' " +
