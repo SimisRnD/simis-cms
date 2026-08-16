@@ -190,6 +190,35 @@ class EmailRepositoryTest {
         "matches findAll()'s null-vs-empty-list convention, which EmailClassificationJob relies on");
   }
 
+  @Test
+  void addPersistsTitleAndPhone() {
+    Email email = new Email();
+    email.setEmail("lead@example.com");
+    email.setTitle("Director of Engineering");
+    email.setPhone("555-0100");
+
+    Email saved = EmailRepository.add(email);
+
+    assertNotNull(saved);
+    Email reloaded = EmailRepository.findById(saved.getId());
+    assertNotNull(reloaded);
+    assertEquals("Director of Engineering", reloaded.getTitle());
+    assertEquals("555-0100", reloaded.getPhone());
+  }
+
+  @Test
+  void updatePersistsTitleAndPhone() {
+    Email email = addEmail("update-me@example.com");
+    email.setTitle("VP of Sales");
+    email.setPhone("555-0199");
+
+    EmailRepository.update(email);
+
+    Email reloaded = EmailRepository.findById(email.getId());
+    assertEquals("VP of Sales", reloaded.getTitle());
+    assertEquals("555-0199", reloaded.getPhone());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -213,6 +242,8 @@ class EmailRepositoryTest {
           + "first_name VARCHAR(100), "
           + "last_name VARCHAR(100), "
           + "organization VARCHAR(100), "
+          + "title VARCHAR(150), "
+          + "phone VARCHAR(50), "
           + "source VARCHAR(50), "
           + "ip_address VARCHAR(200), "
           + "session_id VARCHAR(255), "

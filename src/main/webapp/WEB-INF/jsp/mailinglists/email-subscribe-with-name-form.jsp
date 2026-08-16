@@ -16,12 +16,12 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
-<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
+<jsp:useBean id="onlineMailingLists" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="countryList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="email" class="com.simisinc.platform.domain.model.mailinglists.Email" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
 <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
 <script nonce="${cspNonce}">
@@ -43,43 +43,89 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-  <div class="grid-container">
-    <div class="grid-x grid-margin-x align-bottom">
-      <div class="small-12 medium-5 cell">
-        <label>Your Name
-          <input class="input-group-field" type="text" name="firstName" placeholder="Your name" required>
-        </label>
-      </div>
-      <div class="small-12 medium-5 cell">
-        <label>Your Email
-          <input class="input-group-field" type="text" name="email" placeholder="Your email" required>
-        </label>
-      </div>
-      <div class="small-12 medium-2 cell">
-        <c:choose>
-          <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-            <button class="g-recaptcha button radius large success expanded"
-                data-sitekey="<c:out value="${googleSiteKey}" />"
-                data-callback="onSubmit">
-              <c:out value="${buttonName}" />
-            </button>
-          </c:when>
-          <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
-            <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
-            <input type="submit" class="button radius success" value="<c:out value="${buttonName}" />"/>
-          </c:when>
-          <c:when test="${useCaptcha eq 'true'}">
-            Please enter the text value you see in the image:<br />
-            <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" />
-            <a href="#" data-captcha-refresh class="margin-left-5" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a><br />
-            <input type="text" name="captcha" value="" required/>
-            <input type="submit" class="button radius success" value="<c:out value="${buttonName}" />"/>
-          </c:when>
-          <c:otherwise>
-            <input type="submit" class="button no-gap" value="<c:out value="${buttonName}" />"/>
-          </c:otherwise>
-        </c:choose>
-      </div>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>First Name <span class="required">*</span>
+        <input type="text" name="firstName" placeholder="First name" autocomplete="given-name" value="<c:out value="${email.firstName}" />" required>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Last Name <span class="required">*</span>
+        <input type="text" name="lastName" placeholder="Last name" autocomplete="family-name" value="<c:out value="${email.lastName}" />" required>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Email <span class="required">*</span>
+        <input type="text" name="email" placeholder="name@email.com" autocomplete="email" value="<c:out value="${email.email}" />" required>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Title
+        <input type="text" name="title" placeholder="Job title" autocomplete="organization-title" value="<c:out value="${email.title}" />">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Company Name
+        <input type="text" name="organization" placeholder="Company name" autocomplete="organization" value="<c:out value="${email.organization}" />">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Business Phone
+        <input type="text" name="phone" placeholder="Business phone" autocomplete="tel" value="<c:out value="${email.phone}" />">
+      </label>
+    </div>
+    <div class="small-12 cell">
+      <label>Country
+        <select name="country">
+          <option value="">Choose</option>
+          <c:forEach items="${countryList}" var="listedCountry">
+            <option value="<c:out value="${listedCountry.title}" />"<c:if test="${email.country eq listedCountry.title}"> selected</c:if>><c:out value="${listedCountry.title}" /></option>
+          </c:forEach>
+        </select>
+      </label>
+    </div>
+  </div>
+  <%-- Issue #598: let a visitor choose which public list(s) to join, same as the inline form --
+       omitted entirely (no checkboxes, no hidden input) when nothing is marked show_online, so a
+       default/fresh install's single-list signup behaves exactly as it did before this existed. --%>
+  <c:if test="${fn:length(onlineMailingLists) > 1}">
+    <p><strong>Email Preferences</strong></p>
+    <p class="help-text">Please select your communication preferences.</p>
+    <c:forEach items="${onlineMailingLists}" var="list">
+      <label class="inline-list-checkbox">
+        <input type="checkbox" name="mailingListId" value="${list.id}" checked>
+        <c:out value="${list.title}" />
+      </label>
+    </c:forEach>
+  </c:if>
+  <c:if test="${fn:length(onlineMailingLists) == 1}">
+    <input type="hidden" name="mailingListId" value="${onlineMailingLists[0].id}">
+  </c:if>
+  <div class="grid-x">
+    <div class="small-12 cell">
+      <c:choose>
+        <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+          <button class="g-recaptcha button radius large success expanded"
+              data-sitekey="<c:out value="${googleSiteKey}" />"
+              data-callback="onSubmit">
+            <c:out value="${buttonName}" />
+          </button>
+        </c:when>
+        <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+          <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
+          <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        </c:when>
+        <c:when test="${useCaptcha eq 'true'}">
+          <p class="help-text">Please enter the text value you see in the image:</p>
+          <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" /><br />
+          <input type="text" name="captcha" value="" required/>
+          <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        </c:when>
+        <c:otherwise>
+          <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        </c:otherwise>
+      </c:choose>
+      <p class="help-text">By subscribing, you agree to our <a href="/legal/privacy">Privacy Policy</a> and <a href="/legal/terms">Terms of Use</a>.</p>
     </div>
   </div>
 </form>
