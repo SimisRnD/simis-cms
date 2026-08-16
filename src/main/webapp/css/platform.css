@@ -286,6 +286,9 @@ p {
 .platform-footer .footer-menu-item {
   border-right: 1px solid #999999; padding: 0 8px;
 }
+.platform-footer .menu-title {
+  font-weight: bold;
+}
 
 /* Default page adjustments for footer when there is minimal content */
 
