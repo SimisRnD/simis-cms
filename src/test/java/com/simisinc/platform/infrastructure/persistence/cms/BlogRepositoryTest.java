@@ -250,8 +250,14 @@ class BlogRepositoryTest {
           + "draft_status VARCHAR(20), "
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
-          + "release_reference VARCHAR(255))");
+          + "release_reference VARCHAR(255), "
+          // issue #414/#1237-sibling: mirrors UPGRADE_20260813.1000__locale_content_variants.sql,
+          // which made both of these NOT NULL on the real table -- BlogPostRepository.add() now
+          // sets translation_group unconditionally, so this schema needs the column too.
+          + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
+          + "translation_group VARCHAR(255) NOT NULL)");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
+      statement.execute("CREATE UNIQUE INDEX uq_blog_posts_group_locale ON blog_posts (translation_group, locale)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "
           + "post_id BIGINT REFERENCES blog_posts(post_id), "
