@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Persists and retrieves content objects
@@ -188,7 +189,17 @@ public class ContentRepository {
         .add("approved_by", record.getApprovedBy())
         .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
         .add("created_by", record.getCreatedBy())
-        .add("modified_by", record.getModifiedBy());
+        .add("modified_by", record.getModifiedBy())
+        // issue #414/#1237-sibling: content.translation_group has been NOT NULL (with a
+        // UNIQUE(translation_group, locale) index) since issue #414's locale-content-variants
+        // migration, but this insert never set it, so every brand-new content record failed at
+        // the database with a not-null-constraint violation. No real translation-grouping feature
+        // is wired up yet (translationGroup has no field on Content), so a unique-per-row
+        // placeholder -- using the same "cnt-" prefix convention the migration's own backfill
+        // uses -- is the correct minimal fix rather than trying to compute a real group; the
+        // not-yet-generated content_id isn't available at insert time, so it can't mirror the
+        // backfill's "cnt-" + id formula exactly.
+        .add("translation_group", "cnt-" + UUID.randomUUID());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
