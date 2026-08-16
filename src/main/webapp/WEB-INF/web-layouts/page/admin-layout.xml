@@ -237,7 +237,7 @@
     <column class="small-12 cell">
       <widget name="wiki" class="padding-20 padding-width-30">
         <title>Documentation</title>
-        <wikiUniqueId>simis-documentation</wikiUniqueId>
+        <wikiUniqueIdProperty>documentation.wiki.uniqueId</wikiUniqueIdProperty>
       </widget>
     </column>
   </page>
@@ -2249,6 +2249,15 @@
       <column class="small-12 medium-10 large-8 cell">
         <widget name="wikiList">
           <title>Wikis</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Documentation Page</title>
+          <prefix>documentation</prefix>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<p class="help-text">Controls the wiki shown under the admin sidebar's <strong>Documentation</strong> link. Paste in the Unique Id of one of the wikis listed to the left; leave blank to leave that link unconfigured.</p>]]></html>
         </widget>
       </column>
     </section>
