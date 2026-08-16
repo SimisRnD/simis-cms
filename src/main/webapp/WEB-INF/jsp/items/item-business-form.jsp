@@ -240,7 +240,8 @@
         </c:when>
         <c:when test="${useCaptcha eq 'true'}">
           Please enter the text value you see in the image:<br />
-          <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" /><br />
+          <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" />
+          <a href="#" data-captcha-refresh class="margin-left-5" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a><br />
           <input type="text" name="captcha" value="" required/>
           <input type="submit" class="button radius success" value="Submit"/>
         </c:when>
