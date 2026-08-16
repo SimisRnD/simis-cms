@@ -289,6 +289,9 @@ p {
 .platform-footer .menu-title {
   font-weight: bold;
 }
+.platform-footer .dropdown.menu a {
+  color: #ffffff;
+}
 
 /* Default page adjustments for footer when there is minimal content */
 
