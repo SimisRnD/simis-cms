@@ -133,6 +133,45 @@ class BlogPostRepositoryTest {
     }
   }
 
+  // --- add() sets translation_group so a brand-new blog post can be inserted (sibling of issue
+  // #1237, which found this same gap in WebPageRepository.add()) ---
+  //
+  // blog_posts.translation_group has been NOT NULL (with a UNIQUE(translation_group, locale)
+  // index) since issue #414's locale-content-variants migration, but BlogPostRepository.add()
+  // never set it, so every brand-new blog post failed with a not-null-constraint violation inside
+  // add()'s own transaction, which caught the SQLException and returned null. Reproduced here
+  // against a real Postgres NOT NULL/UNIQUE constraint (not a mock), so it fails on the pre-fix
+  // code the same way the live rehearsal did and passes once add() sets translation_group.
+
+  @Test
+  void addingABrandNewBlogPostSucceedsDespiteTheTranslationGroupNotNullConstraint() {
+    long blogId = addBlog();
+
+    BlogPost saved = BlogPostRepository.add(newPost(blogId, "new-blog-post"));
+
+    assertNotNull(saved, "the blog post save must not fail on the translation_group NOT NULL constraint");
+    assertTrue(saved.getId() > -1, "a successful insert must come back with a generated id");
+    assertNotNull(BlogPostRepository.findById(saved.getId()),
+        "the blog post row must actually be persisted, not just returned in memory");
+  }
+
+  @Test
+  void addingSeveralBrandNewBlogPostsDoesNotCollideOnTheUniqueTranslationGroupLocaleIndex() {
+    // A fixed/shared placeholder translation_group value would satisfy the NOT NULL constraint on
+    // the first insert but violate uq_blog_posts_group_locale on the second (and add()'s
+    // transaction would roll back that failure into the same silent null as the original bug) --
+    // this proves each new blog post gets a distinct value.
+    long blogId = addBlog();
+
+    BlogPost first = BlogPostRepository.add(newPost(blogId, "first-new-post"));
+    BlogPost second = BlogPostRepository.add(newPost(blogId, "second-new-post"));
+
+    assertNotNull(first);
+    assertNotNull(second);
+    assertTrue(second.getId() > -1,
+        "a second brand-new blog post must not fail to insert because of a reused translation_group value");
+  }
+
   @Test
   void addInsertsTheAssignedTags() {
     long blogId = addBlog();
@@ -441,8 +480,15 @@ class BlogPostRepositoryTest {
           + "draft_status VARCHAR(20), "
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
-          + "release_reference VARCHAR(255))");
+          + "release_reference VARCHAR(255), "
+          // issue #414/#1237-sibling: mirrors UPGRADE_20260813.1000__locale_content_variants.sql
+          // (NEW_50030__locale_content_variants.sql at install time), which made both of these
+          // NOT NULL on the real table -- reproduced here so this test schema fails an INSERT the
+          // same way the real database does when translation_group is left unset.
+          + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
+          + "translation_group VARCHAR(255) NOT NULL)");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
+      statement.execute("CREATE UNIQUE INDEX uq_blog_posts_group_locale ON blog_posts (translation_group, locale)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "
           + "post_id BIGINT REFERENCES blog_posts(post_id), "

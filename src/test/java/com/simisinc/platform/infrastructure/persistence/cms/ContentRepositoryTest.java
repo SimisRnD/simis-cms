@@ -180,6 +180,41 @@ class ContentRepositoryTest {
     assertFalse(ContentRepository.remove(new Content()), "unsaved record (id = -1) should be rejected");
   }
 
+  // --- add() sets translation_group so a brand-new content record can be inserted (sibling of
+  // issue #1237, which found this same gap in WebPageRepository.add()) ---
+  //
+  // content.translation_group has been NOT NULL (with a UNIQUE(translation_group, locale) index)
+  // since issue #414's locale-content-variants migration, but ContentRepository.add() never set it,
+  // so every brand-new content record failed with a not-null-constraint violation, DB.insertInto()
+  // swallowed the SQLException into a bare -1, and add() returned null. Reproduced here against a
+  // real Postgres NOT NULL/UNIQUE constraint (not a mock), so it fails on the pre-fix code the same
+  // way the live rehearsal did and passes once add() sets translation_group.
+
+  @Test
+  void addingABrandNewContentRecordSucceedsDespiteTheTranslationGroupNotNullConstraint() {
+    Content saved = addContent("new-content-block", "<p>New content</p>");
+
+    assertNotNull(saved, "the content save must not fail on the translation_group NOT NULL constraint");
+    assertTrue(saved.getId() > -1, "a successful insert must come back with a generated id");
+    assertNotNull(ContentRepository.findByUniqueId("new-content-block"),
+        "the content row must actually be persisted, not just returned in memory");
+  }
+
+  @Test
+  void addingSeveralBrandNewContentRecordsDoesNotCollideOnTheUniqueTranslationGroupLocaleIndex() {
+    // A fixed/shared placeholder translation_group value would satisfy the NOT NULL constraint on
+    // the first insert but violate uq_content_group_locale on the second (and DB.insertInto() would
+    // swallow that failure into the same silent -1/null as the original bug) -- this proves each
+    // new content record gets a distinct value.
+    Content first = addContent("first-new-block", "<p>First</p>");
+    Content second = addContent("second-new-block", "<p>Second</p>");
+
+    assertNotNull(first);
+    assertNotNull(second);
+    assertTrue(second.getId() > -1,
+        "a second brand-new content record must not fail to insert because of a reused translation_group value");
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -219,7 +254,14 @@ class ContentRepositoryTest {
           + "modified_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          // issue #414/#1237-sibling: mirrors UPGRADE_20260813.1000__locale_content_variants.sql
+          // (NEW_50030__locale_content_variants.sql at install time), which made both of these
+          // NOT NULL on the real table -- reproduced here so this test schema fails an INSERT the
+          // same way the real database does when translation_group is left unset.
+          + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
+          + "translation_group VARCHAR(255) NOT NULL, "
           + "tsv TSVECTOR)");
+      statement.execute("CREATE UNIQUE INDEX uq_content_group_locale ON content (translation_group, locale)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY content_stem (TEMPLATE = snowball, Language = english)");
       statement.execute("CREATE TEXT SEARCH CONFIGURATION content_stem (copy = english)");

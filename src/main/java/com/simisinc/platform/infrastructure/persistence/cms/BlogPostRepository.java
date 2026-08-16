@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -222,7 +223,17 @@ public class BlogPostRepository {
         .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
         .add("submitted_by", record.getSubmittedBy())
         .add("approved_by", record.getApprovedBy())
-        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
+        // issue #414/#1237-sibling: blog_posts.translation_group has been NOT NULL (with a
+        // UNIQUE(translation_group, locale) index) since issue #414's locale-content-variants
+        // migration, but this insert never set it, so every brand-new blog post failed at the
+        // database with a not-null-constraint violation. No real translation-grouping feature is
+        // wired up yet (translationGroup has no field on BlogPost), so a unique-per-row
+        // placeholder -- using the same "post-" prefix convention the migration's own backfill
+        // uses -- is the correct minimal fix rather than trying to compute a real group; the
+        // not-yet-generated post_id isn't available at insert time, so it can't mirror the
+        // backfill's "post-" + id formula exactly.
+        .add("translation_group", "post-" + UUID.randomUUID());
     // Use a transaction so the post row and its tag assignments (issue #633) commit together
     try {
       try (Connection connection = DB.getConnection();
