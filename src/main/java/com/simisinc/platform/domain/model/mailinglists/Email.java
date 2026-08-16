@@ -35,6 +35,8 @@ public class Email extends Entity {
   private String firstName = null;
   private String lastName = null;
   private String organization = null;
+  private String title = null;
+  private String phone = null;
   private String source = null;
   private String ipAddress = null;
   private String sessionId = null;
@@ -115,6 +117,22 @@ public class Email extends Entity {
 
   public void setOrganization(String organization) {
     this.organization = organization;
+  }
+
+  public String getTitle() {
+    return title;
+  }
+
+  public void setTitle(String title) {
+    this.title = title;
+  }
+
+  public String getPhone() {
+    return phone;
+  }
+
+  public void setPhone(String phone) {
+    this.phone = phone;
   }
 
   public String getSource() {

@@ -120,12 +120,9 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
         <html><![CDATA[<p class="margin-bottom-5 text-bold">Follow Us</p>]]></html>
       </widget>
       <widget name="socialMediaLinks" class="margin-bottom-10 small-margin-bottom-20" />
-      <widget name="content">
-        <html><![CDATA[<p class="margin-top-30 text-bold">Subscribe to Our News</p>]]></html>
-      </widget>
-      <widget name="emailSubscribe" class="margin-bottom-30">
-        <view>inline</view>
-        <buttonName>Subscribe</buttonName>
+      <widget name="button" class="margin-top-30">
+        <title>Subscribe to Our News</title>
+        <link>/subscribe</link>
       </widget>
       <widget name="link">
         <name>Privacy Policy</name>
