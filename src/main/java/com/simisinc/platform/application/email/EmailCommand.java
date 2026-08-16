@@ -31,6 +31,7 @@ import javax.net.ssl.SSLException;
 
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
@@ -120,6 +121,14 @@ public class EmailCommand {
       }
       if (current instanceof ConnectException || current instanceof UnknownHostException
           || current instanceof NoRouteToHostException) {
+        return "connect";
+      }
+      // Checked after ConnectException (a SocketException subclass) so a real ConnectException
+      // still categorizes more specifically above -- this catches the plain SocketException a
+      // *blocked* (rather than closed/unreachable) port typically produces, e.g. "Connection
+      // reset" when a cloud platform's egress firewall RSTs outbound SMTP on port 25 (a common,
+      // undocumented-until-you-hit-it default on several providers, including Azure).
+      if (current instanceof SocketException) {
         return "connect";
       }
     }
