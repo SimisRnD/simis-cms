@@ -888,6 +888,15 @@
           event.preventDefault();
           confirmPostAction($(this).attr('data-confirm-post'), $(this).attr('data-post-url'));
         });
+        <%-- Fallback image-text captcha (shown when no reCAPTCHA/Turnstile site key is
+             configured) has no way to request a new challenge short of a full page reload.
+             A GET to /assets/captcha always regenerates the session's captcha text
+             (CaptchaImageWidget), so re-pointing the adjacent img's src with a cache-busting
+             param is enough -- no server change needed. --%>
+        $(document).on('click', 'a[data-captcha-refresh]', function (event) {
+          event.preventDefault();
+          $(this).prev('img').attr('src', '/assets/captcha?t=' + Date.now());
+        });
         <c:if test="${!empty requestPricingRule.promoCode}">
         var sitePromoOverlay = $('#site-promo-overlay');
           var sitePromoCloseButton = $('#site-promo-close-button');

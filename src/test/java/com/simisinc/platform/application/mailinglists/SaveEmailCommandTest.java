@@ -38,6 +38,7 @@ import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.maps.GeoIP;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
@@ -344,6 +345,58 @@ class SaveEmailCommandTest {
       assertEquals(existing, result);
       emailRepo.verify(() -> EmailRepository.update(emailBean));
       memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(existing, lists.get(0), false, null));
+    }
+  }
+
+  @Test
+  void aFormSubmittedCountryWinsOverGeoIp() throws DataException {
+    // A visitor behind a VPN or corporate proxy routinely resolves to the wrong country by IP --
+    // the subscribe form's own Country field is more reliable when the caller already set one.
+    Email emailBean = email("subscriber@example.com");
+    emailBean.setIpAddress("203.0.113.1");
+    emailBean.setCountry("United Kingdom");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    GeoIP geoIp = new GeoIP("203.0.113.1", "North America", "US", "United States", "Reston", "VA", "Virginia",
+        "20190", "America/New_York", 38.0, -77.0, 511);
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<GeoIPCommand> geoIpCommand = mockStatic(GeoIPCommand.class)) {
+      geoIpCommand.when(() -> GeoIPCommand.getLocation("203.0.113.1")).thenReturn(geoIp);
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+
+      SaveEmailCommand.saveEmail(emailBean, mailingList);
+
+      assertEquals("United Kingdom", emailBean.getCountry(), "the form's own value must not be overwritten by GeoIP");
+      // Every other geo field has no form-input path and stays unconditionally GeoIP-derived
+      assertEquals("Reston", emailBean.getCity());
+      assertEquals("US", emailBean.getCountryIso());
+    }
+  }
+
+  @Test
+  void geoIpFillsInCountryWhenTheCallerDidNotAlreadySetOne() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    emailBean.setIpAddress("203.0.113.1");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    GeoIP geoIp = new GeoIP("203.0.113.1", "North America", "CA", "Canada", "Toronto", "ON", "Ontario",
+        "M5V", "America/Toronto", 43.6, -79.4, -1);
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<GeoIPCommand> geoIpCommand = mockStatic(GeoIPCommand.class)) {
+      geoIpCommand.when(() -> GeoIPCommand.getLocation("203.0.113.1")).thenReturn(geoIp);
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+
+      SaveEmailCommand.saveEmail(emailBean, mailingList);
+
+      assertEquals("Canada", emailBean.getCountry(), "unchanged existing behavior: GeoIP fills in an unset country");
     }
   }
 

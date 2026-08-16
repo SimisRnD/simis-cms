@@ -139,6 +139,8 @@ public class EmailRepository {
         .addIfExists("first_name", record.getFirstName())
         .addIfExists("last_name", record.getLastName())
         .addIfExists("organization", record.getOrganization())
+        .addIfExists("title", record.getTitle())
+        .addIfExists("phone", record.getPhone())
         .addIfExists("source", record.getSource())
         .addIfExists("ip_address", record.getIpAddress())
         .addIfExists("session_id", record.getSessionId())
@@ -180,6 +182,8 @@ public class EmailRepository {
         .addIfExists("first_name", record.getFirstName())
         .addIfExists("last_name", record.getLastName())
         .addIfExists("organization", record.getOrganization())
+        .addIfExists("title", record.getTitle())
+        .addIfExists("phone", record.getPhone())
         .add("modified", new Timestamp(System.currentTimeMillis()))
         .add("subscribed", record.getSubscribed())
         .add("unsubscribed", record.getUnsubscribed())
@@ -265,6 +269,8 @@ public class EmailRepository {
       record.setFirstName(rs.getString("first_name"));
       record.setLastName(rs.getString("last_name"));
       record.setOrganization(rs.getString("organization"));
+      record.setTitle(rs.getString("title"));
+      record.setPhone(rs.getString("phone"));
       record.setSource(rs.getString("source"));
       record.setIpAddress(rs.getString("ip_address"));
       record.setSessionId(rs.getString("session_id"));
