@@ -94,6 +94,7 @@ ef881527c4f9e7d0213c111c3f3e33f6acfc6901b34711fbca3d4e12f95ce904  lib/tests/ant-
 6789d68f95904cf274a6410fdfcc5530976bc94197c856909459bb8c64db557b  lib/tests/docker-java-api-3.4.2.jar
 bc9981224fdc2d4726566fc723470601ceb14378265c865b4c203146a4e39765  lib/tests/docker-java-transport-3.4.2.jar
 582b772e0c52fa9d24710617ef610655465edd9a2930b0db75fc8667d6a8d02b  lib/tests/docker-java-transport-zerodep-3.4.2.jar
+3b110c01734e64cf312684c6114b557efb2b81e6b7333c14e910887522c86d90  lib/tests/driver-1.61.0.jar
 31cef12ddec979d1f86d7cf708c41a17da523d05c685fd6642e9d0b2addb7240  lib/tests/duct-tape-1.0.8.jar
 4fb141dd8ef6b0585ffceea4bc49602fbc6312fa977e2c488794ea3e6aafecae  lib/tests/jna-5.19.1.jar
 92df2a6fd67c30acb5b3521118558033f711c7973fab5f4597211ff3fd13f416  lib/tests/junit-jupiter-1.21.4.jar
@@ -104,6 +105,7 @@ dbad5e746654910a11a59ecb4d01e38461f3e5d16161689dc2588d5554432521  lib/tests/mock
 e2416a260c3a45ba77d674cfe27d49428e57efe21a7b2ddeae733ebb5c5d85bf  lib/tests/mockito-junit-jupiter-5.7.0.jar
 03d960bd5aef03c653eb000413ada15eb77cdd2b8e4448886edf5692805e35f3  lib/tests/objenesis-3.2.jar
 8c96209239ca6b866db798eb6fd46aacc2b4ae9cc51031d756cbdba3a371a49b  lib/tests/org.jacoco.ant-0.8.11-nodeps.jar
+0b48ae42c24c999c12c29486c50c40f67bfd40437e036f26fadd70d84f91bc15  lib/tests/playwright-1.61.0.jar
 ea81a9ca337bbae7ee83f372b92d55140c7ab976bce73ff1b79f2dd151ca9610  lib/tests/testcontainers-1.21.4.jar
 f12940eaca253b6875732fbaa952cd49f3389302166a7fed2e994f6cccfa15ca  lib/war/catalina-ant.jar
 b9f2e86f391a07d7ecc3d9e0972834660f87b2d6039ab8eb34115c370cf49a19  lib/war/el-api.jar
