@@ -2,7 +2,37 @@
 <footers>
   <footer name="footer.default" title="Default Footer">
     <section class="padding-top-20">
-      <column class="small-12 medium-4 cell medium-order-1 small-order-1">
+      <column class="small-6 medium-3 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>About Us</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-about-us</tocUniqueId>
+        </widget>
+      </column>
+      <column class="small-6 medium-3 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>Featured Solutions</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-featured-solutions</tocUniqueId>
+        </widget>
+      </column>
+      <column class="small-6 medium-3 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>Information For</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-information-for</tocUniqueId>
+        </widget>
+      </column>
+      <column class="small-6 medium-3 cell small-margin-bottom-20">
+        <widget name="menu">
+          <title>Site Links</title>
+          <class>vertical</class>
+          <tocUniqueId>footer-site-links</tocUniqueId>
+        </widget>
+      </column>
+    </section>
+    <section class="padding-bottom-20">
+      <column class="small-12 medium-6 cell">
         <widget name="logo">
           <view>white</view>
           <maxHeight>50px</maxHeight>
@@ -10,28 +40,9 @@
         <widget name="content" class="margin-top-15">
           <uniqueId>site-footer</uniqueId>
         </widget>
-        <widget name="button">
-          <title>Learn more about us</title>
-          <link>/about-us</link>
-          <class>primary round</class>
-        </widget>
         <widget name="copyright" class="width-full margin-bottom-40" />
       </column>
-      <column class="small-6 medium-offset-1 medium-2 cell small-margin-bottom-20 medium-order-2 small-order-3">
-        <widget name="menu">
-          <title>Company</title>
-          <class>vertical</class>
-          <tocUniqueId>footer-useful-links-1</tocUniqueId>
-        </widget>
-      </column>
-      <column class="small-6 medium-2 cell small-margin-bottom-20 medium-order-3 small-order-4">
-        <widget name="menu">
-          <title>Support</title>
-          <class>vertical</class>
-          <tocUniqueId>footer-useful-links-2</tocUniqueId>
-        </widget>
-      </column>
-      <column class="small-12 medium-auto cell medium-order-4 small-order-2 padding-bottom-30">
+      <column class="small-12 medium-6 cell padding-bottom-30">
         <widget name="content">
           <html><![CDATA[<p class="margin-bottom-5 text-bold">Follow Us</p>]]></html>
         </widget>
