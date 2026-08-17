@@ -15,6 +15,9 @@
   ~ limitations under the License.
   -->
 <template name="Community Landing Page">
+  <rules>
+    <collection uniqueId="groups" name="Groups" />
+  </rules>
   <page>
     <section>
       <column class="small-12 cell">
@@ -32,14 +35,6 @@
           <collectionUniqueId>groups</collectionUniqueId>
         </widget>
       </column>
-      <!--
-      <column class="medium-5 cell">
-        <widget name="register" class="callout radius box" role="guest">
-          <title>Join the community!</title>
-        </widget>
-        <widget name="calendar" />
-      </column>
-      -->
     </section>
   </page>
 </template>
