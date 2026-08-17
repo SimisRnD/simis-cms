@@ -19,6 +19,10 @@
     <collection uniqueId="groups" name="Groups" />
   </rules>
   <page>
+    <!-- The <rules> block above is not currently processed anywhere (see issue #1287); it
+         does not actually create the "groups" collection. Until that's built, create a
+         collection named "Groups" (unique ID "groups") manually via /admin/collections
+         before this page's Add-a-Group button and list will work. -->
     <section>
       <column class="small-12 cell">
         <widget name="content">
