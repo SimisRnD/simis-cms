@@ -128,7 +128,11 @@ class ProvisionWebPageTemplateRulesCommandTest {
 
       ProvisionWebPageTemplateRulesCommand.provisionRules(List.of(rule), 7L);
 
-      save.verify(() -> SaveFolderCommand.saveFolder(argThat(bean -> "Photo and Video Library".equals(bean.getName()) && bean.getCreatedBy() == 7L)));
+      // getModifiedBy() is asserted here because folders.modified_by is a NOT NULL FK to users --
+      // leaving it at Folder's default (-1) throws at save time, a case a fully-mocked
+      // SaveFolderCommand can't otherwise catch (confirmed live in Docker rehearsal, issue #1287).
+      save.verify(() -> SaveFolderCommand.saveFolder(
+          argThat(bean -> "Photo and Video Library".equals(bean.getName()) && bean.getCreatedBy() == 7L && bean.getModifiedBy() == 7L)));
     }
   }
 

@@ -88,6 +88,7 @@ public class ProvisionWebPageTemplateRulesCommand {
     Folder folderBean = new Folder();
     folderBean.setName(rule.getName());
     folderBean.setCreatedBy(createdBy);
+    folderBean.setModifiedBy(createdBy);
     Folder saved = SaveFolderCommand.saveFolder(folderBean);
     if (saved != null && !rule.getUniqueId().equals(saved.getUniqueId())) {
       LOG.warn("Provisioned folder uniqueId '" + saved.getUniqueId() + "' does not match the template rule's expected uniqueId '"
