@@ -22,9 +22,11 @@ import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SaveMenuTabCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuTabRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +50,9 @@ public class SiteMapEditorWidget extends GenericWidget {
 
     List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
     context.getRequest().setAttribute("menuTabList", menuTabList);
+
+    List<WebPage> webPageList = WebPageRepository.findAll();
+    context.getRequest().setAttribute("webPageList", webPageList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
