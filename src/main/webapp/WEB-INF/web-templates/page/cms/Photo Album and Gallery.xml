@@ -19,8 +19,9 @@
     <folder uniqueId="photo-and-video-library" name="Photo and Video Library" />
   </rules>
   <page>
-    <!-- Setup albums in Admin/Files & Folders -->
-    <!-- The one here is called Photo and Video Libary -->
+    <!-- The <rules> block above documents the expected folder but does not create it. In -->
+    <!-- Admin/Files & Folders, manually create a folder named "Photo and Video Library" -->
+    <!-- (its unique ID auto-matches "photo-and-video-library"), then add individual sub-albums. -->
     <section id="sticky-gallery" class="margin-top-30 hide-for-small-only">
       <column class="small-12 medium-5 cell">
         <widget name="content">
