@@ -19,6 +19,7 @@
     <collection uniqueId="job-listings" name="Job Listings" />
   </rules>
   <page>
+    <!-- Publish this page at /add-job-listing so Job Listings' Add button keeps working -->
     <section>
       <column class="small-12 cell">
         <widget name="addItemForm" role="users">
