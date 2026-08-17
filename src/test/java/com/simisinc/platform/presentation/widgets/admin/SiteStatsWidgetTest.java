@@ -22,8 +22,11 @@ import java.util.List;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
+import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
+import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import static org.mockito.ArgumentMatchers.any;
@@ -289,6 +292,65 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
     Assertions.assertEquals("3", request.getAttribute("numberValue"));
     Assertions.assertEquals("critical", request.getAttribute("severity"));
+  }
+
+  /**
+   * Session.latitude/longitude are primitive doubles defaulting to 0/0 when never resolved.
+   * findDailyUniqueLocations() already excludes anonymous sessions, but an authenticated one can
+   * still reach here unresolved -- e.g. when MaxMind resolves a city/subdivision without its
+   * separate location sub-record. The map must drop those rather than plotting them at literal
+   * (0,0) ("Null Island").
+   */
+  @Test
+  void executeLocationsMapExcludesSessionsWithUnresolvedZeroZeroCoordinates() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Visitor Locations</title>\n" +
+            "  <report>locations-map</report>\n" +
+            "</widget>");
+
+    Session unresolved = new Session(0, 0);
+    Session realLocation = new Session(36.7282, -76.5836); // Suffolk, VA
+    Session onThePrimeMeridianButNotTheEquator = new Session(0, 5.5); // a genuine (0, non-zero) location
+
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class);
+        MockedStatic<FindMapTilesCredentialsCommand> mapTilesCommand = mockStatic(FindMapTilesCredentialsCommand.class)) {
+      sessionRepository.when(() -> SessionRepository.findDailyUniqueLocations(anyInt()))
+          .thenReturn(List.of(unresolved, realLocation, onThePrimeMeridianButNotTheEquator));
+      mapTilesCommand.when(FindMapTilesCredentialsCommand::getCredentials)
+          .thenReturn(new MapCredentials("openstreetmap", null));
+
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.LOCATIONS_MAP_JSP, widgetContext.getJsp());
+    @SuppressWarnings("unchecked")
+    List<Session> plottedSessions = (List<Session>) request.getAttribute("sessionList");
+    Assertions.assertEquals(2, plottedSessions.size(), "the (0,0) session must be dropped, the other two kept");
+    Assertions.assertTrue(plottedSessions.contains(realLocation));
+    Assertions.assertTrue(plottedSessions.contains(onThePrimeMeridianButNotTheEquator));
+  }
+
+  @Test
+  void executeLocationsMapReturnsNullWhenMapServiceIsNotConfigured() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Visitor Locations</title>\n" +
+            "  <report>locations-map</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class);
+        MockedStatic<FindMapTilesCredentialsCommand> mapTilesCommand = mockStatic(FindMapTilesCredentialsCommand.class)) {
+      sessionRepository.when(() -> SessionRepository.findDailyUniqueLocations(anyInt()))
+          .thenReturn(List.of(new Session(36.7282, -76.5836)));
+      mapTilesCommand.when(FindMapTilesCredentialsCommand::getCredentials).thenReturn(null);
+
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    // execute() itself always returns the (non-null) context -- only the internal runReport()
+    // helper returns null, which lands here as a null jsp.
+    Assertions.assertNull(widgetContext.getJsp());
   }
 
   @Test

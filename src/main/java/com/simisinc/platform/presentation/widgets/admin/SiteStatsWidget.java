@@ -313,7 +313,19 @@ public class SiteStatsWidget extends GenericWidget {
       return LOCATIONS_JSP;
     } else if ("locations-map".equalsIgnoreCase(report)) {
       List<Session> sessionList = SessionRepository.findDailyUniqueLocations(intervalValue);
-      context.getRequest().setAttribute("sessionList", sessionList);
+      // Session.latitude/longitude are primitive doubles, defaulting to 0/0 when never resolved.
+      // findDailyUniqueLocations() already excludes anonymous sessions, but an authenticated
+      // session can still reach here with unset coordinates -- MaxMind's city/subdivision data
+      // can resolve without its separate location sub-record (GeoIPCommand.getLocation()).
+      // Plotting those at literal (0,0) puts them in the Gulf of Guinea ("Null Island") instead
+      // of just being absent from the map.
+      List<Session> plottableSessionList = new ArrayList<>();
+      for (Session session : sessionList) {
+        if (session.getLatitude() != 0 || session.getLongitude() != 0) {
+          plottableSessionList.add(session);
+        }
+      }
+      context.getRequest().setAttribute("sessionList", plottableSessionList);
       // Determine the mapping service
       MapCredentials mapCredentials = FindMapTilesCredentialsCommand.getCredentials();
       if (mapCredentials == null) {
