@@ -134,6 +134,8 @@ public class SaveWebPageCommand {
     webPage.setSearchable(webPageBean.getSearchable());
     webPage.setShowInSitemap(webPageBean.getShowInSitemap());
     webPage.setDraft(webPageBean.getDraft());
+    webPage.setInternal(webPageBean.getInternal());
+    webPage.setRedirectNotes(webPageBean.getRedirectNotes());
     webPage.setSitemapPriority(webPageBean.getSitemapPriority());
     webPage.setSitemapChangeFrequency(webPageBean.getSitemapChangeFrequency());
     webPage.setPublishAt(webPageBean.getPublishAt());

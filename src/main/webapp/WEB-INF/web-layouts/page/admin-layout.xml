@@ -1609,8 +1609,6 @@
   </page>
 
   <!-- @todo Turn this into a menu, then link to additional config pages -->
-  <!-- @todo Turn this into a menu, then link to additional config pages, also sticky-footer-links -->
-
   <page name="/admin/useful-links" role="admin,content-manager" title="Useful Links">
     <section>
       <column class="small-12 cell">
@@ -1620,7 +1618,7 @@
           <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
           <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
           <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
-          <p>Looking for the floating action buttons shown on every page instead? See <a href="/admin/sticky-footer-links">Sticky Page Buttons</a>.</p>
+          <p>Looking for the floating action buttons shown on every page instead? See <a href="/admin/sticky-footer-links">Sticky Page Buttons</a>. For the rest of the footer &mdash; logo, colors, legal text &mdash; see <a href="/admin/site-properties">Site Settings</a>.</p>
           ]]></html>
         </widget>
       </column>
@@ -1649,7 +1647,7 @@
           <html><![CDATA[<h5>About Sticky Page Buttons</h5>
           <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
           <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
-          <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>.</p>
+          <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>. For the rest of the site's branding, see <a href="/admin/site-properties">Site Settings</a>.</p>
           ]]></html>
         </widget>
       </column>
@@ -1697,6 +1695,16 @@
       <column class="small-12 cell">
         <widget name="webPageList">
           <title>Web Pages</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/page-templates" role="admin,content-manager" title="Page Templates">
+    <section>
+      <column class="small-12 cell">
+        <widget name="pageTemplateGallery">
+          <title>Page Templates</title>
         </widget>
       </column>
     </section>
