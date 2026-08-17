@@ -777,6 +777,7 @@ public class PageServlet extends HttpServlet {
         }
         wl.append(']');
         request.setAttribute("widgetLibraryJson", wl.toString());
+        request.setAttribute("widgetSchemaJson", LoadWidgetSchemaCommand.getWidgetSchemaJson(request.getServletContext()));
       }
 
       // In edit mode, layout builders preview the draft layout (bypasses cache)

@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="My Page - Portal" image="">
+<template name="My Page: Portal" image="My Page - Portal.png">
   <page role="users" title="My Page">
     <section>
       <column class="small-12 medium-3 cell">
