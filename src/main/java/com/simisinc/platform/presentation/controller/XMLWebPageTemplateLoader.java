@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.domain.model.cms.WebPageTemplate;
+import com.simisinc.platform.domain.model.cms.WebPageTemplateRule;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -128,6 +129,18 @@ public class XMLWebPageTemplateLoader implements Serializable {
       css = cssEl.getTextContent();
     }
 
+    // Extract the rules, if present (issue #1287) -- each <collection>/<folder> child names a
+    // backing record this template expects to exist. Scoped to the <rules> element's own children
+    // (not a document-wide tag search) so a future widget preference that happens to use the same
+    // tag name can never be picked up by accident.
+    List<WebPageTemplateRule> ruleList = new ArrayList<>();
+    NodeList rulesObjectTags = document.getElementsByTagName("rules");
+    if (rulesObjectTags.getLength() > 0) {
+      Element rulesEl = (Element) rulesObjectTags.item(0);
+      addTemplateRules(ruleList, rulesEl, "collection");
+      addTemplateRules(ruleList, rulesEl, "folder");
+    }
+
     // The template needs a uniqueId
     String uniqueId = category + " / " + name;
     long idValue = ByteBuffer.wrap(DigestUtils.md5(uniqueId)).getInt();
@@ -145,8 +158,21 @@ public class XMLWebPageTemplateLoader implements Serializable {
     webPageTemplate.setImagePath(image);
     webPageTemplate.setPageXml(pageXml);
     webPageTemplate.setCss(css);
+    webPageTemplate.setRuleList(ruleList);
 
     return webPageTemplate;
+  }
+
+  private static void addTemplateRules(List<WebPageTemplateRule> ruleList, Element rulesEl, String tagName) {
+    NodeList tags = rulesEl.getElementsByTagName(tagName);
+    for (int i = 0; i < tags.getLength(); i++) {
+      Element el = (Element) tags.item(i);
+      WebPageTemplateRule rule = new WebPageTemplateRule();
+      rule.setType(tagName);
+      rule.setUniqueId(el.getAttribute("uniqueId"));
+      rule.setName(el.getAttribute("name"));
+      ruleList.add(rule);
+    }
   }
 
   private static String getXmlContent(Element el) {

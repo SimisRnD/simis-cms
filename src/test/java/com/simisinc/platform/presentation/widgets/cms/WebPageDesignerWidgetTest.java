@@ -19,10 +19,12 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ProvisionWebPageTemplateRulesCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageTemplate;
+import com.simisinc.platform.domain.model.cms.WebPageTemplateRule;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -37,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 /**
@@ -787,6 +791,47 @@ class WebPageDesignerWidgetTest extends WidgetBase {
           "legacy behavior: a template pick publishes straight to pageXml when review is not required");
       Assertions.assertNull(saved.getValue().getDraftPageXml());
       webPageRepository.verify(() -> WebPageRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  // Issue #1287: the filesystem-template path (templateUniqueId), the one all of the real
+  // rule-bearing templates (Job Listings, Photo Album and Gallery, etc.) go through, had no post()
+  // test at all -- this proves a template's rules are handed off for provisioning.
+
+  @Test
+  void postFilesystemTemplateProvisionsItsRules() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/new-page");
+    addQueryParameter(widgetContext, "returnPage", "/new-page");
+    // templateUniqueId is read via context.getRequest().getParameter(...), not context.getParameter(...) --
+    // the test harness's mock backs the former with setAttribute(), not the query-parameter map.
+    request.setAttribute("templateUniqueId", "123");
+
+    WebPageTemplateRule rule = new WebPageTemplateRule();
+    rule.setType("collection");
+    rule.setUniqueId("job-listings");
+    rule.setName("Job Listings");
+    WebPageTemplate fsTemplate = new WebPageTemplate();
+    fsTemplate.setUniqueId(123L);
+    fsTemplate.setName("Job Listings");
+    fsTemplate.setPageXml("<page><section><column></column></section></page>");
+    fsTemplate.setRuleList(List.of(rule));
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<XMLWebPageTemplateLoader> loader = mockStatic(XMLWebPageTemplateLoader.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<ProvisionWebPageTemplateRulesCommand> provision = mockStatic(ProvisionWebPageTemplateRulesCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/new-page")).thenReturn(null);
+      loader.when(() -> XMLWebPageTemplateLoader.retrieveTemplateList(any())).thenReturn(List.of(fsTemplate));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(false);
+      saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      provision.verify(() -> ProvisionWebPageTemplateRulesCommand.provisionRules(eq(List.of(rule)), anyLong()));
     }
   }
 

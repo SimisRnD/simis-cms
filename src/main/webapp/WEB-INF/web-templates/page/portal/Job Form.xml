@@ -19,6 +19,7 @@
     <collection uniqueId="job-listings" name="Job Listings" />
   </rules>
   <page>
+    <!-- Requires a Form with unique ID "job" created in Admin/Forms -->
     <section>
       <column class="small-12 cell">
         <widget name="addItemForm" role="users">
