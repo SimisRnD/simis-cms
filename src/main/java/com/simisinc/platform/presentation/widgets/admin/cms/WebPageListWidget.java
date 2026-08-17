@@ -21,6 +21,7 @@ import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +98,22 @@ public class WebPageListWidget extends GenericWidget {
     // Load the menu tabs
     List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
     context.getRequest().setAttribute("menuTabList", menuTabList);
+
+    // Every link reachable from the site navigation menu (tabs plus their nested items) -- used by
+    // the "All Web Pages" list below to flag a page that has no way to be reached by a visitor
+    // clicking through the nav (issue #1266). A page can still be reachable some other way (a link
+    // from another page's content, a directly-typed URL), so this is a "not in the nav menu" signal,
+    // not a "totally unreachable" one.
+    Set<String> linkedPagePaths = new HashSet<>();
+    for (MenuTab menuTab : menuTabList) {
+      linkedPagePaths.add(menuTab.getLink());
+      if (menuTab.getMenuItemList() != null) {
+        for (MenuItem menuItem : menuTab.getMenuItemList()) {
+          linkedPagePaths.add(menuItem.getLink());
+        }
+      }
+    }
+    context.getRequest().setAttribute("linkedPagePaths", linkedPagePaths);
 
     // Load the built in pages (just the ones which the pages use) -- needed before filtering the
     // "All Web Pages" list below, since a standard/built-in page is always "live" regardless of
