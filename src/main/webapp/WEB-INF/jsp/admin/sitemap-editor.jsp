@@ -22,6 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="menuTabList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="menuTab" class="com.simisinc.platform.domain.model.cms.MenuTab" scope="request"/>
+<jsp:useBean id="webPageList" class="java.util.ArrayList" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
@@ -33,7 +34,8 @@
   <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it (see the example
   on the <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> page if that distinction isn't clear). Link
   must start with / (e.g. /solutions); if you leave off the leading slash it's added for you rather than
-  rejected. Reorder tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> drag
+  rejected. Existing page paths are suggested as you type, but the field still accepts any value. Reorder
+  tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> drag
   handles or the arrow buttons. To add a new tab/item or to delete one, use
   <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
 </p>
@@ -48,6 +50,11 @@
 <c:if test="${empty menuTabList}">
   <p class="subheader">No tabs were found, add one!</p>
 </c:if>
+<datalist id="webPageLinks">
+  <c:forEach items="${webPageList}" var="wp">
+    <option value="<c:out value="${wp.link}"/>"><c:out value="${wp.title}"/></option>
+  </c:forEach>
+</datalist>
 <form method="post" id="siteMapOrderForm">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -85,7 +92,7 @@
             </c:when>
             <c:otherwise>
               <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" title="Tab name shown in the menu" style="margin-bottom:0"/>
-              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" title="Page path starting with /, e.g. /solutions" style="margin-bottom:0"/>
+              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" title="Page path starting with /, e.g. /solutions" style="margin-bottom:0" list="webPageLinks"/>
               <input type="text" name="menuTab${menuTab.id}icon" value="<c:out value="${menuTab.icon}" />" placeholder="Optional icon" title="Icon name without the fa- prefix, e.g. briefcase"/>
             </c:otherwise>
           </c:choose>
@@ -114,7 +121,7 @@
                 <div class="clear-float"></div>
                 <div>
                   <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" style="margin-bottom:0"/>
-                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0"/>
+                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0" list="webPageLinks"/>
                 </div>
               </div>
             </c:forEach>
