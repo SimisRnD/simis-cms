@@ -169,6 +169,7 @@
   <widget name="siteMap" class="com.simisinc.platform.presentation.widgets.cms.SiteMapWidget" />
   <widget name="siteMapEditor" class="com.simisinc.platform.presentation.widgets.cms.SiteMapEditorWidget" />
   <widget name="webPageList" class="com.simisinc.platform.presentation.widgets.admin.cms.WebPageListWidget" />
+  <widget name="pageTemplateGallery" class="com.simisinc.platform.presentation.widgets.admin.cms.PageTemplateGalleryWidget" />
   <widget name="webPageForm" class="com.simisinc.platform.presentation.widgets.admin.cms.WebPageFormWidget" />
   <widget name="webPageReview" class="com.simisinc.platform.presentation.widgets.admin.cms.WebPageReviewWidget" />
   <widget name="webPageVersionsList" class="com.simisinc.platform.presentation.widgets.admin.cms.WebPageVersionsListWidget" />
