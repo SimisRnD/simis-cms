@@ -78,6 +78,7 @@
   <widget name="captchaImage" class="com.simisinc.platform.presentation.widgets.cms.CaptchaImageWidget" />
   <widget name="downloadFile" class="com.simisinc.platform.presentation.widgets.cms.DownloadFileWidget" />
   <widget name="remoteContent" class="com.simisinc.platform.presentation.widgets.cms.RemoteContentWidget" />
+  <widget name="weather" class="com.simisinc.platform.presentation.widgets.cms.WeatherWidget" />
   <widget name="socialMediaLinks" class="com.simisinc.platform.presentation.widgets.cms.SocialMediaLinksWidget" />
   <widget name="instagram" class="com.simisinc.platform.presentation.widgets.cms.InstagramWidget" />
   <widget name="leaderboard" class="com.simisinc.platform.presentation.widgets.cms.LeaderboardWidget" />

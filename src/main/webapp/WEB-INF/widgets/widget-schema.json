@@ -382,6 +382,18 @@
       ]
     },
 
+    "weather": {
+      "label": "Weather",
+      "category": "Data",
+      "icon": "fa-cloud-sun",
+      "preferences": [
+        {"name": "title",     "label": "Title (optional, defaults to the location name)", "type": "text"},
+        {"name": "latitude",  "label": "Latitude",   "type": "number"},
+        {"name": "longitude", "label": "Longitude",  "type": "number"},
+        {"name": "periods",   "label": "Forecast Periods to Show", "type": "number", "default": "4"}
+      ]
+    },
+
     "superset": {
       "label": "Superset Dashboard",
       "category": "Data",
