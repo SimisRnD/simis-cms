@@ -87,6 +87,22 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
+<%-- issue #1268: this JSP is shared by 18 different settings pages via the prefix preference --
+     gate on the exact branding-related prefixes so this callout only appears on the 4 pages it's
+     actually relevant to, not on unrelated pages like Mail or Captcha Settings. --%>
+<c:if test="${prefix eq 'site' || prefix eq 'theme' || prefix eq 'social' || fn:startsWith(prefix, 'site.header')}">
+  <div class="callout secondary radius" style="margin-bottom:1rem">
+    <strong>Related settings:</strong>
+    <ul class="menu" style="display:inline-block;margin-left:0.5rem">
+      <c:if test="${prefix ne 'site'}"><li><a href="${ctx}/admin/site-properties">Site Settings</a></li></c:if>
+      <c:if test="${prefix ne 'theme'}"><li><a href="${ctx}/admin/theme-properties">Theme Settings</a></li></c:if>
+      <c:if test="${!fn:startsWith(prefix, 'site.header')}"><li><a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a></li></c:if>
+      <c:if test="${prefix ne 'social'}"><li><a href="${ctx}/admin/social-media-settings">Social Media Settings</a></li></c:if>
+      <li><a href="${ctx}/admin/useful-links">Useful Links</a></li>
+      <li><a href="${ctx}/admin/sticky-footer-links">Sticky Footer Links</a></li>
+    </ul>
+  </div>
+</c:if>
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -585,13 +601,13 @@
             <p class="help-text" id="siteNewsletterBackgroundColorHelpText">The background color of the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo'}">
-            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo color scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.white'}">
-            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo color scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
-            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo color scheme setting on the Theme Settings page.</p>
+            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
@@ -603,7 +619,7 @@
             <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.header.page'}">
-            <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the Utility Bar Settings page.</p>
+            <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'social.email'}">
             <p class="help-text" id="socialEmailHelpText">A contact email address shown in the site footer, next to the Telephone number below if both are set. Leave blank to omit the whole contact line from the footer.</p>
@@ -691,12 +707,12 @@
     <p class="help-text">Connects this site to external learning platforms so course listings and calendar events can be pulled in automatically. Of the three integrations below, only Moodle has a real, working connection today -- LRS xAPI isn't wired to anything external yet, and PERLS has working client code but no live server left to connect to (each section's help text below explains why). The "Enable e-learning?" toggle above is a master switch: turning it off disables all three regardless of their own individual toggles.</p>
   </c:if>
   <c:if test="${prefix eq 'site'}">
-    <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
+    <p class="help-text">Header text and links have their own settings page (<a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a>); logo colors, fonts, and site-wide colors have their own (<a href="${ctx}/admin/theme-properties">Theme Settings</a>). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
     <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Is API enabled?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
   </c:if>
   <c:if test="${prefix eq 'theme'}">
     <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu theme or Footer theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
-    <p class="help-text">The three System Alert colors below are the same values shown on the Utility Bar Settings page -- editing either page changes what the other shows.</p>
+    <p class="help-text">The three System Alert colors below are the same values shown on the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page -- editing either page changes what the other shows.</p>
   </c:if>
   <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
     <div class="callout radius warning">
