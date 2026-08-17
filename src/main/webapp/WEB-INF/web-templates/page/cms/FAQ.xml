@@ -27,12 +27,12 @@
         <widget name="faq" class="margin-top-50">
           <title>Frequently Asked Questions</title>
           <questions>
-            <entry question="How do I know which product is right for me?"
-                answer="Our products are designed to meet your specific needs and fit into your lifestyle." />
-            <entry question="How do I use the product?"
-                answer="You can follow the directions included with your order." />
-            <entry question="How do I request support for a service?"
-                answer="Reach out through our contact page and a team member will follow up." />
+            <entry question="What certifications and clearances does your team hold?"
+                answer="Our team maintains active facility and personnel security clearances as required by our current contracts, along with relevant industry certifications. Contact us to discuss the specific certifications relevant to your program." />
+            <entry question="How do you handle Controlled Unclassified Information (CUI)?"
+                answer="We follow NIST 800-171 controls for safeguarding CUI across our systems and processes, consistent with DFARS and CMMC requirements. Documentation of our compliance posture is available for review under appropriate agreements." />
+            <entry question="What is your program and contract experience?"
+                answer="Our team has supported a range of defense and aerospace programs. Reach out with your program's specific requirements and we'll be glad to discuss relevant past performance." />
           </questions>
         </widget>
         <widget name="content" class="margin-top-50 callout no-box light">

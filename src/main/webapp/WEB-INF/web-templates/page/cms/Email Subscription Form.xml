@@ -23,6 +23,7 @@
           <uniqueId>${webPageName}-content</uniqueId>
         </widget>
         <widget name="emailSubscribe">
+          <!-- A mailing list with the unique id/name "Newsletter" must exist (create it in Admin/Mailing Lists) for this widget to work -->
           <mailingList>Newsletter</mailingList>
           <title>Subscribe to our mailing list</title>
           <buttonName>Subscribe</buttonName>
