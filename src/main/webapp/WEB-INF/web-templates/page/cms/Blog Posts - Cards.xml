@@ -16,6 +16,7 @@
   -->
 <template name="Blog Posts - Cards" image="Blog Cards.png">
   <page>
+    <!-- Masonry-grid-view sibling of "Blog Posts - List.xml" (same blog, same Add-a-Post button). Keep both in sync if you edit one. -->
     <!-- Setup a blog in Admin/Blogs -->
     <section class="margin-bottom-50">
       <column class="small-8 medium-6 cell">

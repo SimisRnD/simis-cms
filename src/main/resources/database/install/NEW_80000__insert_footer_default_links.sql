@@ -7,7 +7,7 @@
 -- so a valid user_id is available here.
 INSERT INTO table_of_contents (toc_unique_id, name, entries, created_by, modified_by)
 SELECT 'footer-about-us', 'Footer - About Us Links',
-  '[{"id":1,"name":"About Us","link":"/about-us"}]',
+  '[{"id":1,"name":"About Us","link":"/about-us"},{"id":2,"name":"Subscribe","link":"/subscribe"}]',
   user_id, user_id
 FROM users WHERE unique_id = 'system-administrator'
 ON CONFLICT (toc_unique_id) DO NOTHING;

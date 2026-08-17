@@ -28,7 +28,7 @@
     </section>
     <section>
       <column class="small-12 cell">
-        <!-- Links to Job Form (must stay published at /add-job-listing) so adding a listing always goes through CAPTCHA and approval; do not add a second, unmoderated way in -->
+        <!-- addUrl only works if the Job Form template is published at exactly this path; otherwise this button leads nowhere -->
         <widget name="addItemButton" role="users">
           <buttonName>Add a Job Listing</buttonName>
           <collectionUniqueId>job-listings</collectionUniqueId>
