@@ -105,7 +105,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
     </column>
   </section>
   <section class="padding-bottom-20">
-    <column class="small-12 medium-6 cell">
+    <column class="small-12 medium-4 cell small-margin-bottom-20">
       <widget name="logo">
         <view>white</view>
         <maxHeight>50px</maxHeight>
@@ -114,11 +114,13 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
         <uniqueId>site-footer</uniqueId>
       </widget>
     </column>
-    <column class="small-12 medium-6 cell padding-bottom-30">
-      <widget name="content" class="text-center">
+    <column class="small-12 medium-4 cell text-center small-margin-bottom-20">
+      <widget name="content">
         <html><![CDATA[<p class="margin-bottom-5 text-bold">Follow Us</p>]]></html>
       </widget>
-      <widget name="socialMediaLinks" class="margin-bottom-10 small-margin-bottom-20 text-center" />
+      <widget name="socialMediaLinks" class="margin-bottom-10 small-margin-bottom-20" />
+    </column>
+    <column class="small-12 medium-4 cell small-margin-bottom-20">
       <widget name="copyright" class="width-full margin-bottom-40 text-center medium-text-right" />
     </column>
   </section>
