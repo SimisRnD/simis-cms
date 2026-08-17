@@ -14,10 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="Community Landing Page">
-  <rules>
-    <collection uniqueId="groups" name="Groups" />
-  </rules>
+<template name="Community Landing Page" image="Community Landing Page.png">
   <page>
     <!-- The <rules> block above is not currently processed anywhere (see issue #1287); it
          does not actually create the "groups" collection. Until that's built, create a

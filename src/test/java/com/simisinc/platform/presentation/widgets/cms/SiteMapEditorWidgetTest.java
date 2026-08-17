@@ -31,8 +31,10 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuTabRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -86,8 +88,10 @@ class SiteMapEditorWidgetTest extends WidgetBase {
 
   @Test
   void executeShowsTheEditor() {
-    try (MockedStatic<MenuTabRepository> menuTabRepository = mockStatic(MenuTabRepository.class)) {
+    try (MockedStatic<MenuTabRepository> menuTabRepository = mockStatic(MenuTabRepository.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
       menuTabRepository.when(MenuTabRepository::findAll).thenReturn(Collections.<MenuTab>emptyList());
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(Collections.<WebPage>emptyList());
 
       WidgetContext result = new SiteMapEditorWidget().execute(widgetContext);
 
