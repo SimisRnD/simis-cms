@@ -16,6 +16,7 @@
   -->
 <template name="Blog Posts - List" image="Blog Posts.png">
   <page>
+    <!-- List-view sibling of "Blog Posts - Cards.xml" (same blog, same Add-a-Post button). Keep both in sync if you edit one. -->
     <!-- Setup a blog in Admin/Blogs -->
     <section>
       <column class="small-12 medium-8 cell">
