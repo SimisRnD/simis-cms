@@ -48,15 +48,16 @@ import com.github.benmanes.caffeine.cache.Cache;
 class CacheManagerTest {
 
   @Test
-  void getCacheNamesReturnsAllFifteenRegisteredCaches() {
+  void getCacheNamesReturnsAllSixteenRegisteredCaches() {
     Set<String> names = CacheManager.getCacheNames();
-    assertEquals(15, names.size());
+    assertEquals(16, names.size());
     assertTrue(names.contains(CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE));
     assertTrue(names.contains(CacheManager.APP_CACHE));
     assertTrue(names.contains(CacheManager.USER_CREDENTIALS_CACHE));
     assertTrue(names.contains(CacheManager.STYLESHEET_WEB_PAGE_ID_CACHE));
     assertTrue(names.contains(CacheManager.CONTENT_UNIQUE_ID_CACHE));
     assertTrue(names.contains(CacheManager.CONTENT_REMOTE_URL_CACHE));
+    assertTrue(names.contains(CacheManager.WEATHER_FORECAST_CACHE));
     assertTrue(names.contains(CacheManager.COLLECTION_UNIQUE_ID_CACHE));
     assertTrue(names.contains(CacheManager.TABLE_OF_CONTENTS_UNIQUE_ID_CACHE));
     assertTrue(names.contains(CacheManager.WEB_REDIRECT_CACHE));
