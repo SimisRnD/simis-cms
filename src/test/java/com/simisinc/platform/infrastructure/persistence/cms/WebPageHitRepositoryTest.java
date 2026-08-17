@@ -187,6 +187,68 @@ class WebPageHitRepositoryTest {
     assertEquals(0, results.size());
   }
 
+  // --- findTopPaths() integration coverage ---
+
+  @Test
+  void findTopPathsCountsRealSessionHitsGroupedByPathAndOrdersByCountDescending() {
+    seedSession("real-session", false);
+    seedSession("bot-session", true);
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    seedHit("/contact-us", "real-session", now);
+    seedHit("/contact-us", "real-session", now);
+    seedHit("/about-us", "real-session", now);
+    seedHit("/contact-us", "bot-session", now);
+
+    List<StatisticsData> results = WebPageHitRepository.findTopPaths(30, 'd', 10);
+
+    assertEquals(2, results.size());
+    assertEquals("/contact-us", results.get(0).getLabel(), "the higher (real-session-only) count sorts first");
+    assertEquals("2", results.get(0).getValue(), "the bot-session hit must not count");
+    assertEquals("/about-us", results.get(1).getLabel());
+  }
+
+  @Test
+  void findTopPathsExcludesWebContentAssetPaths() {
+    // /web-content/ is a distinct static-asset path (favicons, logos) from /assets/, hit on every
+    // page load -- without its own exclusion it shows up in this traffic ranking as if it were a
+    // real page view.
+    seedSession("real-session", false);
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    seedHit("/web-content/images/favicon.png", "real-session", now);
+    seedHit("/contact-us", "real-session", now);
+
+    List<StatisticsData> results = WebPageHitRepository.findTopPaths(30, 'd', 10);
+
+    assertEquals(1, results.size());
+    assertEquals("/contact-us", results.get(0).getLabel());
+  }
+
+  @Test
+  void findTopPathsExcludesAdminLoginAndAssetPaths() {
+    seedSession("real-session", false);
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    seedHit("/admin/web-pages", "real-session", now);
+    seedHit("/assets/captcha", "real-session", now);
+    seedHit("/json/some-endpoint", "real-session", now);
+    seedHit("/login", "real-session", now);
+    seedHit("/content-editor", "real-session", now);
+    seedHit("/news/*", "real-session", now);
+    seedHit("/contact-us", "real-session", now);
+
+    List<StatisticsData> results = WebPageHitRepository.findTopPaths(30, 'd', 10);
+
+    assertEquals(1, results.size());
+    assertEquals("/contact-us", results.get(0).getLabel());
+  }
+
+  @Test
+  void findTopPathsReturnsEmptyListWhenThereIsNoData() {
+    List<StatisticsData> results = WebPageHitRepository.findTopPaths(30, 'd', 10);
+
+    assertNotNull(results);
+    assertEquals(0, results.size());
+  }
+
   // --- countViewsByWebPageId() integration coverage (issue #497) ---
 
   @Test

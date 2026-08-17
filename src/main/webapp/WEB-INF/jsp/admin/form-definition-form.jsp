@@ -101,16 +101,6 @@
     Links to the site's Privacy Policy page. Only actually appears on the live form if that page is
     also turned on under Site Settings -- checking this box here alone does nothing if it isn't.
   </p>
-  <div class="callout radius warning" style="margin-top:10px">
-    <p style="margin-bottom:0">
-      <i class="fa fa-exclamation-triangle"></i> <strong>Known issue:</strong> unchecking "Enabled?"
-      or "Check for spam?" currently has no effect -- both are silently saved as still-on no matter
-      what's checked here, on both a new form and an edit. A fix is in progress. Until it ships, the
-      only way to actually take a form offline is to remove its "Form" widget from the page it's
-      placed on -- disabled-looking submissions here will still go through if the widget stays in
-      place.
-    </p>
-  </div>
   <div class="button-container">
     <c:choose>
       <c:when test="${formDefinition.id eq -1}">
