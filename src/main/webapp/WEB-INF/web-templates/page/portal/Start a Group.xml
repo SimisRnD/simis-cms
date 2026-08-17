@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="Start a Group">
+<template name="Start a Group" image="Start a Group.png">
   <page>
     <section>
       <column class="small-12 medium-6 cell">
