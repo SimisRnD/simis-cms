@@ -27,9 +27,9 @@ import com.simisinc.platform.presentation.controller.XMLWebPageTemplateLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Read-only gallery of every page template available when creating a new web page (issue #1197 --
- * previously the only way to browse them was to start creating a specific page first, via
- * WebPageDesignerWidget's picker). Shares that widget's exact template-loading/sort logic, but
+ * Read-only gallery of every page template available when creating a new web page -- previously
+ * the only way to browse them was to start creating a specific page first, via
+ * WebPageDesignerWidget's picker. Shares that widget's exact template-loading/sort logic, but
  * doesn't offer a way to pick one -- an admin planning a page's layout ahead of time doesn't yet
  * have a link value to create against.
  *
