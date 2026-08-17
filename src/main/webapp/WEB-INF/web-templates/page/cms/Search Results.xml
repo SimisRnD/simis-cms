@@ -23,7 +23,7 @@
         </widget>
         <widget name="searchInfo" />
         <widget name="webPageTitleSearchResults" hr="true">
-          <title>Pages found:</title>
+          <title>Matching Page Titles:</title>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
         <widget name="calendarSearchResults" hr="true">
@@ -32,7 +32,7 @@
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
         <widget name="webPageSearchResults" hr="true">
-          <title>Web Pages Found:</title>
+          <title>Pages Containing Your Search:</title>
           <limit>5</limit>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
