@@ -23,6 +23,7 @@
 <jsp:useBean id="webPageList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="webPageMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="standardPages" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="linkedPagePaths" class="java.util.HashSet" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -379,6 +380,9 @@
         <c:if test="${webPage.internal}">
           <br /><span class="secondary label">internal</span>
         </c:if>
+        <c:if test="${empty webPage.archived && empty webPage.redirectUrl && !linkedPagePaths.contains(webPage.link)}">
+          <br /><span class="secondary label"><i class="fa fa-compass"></i> not in nav menu</span>
+        </c:if>
       </td>
       <td>
         <c:out value="${webPage.title}" />
@@ -446,6 +450,11 @@
     is almost always the safer choice when you just want a page out of the way.</li>
   <li><strong>A bulk action rejects my whole selection.</strong> Selections over 100 pages are rejected
     outright rather than silently applied to only the first 100 -- reselect a smaller batch and try again.</li>
+  <li><strong>A page shows <i class="fa fa-compass"></i> not in nav menu.</strong> Nothing in the site
+    navigation -- no top-level tab, no nested item -- links to this page, so a visitor can only reach it by
+    typing its URL directly or following a link from somewhere else on the site. It doesn't mean the page is
+    broken, and archived pages and redirects never show it, since neither one is expected to have a nav-menu
+    entry. Visit <a href="${ctx}/admin/sitemap">Navigation Menu</a> to add it to a tab or as a nested item.</li>
 </ul>
 <%-- Bulk action reveal modals -- selection is scoped to the "All Web Pages" rows currently checked
      on this page (see the JS below); each is populated at open time with the live selection, not
