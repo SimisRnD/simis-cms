@@ -431,6 +431,13 @@
       <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
       <span id="sc-editor-status" aria-live="polite"></span>
     </div>
+    <%-- Issue #1269: labeled-field metadata for the "⚙ Prefs" panel in platform-editor.js. Only
+         non-empty in layout-build mode (widgetSchemaJson is set inside PageServlet's pageLayoutMode
+         block, same as widgetLibraryJson above) -- a content-editor-only session never sees the Prefs
+         button that would use it, so this simply renders empty for them, same as data-widget-names.
+         escapeXml="false": static, developer-authored JSON, not user input -- HTML-escaping it here
+         would corrupt the JSON, since script content isn't entity-decoded. --%>
+    <script type="application/json" id="widget-schema-json"><c:out value="${widgetSchemaJson}" escapeXml="false"/></script>
   </c:if>
   <c:choose>
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">

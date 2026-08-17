@@ -602,10 +602,91 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   z-index: 10001;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   font-family: sans-serif;
-  width: 300px;
+  width: 340px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Issue #1269: the labeled-field form that replaces the raw JSON textarea for schema-eligible
+   widgets. #sc-prefs-body wraps whichever body renderPrefsBody() built (form fields, or the
+   textarea from renderPrefsRawJson for the excluded/no-schema fallback). */
+#sc-prefs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.sc-pref-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-pref-field label {
+  color: #ccc;
+  font-size: 11px;
+  font-family: sans-serif;
+}
+
+.sc-pref-field input[type="text"],
+.sc-pref-field input[type="number"],
+.sc-pref-field select {
+  background: #2a2a3e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: sans-serif;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.sc-pref-field input[type="text"]:focus,
+.sc-pref-field input[type="number"]:focus,
+.sc-pref-field select:focus,
+.sc-pref-field textarea:focus {
+  outline: none;
+  border-color: #0056b3;
+}
+
+.sc-pref-field input[type="color"] {
+  width: 100%;
+  height: 26px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #2a2a3e;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.sc-pref-field textarea {
+  background: #2a2a3e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: monospace;
+  resize: vertical;
+  min-height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sc-pref-field input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.sc-prefs-empty {
+  color: #999;
+  font-size: 11px;
+  font-family: sans-serif;
+  margin: 4px 0;
 }
 
 #sc-prefs-header {
