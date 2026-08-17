@@ -16,6 +16,7 @@
   -->
 <template name="Email Subscription Form" image="Email Subscription Form.png">
   <page>
+    <!-- Setup a mailing list named "Newsletter" in Admin/Mailing Lists, or edit the mailingList preference below to match one you've already created -->
     <section class="align-center">
       <column class="small-12 medium-8 cell">
         <widget name="content">
