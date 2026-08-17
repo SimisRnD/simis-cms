@@ -2,7 +2,7 @@ e07e4e7bcc9bfea352fccf323a280f45c3e7274ae484ed2db71837ab69ad83a7  lib/build/argo
 faa8169a2cf75067467592342d6d196334410d3ac7029a55dd3ba50e191bb2ad  lib/build/argon2/argon2-jvm-nolibs-2.12.jar
 4fb141dd8ef6b0585ffceea4bc49602fbc6312fa977e2c488794ea3e6aafecae  lib/build/argon2/jna-5.19.1.jar
 7b339126e92af79b07fcf96fe16fa5ba2a2854bb8ce7e03ac4776b9474fe7df5  lib/build/azure/azure-core-1.58.1.jar
-7f716ca0d487308534272f8bfdb29562c27929917d40116943a7b0f2c36a0ddb  lib/build/azure/azure-core-http-okhttp-1.13.5.jar
+444d4662c6840d52e1b574aa777c99e5c259658ff915543fd885c737abdd7fa1  lib/build/azure/azure-core-http-okhttp-1.13.6.jar
 fd947ab1d6b1a8519d377e8509f34fdf70215aaa11e84826dbe017e962acb2a0  lib/build/azure/azure-identity-1.18.4.jar
 bad21d5eb306d82b85951b58a1d9e501a9b09970e452bee6d4d445fd5a91c519  lib/build/azure/azure-json-1.5.1.jar
 08b458481b656554605215ab0b165f68e6025359e52bea4736d032328d40ba3b  lib/build/azure/azure-xml-1.2.1.jar
@@ -14,7 +14,7 @@ f75ca597789b3dac58f61857b9ac2e1034a68fa672db35055a8fb4509e325f28  lib/build/azur
 7d9b507c0d651de30a20dac634e7cb7ca908a7c23d57ce05e71bbb9bb79bf0c4  lib/build/azure/reactor-core-3.7.18.jar
 c274208e4961855e8e341bcb74434af8771ce98a494aec48997028efeb4909f2  lib/build/bucket4j/bucket4j-core-8.10.1.jar
 9d9d2cfd681fd9272ded3d27c9930db12f89f732345975aa113ebc223bbf1224  lib/build/caffeine/caffeine-3.2.4.jar
-4da960155caf74d45d5f22a28120d2b7c263339e90ba101285456d69b364f539  lib/build/classgraph/classgraph-4.8.190.jar
+8d3e9d3864e51438a8a33391dc469f06d2d878278efc784b78ac5d4c0d5cfc87  lib/build/classgraph/classgraph-4.8.192.jar
 9e44ba68ec9a3f21286fa2a8bbb003b735c0f69101bb43144b79f4f8aaa74709  lib/build/commons/commons-beanutils-1.11.0.jar
 78a5d732fbd715e2d10bd7150d2f8030bae57267f8aacc5c88f642cb6c2e5d3f  lib/build/commons/commons-codec-1.22.1.jar
 eeeae917917144a68a741d4c0dff66aa5c5c5fd85593ff217bced3fc8ca783b8  lib/build/commons/commons-collections-3.2.2.jar
@@ -62,10 +62,10 @@ cb46fa519fd4108a5bdde5f960c89dc5ed508e3dbf1edff89611d49817184c0d  lib/build/john
 5cc6e60b9e74d38c25fe4f2d22dfd40577f5b8396bc885f7061cd2c525a43b86  lib/build/jstl/jakarta.servlet.jsp.jstl-3.0.1.jar
 d55951aefedb543cb16193a873b92d22c40c3b8ba26cfa7ed9229eb118bb9c9b  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.2.jar
 6f64eac736db9434dd6925b4a518b9d1d17177652320c37916cf9ba3ce7d7d7a  lib/build/kotlin/kotlin-stdlib-2.3.21.jar
-e8bbba87d446f6e035157c32b8f30e2b947964980c841161e148c3883dd177cd  lib/build/libphonenumber/libphonenumber-9.0.36.jar
+8ddfab25169eddc768f2fbda6ceaf5dda70648631d631b01e594376940a500a3  lib/build/libphonenumber/libphonenumber-9.0.37.jar
 6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93  lib/build/postgresql/postgresql-42.7.13.jar
 407bab4db77453b42b052554934095873db0f1c9b8018aebb97f19eb9f5575fa  lib/build/rabbitmq/amqp-client-5.34.0.jar
-0325971b1e4acfaec4602a06ea6feda1b010b8f153cbe2f5955e7b7e5c6a897f  lib/build/restfb/restfb-2026.8.0.jar
+a87f14309be5458b901804cfd66788ed869a2b1d412e457c5098629e61f28ce1  lib/build/restfb/restfb-2026.9.0.jar
 0b20f45e3a0fd8f0d12cdc5316b06776e902b1365db00118876f9175c60f302c  lib/build/rome-rss/jdom2-2.0.6.1.jar
 d4e0bb6857a25ee15e2082be6e83e1da897cfbabb025bfe01ae00346d7db7c78  lib/build/rome-rss/rome-2.1.0.jar
 6e1c3b022dff4cf7492acddbba22356f424ade3d869a42a2a4d74a28454334a4  lib/build/rome-rss/rome-utils-2.1.0.jar
