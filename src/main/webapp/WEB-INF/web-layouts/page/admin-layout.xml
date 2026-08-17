@@ -1702,6 +1702,16 @@
     </section>
   </page>
 
+  <page name="/admin/page-templates" role="admin,content-manager" title="Page Templates">
+    <section>
+      <column class="small-12 cell">
+        <widget name="pageTemplateGallery">
+          <title>Page Templates</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-page" role="admin,content-manager" title="Web Page Details">
     <section>
       <column class="small-12 cell">
