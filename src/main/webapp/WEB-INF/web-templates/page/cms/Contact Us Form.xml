@@ -35,8 +35,6 @@
             <field name="Name" value="name" placeholder="Your first and last name" required="true" />
             <field name="Organization" value="organization" />
             <field name="Email Address" value="email" type="email" required="true" />
-            <!--<field name="Are you:" value="are-you" list="Patient,Doctor,Lawmaker,Other" />-->
-            <!--<field name="Who would you like to contact?" value="who" list="Sales,Marketing,Technical,Other" />-->
             <!--<field name="Phone Number" value="phoneNumber" />-->
             <field name="How Can We Help?" value="comments" required="true" />
           </fields>

@@ -27,12 +27,12 @@
         <widget name="faq" class="margin-top-50">
           <title>Frequently Asked Questions</title>
           <questions>
-            <entry question="How do I know which product is right for me?"
-                answer="Our products are designed to meet your specific needs and fit into your lifestyle." />
-            <entry question="How do I use the product?"
-                answer="You can follow the directions included with your order." />
-            <entry question="How do I request support for a service?"
-                answer="Reach out through our contact page and a team member will follow up." />
+            <entry question="What certifications and accreditations does your company hold?"
+                answer="We are CMMC Level 2 certified and ISO 9001:2015 registered, reflecting our commitment to cybersecurity and quality management on defense and aerospace contracts. Our certifications are maintained through annual third party audits and are reviewed whenever our scope of work changes." />
+            <entry question="How do you handle Controlled Unclassified Information (CUI)?"
+                answer="All CUI is processed, stored, and transmitted within a compliant enclave built to NIST SP 800-171 controls. Access is restricted to authorized personnel on a need to know basis, and every system handling CUI is included in our continuous monitoring and incident response program." />
+            <entry question="What facility clearance level and program experience do you have?"
+                answer="Our facility holds a Secret level facility clearance through the Defense Counterintelligence and Security Agency, and our team has supported avionics, systems integration, and sustainment programs for DoD and prime aerospace customers. Contact us to discuss teaming opportunities or the clearance requirements for an upcoming program." />
           </questions>
         </widget>
         <widget name="content" class="margin-top-50 callout no-box light">
