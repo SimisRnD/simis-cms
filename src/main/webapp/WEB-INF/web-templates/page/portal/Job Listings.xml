@@ -28,6 +28,7 @@
     </section>
     <section>
       <column class="small-12 cell">
+        <!-- addUrl only works if the Job Form template is published at exactly this path; otherwise this button leads nowhere -->
         <widget name="addItemButton" role="users">
           <buttonName>Add a Job Listing</buttonName>
           <collectionUniqueId>job-listings</collectionUniqueId>

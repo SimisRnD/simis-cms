@@ -14,8 +14,12 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="Community Landing Page">
+<template name="Community Landing Page" image="Community Landing Page.png">
   <page>
+    <!-- The <rules> block above is not currently processed anywhere (see issue #1287); it
+         does not actually create the "groups" collection. Until that's built, create a
+         collection named "Groups" (unique ID "groups") manually via /admin/collections
+         before this page's Add-a-Group button and list will work. -->
     <section>
       <column class="small-12 cell">
         <widget name="content">
@@ -32,14 +36,6 @@
           <collectionUniqueId>groups</collectionUniqueId>
         </widget>
       </column>
-      <!--
-      <column class="medium-5 cell">
-        <widget name="register" class="callout radius box" role="guest">
-          <title>Join the community!</title>
-        </widget>
-        <widget name="calendar" />
-      </column>
-      -->
     </section>
   </page>
 </template>
