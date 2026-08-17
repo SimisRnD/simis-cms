@@ -135,6 +135,34 @@ class SaveWebPageCommandTest {
   }
 
   @Test
+  void savePersistsInternalAndRedirectNotes() throws Exception {
+    // internal and redirectNotes both have real fields on the /admin/web-page form and are read
+    // correctly into the bean -- but the field-copy block in saveWebPage() never copied them onto
+    // the WebPage object that actually gets persisted, so a save silently dropped both.
+    WebPage bean = newPageBean("/about");
+    bean.setInternal(true);
+    bean.setRedirectNotes("Moved to /new-about after the reorg");
+
+    WebPage saved = new WebPage();
+    saved.setId(5L);
+    saved.setLink("/about");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      repository.when(() -> WebPageRepository.save(any())).thenReturn(saved);
+
+      SaveWebPageCommand.saveWebPage(bean);
+
+      repository.verify(() -> WebPageRepository.save(argThat(page -> {
+        assertEquals(true, page.getInternal());
+        assertEquals("Moved to /new-about after the reorg", page.getRedirectNotes());
+        return true;
+      })));
+    }
+  }
+
+  @Test
   void editingAnExistingPageDoesNotChangeItsOriginalCreatedBy() throws Exception {
     // createdBy must be set once, at creation -- editing an existing page (e.g. fixing a typo)
     // must not reassign the original author to whoever happens to be editing it today.
