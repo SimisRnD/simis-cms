@@ -436,6 +436,10 @@ class WebPageDesignerWidgetTest extends WidgetBase {
       WebPage webPage = (WebPage) request.getAttribute("webPage");
       Assertions.assertNotNull(webPage);
       Assertions.assertTrue(webPage.getPageXml().contains("widget name=\"content\""));
+      // Issue #1269: the composition canvas's "⚙ Prefs" panel needs widget-schema.json's field
+      // metadata -- confirm it's actually set on the request whenever the designer canvas renders,
+      // not just that LoadWidgetSchemaCommand itself works in isolation.
+      Assertions.assertNotNull(request.getAttribute("widgetSchemaJson"));
     }
   }
 

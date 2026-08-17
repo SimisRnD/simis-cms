@@ -21,6 +21,7 @@
   var widgetPicker = null;
   var widgetPickerTarget = null;
   var widgetNames = [];
+  var widgetSchema = {}; // widget-library name -> {label, category, icon, preferences: [...]}, issue #1269
   var activeContent = null;     // the .platform-content div currently being edited
   var activeWidget = null;      // its [data-editor-widget] ancestor
   var savedSelection = null;    // Selection saved before link prompt opens
@@ -1131,7 +1132,7 @@
       prefsTriggerBtn.textContent = '⚙ Prefs';
       prefsTriggerBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        openPrefsPanel(prefsTriggerBtn, s, c, w, el.dataset.editorWidgetPrefs || '{}');
+        openPrefsPanel(prefsTriggerBtn, s, c, w, el.dataset.editorWidgetPrefs || '{}', el.dataset.editorWidgetName || '');
       });
       btns.appendChild(prefsTriggerBtn);
       // Image trigger — arms this widget as the target for the next Media Library file click.
@@ -1282,6 +1283,131 @@
 
   // ── Widget preferences panel ──────────────────────────────────────────────
 
+  // Issue #1269: a widget is eligible for the real labeled-field form when widget-schema.json has
+  // an entry for it AND none of its preferences is type "array" -- the server-side save path
+  // (setWidgetPreferences) can only write flat scalar text into a widget's XML, so a repeatable-row
+  // preference (FAQ questions, tabs, etc.) can't be correctly persisted through it at all. Those
+  // widgets, and any widget with no schema entry, keep the raw-JSON textarea unchanged.
+  function getFormEligibleSchema(widgetName) {
+    var schema = widgetSchema[widgetName];
+    if (!schema || !Array.isArray(schema.preferences)) return null;
+    var hasArrayPref = schema.preferences.some(function (p) { return p.type === 'array'; });
+    return hasArrayPref ? null : schema;
+  }
+
+  function buildPrefInput(pref, value) {
+    var id = 'sc-pref-input-' + pref.name;
+    if (pref.type === 'boolean') {
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = id;
+      cb.dataset.prefName = pref.name;
+      cb.dataset.prefType = pref.type;
+      cb.checked = (value === 'true' || value === true);
+      return cb;
+    }
+    if (pref.type === 'html') {
+      var ta = document.createElement('textarea');
+      ta.id = id;
+      ta.dataset.prefName = pref.name;
+      ta.dataset.prefType = pref.type;
+      ta.value = value || '';
+      return ta;
+    }
+    if (pref.type === 'select') {
+      var sel = document.createElement('select');
+      sel.id = id;
+      sel.dataset.prefName = pref.name;
+      sel.dataset.prefType = pref.type;
+      var options = pref.options || [];
+      if (options.indexOf(value) === -1) {
+        var blank = document.createElement('option');
+        blank.value = '';
+        blank.textContent = '(none)';
+        sel.appendChild(blank);
+      }
+      options.forEach(function (opt) {
+        var o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        if (opt === value) o.selected = true;
+        sel.appendChild(o);
+      });
+      return sel;
+    }
+    var inp = document.createElement('input');
+    inp.id = id;
+    inp.dataset.prefName = pref.name;
+    inp.dataset.prefType = pref.type;
+    // "url" intentionally maps to a plain text input, not <input type="url"> -- native URL
+    // validation rejects legitimate site-relative paths (e.g. this schema's remoteContent.url,
+    // card.link), which this app accepts in practice.
+    inp.type = (pref.type === 'number') ? 'number' : (pref.type === 'color') ? 'color' : 'text';
+    if (pref.type === 'color' && !value) value = '#000000';
+    inp.value = value || '';
+    return inp;
+  }
+
+  function renderPrefsForm(container, schema, currentPrefsJson) {
+    var current = {};
+    try { current = JSON.parse(currentPrefsJson || '{}'); } catch (e) { current = {}; }
+
+    if (schema.preferences.length === 0) {
+      var msg = document.createElement('p');
+      msg.className = 'sc-prefs-empty';
+      msg.textContent = 'This widget has no configurable preferences.';
+      container.appendChild(msg);
+      return;
+    }
+
+    schema.preferences.forEach(function (pref) {
+      var field = document.createElement('div');
+      field.className = 'sc-pref-field';
+      var label = document.createElement('label');
+      label.setAttribute('for', 'sc-pref-input-' + pref.name);
+      label.textContent = pref.label || pref.name;
+      field.appendChild(label);
+
+      var raw = current.hasOwnProperty(pref.name) ? current[pref.name]
+        : (pref.default !== undefined ? pref.default : '');
+      field.appendChild(buildPrefInput(pref, raw));
+      container.appendChild(field);
+    });
+  }
+
+  function renderPrefsRawJson(container, currentPrefsJson) {
+    var textarea = document.createElement('textarea');
+    textarea.id = 'sc-prefs-textarea';
+    textarea.setAttribute('aria-label', 'Preferences JSON');
+    textarea.setAttribute('spellcheck', 'false');
+    textarea.setAttribute('autocomplete', 'off');
+    try {
+      textarea.value = JSON.stringify(JSON.parse(currentPrefsJson), null, 2);
+    } catch (e) {
+      textarea.value = currentPrefsJson;
+    }
+    container.appendChild(textarea);
+    return textarea;
+  }
+
+  function renderPrefsBody() {
+    var body = document.getElementById('sc-prefs-body');
+    var title = document.getElementById('sc-prefs-title');
+    body.innerHTML = '';
+    if (!prefsPanelTarget) return;
+
+    if (prefsPanelTarget.schema) {
+      title.textContent = (prefsPanelTarget.schema.label || prefsPanelTarget.widgetName) + ' Prefs';
+      renderPrefsForm(body, prefsPanelTarget.schema, prefsPanelTarget.original);
+      var firstField = body.querySelector('input, select, textarea');
+      if (firstField) firstField.focus();
+    } else {
+      title.textContent = 'Widget Prefs (raw JSON)';
+      var textarea = renderPrefsRawJson(body, prefsPanelTarget.original);
+      textarea.focus();
+    }
+  }
+
   function buildPrefsPanel() {
     var panel = document.createElement('div');
     panel.id = 'sc-prefs-panel';
@@ -1292,6 +1418,7 @@
     var header = document.createElement('div');
     header.id = 'sc-prefs-header';
     var title = document.createElement('span');
+    title.id = 'sc-prefs-title';
     title.textContent = 'Widget Prefs';
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
@@ -1306,12 +1433,9 @@
     header.appendChild(closeBtn);
     panel.appendChild(header);
 
-    var textarea = document.createElement('textarea');
-    textarea.id = 'sc-prefs-textarea';
-    textarea.setAttribute('aria-label', 'Preferences JSON');
-    textarea.setAttribute('spellcheck', 'false');
-    textarea.setAttribute('autocomplete', 'off');
-    panel.appendChild(textarea);
+    var body = document.createElement('div');
+    body.id = 'sc-prefs-body';
+    panel.appendChild(body);
 
     var error = document.createElement('div');
     error.id = 'sc-prefs-error';
@@ -1326,8 +1450,8 @@
     resetBtn.textContent = 'Reset';
     resetBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (prefsPanelTarget) textarea.value = prefsPanelTarget.original;
-      error.textContent = '';
+      renderPrefsBody();
+      if (error) error.textContent = '';
     });
     var applyBtn = document.createElement('button');
     applyBtn.type = 'button';
@@ -1346,28 +1470,24 @@
     return panel;
   }
 
-  function openPrefsPanel(triggerEl, s, c, w, currentPrefsJson) {
-    prefsPanelTarget = {s: s, c: c, w: w, original: currentPrefsJson};
+  function openPrefsPanel(triggerEl, s, c, w, currentPrefsJson, widgetName) {
+    prefsPanelTarget = {
+      s: s, c: c, w: w, original: currentPrefsJson, widgetName: widgetName,
+      schema: getFormEligibleSchema(widgetName)
+    };
 
-    var textarea = document.getElementById('sc-prefs-textarea');
     var error = document.getElementById('sc-prefs-error');
-    try {
-      textarea.value = JSON.stringify(JSON.parse(currentPrefsJson), null, 2);
-    } catch (e) {
-      textarea.value = currentPrefsJson;
-    }
     if (error) error.textContent = '';
+    renderPrefsBody();
 
     prefsPanel.style.display = 'flex';
 
     var rect = triggerEl.getBoundingClientRect();
-    var pw = 300;
+    var pw = 340;
     var left = window.scrollX + rect.left;
     if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
     prefsPanel.style.top = (window.scrollY + rect.bottom + 4) + 'px';
     prefsPanel.style.left = Math.max(8, left) + 'px';
-
-    textarea.focus();
   }
 
   function closePrefsPanel() {
@@ -1377,16 +1497,33 @@
 
   function applyPrefs() {
     if (!prefsPanelTarget) return;
-    var textarea = document.getElementById('sc-prefs-textarea');
     var error = document.getElementById('sc-prefs-error');
-    var raw = textarea.value.trim();
-    if (!raw) { if (error) error.textContent = 'Enter at least one key/value pair.'; return; }
-    try {
-      JSON.parse(raw);
-    } catch (e) {
-      if (error) error.textContent = 'Invalid JSON: ' + e.message;
-      return;
+    var raw;
+
+    if (prefsPanelTarget.schema) {
+      if (prefsPanelTarget.schema.preferences.length === 0) {
+        closePrefsPanel();
+        return; // nothing to submit -- setWidgetPreferences requires at least one preference
+      }
+      var result = {};
+      prefsPanelTarget.schema.preferences.forEach(function (pref) {
+        var input = document.getElementById('sc-pref-input-' + pref.name);
+        if (!input) return;
+        result[pref.name] = (pref.type === 'boolean') ? (input.checked ? 'true' : 'false') : input.value;
+      });
+      raw = JSON.stringify(result);
+    } else {
+      var textarea = document.getElementById('sc-prefs-textarea');
+      raw = textarea.value.trim();
+      if (!raw) { if (error) error.textContent = 'Enter at least one key/value pair.'; return; }
+      try {
+        JSON.parse(raw);
+      } catch (e) {
+        if (error) error.textContent = 'Invalid JSON: ' + e.message;
+        return;
+      }
     }
+
     var target = prefsPanelTarget;
     closePrefsPanel();
     setToolbarStatus('Saving preferences…');
@@ -1667,6 +1804,14 @@
   prefsPanel = buildPrefsPanel();
   widgetPicker = buildWidgetPicker();
   widgetNames = JSON.parse((toolbar && toolbar.dataset.widgetNames) || '[]');
+  (function () {
+    try {
+      var schemaEl = document.getElementById('widget-schema-json');
+      widgetSchema = (JSON.parse((schemaEl && schemaEl.textContent) || '{}').widgets) || {};
+    } catch (e) {
+      widgetSchema = {};
+    }
+  })();
 
   // Close width picker on outside click
   document.addEventListener('click', function (e) {

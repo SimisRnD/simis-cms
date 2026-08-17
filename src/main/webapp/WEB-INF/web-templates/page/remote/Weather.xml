@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="Show Weather Example" image="">
+<template name="Show Weather Example" image="Weather.png">
   <page title="Weather Example">
     <section>
       <column class="small-6 cell">
