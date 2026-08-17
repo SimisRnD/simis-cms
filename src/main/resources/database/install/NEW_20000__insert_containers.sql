@@ -113,27 +113,13 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
       <widget name="content" class="margin-top-15">
         <uniqueId>site-footer</uniqueId>
       </widget>
-      <widget name="copyright" class="width-full margin-bottom-40" />
     </column>
     <column class="small-12 medium-6 cell padding-bottom-30">
-      <widget name="content">
+      <widget name="content" class="text-center">
         <html><![CDATA[<p class="margin-bottom-5 text-bold">Follow Us</p>]]></html>
       </widget>
-      <widget name="socialMediaLinks" class="margin-bottom-10 small-margin-bottom-20" />
-      <widget name="button" class="margin-top-30">
-        <title>Subscribe to Our News</title>
-        <link>/subscribe</link>
-      </widget>
-      <widget name="link">
-        <name>Privacy Policy</name>
-        <link>/legal/privacy</link>
-        <class>margin-left-10 margin-right-10 text-underline</class>
-      </widget>
-      <widget name="link">
-        <name>Terms of Use</name>
-        <link>/legal/terms</link>
-        <class>text-underline</class>
-      </widget>
+      <widget name="socialMediaLinks" class="margin-bottom-10 small-margin-bottom-20 text-center" />
+      <widget name="copyright" class="width-full margin-bottom-40 text-center medium-text-right" />
     </column>
   </section>
 </footer>');
