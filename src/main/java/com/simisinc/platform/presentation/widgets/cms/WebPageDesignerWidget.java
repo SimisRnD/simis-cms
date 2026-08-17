@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadWidgetSchemaCommand;
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
+import com.simisinc.platform.application.cms.ProvisionWebPageTemplateRulesCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.cms.WebPageDesignerToXmlCommand;
@@ -309,6 +310,7 @@ public class WebPageDesignerWidget extends GenericWidget {
       template = StringUtils.replace(template, "${webPageName}", webPageName);
       applyNewPageContent(webPage, template, mayPublishDirectly);
       webPage.setTemplate(webPageTemplate.getName());
+      ProvisionWebPageTemplateRulesCommand.provisionRules(webPageTemplate.getRuleList(), context.getUserId());
     } else if (pageDesignHtml != null) {
       // Page designer
       if (LOG.isDebugEnabled()) {
