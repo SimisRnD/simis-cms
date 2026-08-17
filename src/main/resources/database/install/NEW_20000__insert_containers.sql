@@ -105,7 +105,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
     </column>
   </section>
   <section class="padding-bottom-20">
-    <column class="small-12 medium-8 cell small-margin-bottom-20">
+    <column class="small-12 medium-4 cell small-margin-bottom-20">
       <widget name="logo">
         <view>white</view>
         <maxHeight>50px</maxHeight>

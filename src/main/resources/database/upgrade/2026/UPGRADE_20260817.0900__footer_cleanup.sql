@@ -3,11 +3,13 @@
 -- -- editing footer-layout.xml/NEW_20000 alone never reaches an existing site, the same gap the
 -- three UPGRADE_20260816 footer migrations already fixed for their own changes.
 --
--- 1. Widen the logo column to make room for Follow Us as its own sibling column (centered, with
---    the social media icons underneath it), and remove the "Subscribe to Our News" button (a
---    plain "Subscribe" link now lives under About Us instead -- see the table_of_contents update
---    below), the Privacy Policy link, and the Terms of Use link -- both of the latter are now
---    redundant with Site Links. The copyright line stays with the logo, unchanged.
+-- 1. The logo column (which keeps the copyright line stacked underneath it, unstyled and
+--    left-aligned) narrows to a third of the row, and Follow Us (with the social media icons
+--    underneath it) becomes its own sibling column next to it, centered -- both in the same row,
+--    aligned with the logo, with the row's remaining third left open. Also removes the "Subscribe
+--    to Our News" button (a plain "Subscribe" link now lives under About Us instead -- see the
+--    table_of_contents update below), the Privacy Policy link, and the Terms of Use link -- both
+--    of the latter are now redundant with Site Links.
 -- A no-op (not an error) if an admin has since edited this footer's logo/Follow-Us row by hand
 -- and the text no longer matches exactly.
 UPDATE web_containers
@@ -42,7 +44,7 @@ SET container_xml = REPLACE(container_xml,
         <class>text-underline</class>
       </widget>
     </column>',
-'    <column class="small-12 medium-8 cell small-margin-bottom-20">
+'    <column class="small-12 medium-4 cell small-margin-bottom-20">
       <widget name="logo">
         <view>white</view>
         <maxHeight>50px</maxHeight>
