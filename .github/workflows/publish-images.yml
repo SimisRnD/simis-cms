@@ -430,11 +430,17 @@ jobs:
       #   - ACR_APP_RESOURCE_GROUP (repository variable): Azure resource group name
       # If not set, the deploy is skipped (e.g., forks, pre-production branches).
       # Gated OFF by default: set the ENABLE_ROLLING_DEPLOY repository variable to
-      # 'true' to run it. The rolling deploy cannot currently succeed against the
-      # pilot -- the health check polls the staging slot from this runner over the
-      # public internet, and the App Service (and therefore the slot) has
-      # publicNetworkAccess disabled. See #1178 and the header of
-      # tools/rolling-deploy.sh.
+      # 'true' to run it.
+      #
+      # The original health check polled the staging slot from this runner over the
+      # public internet, which could never pass against publicNetworkAccess-disabled
+      # App Service -- see #1178. PR #1186 moved the health signal inside Azure
+      # (WEBSITE_SWAP_WARMUP_PING_PATH/STATUSES), but that redesign was written
+      # without Azure credentials and had never run against live Azure. As of
+      # 2026-08-18, the CI identity has been granted Website Contributor scoped to
+      # the App Service and the warm-up app settings have landed, and
+      # ENABLE_ROLLING_DEPLOY is being turned on to get the first real test run.
+      # #1178 stays open until that run is observed to succeed.
       #
       # Without this gate the step fails on every merge to main, after every other
       # step has already succeeded and the image has reached ACR. A red run that
