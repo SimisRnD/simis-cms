@@ -281,7 +281,11 @@
       <span aria-hidden="true">&times;</span>
     </button>
   </div>
-  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+  <%-- No data-animation-in (issue #1320, same as #1318): Foundation's Motion-UI animateIn path
+       leaves this display:none forever -- a CSS transition can't start on an element that's still
+       display:none when the animation class is added, so the transitionend it waits for to reveal
+       the element never fires. Omitting it uses Foundation's default, non-animated open. --%>
+  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" role="dialog" aria-modal="true" aria-labelledby="formTitle">
     <button class="close-button" data-close aria-label="Close modal" type="button">
       <span aria-hidden="true">&times;</span>
     </button>
