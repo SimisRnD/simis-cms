@@ -47,28 +47,14 @@
            role="dialog" aria-modal="true"
            data-reveal
            data-reset-on-close="true"
-           <c:choose>
-             <c:when test="${animate eq 'up'}">
-               data-animation-in="slide-in-up fast"
-               data-animation-out="slide-out-down fast"
-             </c:when>
-             <c:when test="${animate eq 'down'}">
-               data-animation-in="slide-in-down fast"
-               data-animation-out="slide-out-up fast"
-             </c:when>
-             <c:when test="${animate eq 'right'}">
-               data-animation-in="slide-in-right fast"
-               data-animation-out="slide-out-right fast"
-             </c:when>
-             <c:when test="${animate eq 'fade'}">
-               data-animation-in="fade-in"
-               data-animation-out="fade-out"
-             </c:when>
-             <c:otherwise>
-                data-animation-in="slide-in-left fast"
-                data-animation-out="slide-out-left fast"
-             </c:otherwise>
-           </c:choose>
+           <%-- No data-animation-in/data-animation-out (issue #1320, same as #1318): Foundation's
+                Motion-UI animateIn path leaves this display:none forever -- a CSS transition can't
+                start on an element that's still display:none when the animation class is added, so
+                the transitionend it waits for to reveal the element never fires. The "animate"
+                preference is kept (still shown in the widget's Animation dropdown) so existing
+                configurations don't break, but it no longer drives any data-animation-in/out
+                attribute -- every direction now uses Foundation's default, non-animated open,
+                which works. --%>
            <c:if test="${attach eq 'left'}">
              data-h-offset="0"
            </c:if>

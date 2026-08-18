@@ -25,7 +25,11 @@
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
 <button class="button alert expanded" data-open="refundFormReveal">Issue a Refund</button>
-<div class="reveal small" id="refundFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="refundFormRevealTitle">
+<%-- No data-animation-in (issue #1320, same as #1318): Foundation's Motion-UI animateIn path
+     leaves this display:none forever -- a CSS transition can't start on an element that's still
+     display:none when the animation class is added, so the transitionend it waits for to reveal
+     the element never fires. Omitting it uses Foundation's default, non-animated open. --%>
+<div class="reveal small" id="refundFormReveal" data-reveal data-close-on-click="false" role="dialog" aria-modal="true" aria-labelledby="refundFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
