@@ -146,7 +146,7 @@
               </c:choose>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.logo.color'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="themeLogoColorHelpText">
                 <option value="full-color"<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>>Full color</option>
                 <option value="all-white"<c:if test="${siteProperty.value eq 'all-white'}"> selected</c:if>>All white</option>
                 <option value="color-and-white"<c:if test="${siteProperty.value eq 'color-and-white'}"> selected</c:if>>Color and White</option>
@@ -155,7 +155,7 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.logo.color'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterLogoColorHelpText">
                 <option value="full-color"<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>>Full color</option>
                 <option value="all-white"<c:if test="${siteProperty.value eq 'all-white'}"> selected</c:if>>All white</option>
                 <option value="color-and-white"<c:if test="${siteProperty.value eq 'color-and-white'}"> selected</c:if>>Color and White</option>
@@ -384,6 +384,12 @@
           <c:if test="${siteProperty.name eq 'theme.footer.style'}">
             <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'theme.logo.color'}">
+            <p class="help-text" id="themeLogoColorHelpText">Which uploaded logo variant appears in the <strong>header</strong>. Upload the corresponding image(s) on the <a href="${ctx}/admin/site-properties">Site Settings</a> page -- Full color logo, All white logo, or Mixed color logo -- or this will show nothing. This is independent of Footer logo color below, which controls the footer only.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.logo.color'}">
+            <p class="help-text" id="themeFooterLogoColorHelpText">Which uploaded logo variant appears in the <strong>footer</strong>. Upload the corresponding image(s) on the <a href="${ctx}/admin/site-properties">Site Settings</a> page. This is independent of Logo color above, which controls the header only.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
             <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer theme above is set to "Custom XML".</p>
           </c:if>
@@ -601,13 +607,13 @@
             <p class="help-text" id="siteNewsletterBackgroundColorHelpText">The background color of the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo'}">
-            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- used as the logo image in outgoing emails, and shown in the header and/or footer if their color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page are set to "Full color". Header and footer each have their own, independent logo-color setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.white'}">
-            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
-            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo color scheme setting on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>

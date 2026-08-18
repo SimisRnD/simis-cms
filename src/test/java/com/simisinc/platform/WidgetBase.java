@@ -97,6 +97,20 @@ public class WidgetBase {
       }
     }).when(request).setAttribute(anyString(), any());
 
+    // Mock Request removeAttribute -- unstubbed, a mock's void methods are no-ops by default, so
+    // without this a widget under test that calls request.removeAttribute(...) (e.g. to clear a
+    // value a prior widget left behind in the same request) would appear to succeed while
+    // silently leaving the value in place, and a test asserting the attribute is gone would see
+    // stale state instead. Same reasoning as the session.removeAttribute stub below.
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgument(0, String.class);
+        attributes.remove(key);
+        return null;
+      }
+    }).when(request).removeAttribute(anyString());
+
     // Mock Request getAttribute
     Mockito.doAnswer(new Answer<Object>() {
       @Override

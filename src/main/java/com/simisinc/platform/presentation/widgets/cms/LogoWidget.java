@@ -45,10 +45,20 @@ public class LogoWidget extends GenericWidget {
     context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
     context.getRequest().setAttribute("themePropertyMap", themePropertyMap);
 
+    // Clear attributes possibly left behind by an earlier logo widget rendered in this same
+    // request (e.g. the header's, before the footer's runs) -- only setting them conditionally
+    // below would otherwise let a blank preference here silently inherit a stale value.
+    context.getRequest().removeAttribute("view");
+    context.getRequest().removeAttribute("logoColorProperty");
+
     // Check preferences
     String view = context.getPreferences().get("view");
     if (StringUtils.isNotBlank(view)) {
       context.getRequest().setAttribute("view", view);
+    }
+    String colorProperty = context.getPreferences().get("colorProperty");
+    if (StringUtils.isNotBlank(colorProperty)) {
+      context.getRequest().setAttribute("logoColorProperty", colorProperty);
     }
     String style = "";
     String maxWidth = context.getPreferences().get("maxWidth");
