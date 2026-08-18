@@ -52,6 +52,8 @@
   </c:when>
   <c:when test="${themePropertyMap[logoColorPropertyName] eq 'text-only'}">
   </c:when>
+  <c:when test="${themePropertyMap[logoColorPropertyName] eq 'none'}">
+  </c:when>
   <c:otherwise>
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:otherwise>
