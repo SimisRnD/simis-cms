@@ -86,7 +86,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Menu theme', 'theme.menu.location', 'custom', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Color scheme', 'theme.ui.mode', 'light', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo color', 'theme.logo.color', 'text-only', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo color', 'theme.logo.color', 'color-and-white', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Headlines font', 'theme.fonts.headlines', '', 'font');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (11, 'Body font', 'theme.fonts.body', '', 'font');
@@ -144,7 +144,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (112, 'Footer background', 'theme.footer.backgroundColor', '#353535', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (114, 'Footer text color', 'theme.footer.text.color', '#acacac', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (116, 'Footer links color', 'theme.footer.links.color', '#cdcdcd', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (120, 'Footer logo color', 'theme.footer.logo.color', 'text-only', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (120, 'Footer logo color', 'theme.footer.logo.color', 'all-white', 'text');
 
 -- Mail
 

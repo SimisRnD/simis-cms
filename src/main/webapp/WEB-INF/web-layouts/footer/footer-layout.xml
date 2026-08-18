@@ -34,7 +34,7 @@
     <section class="padding-bottom-20">
       <column class="small-12 medium-4 cell small-margin-bottom-20">
         <widget name="logo">
-          <view>white</view>
+          <colorProperty>theme.footer.logo.color</colorProperty>
           <maxHeight>50px</maxHeight>
         </widget>
         <widget name="content" class="margin-top-15">
@@ -60,7 +60,7 @@
     <section class="padding-top-20">
       <column class="small-12 medium-4 cell">
         <widget name="logo">
-          <view>white</view>
+          <colorProperty>theme.footer.logo.color</colorProperty>
           <maxHeight>50px</maxHeight>
         </widget>
         <widget name="content" class="margin-top-15">

@@ -27,7 +27,12 @@
 <jsp:useBean id="logoClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="logoStyle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
+<jsp:useBean id="logoColorProperty" class="java.lang.String" scope="request"/>
 <jsp:useBean id="text" class="java.lang.String" scope="request"/>
+<%-- Which theme property governs the fallback (no "view" pin) below. Defaults to the header's
+     property; a caller like the footer names its own via the "colorProperty" widget preference,
+     so header and footer can be configured independently. --%>
+<c:set var="logoColorPropertyName" value="${empty logoColorProperty ? 'theme.logo.color' : logoColorProperty}"/>
 <c:set var="logoSrcLight" scope="request" value=""/>
 <c:choose>
   <c:when test="${view eq 'white'}">
@@ -39,13 +44,13 @@
   <c:when test="${view eq 'standard'}">
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
+  <c:when test="${themePropertyMap[logoColorPropertyName] eq 'all-white'}">
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
   </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
+  <c:when test="${themePropertyMap[logoColorPropertyName] eq 'color-and-white'}">
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
   </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only'}">
+  <c:when test="${themePropertyMap[logoColorPropertyName] eq 'text-only'}">
   </c:when>
   <c:otherwise>
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>

@@ -42,7 +42,6 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
   <section id="header-main-menu" class="padding-top-10 padding-bottom-10">
     <column class="small-12 cell">
       <widget name="logo" class="float-left margin-right-25">
-        <view>color</view>
         <maxHeight>50px</maxHeight>
       </widget>
       <widget name="menu" style="font-size: 14px;" class="float-right header-item">
@@ -107,7 +106,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
   <section class="padding-bottom-20">
     <column class="small-12 medium-4 cell small-margin-bottom-20">
       <widget name="logo">
-        <view>white</view>
+        <colorProperty>theme.footer.logo.color</colorProperty>
         <maxHeight>50px</maxHeight>
       </widget>
       <widget name="content" class="margin-top-15">
@@ -135,7 +134,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
     <section class="padding-top-20">
       <column class="small-12 medium-4 cell">
         <widget name="logo">
-          <view>white</view>
+          <colorProperty>theme.footer.logo.color</colorProperty>
           <maxHeight>50px</maxHeight>
         </widget>
         <widget name="content" class="margin-top-15">
