@@ -157,10 +157,38 @@ p {
 #platform-menu .is-active .is-dropdown-submenu-item a:hover {
   font-weight: 500;
 }
+/* Contact Us/Login/My Account/Log Out come from the header's "menu" widget
+   (class="float-right header-item"), a separate widget instance from the
+   Home/Solutions-style nav tabs above -- kept at 16px rather than the 17.5px
+   those get, per request. */
+#platform-menu .header-item.float-right ul.menu li a {
+  font-size: 16px;
+}
 #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 16.5px;
+}
+
+/* fa-angle-down replaces Foundation's default CSS-triangle dropdown caret
+   (a border-color-trick ::after). Matches Foundation's own selector set
+   exactly -- base, medium/large-horizontal responsive variants, and nested
+   submenus -- so this wins on source order (platform.css loads after
+   foundation.min.css) without needing extra specificity. The theme's
+   arrow-color override in main.jsp switches from border-color to color to
+   match -- see theme.topbar.menu.arrow.color there. */
+.dropdown.menu > li.is-dropdown-submenu-parent > a::after,
+.dropdown.menu.medium-horizontal > li.is-dropdown-submenu-parent > a::after,
+.dropdown.menu.large-horizontal > li.is-dropdown-submenu-parent > a::after,
+.is-dropdown-submenu .is-dropdown-submenu-parent > a::after {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  content: "\f107";
+  border: 0;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-top: -7px;
 }
 
 #platform-small-menu .logo { margin-left: auto; margin-right: auto; }
@@ -288,9 +316,6 @@ p {
 }
 .platform-footer .menu-title {
   font-weight: bold;
-}
-.platform-footer .dropdown.menu a {
-  color: #ffffff;
 }
 
 /* Default page adjustments for footer when there is minimal content */
