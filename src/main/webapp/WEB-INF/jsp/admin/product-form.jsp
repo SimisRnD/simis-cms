@@ -478,7 +478,12 @@
     </c:choose>
   </div>
 </form>
-<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
+<%-- No data-animation-in (issue #1318): Foundation's Motion-UI animateIn path leaves this
+     display:none forever -- a CSS transition can't start on an element that's still display:none
+     when the animation class is added, so the transitionend it waits for to reveal the element
+     never fires. Omitting it uses Foundation's default, non-animated (and non-transitionend-
+     dependent) open, which works. --%>
+<div class="reveal large" id="imageBrowserReveal" data-reveal role="dialog" aria-modal="true" aria-label="Image Browser">
   <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
 </div>
 <script nonce="${cspNonce}">
