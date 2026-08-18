@@ -50,8 +50,9 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
  * must be detected, an image referenced only through a raw {@code <img src="...">} inside an HTML
  * body ({@code content.content}/{@code content.draft_content}) must ALSO be detected -- not just
  * orphaned by omission -- an image referenced only through markdown/HTML pasted into a wiki page
- * body ({@code wiki_pages.body}) must ALSO be detected, and a genuinely unreferenced image must
- * come back orphaned.
+ * body ({@code wiki_pages.body}) must ALSO be detected, an image referenced only via an
+ * image-typed {@code site_properties} row (e.g. {@code site.logo.white}) must ALSO be detected
+ * (issue #1312), and a genuinely unreferenced image must come back orphaned.
  *
  * @author SimIS Inc.
  */
@@ -118,6 +119,7 @@ class ImageUsageCommandTest {
       statement.execute("TRUNCATE TABLE web_pages RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE content RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE wiki_pages RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE site_properties RESTART IDENTITY");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
@@ -181,6 +183,47 @@ class ImageUsageCommandTest {
   }
 
   @Test
+  void imageReferencedOnlyViaAnImageTypedSitePropertyIsDetectedAsUsed() {
+    Image image = insertImage("footer-logo.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    insertSiteProperty("site.logo.mixed", "Mixed color logo", fullUrl, "image");
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertFalse(usages.isEmpty(),
+        "an image referenced only via an image-typed site_properties row (e.g. the header/footer "
+            + "logo) must be detected as used, not orphaned by omission");
+    assertTrue(usages.stream().anyMatch(u -> "Site Setting".equals(u.getSourceType()) && "Mixed color logo".equals(u.getLabel())));
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
+  void aSitePropertyUsageWithNoLabelFallsBackToItsPropertyName() {
+    Image image = insertImage("og-image.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    insertSiteProperty("site.image", "", fullUrl, "image");
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertTrue(usages.stream().anyMatch(u -> "Site Setting".equals(u.getSourceType()) && "site.image".equals(u.getLabel())),
+        "a blank property_label must fall back to the property_name so the usage never renders empty");
+  }
+
+  @Test
+  void aNonImageTypedSitePropertyContainingTheUrlSubstringIsNotCountedAsUsage() {
+    // A text/url-typed property whose value happens to contain the image's URL (e.g. pasted into a
+    // free-text field) must not be mistaken for the image actually being wired up as a site image.
+    Image image = insertImage("coincidental-match.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    insertSiteProperty("theme.custom.note", "Custom Note", "see " + fullUrl + " for reference", "text");
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertTrue(usages.isEmpty(), "a non-image-typed property must never count as a usage, even on a substring match");
+    assertTrue(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
   void aGenuinelyUnusedImageIsCorrectlyFlaggedOrphaned() {
     Image image = insertImage("never-used.png");
     // A different image and unrelated page/content rows exist, but none reference this one.
@@ -222,6 +265,7 @@ class ImageUsageCommandTest {
   private static void createSchema() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS site_properties CASCADE");
       statement.execute("DROP TABLE IF EXISTS wiki_pages CASCADE");
       statement.execute("DROP TABLE IF EXISTS content CASCADE");
       statement.execute("DROP TABLE IF EXISTS web_pages CASCADE");
@@ -262,6 +306,13 @@ class ImageUsageCommandTest {
           + "wiki_page_id BIGSERIAL PRIMARY KEY, "
           + "title VARCHAR(255) NOT NULL, "
           + "body TEXT)");
+      // A focused subset of site_properties -- just the columns this scan reads/filters on.
+      statement.execute("CREATE TABLE site_properties ("
+          + "property_id BIGSERIAL PRIMARY KEY, "
+          + "property_label VARCHAR(50), "
+          + "property_name VARCHAR(50) UNIQUE NOT NULL, "
+          + "property_value TEXT NOT NULL, "
+          + "property_type VARCHAR(100))");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the test schema", se);
     }
@@ -317,6 +368,20 @@ class ImageUsageCommandTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not insert test wiki page", se);
+    }
+  }
+
+  private static void insertSiteProperty(String name, String label, String value, String type) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO site_properties (property_name, property_label, property_value, property_type) VALUES (?, ?, ?, ?)")) {
+      pst.setString(1, name);
+      pst.setString(2, label);
+      pst.setString(3, value);
+      pst.setString(4, type);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not insert test site property", se);
     }
   }
 
