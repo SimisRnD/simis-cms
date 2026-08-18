@@ -91,6 +91,15 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // guessing from the display title, and without affecting the other pages that share this widget.
     context.getRequest().setAttribute("prefix", prefix);
 
+    // The visual logo-color picker needs real thumbnails for Full color / All white / Mixed --
+    // findAllByPrefix("theme") above only returns theme.* rows, not the site.logo* values that
+    // actually hold the uploaded image URLs.
+    if ("theme".equals(prefix)) {
+      context.getRequest().setAttribute("logoUrl", LoadSitePropertyCommand.loadByName("site.logo"));
+      context.getRequest().setAttribute("logoWhiteUrl", LoadSitePropertyCommand.loadByName("site.logo.white"));
+      context.getRequest().setAttribute("logoMixedUrl", LoadSitePropertyCommand.loadByName("site.logo.mixed"));
+    }
+
     // Show the editor
     context.setJsp(JSP);
     return context;

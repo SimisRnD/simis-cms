@@ -28,11 +28,13 @@
 <jsp:useBean id="logoStyle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
 <jsp:useBean id="logoColorProperty" class="java.lang.String" scope="request"/>
+<jsp:useBean id="logoColorPropertyDark" class="java.lang.String" scope="request"/>
 <jsp:useBean id="text" class="java.lang.String" scope="request"/>
 <%-- Which theme property governs the fallback (no "view" pin) below. Defaults to the header's
      property; a caller like the footer names its own via the "colorProperty" widget preference,
      so header and footer can be configured independently. --%>
 <c:set var="logoColorPropertyName" value="${empty logoColorProperty ? 'theme.logo.color' : logoColorProperty}"/>
+<c:set var="logoColorPropertyNameDark" value="${empty logoColorPropertyDark ? 'theme.logo.color.dark' : logoColorPropertyDark}"/>
 <c:set var="logoSrcLight" scope="request" value=""/>
 <c:choose>
   <c:when test="${view eq 'white'}">
@@ -58,16 +60,38 @@
     <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:otherwise>
 </c:choose>
-<%-- Dark-mode source. Only auto-swaps when this widget instance hasn't pinned
-     to one fixed variant via the "view" preference -- a widget that
-     deliberately requests white/color/standard keeps exactly that image in
-     both modes. The white logo is the asset actually made for a dark
-     background, so it's the dark-mode source regardless of which light-mode
-     variant theme.logo.color picked; falls back to the light-mode source
-     when no white logo is uploaded, so there's never a blank logo slot. --%>
+<%-- Dark-mode source. Only auto-swaps when this widget instance hasn't pinned to one fixed
+     variant via the "view" preference -- a widget that deliberately requests white/color/standard
+     keeps exactly that image in both modes. Otherwise, resolved through theme.logo.color.dark (or
+     the footer's own theme.footer.logo.color.dark, via the "colorPropertyDark" widget preference)
+     the same way the light-mode source is resolved above, independently per location. Any blank
+     result here -- an unset property (falls to the all-white logo below, the value this always
+     hardcoded to before this property existed), no white logo uploaded, or an explicit text-only/
+     none choice -- falls back to the light-mode source via the existing empty-check below, same as
+     the original hardcoding always did. This means text-only/none isn't independently selectable
+     for dark mode today: the render logic below only ever swaps between two IMAGE sources, it
+     doesn't support showing an image in light mode and text/nothing in dark mode. Not a regression
+     -- the prior hardcoding couldn't do this either -- just not solved by this change. --%>
 <c:set var="logoSrcDark" scope="request" value=""/>
 <c:if test="${empty view}">
-  <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+  <c:choose>
+    <c:when test="${themePropertyMap[logoColorPropertyNameDark] eq 'all-white'}">
+      <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+    </c:when>
+    <c:when test="${themePropertyMap[logoColorPropertyNameDark] eq 'color-and-white'}">
+      <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
+    </c:when>
+    <c:when test="${themePropertyMap[logoColorPropertyNameDark] eq 'text-only'}">
+    </c:when>
+    <c:when test="${themePropertyMap[logoColorPropertyNameDark] eq 'none'}">
+    </c:when>
+    <c:when test="${themePropertyMap[logoColorPropertyNameDark] eq 'full-color'}">
+      <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
+    </c:when>
+    <c:otherwise>
+      <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+    </c:otherwise>
+  </c:choose>
 </c:if>
 <c:if test="${empty logoSrcDark}">
   <c:set var="logoSrcDark" scope="request" value="${logoSrcLight}"/>
