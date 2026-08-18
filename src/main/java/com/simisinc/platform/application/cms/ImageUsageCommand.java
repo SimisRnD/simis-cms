@@ -49,6 +49,10 @@ import com.simisinc.platform.infrastructure.database.DB;
  * sources above, {@code wiki-editor.jsp} has no image-browser integration of its own, so an author
  * gets the URL by copying it from the image-browser popup or from {@code /admin/images}' "Image Link"
  * and pastes it into the markdown by hand.</li>
+ * <li>a {@code site_properties} row whose {@code property_type} is {@code 'image'} (e.g.
+ * {@code site.logo}, {@code site.logo.white}, {@code site.logo.mixed}, {@code site.image}) -- a
+ * key/value table rather than a fixed column, and site-wide rather than tied to one page/post, so
+ * it's queried separately from {@link #VARCHAR_SOURCES} rather than folded into that array.</li>
  * </ul>
  * This is unrelated to the widget-XML-tree scan the sibling content-block-usage work (#499) uses --
  * that walks page layout structure; this matches a literal URL substring.
@@ -143,6 +147,7 @@ public class ImageUsageCommand {
     for (String[] source : HTML_BODY_SOURCES) {
       usages.addAll(queryUsages(source[0], source[1], source[2], source[3], likeValue));
     }
+    usages.addAll(querySitePropertyUsages(likeValue));
     return usages;
   }
 
@@ -169,6 +174,31 @@ public class ImageUsageCommand {
       // A usage scan failing must never look like "this image is safe to delete" -- but it also
       // must not break the page. Log and treat this one source as having found nothing.
       LOG.warn("Usage scan failed for " + table + "." + column + ": " + se.getMessage());
+    }
+    return results;
+  }
+
+  /**
+   * Site-wide image settings -- filtered to {@code property_type = 'image'} so this automatically
+   * covers every current and future image-typed property (currently {@code site.logo},
+   * {@code site.logo.white}, {@code site.logo.mixed}, {@code site.image}) without hardcoding their
+   * names, and so a coincidental substring match in an unrelated text/url-typed property never
+   * counts as a usage.
+   */
+  private static List<UsageReference> querySitePropertyUsages(String likeValue) {
+    List<UsageReference> results = new ArrayList<>();
+    String sql = "SELECT COALESCE(NULLIF(property_label, ''), property_name) FROM site_properties "
+        + "WHERE property_type = 'image' AND property_value LIKE ?";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setString(1, likeValue);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          results.add(new UsageReference("Site Setting", rs.getString(1)));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.warn("Usage scan failed for site_properties.property_value: " + se.getMessage());
     }
     return results;
   }
