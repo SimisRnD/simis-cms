@@ -77,6 +77,38 @@ class LogoWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeSetsTheLogoColorPropertyDarkAttributeWhenTheColorPropertyDarkPreferenceIsSetAndViewIsNot() {
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
+      Map<String, String> preferences = new HashMap<>();
+      preferences.put("colorPropertyDark", "theme.footer.logo.color.dark");
+      widgetContext.setPreferences(preferences);
+
+      new LogoWidget().execute(widgetContext);
+
+      assertEquals("theme.footer.logo.color.dark", request.getAttribute("logoColorPropertyDark"));
+      assertNull(request.getAttribute("view"));
+      assertNull(request.getAttribute("logoColorProperty"));
+    }
+  }
+
+  @Test
+  void executeSetsBothColorPropertyAttributesWhenBothPreferencesAreSet() {
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
+      // The real shape footer-layout.xml's logo widget passes: both a light and a dark theme
+      // property, naming the footer's own pair rather than the header's defaults.
+      Map<String, String> preferences = new HashMap<>();
+      preferences.put("colorProperty", "theme.footer.logo.color");
+      preferences.put("colorPropertyDark", "theme.footer.logo.color.dark");
+      widgetContext.setPreferences(preferences);
+
+      new LogoWidget().execute(widgetContext);
+
+      assertEquals("theme.footer.logo.color", request.getAttribute("logoColorProperty"));
+      assertEquals("theme.footer.logo.color.dark", request.getAttribute("logoColorPropertyDark"));
+    }
+  }
+
+  @Test
   void executeSetsNeitherAttributeWhenNeitherPreferenceIsSet() {
     try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
       widgetContext.setPreferences(new HashMap<>());
@@ -85,6 +117,7 @@ class LogoWidgetTest extends WidgetBase {
 
       assertNull(request.getAttribute("view"));
       assertNull(request.getAttribute("logoColorProperty"));
+      assertNull(request.getAttribute("logoColorPropertyDark"));
     }
   }
 
@@ -96,6 +129,7 @@ class LogoWidgetTest extends WidgetBase {
       // because its own preferences don't mention "view".
       request.setAttribute("view", "color");
       request.setAttribute("logoColorProperty", "theme.logo.color");
+      request.setAttribute("logoColorPropertyDark", "theme.logo.color.dark");
 
       Map<String, String> preferences = new HashMap<>();
       preferences.put("colorProperty", "theme.footer.logo.color");
@@ -105,6 +139,7 @@ class LogoWidgetTest extends WidgetBase {
 
       assertNull(request.getAttribute("view"));
       assertEquals("theme.footer.logo.color", request.getAttribute("logoColorProperty"));
+      assertNull(request.getAttribute("logoColorPropertyDark"));
     }
   }
 }

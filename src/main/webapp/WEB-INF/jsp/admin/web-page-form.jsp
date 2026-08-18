@@ -62,6 +62,20 @@
           postAction('${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');
       }
     </c:if>
+    <%-- Bound here instead of inline onchange=/onclick= -- CSP's script-src-attr isn't covered by
+         the nonce above, so an inline handler attribute silently never fires (issue #1315). --%>
+    document.addEventListener('DOMContentLoaded', function () {
+      var imageFileInput = document.getElementById('imageFile');
+      if (imageFileInput) {
+        imageFileInput.addEventListener('change', function () {
+          SavePhoto(this);
+        });
+      }
+      var deletePageBtn = document.getElementById('deletePageBtn');
+      if (deletePageBtn) {
+        deletePageBtn.addEventListener('click', deletePage);
+      }
+    });
 </script>
 <form method="post">
   <%-- Required by controller --%>
@@ -180,7 +194,7 @@
       <img id="imageUrlPreview" src="<c:out value="${webPage.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
       <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${webPage.imageUrl}"/>">
       <label for="imageFile" class="button">Upload Image File...</label>
-      <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
+      <input type="file" id="imageFile" class="show-for-sr">
       <p>
         <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
       </p>
@@ -200,7 +214,7 @@
       </c:otherwise>
     </c:choose>
     <c:if test="${userSession.hasRole('admin')}">
-      <button type="button" class="button radius alert" onclick="deletePage()"><i class="fa fa-trash-o"></i> Delete Page</button>
+      <button type="button" class="button radius alert" id="deletePageBtn"><i class="fa fa-trash-o"></i> Delete Page</button>
     </c:if>
     <c:if test="${webPage.id > -1}">
       <a href="${ctx}/admin/web-page-versions?webPageId=${webPage.id}" class="button radius secondary"><i class="fa fa-history"></i> Version History</a>
