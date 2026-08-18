@@ -18,6 +18,9 @@ package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A snapshot, with optional variables, for creating new web pages
  *
@@ -35,7 +38,7 @@ public class WebPageTemplate extends Entity {
   private String imagePath = null;
   private String pageXml = null;
   private String css = null;
-//  private List<WebPageTemplateRule> ruleList = null;
+  private List<WebPageTemplateRule> ruleList = new ArrayList<>();
 
   public WebPageTemplate() {
   }
@@ -110,5 +113,13 @@ public class WebPageTemplate extends Entity {
 
   public void setCss(String css) {
     this.css = css;
+  }
+
+  public List<WebPageTemplateRule> getRuleList() {
+    return ruleList;
+  }
+
+  public void setRuleList(List<WebPageTemplateRule> ruleList) {
+    this.ruleList = ruleList;
   }
 }

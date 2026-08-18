@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<template name="My Page: Portal" image="">
+<template name="My Page: Portal" image="My Page - Portal.png">
   <page role="users" title="My Page">
     <section>
       <column class="small-12 medium-3 cell">
@@ -39,18 +39,18 @@
         <widget name="myMfaSettings">
           <title>Two-Factor Authentication</title>
         </widget>
+        <!--
+          This widget references the "member-spaces" item collection, which is
+          not auto-provisioned by this template. The collection must be created
+          manually (e.g. via /admin/collections) before this widget will show
+          anything; until then it renders nothing (showWhenEmpty is false).
+        -->
         <widget name="itemsList">
           <title>Favorite Spaces</title>
           <message>Areas you can access...</message>
           <showWhenEmpty>false</showWhenEmpty>
           <collectionUniqueId>member-spaces</collectionUniqueId>
         </widget>
-        <!--
-        <widget name="mySettings">
-          <icon>fa-gear</icon>
-          <title>Your Info</title>
-        </widget>
-        -->
       </column>
     </section>
   </page>

@@ -20,7 +20,9 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.FeatureFlagCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.LoadWidgetSchemaCommand;
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
+import com.simisinc.platform.application.cms.ProvisionWebPageTemplateRulesCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.cms.WebPageDesignerToXmlCommand;
@@ -38,7 +40,6 @@ import org.apache.commons.logging.LogFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import jakarta.servlet.ServletContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
@@ -62,16 +63,12 @@ public class WebPageDesignerWidget extends GenericWidget {
   static String RAW_XML_JSP = "/cms/web-page-editor.jsp";
   static String ACE_XML_EDITOR_JSP = "/cms/web-page-xml-editor.jsp";
   static String CODE_MIRROR_XML_EDITOR_JSP = "/cms/web-page-code-mirror-xml-editor.jsp";
-  static String WIDGET_SCHEMA_RESOURCE = "/WEB-INF/widgets/widget-schema.json";
 
   // Issue #410: gates offering the P4 composition-canvas designer. Defaults to true (see
   // NEW_10150__new_feature_flag_properties.sql) so upgrading installs keep today's always-on
   // behavior; turning it off stops *offering* the designer going forward without touching any
   // page's already-persisted XML -- see the isEnabled() call sites below.
   static final String LAYOUT_EDITOR_FLAG = "layout-editor";
-
-  // Loaded once and cached; the file is static content shipped with the app, not per-request data.
-  private static String widgetSchemaJson = null;
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -201,7 +198,7 @@ public class WebPageDesignerWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("webPage", webPage);
     if (DESIGNER_JSP.equals(context.getJsp())) {
-      context.getRequest().setAttribute("widgetSchemaJson", loadWidgetSchemaJson(context.getRequest().getServletContext()));
+      context.getRequest().setAttribute("widgetSchemaJson", LoadWidgetSchemaCommand.getWidgetSchemaJson(context.getRequest().getServletContext()));
     }
     return context;
   }
@@ -241,18 +238,6 @@ public class WebPageDesignerWidget extends GenericWidget {
    */
   private static String effectiveContent(WebPage webPage, boolean mayPublishDirectly) {
     return mayPublishDirectly ? webPage.getPageXml() : webPage.getDraftPageXml();
-  }
-
-  private static synchronized String loadWidgetSchemaJson(ServletContext servletContext) {
-    if (widgetSchemaJson == null) {
-      try (InputStream is = servletContext.getResourceAsStream(WIDGET_SCHEMA_RESOURCE)) {
-        widgetSchemaJson = IOUtils.toString(is, "UTF-8");
-      } catch (Exception e) {
-        LOG.error("Could not load " + WIDGET_SCHEMA_RESOURCE, e);
-        widgetSchemaJson = "{}";
-      }
-    }
-    return widgetSchemaJson;
   }
 
   public WidgetContext post(WidgetContext context) {
@@ -325,6 +310,7 @@ public class WebPageDesignerWidget extends GenericWidget {
       template = StringUtils.replace(template, "${webPageName}", webPageName);
       applyNewPageContent(webPage, template, mayPublishDirectly);
       webPage.setTemplate(webPageTemplate.getName());
+      ProvisionWebPageTemplateRulesCommand.provisionRules(webPageTemplate.getRuleList(), context.getUserId());
     } else if (pageDesignHtml != null) {
       // Page designer
       if (LOG.isDebugEnabled()) {

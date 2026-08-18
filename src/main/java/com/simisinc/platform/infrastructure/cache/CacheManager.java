@@ -56,6 +56,7 @@ public class CacheManager {
   public static String STYLESHEET_WEB_PAGE_ID_CACHE = "StylesheetWebPageIdCache";
   public static String CONTENT_UNIQUE_ID_CACHE = "ContentUniqueIdCache";
   public static String CONTENT_REMOTE_URL_CACHE = "ContentRemoteUrlCache";
+  public static String WEATHER_FORECAST_CACHE = "WeatherForecastCache";
   public static String COLLECTION_UNIQUE_ID_CACHE = "CollectionUniqueIdCache";
   public static String TABLE_OF_CONTENTS_UNIQUE_ID_CACHE = "TableOfContentsUniqueIdCache";
   public static String WEB_REDIRECT_CACHE = "WebRedirectCache";
@@ -145,6 +146,15 @@ public class CacheManager {
         .recordStats()
         .build();
     cacheManager.put(CONTENT_REMOTE_URL_CACHE, remoteContentCache);
+
+    // Weather Forecast Cache ("lat,lon" = forecast) -- NWS forecasts update roughly hourly, so a
+    // 30 minute TTL keeps pages fresh without hammering their API on every page view
+    Cache<String, Object> weatherForecastCache = Caffeine.newBuilder()
+        .maximumSize(50)
+        .expireAfterWrite(30, TimeUnit.MINUTES)
+        .recordStats()
+        .build();
+    cacheManager.put(WEATHER_FORECAST_CACHE, weatherForecastCache);
 
     // Collection Unique Id Cache (collectionUniqueId = collection)
     LoadingCache<String, Collection> collectionCache = Caffeine.newBuilder()

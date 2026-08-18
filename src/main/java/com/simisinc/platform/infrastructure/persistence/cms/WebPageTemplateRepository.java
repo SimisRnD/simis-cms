@@ -135,7 +135,10 @@ public class WebPageTemplateRepository {
       record.setPageXml(rs.getString("page_xml"));
       record.setTemplateOrder(rs.getInt("template_order"));
       record.setDescription(rs.getString("description"));
-//      WebPageTemplateRuleListJSONCommand.populateFromJSONString(record, rs.getString("rules"));
+      // TODO(#1287): the filesystem/XML rules path is now provisioned; the JSONB "rules" column
+      // here has no writer anywhere in the codebase today (save() is never called for a DB-backed
+      // template), so wiring this up would be untestable dead code. Revisit if/when a
+      // DB-authored-template admin UI is actually built.
       record.setCss(rs.getString("css"));
       record.setCategory(rs.getString("category"));
       return record;
