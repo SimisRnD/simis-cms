@@ -332,6 +332,16 @@ ALLOWLIST: dict[str, str] = {
         "Set exclusively by hardcoded <c:set> literals in container-layout.jsp ('container-body') and layout.jsp ('platform-body') -- never attacker-controlled.",
     "${logoSrc}":
         "Set via <c:set var='logoSrc'><c:out value='${sitePropertyMap[...]}'/></c:set> in toggle-menu.jsp; the <c:out> encodes '\"' to '&quot;' when the variable is written, preventing attribute breakout at the src= sink.",
+    "${siteProperty.value eq 'full-color'}":
+        "admin/logo-color-picker.jspf's card-picker: an `eq` comparison against a fixed string literal, so the expression can only ever evaluate to the boolean literal true or false (rendered as aria-pressed=\"true\"/\"false\", or gating the fixed literal ' selected' inside a <c:if> body) -- same pattern as ${hideChartControls}/${empty status ? 'selected' : ''} above. Never carries markup regardless of siteProperty.value's actual content.",
+    "${siteProperty.value eq 'all-white'}":
+        "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
+    "${siteProperty.value eq 'color-and-white'}":
+        "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
+    "${siteProperty.value eq 'text-only'}":
+        "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
+    "${siteProperty.value eq 'none'}":
+        "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
     "${itemImageAttrs}":
         "Set via <c:set var='itemImageAttrs'> in items-card-view.jsp, combining fixed JSP-authored attribute literals (sizes=/decoding=/loading=) with its one dynamic component, ${itemImageSrcset} -- which is itself wrapped in <c:out> at the point it is written into the block, encoding '\"' the same way ${logoSrc} does. Rendered unescaped by design at the <img ...> sink: the value holds pre-built HTML attribute syntax (srcset=\"...\" sizes=\"...\" decoding=\"async\" loading=\"lazy\") that a render-site <c:out> would corrupt by HTML-entity-encoding its own quotes.",
 

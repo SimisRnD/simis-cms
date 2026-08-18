@@ -50,6 +50,7 @@ public class LogoWidget extends GenericWidget {
     // below would otherwise let a blank preference here silently inherit a stale value.
     context.getRequest().removeAttribute("view");
     context.getRequest().removeAttribute("logoColorProperty");
+    context.getRequest().removeAttribute("logoColorPropertyDark");
 
     // Check preferences
     String view = context.getPreferences().get("view");
@@ -59,6 +60,10 @@ public class LogoWidget extends GenericWidget {
     String colorProperty = context.getPreferences().get("colorProperty");
     if (StringUtils.isNotBlank(colorProperty)) {
       context.getRequest().setAttribute("logoColorProperty", colorProperty);
+    }
+    String colorPropertyDark = context.getPreferences().get("colorPropertyDark");
+    if (StringUtils.isNotBlank(colorPropertyDark)) {
+      context.getRequest().setAttribute("logoColorPropertyDark", colorPropertyDark);
     }
     String style = "";
     String maxWidth = context.getPreferences().get("maxWidth");

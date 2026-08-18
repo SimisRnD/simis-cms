@@ -1,0 +1,77 @@
+<%--
+  ~ Copyright 2026 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%-- Shared by all 4 logo-color properties (theme.logo.color[.dark], theme.footer.logo.color[.dark])
+     -- included once per property row from the enclosing <c:when> in site-properties-editor.jsp, so
+     "siteProperty" is whichever one of the 4 is currently being rendered. All 4 pick among the same
+     3 uploaded images (logoUrl/logoWhiteUrl/logoMixedUrl, set by SitePropertiesEditorWidget only when
+     prefix eq 'theme'); only the aria-describedby target differs per property. --%>
+<c:choose>
+  <c:when test="${siteProperty.name eq 'theme.logo.color'}"><c:set var="logoColorHelpTextId" value="themeLogoColorHelpText"/></c:when>
+  <c:when test="${siteProperty.name eq 'theme.logo.color.dark'}"><c:set var="logoColorHelpTextId" value="themeLogoColorDarkHelpText"/></c:when>
+  <c:when test="${siteProperty.name eq 'theme.footer.logo.color'}"><c:set var="logoColorHelpTextId" value="themeFooterLogoColorHelpText"/></c:when>
+  <c:when test="${siteProperty.name eq 'theme.footer.logo.color.dark'}"><c:set var="logoColorHelpTextId" value="themeFooterLogoColorDarkHelpText"/></c:when>
+</c:choose>
+<input type="hidden" id="picker-${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>" aria-describedby="${logoColorHelpTextId}" />
+<div class="grid-x grid-margin-x logo-color-picker" data-logo-color-target="picker-${siteProperty.id}">
+  <div class="cell shrink">
+    <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>" data-logo-color-value="full-color" aria-pressed="${siteProperty.value eq 'full-color'}">
+      <c:choose>
+        <c:when test="${not empty logoUrl}">
+          <c:set var="logoColorThumbSrcset" value="${image:srcset(logoUrl)}"/>
+          <div class="logo-color-card-thumb"><img src="<c:out value="${logoUrl}"/>"<c:if test="${not empty logoColorThumbSrcset}"> srcset="<c:out value="${logoColorThumbSrcset}"/>" sizes="100px"</c:if> alt="" loading="lazy" decoding="async"/></div>
+        </c:when>
+        <c:otherwise><div class="logo-color-card-thumb logo-color-card-empty"><i class="fa fa-image"></i></div></c:otherwise>
+      </c:choose>
+      <div class="card-section"><small>Full color</small></div>
+    </button>
+  </div>
+  <div class="cell shrink">
+    <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'all-white'}"> selected</c:if>" data-logo-color-value="all-white" aria-pressed="${siteProperty.value eq 'all-white'}">
+      <c:choose>
+        <c:when test="${not empty logoWhiteUrl}">
+          <c:set var="logoColorThumbSrcset" value="${image:srcset(logoWhiteUrl)}"/>
+          <div class="logo-color-card-thumb logo-color-card-thumb-dark"><img src="<c:out value="${logoWhiteUrl}"/>"<c:if test="${not empty logoColorThumbSrcset}"> srcset="<c:out value="${logoColorThumbSrcset}"/>" sizes="100px"</c:if> alt="" loading="lazy" decoding="async"/></div>
+        </c:when>
+        <c:otherwise><div class="logo-color-card-thumb logo-color-card-empty"><i class="fa fa-image"></i></div></c:otherwise>
+      </c:choose>
+      <div class="card-section"><small>All white</small></div>
+    </button>
+  </div>
+  <div class="cell shrink">
+    <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'color-and-white'}"> selected</c:if>" data-logo-color-value="color-and-white" aria-pressed="${siteProperty.value eq 'color-and-white'}">
+      <c:choose>
+        <c:when test="${not empty logoMixedUrl}">
+          <c:set var="logoColorThumbSrcset" value="${image:srcset(logoMixedUrl)}"/>
+          <div class="logo-color-card-thumb"><img src="<c:out value="${logoMixedUrl}"/>"<c:if test="${not empty logoColorThumbSrcset}"> srcset="<c:out value="${logoColorThumbSrcset}"/>" sizes="100px"</c:if> alt="" loading="lazy" decoding="async"/></div>
+        </c:when>
+        <c:otherwise><div class="logo-color-card-thumb logo-color-card-empty"><i class="fa fa-image"></i></div></c:otherwise>
+      </c:choose>
+      <div class="card-section"><small>Color and white</small></div>
+    </button>
+  </div>
+  <div class="cell shrink">
+    <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'text-only'}"> selected</c:if>" data-logo-color-value="text-only" aria-pressed="${siteProperty.value eq 'text-only'}">
+      <div class="logo-color-card-thumb logo-color-card-empty"><i class="fa fa-font"></i></div>
+      <div class="card-section"><small>Text only</small></div>
+    </button>
+  </div>
+  <div class="cell shrink">
+    <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>" data-logo-color-value="none" aria-pressed="${siteProperty.value eq 'none'}">
+      <div class="logo-color-card-thumb logo-color-card-empty"><i class="fa fa-ban"></i></div>
+      <div class="card-section"><small>No logo</small></div>
+    </button>
+  </div>
+</div>

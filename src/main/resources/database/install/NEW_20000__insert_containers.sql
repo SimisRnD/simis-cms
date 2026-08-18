@@ -107,6 +107,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
     <column class="small-12 medium-5 cell small-margin-bottom-20">
       <widget name="logo">
         <colorProperty>theme.footer.logo.color</colorProperty>
+        <colorPropertyDark>theme.footer.logo.color.dark</colorPropertyDark>
         <maxHeight>50px</maxHeight>
       </widget>
       <widget name="content" class="margin-top-15">
@@ -135,6 +136,7 @@ INSERT INTO web_containers (container_name, label, image_path, container_xml) VA
       <column class="small-12 medium-4 cell">
         <widget name="logo">
           <colorProperty>theme.footer.logo.color</colorProperty>
+          <colorPropertyDark>theme.footer.logo.color.dark</colorPropertyDark>
           <maxHeight>50px</maxHeight>
         </widget>
         <widget name="content" class="margin-top-15">

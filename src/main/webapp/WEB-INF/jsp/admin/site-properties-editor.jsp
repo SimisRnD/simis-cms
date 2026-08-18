@@ -82,6 +82,25 @@
         SavePhoto(el, el.getAttribute('data-photo-upload'));
       });
     });
+    // Logo-color card picker: clicking a card selects it (updates the group's hidden input +
+    // the .selected/aria-pressed state on the cards) without submitting -- these rows live inside
+    // this page's one big multi-property Save-button form alongside every other setting, so a
+    // click here must not act like web-page-templates.jsp's similar card pattern, which submits
+    // immediately on click (fine for a single-purpose page, wrong here).
+    document.querySelectorAll('.logo-color-picker').forEach(function (group) {
+      var hiddenInput = document.getElementById(group.getAttribute('data-logo-color-target'));
+      group.querySelectorAll('.logo-color-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+          hiddenInput.value = card.getAttribute('data-logo-color-value');
+          group.querySelectorAll('.logo-color-card').forEach(function (sibling) {
+            sibling.classList.remove('selected');
+            sibling.setAttribute('aria-pressed', 'false');
+          });
+          card.classList.add('selected');
+          card.setAttribute('aria-pressed', 'true');
+        });
+      });
+    });
   });
 </script>
 <c:if test="${!empty title}">
@@ -146,22 +165,16 @@
               </c:choose>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.logo.color'}">
-              <select name="${siteProperty.name}" aria-describedby="themeLogoColorHelpText">
-                <option value="full-color"<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>>Full color</option>
-                <option value="all-white"<c:if test="${siteProperty.value eq 'all-white'}"> selected</c:if>>All white</option>
-                <option value="color-and-white"<c:if test="${siteProperty.value eq 'color-and-white'}"> selected</c:if>>Color and White</option>
-                <option value="text-only"<c:if test="${siteProperty.value eq 'text-only'}"> selected</c:if>>Text only</option>
-                <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>No logo</option>
-              </select>
+              <%@include file="logo-color-picker.jspf" %>
+            </c:when>
+            <c:when test="${siteProperty.name eq 'theme.logo.color.dark'}">
+              <%@include file="logo-color-picker.jspf" %>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.logo.color'}">
-              <select name="${siteProperty.name}" aria-describedby="themeFooterLogoColorHelpText">
-                <option value="full-color"<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>>Full color</option>
-                <option value="all-white"<c:if test="${siteProperty.value eq 'all-white'}"> selected</c:if>>All white</option>
-                <option value="color-and-white"<c:if test="${siteProperty.value eq 'color-and-white'}"> selected</c:if>>Color and White</option>
-                <option value="text-only"<c:if test="${siteProperty.value eq 'text-only'}"> selected</c:if>>Text only</option>
-                <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>No logo</option>
-              </select>
+              <%@include file="logo-color-picker.jspf" %>
+            </c:when>
+            <c:when test="${siteProperty.name eq 'theme.footer.logo.color.dark'}">
+              <%@include file="logo-color-picker.jspf" %>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.ui.mode'}">
               <select name="${siteProperty.name}">
@@ -389,6 +402,12 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.logo.color'}">
             <p class="help-text" id="themeFooterLogoColorHelpText">Which uploaded logo variant appears in the <strong>footer</strong>. Upload the corresponding image(s) on the <a href="${ctx}/admin/site-properties">Site Settings</a> page. This is independent of Logo color above, which controls the header only.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.logo.color.dark'}">
+            <p class="help-text" id="themeLogoColorDarkHelpText">Which uploaded logo variant appears in the <strong>header</strong> when the visitor's color scheme is dark (see Color scheme above). Independent of Logo color above, which controls light mode. Left at its default ("All white"), this reproduces the logo's prior, non-configurable dark-mode behavior.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.logo.color.dark'}">
+            <p class="help-text" id="themeFooterLogoColorDarkHelpText">Which uploaded logo variant appears in the <strong>footer</strong> when the visitor's color scheme is dark. Independent of Footer logo color above, which controls light mode.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
             <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer theme above is set to "Custom XML".</p>
