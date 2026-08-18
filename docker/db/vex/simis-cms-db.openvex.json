@@ -2,8 +2,8 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
-  "timestamp": "2026-08-18T00:00:00+00:00",
-  "version": 9,
+  "timestamp": "2026-08-18T10:00:00+00:00",
+  "version": 10,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1171,6 +1171,9 @@
           "subcomponents": [
             {
               "@id": "pkg:deb/debian/libssl3"
+            },
+            {
+              "@id": "pkg:deb/debian/openssl"
             }
           ]
         }
@@ -1180,5 +1183,5 @@
       "impact_statement": "This vulnerability is in OpenSSL's built-in QUIC server listener/channel API, which allocates a new channel object for every QUIC Initial packet bearing an unrecognized connection ID with no cap on the pending queue. That API was introduced in OpenSSL 3.5.0 and affects only the 3.5.x/3.6.x/4.0.x lines per OpenSSL's own advisory; Debian bookworm's libssl3 package (3.0.20-1~deb12u2) is built from the OpenSSL 3.0.x line, which predates the QUIC server code entirely. Independently, even if the affected code were present, nothing in this image would invoke it: the only network-facing process is the postgres server binary, whose wire protocol is TCP-only and whose libssl usage is the classic TLS-over-TCP SSL_accept() path, not OpenSSL's QUIC listener API; no other component (gosu, postgis/GDAL, the stock entrypoint) opens a UDP listener or calls into OpenSSL's QUIC surface."
     }
   ],
-  "last_updated": "2026-08-18T00:00:00Z"
+  "last_updated": "2026-08-18T10:00:00Z"
 }
