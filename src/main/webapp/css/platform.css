@@ -1484,6 +1484,10 @@ a.read-more {
 .text-strike { text-decoration:line-through; }
 .text-no-strike { text-decoration:none; }
 .text-bold { font-weight: bold; }
+/* For legible text inside a content widget placed on a dark section background -- content-widget
+   HTML is sanitized on save and strips inline style= attributes, so a class is the only way to
+   set this from page content (see .text-brand above, same restriction). */
+.text-white { color: #ffffff; }
 
 /* Padding and Margins */
 
