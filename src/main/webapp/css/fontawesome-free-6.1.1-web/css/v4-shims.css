@@ -276,6 +276,11 @@
   font-family: 'Font Awesome 6 Brands';
   font-weight: 400; }
 
+/* Manually added alongside the all.css x-twitter glyph -- same shim pattern as its siblings above */
+.fa.fa-x-twitter {
+  font-family: 'Font Awesome 6 Brands';
+  font-weight: 400; }
+
 .fa.fa-facebook {
   font-family: 'Font Awesome 6 Brands';
   font-weight: 400; }
