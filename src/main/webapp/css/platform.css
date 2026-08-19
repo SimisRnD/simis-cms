@@ -2022,3 +2022,10 @@ div.item-image-large img {
   background-color: #d97700;
   color: #ffffff;
 }
+/* Same brand-orange accent as .button.brand above, for inline text (e.g. a small eyebrow/kicker
+   label) rather than a button background. Page content authors can only reach this via a class=
+   attribute -- content-widget HTML is sanitized on save and strips inline style= attributes, so
+   there is no other way to color a piece of page text without a real CSS class to reference. */
+.text-brand {
+  color: #ff8c00;
+}
