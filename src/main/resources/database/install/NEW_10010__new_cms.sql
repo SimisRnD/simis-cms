@@ -216,10 +216,15 @@ CREATE TABLE images (
   -- every row is always valid with no null-handling anywhere downstream. See
   -- UPGRADE_20260804.1901__image_focal_point.sql for existing databases.
   focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00,
-  focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00
+  focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00,
+  -- Content hash for duplicate detection (issue: image dedup tool), "ALGORITHM;hexdigest" format
+  -- via FileSystemCommand.getFileChecksum(), same convention as files/item_files/datasets.file_hash.
+  -- Nullable -- see UPGRADE_20260818.1600__image_file_hash.sql for existing databases.
+  file_hash VARCHAR(1024)
 );
 CREATE INDEX images_created_idx ON images(created);
 CREATE INDEX images_web_path_idx ON images(web_path);
+CREATE INDEX images_file_hash_idx ON images(file_hash);
 
 -- Tags for images. Unlike items' tags (see NEW_10024__new_items.sql), images have no collection
 -- concept -- a tag here is a single global label, not scoped per anything. See

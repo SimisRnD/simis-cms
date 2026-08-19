@@ -71,5 +71,16 @@ public class ValidateImageCommand {
       LOG.warn("Image could not be read", e);
       throw new DataException("Image could not be read");
     }
+
+    // Content hash for duplicate detection, same "ALGORITHM;hexdigest" convention used for
+    // files/item_files/datasets (see FileSystemCommand.getFileChecksum). Both upload entry points
+    // (AddImageToLibraryCommand.addFromPart/addFromFile) funnel through here via register(), so
+    // this one call covers both. A checksum failure is logged and left null rather than failing
+    // the upload -- an image is still usable without being dedup-eligible.
+    String fileHash = FileSystemCommand.getFileChecksum(imageFile);
+    if (fileHash == null) {
+      LOG.warn("Could not compute a file hash for " + imageFile.getName());
+    }
+    imageBean.setFileHash(fileHash);
   }
 }
