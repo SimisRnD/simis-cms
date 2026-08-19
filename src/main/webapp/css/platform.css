@@ -2033,3 +2033,46 @@ div.item-image-large img {
 .text-brand {
   color: #ff8c00;
 }
+
+/* Full-bleed hero treatment for a contentSlider: image as a fixed-height cropped background with
+   the caption positioned over it, rather than the widget's default stacked (image, then text below
+   it) layout. Opt in per-instance via the widget's "carouselClass" preference (set to "hero-banner")
+   so this doesn't affect other contentSlider usages -- .swiper-outer-container is the element that
+   preference's value lands on (content-card-slider.jsp).
+   Content-widget HTML cannot express this itself: <figure>/<figcaption> are not in the sanitizer's
+   safelist (Safelist.relaxed() plus HtmlCommand's additions) and get silently unwrapped, and <div>/
+   <img> aren't allowed a style= attribute at all, so there is no tag-plus-inline-style combination
+   that can position a caption over a background image from saved content alone. */
+.hero-banner .swiper-slide {
+  position: relative;
+  height: 580px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.hero-banner .swiper-slide img.orbit-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 100% 50%;
+  z-index: 0;
+}
+.hero-banner .hero-slide-caption {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  padding: 0 60px;
+}
+@media (max-width: 640px) {
+  .hero-banner .swiper-slide {
+    height: auto;
+    min-height: 480px;
+    padding: 40px 0;
+  }
+  .hero-banner .hero-slide-caption {
+    max-width: 100%;
+    padding: 0 24px;
+  }
+}
