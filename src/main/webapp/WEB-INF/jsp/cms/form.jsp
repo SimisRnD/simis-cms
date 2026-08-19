@@ -301,7 +301,7 @@
   <c:choose>
     <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
       <p>
-        <button class="g-recaptcha button radius large success expanded"
+        <button class="g-recaptcha <c:out value="${buttonClass}" />"
                 data-sitekey="<c:out value="${googleSiteKey}" />"
                 data-callback='onSubmit'
                 data-action='submit'><c:out value="${buttonName}" /></button>
@@ -310,7 +310,7 @@
     <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
       <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
       <p>
-        <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        <input type="submit" class="<c:out value="${buttonClass}" />" value="<c:out value="${buttonName}" />"/>
       </p>
     </c:when>
     <c:when test="${useCaptcha eq 'true'}">
@@ -321,12 +321,12 @@
         <input type="text" name="captcha" value="" required/>
       </p>
       <p>
-        <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        <input type="submit" class="<c:out value="${buttonClass}" />" value="<c:out value="${buttonName}" />"/>
       </p>
     </c:when>
     <c:otherwise>
       <p>
-        <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
+        <input type="submit" class="<c:out value="${buttonClass}" />" value="<c:out value="${buttonName}" />"/>
       </p>
     </c:otherwise>
   </c:choose>

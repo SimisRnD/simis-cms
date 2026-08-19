@@ -2011,3 +2011,14 @@ div.item-image-large img {
     display: none;
   }
 }
+
+/* Brand-orange button color, for the new form widget "buttonClass" preference on pages that need
+   to match a brand accent color rather than one of Foundation's 5 built-in semantic button colors. */
+.button.brand {
+  background-color: #f2711c;
+  color: #ffffff;
+}
+.button.brand:hover, .button.brand:focus {
+  background-color: #d15f0f;
+  color: #ffffff;
+}
