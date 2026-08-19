@@ -78,12 +78,9 @@ ALLOWLIST: dict[str, int] = {
     # remaining sweep. Run `python3 tools/check-inline-handlers.py .` for the live
     # list with file:line. Decrement/remove an entry when you convert its handler(s);
     # never raise a number. Keep alphabetised.
-    "admin/allowed-ip-list.jsp": 1,
     "admin/app-form.jsp": 1,
     "admin/audit-log-list.jsp": 1,
-    "admin/blocked-ip-list.jsp": 1,
     "admin/blog-tags-list.jsp": 1,
-    "admin/bot-list.jsp": 1,
     "admin/cancel-order.jsp": 1,
     "admin/capability-grants.jsp": 1,
     "admin/collection-categories-list.jsp": 1,
@@ -109,7 +106,7 @@ ALLOWLIST: dict[str, int] = {
     "admin/sales-tax-nexus-list.jsp": 1,
     "admin/ship-order.jsp": 1,
     "admin/shipping-rates-list.jsp": 1,
-    "admin/social-media-link-list.jsp": 1,
+    "admin/sub-folder-details.jsp": 1,
     "admin/theme-editor.jsp": 1,
     "admin/web-page-list-editor.jsp": 1,
     "admin/webhook-subscription-form.jsp": 1,
