@@ -17,6 +17,8 @@
 package com.simisinc.platform.application.email;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
@@ -28,6 +30,8 @@ import javax.mail.AuthenticationFailedException;
 import javax.mail.SendFailedException;
 import javax.net.ssl.SSLException;
 
+import org.apache.commons.mail.Email;
+import org.apache.commons.mail.SimpleEmail;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -101,5 +105,82 @@ class EmailCommandTest {
   @Test
   void returnsUnknownForAnUncategorizedException() {
     assertEquals("unknown", EmailCommand.categorizeSendFailure(new IllegalStateException("something else entirely")));
+  }
+
+  // -- applyTransportSecurity ------------------------------------------------------------------
+  // Asserted against a real SimpleEmail rather than a mock: commons-email's setters are final, so
+  // the type cannot be mocked (a trap this codebase has hit before), but a real instance's flags
+  // read back fine and prove exactly what the SMTP transport would be told to do.
+
+  @Test
+  void appliesNeitherSchemeWhenBothAreOff() {
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "false", "false");
+    assertFalse(email.isSSLOnConnect());
+    assertFalse(email.isStartTLSEnabled());
+    assertFalse(email.isStartTLSRequired());
+  }
+
+  @Test
+  void appliesImplicitSslWhenOnlySslIsOn() {
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "true", "false");
+    assertTrue(email.isSSLOnConnect());
+    assertFalse(email.isStartTLSEnabled());
+  }
+
+  @Test
+  void appliesStartTlsWhenOnlyStartTlsIsOn() {
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "false", "true");
+    assertFalse(email.isSSLOnConnect());
+    assertTrue(email.isStartTLSEnabled());
+  }
+
+  @Test
+  void requiresStartTlsRatherThanMerelyEnablingIt() {
+    // Enabled-without-required silently falls back to an unencrypted connection when the server
+    // does not advertise STARTTLS, which would put the SMTP password on the wire in clear text.
+    // An admin who turned this on asked for encryption, so the send must fail instead.
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "false", "true");
+    assertTrue(email.isStartTLSRequired());
+  }
+
+  @Test
+  void prefersImplicitSslAndDropsStartTlsWhenBothAreOn() {
+    // The two are alternatives, not layers -- an already-encrypted connection has nothing to
+    // upgrade. Enabling both is a misconfiguration; implicit SSL wins and STARTTLS is dropped
+    // (a warning is logged) rather than both being handed to the transport.
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "true", "true");
+    assertTrue(email.isSSLOnConnect());
+    assertFalse(email.isStartTLSEnabled());
+    assertFalse(email.isStartTLSRequired());
+  }
+
+  @Test
+  void treatsBlankAndNullPropertyValuesAsOff() {
+    // A site that predates the mail.starttls property reads it as null, and a site whose upgrade
+    // seeded it reads "false" -- both must behave identically to the pre-change default.
+    Email nullValues = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(nullValues, null, null);
+    assertFalse(nullValues.isSSLOnConnect());
+    assertFalse(nullValues.isStartTLSEnabled());
+
+    Email blankValues = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(blankValues, "", "");
+    assertFalse(blankValues.isSSLOnConnect());
+    assertFalse(blankValues.isStartTLSEnabled());
+  }
+
+  @Test
+  void onlyTheExactStringTrueEnablesAScheme() {
+    // The stored property is a boolean-typed site property, which persists the literal "true" or
+    // "false" -- anything else is not a value this code should treat as on.
+    Email email = new SimpleEmail();
+    EmailCommand.applyTransportSecurity(email, "TRUE", "yes");
+    assertFalse(email.isSSLOnConnect());
+    assertFalse(email.isStartTLSEnabled());
   }
 }
