@@ -38,8 +38,8 @@
     <c:forEach items="${webPageList}" var="webPage">
     <tr>
       <td>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}');"><i class="fa fa-remove"></i></a>
-        <a href="${ctx}/admin/web-page?webPageId=${group.id}"><i class="fa fa-edit"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');"><i class="fa fa-remove"></i></a>
+        <a href="${ctx}/admin/web-page?webPageId=${webPage.id}"><i class="fa fa-edit"></i></a>
       </td>
       <td>
         <c:out value="${webPage.link}" />
@@ -59,7 +59,7 @@
       <td class="text-center"><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.modified}" /></td>
     </tr>
     </c:forEach>
-    <c:if test="${empty groupList}">
+    <c:if test="${empty webPageList}">
       <tr>
         <td colspan="5">No web pages were found</td>
       </tr>
