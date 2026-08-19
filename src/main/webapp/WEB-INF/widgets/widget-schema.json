@@ -292,6 +292,7 @@
         {"name": "title",         "label": "Form Title",     "type": "text"},
         {"name": "subtitle",      "label": "Subtitle",       "type": "text"},
         {"name": "buttonName",    "label": "Submit Button",  "type": "text"},
+        {"name": "buttonClass",   "label": "Submit Button Style", "type": "text", "default": "button radius large success expanded"},
         {"name": "useCaptcha",    "label": "Use CAPTCHA",    "type": "boolean"},
         {"name": "successTitle",  "label": "Success Title",  "type": "text"},
         {"name": "successMessage","label": "Success Message","type": "text"},

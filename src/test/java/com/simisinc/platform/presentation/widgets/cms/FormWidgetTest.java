@@ -751,4 +751,53 @@ class FormWidgetTest extends WidgetBase {
       Assertions.assertEquals(FormWidget.RATE_LIMITED_JSP, widgetContext.getJsp());
     }
   }
+
+  @Test
+  void buttonClassDefaultsWhenPreferenceUnset() {
+    // The shared fixture's <buttonName>Contact Me</buttonName> preference has no buttonClass
+    // sibling -- an existing form's button must keep rendering exactly as it did before this
+    // preference existed
+    initCommonPreferences();
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+
+      try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+        rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+        FormWidget widget = new FormWidget();
+        widget.execute(widgetContext);
+
+        Assertions.assertEquals("button radius large success expanded",
+            widgetContext.getRequest().getAttribute("buttonClass"));
+      }
+    }
+  }
+
+  @Test
+  void buttonClassOverridesWhenPreferenceSet() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>contact</formUniqueId>\n" +
+            "  <buttonName>Send Message</buttonName>\n" +
+            "  <buttonClass>button radius large brand expanded</buttonClass>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Your first and last name\" value=\"name\" required=\"true\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+
+      try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+        rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+        FormWidget widget = new FormWidget();
+        widget.execute(widgetContext);
+
+        Assertions.assertEquals("button radius large brand expanded",
+            widgetContext.getRequest().getAttribute("buttonClass"));
+      }
+    }
+  }
 }

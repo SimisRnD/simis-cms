@@ -106,6 +106,12 @@ public class FormWidget extends GenericWidget {
     // authoritative when formId is configured
     context.getRequest().setAttribute("buttonName", resolveButtonName(context, formDefinition));
 
+    // Submit button CSS classes (no database-backed equivalent, same as icon below) -- lets a page
+    // override the button's color/style without touching form.jsp; defaults to the classes form.jsp
+    // always used before this preference existed, so an existing form's button is unaffected
+    context.getRequest().setAttribute("buttonClass",
+        StringUtils.defaultIfBlank(context.getPreferences().get("buttonClass"), "button radius large success expanded"));
+
     // Standard request items -- a database-backed form's own title/subtitle (issue #409 follow-up)
     // are authoritative when formId is configured; icon has no database-backed equivalent
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
