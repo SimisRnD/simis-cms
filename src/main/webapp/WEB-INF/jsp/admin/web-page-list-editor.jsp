@@ -59,7 +59,7 @@
       <td class="text-center"><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.modified}" /></td>
     </tr>
     </c:forEach>
-    <c:if test="${empty groupList}">
+    <c:if test="${empty webPageList}">
       <tr>
         <td colspan="5">No web pages were found</td>
       </tr>
