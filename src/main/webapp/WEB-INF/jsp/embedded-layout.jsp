@@ -76,8 +76,9 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
+    <%-- ?v= is a cache-busting token (#1333) -- see the equivalent block in main.jsp --%>
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
   <c:if test="${!empty themePropertyMap}">
       <style><%-- Prevent top-bar flicker --%>
         :root {

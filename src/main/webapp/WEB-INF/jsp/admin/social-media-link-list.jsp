@@ -42,7 +42,7 @@
       <td><c:out value="${record.linkOrder}" /></td>
       <td nowrap="true">
         <a href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i class="fa fa-pencil"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to remove <c:out value="${js:escape(record.platformName)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.platformName}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
