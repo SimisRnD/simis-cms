@@ -113,7 +113,6 @@ ALLOWLIST: dict[str, int] = {
     "admin/sales-tax-nexus-list.jsp": 1,
     "admin/ship-order.jsp": 1,
     "admin/shipping-rates-list.jsp": 1,
-    "admin/social-media-link-list.jsp": 1,
     "admin/sub-folder-details.jsp": 1,
     "admin/theme-editor.jsp": 1,
     "admin/web-page-list-editor.jsp": 1,
