@@ -106,6 +106,11 @@
                     data-focal-x="<c:out value="${image.focalX}"/>" data-focal-y="<c:out value="${image.focalY}"/>">
               <i class="fa fa-crosshairs"></i> Focal Point
             </button>
+            <button type="button" class="setAltTextBtn button tiny secondary radius margin-top-5"
+                    data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
+                    data-alt-text="${fn:escapeXml(image.altText)}">
+              <i class="fa fa-info-circle"></i> Alt Text
+            </button>
             <button type="button" class="setTagsBtn button tiny secondary radius margin-top-5"
                     data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
                     data-tag-ids="<c:forEach items="${imageTagsByImageId[image.id]}" var="cardTagId" varStatus="cardTagIdStatus">${cardTagId.id}<c:if test="${!cardTagIdStatus.last}">,</c:if></c:forEach>">
@@ -173,6 +178,30 @@
     <input type="hidden" name="focalX" id="focalXInput" value="50"/>
     <input type="hidden" name="focalY" id="focalYInput" value="50"/>
     <input type="submit" class="button radius" value="Save Focal Point"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<%-- Alt text (library-level, not yet read by any public page rendering -- see the note in the
+     modal body itself). Populated fresh at open time from the clicked card's data-alt-text
+     attribute, same shared-modal shape as focalPointReveal above. --%>
+<div class="reveal" id="altTextReveal" role="dialog" aria-modal="true" aria-labelledby="altTextRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="altTextRevealTitle">Set Alt Text</h4>
+  <p class="callout secondary radius" style="padding:8px 12px;">
+    Used for library management; not yet shown on public pages.
+  </p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="setAltText"/>
+    <input type="hidden" name="imageId" id="altTextImageId" value=""/>
+    <label for="altTextInput">Alt text
+      <input type="text" id="altTextInput" name="altText" maxlength="255" placeholder="Describe what's in the image">
+    </label>
+    <input type="submit" class="button radius" value="Save Alt Text"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">
@@ -466,6 +495,19 @@
     [focalXRange, focalYRange].forEach(function (range) {
       range.addEventListener('input', function () {
         setFocalMarker(parseFloat(focalXRange.value), parseFloat(focalYRange.value));
+      });
+    });
+
+    // Alt text
+    var $altTextReveal = $('#altTextReveal');
+    var altTextImageIdInput = document.getElementById('altTextImageId');
+    var altTextInput = document.getElementById('altTextInput');
+
+    document.querySelectorAll('.setAltTextBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        altTextImageIdInput.value = btn.getAttribute('data-id');
+        altTextInput.value = btn.getAttribute('data-alt-text') || '';
+        $altTextReveal.foundation('open');
       });
     });
 

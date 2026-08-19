@@ -44,6 +44,7 @@ public class Image extends Entity {
   private int height = -1;
   private BigDecimal focalX = new BigDecimal("50.00");
   private BigDecimal focalY = new BigDecimal("50.00");
+  private String altText = null;
 
   public Image() {
   }
@@ -150,6 +151,14 @@ public class Image extends Entity {
 
   public void setWebPath(String webPath) {
     this.webPath = webPath;
+  }
+
+  public String getAltText() {
+    return altText;
+  }
+
+  public void setAltText(String altText) {
+    this.altText = altText;
   }
 
   public String getUrl() {

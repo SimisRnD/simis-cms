@@ -263,6 +263,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
       return bulkDeleteAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
+    } else if ("setAltText".equals(command)) {
+      return setAltTextAction(context);
     } else if ("setTags".equals(command)) {
       return setTagsAction(context);
     } else if ("deleteTag".equals(command)) {
@@ -354,6 +356,51 @@ public class AdminImageBrowserWidget extends GenericWidget {
 
     BackgroundJobRequest.enqueue(new FocalPointVariantJob(image.getId()));
     context.setSuccessMessage("Focal point saved");
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
+  // Matches the images.alt_text column width -- caught here with a clear message rather than
+  // surfacing a raw "value too long" SQLException from a blind save.
+  private static final int MAX_ALT_TEXT_LENGTH = 255;
+
+  /**
+   * Sets an image's library-level alt text (see the alt-text modal in image-browser.jsp). This is
+   * a library-management field only -- it is not yet read by any public-facing <img> rendering
+   * (Item/BlogPost/Product etc. store a flat imageUrl string today, not an image_id reference back
+   * to this row, so there is nowhere for those pages to read it from without a larger change) --
+   * the modal says so directly rather than leaving that as a silent gap. Same shape as
+   * setFocalPointAction: load the record, set the one field, save directly (not routed through
+   * SaveImageCommand, which is the upload funnel, not a general field editor).
+   */
+  private WidgetContext setAltTextAction(WidgetContext context) {
+    long imageId = context.getParameterAsLong("imageId", -1);
+    Image image = imageId > -1 ? ImageRepository.findById(imageId) : null;
+    if (image == null) {
+      context.setErrorMessage("Error. Image was not found.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    String altText = StringUtils.trimToNull(context.getParameter("altText"));
+    if (altText != null && altText.length() > MAX_ALT_TEXT_LENGTH) {
+      context.setErrorMessage("Alt text must be " + MAX_ALT_TEXT_LENGTH + " characters or fewer.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    image.setAltText(altText);
+    boolean saved = ImageRepository.save(image) != null;
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.setAltText",
+        saved ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "image", String.valueOf(image.getId()), image.getFilename(), null);
+    if (!saved) {
+      context.setErrorMessage("Error. The alt text could not be saved.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    context.setSuccessMessage("Alt text saved");
     context.setRedirect(redirectWithQuery(context));
     return context;
   }

@@ -119,7 +119,8 @@ public class ImageRepository {
         .add("width", record.getWidth())
         .add("height", record.getHeight())
         .add("focal_x", record.getFocalX())
-        .add("focal_y", record.getFocalY());
+        .add("focal_y", record.getFocalY())
+        .add("alt_text", StringUtils.trimToNull(record.getAltText()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -139,7 +140,8 @@ public class ImageRepository {
         .add("height", record.getHeight())
         .add("processed", record.getProcessed())
         .add("focal_x", record.getFocalX())
-        .add("focal_y", record.getFocalY());
+        .add("focal_y", record.getFocalY())
+        .add("alt_text", StringUtils.trimToNull(record.getAltText()));
     SqlUtils where = new SqlUtils()
         .add("image_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -177,6 +179,7 @@ public class ImageRepository {
       record.setWebPath(rs.getString("web_path"));
       record.setFocalX(rs.getBigDecimal("focal_x"));
       record.setFocalY(rs.getBigDecimal("focal_y"));
+      record.setAltText(rs.getString("alt_text"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

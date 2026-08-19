@@ -216,7 +216,10 @@ CREATE TABLE images (
   -- every row is always valid with no null-handling anywhere downstream. See
   -- UPGRADE_20260804.1901__image_focal_point.sql for existing databases.
   focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00,
-  focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00
+  focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00,
+  -- Library-level alt text, editable in the admin Media Library. Not yet wired into any public
+  -- <img> rendering -- see UPGRADE_20260819.0900__image_alt_text.sql for existing databases.
+  alt_text VARCHAR(255)
 );
 CREATE INDEX images_created_idx ON images(created);
 CREATE INDEX images_web_path_idx ON images(web_path);

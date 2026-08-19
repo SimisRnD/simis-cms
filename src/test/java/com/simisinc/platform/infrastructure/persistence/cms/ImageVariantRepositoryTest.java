@@ -327,7 +327,8 @@ class ImageVariantRepositoryTest {
           + "processed_height INTEGER NOT NULL DEFAULT 0, "
           + "web_path VARCHAR(50) NOT NULL, "
           + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
-          + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00)");
+          + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
+          + "alt_text VARCHAR(255))");
       statement.execute("CREATE TABLE image_variants ("
           + "image_variant_id BIGSERIAL PRIMARY KEY, "
           + "image_id BIGINT NOT NULL REFERENCES images(image_id) ON DELETE CASCADE, "
