@@ -114,6 +114,27 @@
           }
         </c:if>
     });
+<c:if test="${loop eq 'true'}">
+    // Swiper's loop-mode clone/position math (loopCreate/loopFix) runs once, synchronously,
+    // inside new Swiper() above, using whatever width the container measures at that instant.
+    // Unlike a plain resize, Swiper never re-validates that math on its own afterward -- its
+    // built-in ResizeObserver path (onResize) is the only thing that does, and only calls the
+    // loop-aware swiper.slideToLoop() (not the generic .update()) to correct it, and only if a
+    // later size change is actually observed. If the container's true width isn't available yet
+    // when this script runs (e.g. it's still inside a hidden/measuring-zero layout state), the
+    // initial translate can be left stranded a slide-width off with nothing to correct it. Force
+    // the same correction Swiper's own resize handler performs, once on window load (by which
+    // point images/fonts have settled and the container has its final layout), so a stale
+    // initial measurement can't strand the active slide outside the visible area.
+    window.addEventListener('load', function () {
+      var sw = swiper${widgetContext.uniqueId};
+      if (!sw || sw.destroyed) {
+        return;
+      }
+      sw.update();
+      sw.slideToLoop(sw.realIndex, 0, false);
+    });
+</c:if>
 <c:if test="${autoplayDelay ne '-1' && fn:length(cardList) gt 1}">
     // WCAG 2.2.2: give the visitor a way to stop the auto-advance, and honor the OS-level
     // reduced-motion preference (Swiper's autoplay is a JS timer, so a CSS media query alone
