@@ -30,7 +30,7 @@
   <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
     <small>
       <a href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i class="fa fa-edit"></i></a>
-      <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(subFolder.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}');"><i class="fa fa-remove"></i></a>
+      <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${subFolder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}"><i class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>

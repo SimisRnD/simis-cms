@@ -205,7 +205,7 @@
           <a title="Version history" href="${ctx}/admin/file-versions?fileId=${file.id}"><i class="fa fa-history"></i></a>
         </c:if>
         <c:if test="${canDelete eq 'true'}">
-          <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
+          <a title="Delete file" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${file.filename}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}"><i class="fa fa-remove"></i></a>
         </c:if>
       </td>
       <td class="text-center" nowrap>
