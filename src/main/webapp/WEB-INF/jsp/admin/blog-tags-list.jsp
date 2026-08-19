@@ -37,7 +37,7 @@
     <tr>
       <td>
         <a href="${ctx}/admin/blog-tag?blogId=${blog.id}&tagId=${tag.id}"><c:out value="${tag.name}" /></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(tag.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${tag.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

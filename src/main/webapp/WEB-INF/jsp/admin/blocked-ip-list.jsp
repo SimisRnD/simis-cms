@@ -92,7 +92,7 @@
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(record.ipAddress)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blockedIPListId=${record.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${record.ipAddress}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blockedIPListId=${record.id}"><i class="fa fa-remove"></i></a>
       </td>
       <td><c:choose><c:when test="${fn:contains(record.ipAddress, '/')}"><small>Range</small></c:when><c:otherwise><c:out value='${geoip:location(record.ipAddress, " ")}'/></c:otherwise></c:choose></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>
