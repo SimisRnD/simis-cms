@@ -101,7 +101,7 @@
   <h5>Actions</h5>
   <p>
     <a class="button radius secondary" href="${ctx}/admin/webhook-deliveries?webhookSubscriptionId=${webhookSubscription.id}">View Delivery Log</a>
-    <a href="#" class="button radius secondary" onclick="return confirmPostAction('Rotate the signing secret? The current secret will stop working immediately.', '${widgetContext.uri}?action=rotateSecret&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}');">Rotate Secret</a>
+    <a href="#" class="button radius secondary" data-confirm-post="Rotate the signing secret? The current secret will stop working immediately." data-post-url="${widgetContext.uri}?action=rotateSecret&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webhookSubscriptionId=${webhookSubscription.id}">Rotate Secret</a>
   </p>
 
   <h5>Send a Test Delivery</h5>

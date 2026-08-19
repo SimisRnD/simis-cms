@@ -56,7 +56,7 @@
       <td class="text-center"><fmt:formatNumber value="${group.userCount}" /></td>
       <td>
         <a href="${ctx}/admin/group?groupId=${group.id}"><i class="${font:fas()} fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(group.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${group.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

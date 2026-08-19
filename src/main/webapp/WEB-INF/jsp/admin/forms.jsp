@@ -60,7 +60,7 @@
       </td>
       <td class="text-center">
         <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}"><i class="${font:fas()} fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(formDefinition.name)}" />? This also deletes all of its fields.', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&formDefinitionId=${formDefinition.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${formDefinition.name}" />? This also deletes all of its fields." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&formDefinitionId=${formDefinition.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

@@ -48,7 +48,7 @@
       <td><c:out value="${address.country}" /></td>
       <td>
         <a href="${ctx}/admin/sales-tax-nexus-address?addressId=${address.id}&returnPage=/admin/sales-tax-nexus"><i class="fa fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(address.street)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${address.street}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
