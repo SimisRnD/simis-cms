@@ -70,7 +70,7 @@
       </td>
       <td>
         <a href="${ctx}/admin/shipping-rate?shippingRateId=${shippingRate.id}&returnPage=/admin/shipping-rates"><i class="fa fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(shippingRate.shippingCode)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${shippingRate.shippingCode}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
