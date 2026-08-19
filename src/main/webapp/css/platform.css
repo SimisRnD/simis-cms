@@ -2071,11 +2071,20 @@ div.item-image-large img {
    inherits ordinary in-page sizing and reads as body copy laid over an image. Sizes are stated
    here rather than in page content because content-widget HTML is sanitized on save and inline
    style= attributes are stripped, so a class is the only way to reach these elements. */
-.hero-banner .hero-slide-caption .text-brand {
+.hero-banner .hero-slide-caption .text-brand,
+.hero-banner .hero-slide-caption .hero-kicker {
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   margin-bottom: 12px;
+}
+/* The kicker is red, not the brand orange used for the accent bar and button below it -- the two
+   colors are deliberately different in the reference design, so this is not .text-brand's job.
+   A slide's kicker carries both classes: .text-brand keeps it visible on installs that have not
+   taken this stylesheet yet, and .hero-kicker wins here. */
+.hero-banner .hero-slide-caption .hero-kicker {
+  color: #e23122;
 }
 .hero-banner .hero-slide-caption h1,
 .hero-banner .hero-slide-caption h2,
@@ -2084,6 +2093,21 @@ div.item-image-large img {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 12px;
+}
+/* The orange accent rule under the headline. Drawn as a pseudo-element rather than markup because
+   an empty <span> placed in page content does not survive the save -- HtmlCommand.cleanContent
+   runs removeEmptyEnclosingElements("span") and drops it -- so there is no element a content
+   author could add for this. */
+.hero-banner .hero-slide-caption h1::after,
+.hero-banner .hero-slide-caption h2::after,
+.hero-banner .hero-slide-caption h3::after {
+  content: "";
+  display: block;
+  width: 8rem;
+  height: 4px;
+  border-radius: 2px;
+  margin: 16px 0 20px;
+  background: linear-gradient(90deg, #ff8c00, rgba(255, 140, 0, 0));
 }
 .hero-banner .hero-slide-caption p {
   font-size: 1.3rem;
