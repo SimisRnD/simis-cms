@@ -1165,4 +1165,115 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
       deleteMockedStatic.verifyNoInteractions();
     }
   }
+
+  @Test
+  void setAltTextWithAdminRoleSavesTheTrimmedValue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "altText", "  A red bicycle leaning against a brick wall  ");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("bicycle.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.save(image)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertEquals("A red bicycle leaning against a brick wall", image.getAltText());
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("image.setAltText"),
+          any(), any(), any(), any(), any()));
+    }
+
+    Assertions.assertEquals("Alt text saved", widgetContext.getSuccessMessage());
+    Assertions.assertEquals("/admin/images", widgetContext.getRedirect());
+  }
+
+  @Test
+  void setAltTextWithABlankValueClearsIt() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "altText", "   ");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setAltText("Old description");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.save(image)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertNull(image.getAltText());
+    }
+  }
+
+  @Test
+  void setAltTextRejectsAValueOverTheColumnLimitAndDoesNotSave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "altText", "x".repeat(256));
+
+    Image image = new Image();
+    image.setId(42L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
+    }
+
+    Assertions.assertEquals("Alt text must be 255 characters or fewer.", widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setAltTextWithAnUnknownImageIdProducesAnErrorAndDoesNotSave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
+    addQueryParameter(widgetContext, "imageId", "999");
+    addQueryParameter(widgetContext, "altText", "A description");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(999L)).thenReturn(null);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setAltTextWithoutPermissionNeverTouchesTheRepository() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    // Default logged-in test user has no roles at all -- neither admin nor content-manager
+    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "altText", "A description");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verifyNoInteractions();
+    }
+  }
 }
