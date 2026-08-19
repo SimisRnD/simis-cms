@@ -17,7 +17,9 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
 import java.awt.image.BufferedImage;
@@ -81,6 +83,35 @@ class ValidateImageCommandTest {
 
     assertEquals(400, image.getWidth(), "a WebP upload must not be rejected -- this is the bug being fixed");
     assertEquals(300, image.getHeight());
+  }
+
+  @Test
+  void checkFileComputesAFileHashForDuplicateDetection(@TempDir Path tempDir) throws Exception {
+    Image image = imageForRealFile(tempDir, "photo.jpg", 400, 300, "jpg");
+
+    withStubbedRoot(tempDir, () -> ValidateImageCommand.checkFile(image));
+
+    assertNotNull(image.getFileHash(), "a readable upload must come out of checkFile with a hash");
+    assertTrue(image.getFileHash().startsWith("SHA-512;"),
+        "must reuse FileSystemCommand.getFileChecksum's existing algorithm-tagged format, not a bare hex string");
+  }
+
+  @Test
+  void checkFileComputesTheSameHashForByteIdenticalFiles(@TempDir Path tempDir) throws Exception {
+    // The whole point of the hash: two uploads of the same bytes, under different filenames, must
+    // land on the identical file_hash so the duplicates view can group them.
+    Image first = imageForRealFile(tempDir, "original.jpg", 400, 300, "jpg");
+    Image renamedCopy = new Image();
+    renamedCopy.setFilename("renamed-copy.jpg");
+    renamedCopy.setFileServerPath("images/2026/08/renamed-copy.jpg");
+    Files.copy(tempDir.resolve("images/2026/08/original.jpg"), tempDir.resolve("images/2026/08/renamed-copy.jpg"));
+
+    withStubbedRoot(tempDir, () -> {
+      ValidateImageCommand.checkFile(first);
+      ValidateImageCommand.checkFile(renamedCopy);
+    });
+
+    assertEquals(first.getFileHash(), renamedCopy.getFileHash());
   }
 
   @Test

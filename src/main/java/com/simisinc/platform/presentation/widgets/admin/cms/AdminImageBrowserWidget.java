@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.DeleteImageTagCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.application.cms.SaveImageTagCommand;
+import com.simisinc.platform.application.cms.ScanForDuplicateImagesCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.domain.model.cms.ImageTag;
@@ -91,6 +93,12 @@ public class AdminImageBrowserWidget extends GenericWidget {
     // at a time (see ImageUsageCommand's class docs) rather than for the whole list up front.
     if (context.getParameterAsBoolean("checkUsage")) {
       return checkUsageAction(context);
+    }
+
+    // Duplicate-detection review view (?view=duplicates) -- a separate rendering path from the
+    // normal paginated grid below, since it's grouped by file_hash rather than one flat list.
+    if ("duplicates".equals(context.getParameter("view"))) {
+      return duplicatesViewAction(context);
     }
 
     // Standard request items
@@ -218,6 +226,43 @@ public class AdminImageBrowserWidget extends GenericWidget {
   }
 
   /**
+   * Renders the duplicate-review grid: every {@code file_hash} shared by 2+ images, each with its
+   * member images fetched underneath it. Unlike the main grid, this is not paginated -- duplicate
+   * groups are expected to be a small fraction of the library, not something to page through.
+   */
+  private WidgetContext duplicatesViewAction(WidgetContext context) {
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("duplicatesView", true);
+
+    // The shared Tags modal (tagsReveal, rendered once regardless of which view is active) reads
+    // this to list every existing tag as a checkbox -- without it, the modal would silently show
+    // no existing tags when opened from a card here.
+    context.getRequest().setAttribute("allImageTags", ImageTagRepository.findAll());
+
+    List<String> duplicateHashes = ImageRepository.findDuplicateFileHashes();
+    Map<String, List<Image>> duplicateGroups = new LinkedHashMap<>();
+    List<Long> allImageIds = new ArrayList<>();
+    for (String hash : duplicateHashes) {
+      ImageSpecification specification = new ImageSpecification();
+      specification.setFileHash(hash);
+      List<Image> groupImages = ImageRepository.findAll(specification, null);
+      duplicateGroups.put(hash, groupImages);
+      for (Image groupImage : groupImages) {
+        allImageIds.add(groupImage.getId());
+      }
+    }
+    context.getRequest().setAttribute("duplicateGroups", duplicateGroups);
+
+    // Same batch-prefetch pattern as the main grid, just scoped to the images actually shown here
+    context.getRequest().setAttribute("imageVariantsByImageId", ImageVariantRepository.findByImageIds(allImageIds));
+    context.getRequest().setAttribute("imageTagsByImageId", ImageTagRepository.findByImageIds(allImageIds));
+
+    context.setJsp(JSP);
+    return context;
+  }
+
+  /**
    * A single image is being deleted (Delete button + confirmPostAction(), see image-browser.jsp).
    */
   public WidgetContext delete(WidgetContext context) {
@@ -261,6 +306,10 @@ public class AdminImageBrowserWidget extends GenericWidget {
     String command = context.getParameter("command");
     if ("bulkDelete".equals(command)) {
       return bulkDeleteAction(context);
+    } else if ("deleteDuplicates".equals(command)) {
+      return deleteDuplicatesAction(context);
+    } else if ("scanForDuplicates".equals(command)) {
+      return scanForDuplicatesAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
     } else if ("setTags".equals(command)) {
@@ -268,6 +317,87 @@ public class AdminImageBrowserWidget extends GenericWidget {
     } else if ("deleteTag".equals(command)) {
       return deleteTagAction(context);
     }
+    return context;
+  }
+
+  /**
+   * Enqueues the "Scan for Duplicates" backfill (see {@code ScanForDuplicateImagesCommand}) for
+   * every image that has no {@code file_hash} yet. Idempotent -- a re-click only re-enqueues
+   * whatever is still un-hashed, so it's safe to click again after new uploads.
+   */
+  private WidgetContext scanForDuplicatesAction(WidgetContext context) {
+    int enqueued = ScanForDuplicateImagesCommand.startScan();
+    if (enqueued > 0) {
+      context.setSuccessMessage(enqueued + " image" + (enqueued == 1 ? "" : "s")
+          + " queued for scanning. Check the Job Queue for progress, then come back to Duplicates.");
+    } else {
+      context.setSuccessMessage("Every image has already been scanned.");
+    }
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
+  /**
+   * Deletes selected images from the duplicates view (see image-browser.jsp's reuse of
+   * bulkDeleteReveal with command=deleteDuplicates). Unlike the general {@link #bulkDeleteAction},
+   * this specifically re-checks usage server-side before each delete and skips (rather than
+   * deletes) anything still in use -- the client-side usage warning alone isn't a real guarantee,
+   * and this action exists specifically to make bulk-deleting "duplicates" safe by default. The
+   * general bulk-delete path is intentionally left unchanged.
+   */
+  private WidgetContext deleteDuplicatesAction(WidgetContext context) {
+    List<Long> imageIds = resolveSelectedImageIds(context);
+    if (imageIds == null) {
+      context.setErrorMessage("Too many images were selected (maximum " + MAX_BULK_SELECTION
+          + "). Select fewer images and try again.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+    if (imageIds.isEmpty()) {
+      context.setErrorMessage("No images were selected");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    int succeeded = 0;
+    int notFound = 0;
+    int failed = 0;
+    int skippedInUse = 0;
+    for (Long imageId : imageIds) {
+      Image image = ImageRepository.findById(imageId);
+      if (image == null) {
+        ++notFound;
+        continue;
+      }
+      if (!ImageUsageCommand.findUsages(image).isEmpty()) {
+        ++skippedInUse;
+        continue;
+      }
+      if (deleteOne(context, image)) {
+        ++succeeded;
+      } else {
+        ++failed;
+      }
+    }
+
+    StringBuilder message = new StringBuilder();
+    message.append(succeeded).append(" of ").append(imageIds.size()).append(" selected image")
+        .append(imageIds.size() == 1 ? "" : "s").append(" deleted.");
+    if (skippedInUse > 0) {
+      message.append(" ").append(skippedInUse).append(" skipped -- still in use.");
+    }
+    if (notFound > 0) {
+      message.append(" ").append(notFound).append(" were already gone.");
+    }
+    if (failed > 0) {
+      message.append(" ").append(failed).append(" could not be deleted.");
+    }
+    if (succeeded > 0) {
+      context.setSuccessMessage(message.toString());
+    } else {
+      context.setErrorMessage(message.toString());
+    }
+    context.setRedirect(redirectWithQuery(context));
     return context;
   }
 
@@ -542,6 +672,11 @@ public class AdminImageBrowserWidget extends GenericWidget {
     String query = StringUtils.trimToNull(context.getParameter("query"));
     String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
     int page = context.getParameterAsInt("page", 1);
+    // Any action taken from the duplicates view (delete, scan, focal point, tags -- its cards
+    // share the same buttons as the main grid) POSTs to the current document URL, which still
+    // carries ?view=duplicates as an ordinary request param -- preserve it so the redirect lands
+    // back on the duplicates view instead of resetting to the main grid.
+    String view = context.getParameter("view");
 
     StringBuilder redirect = new StringBuilder("/admin/images");
     String separator = "?";
@@ -555,6 +690,10 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     if (page > 1) {
       redirect.append(separator).append("page=").append(page);
+      separator = "&";
+    }
+    if ("duplicates".equals(view)) {
+      redirect.append(separator).append("view=duplicates");
     }
     return redirect.toString();
   }

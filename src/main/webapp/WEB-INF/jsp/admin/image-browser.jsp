@@ -31,6 +31,12 @@
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="button-group margin-bottom-10">
+  <a class="button tiny <c:if test="${empty duplicatesView}">primary</c:if><c:if test="${!empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}">All Images</a>
+  <a class="button tiny <c:if test="${!empty duplicatesView}">primary</c:if><c:if test="${empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}?view=duplicates">Duplicates</a>
+  <button type="button" id="scanForDuplicatesBtn" class="button tiny secondary radius">Scan for Duplicates</button>
+</div>
+<c:if test="${empty duplicatesView}">
 <form id="imageSearchForm" method="get" autocomplete="off" class="float-right">
   <div class="input-group no-gap width-auto">
     <input class="input-group-field" type="search" name="query" aria-label="Search images by filename"
@@ -122,6 +128,79 @@
   </div>
 </div>
 <%@include file="../paging_control.jspf" %>
+</c:if>
+<c:if test="${!empty duplicatesView}">
+  <%-- Duplicate-review view (?view=duplicates) -- one section per file_hash shared by 2+ images.
+       Reuses the exact same card markup/classes as the main grid above (checkbox, thumbnail,
+       usage badge, Focal Point/Tags/Delete buttons) so the existing JS below works unchanged on
+       these cards too -- it binds by class/id via querySelectorAll, not by which view rendered
+       them. Not paginated: duplicate groups are expected to be a small slice of the library. --%>
+  <c:if test="${empty duplicateGroups}">
+    <p>No duplicates found. Click <strong>Scan for Duplicates</strong> above to check images that haven't been scanned yet.</p>
+  </c:if>
+  <c:if test="${!empty duplicateGroups}">
+    <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+      <span id="bulkSelectedCount"></span>
+      <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
+    </div>
+    <div class="grid-container" style="padding: 0;">
+      <label class="margin-bottom-10">
+        <input type="checkbox" id="selectAllImages" aria-label="Select all images"> Select All
+      </label>
+      <c:forEach items="${duplicateGroups}" var="duplicateGroup">
+        <h5 class="margin-top-20"><c:out value="${fn:length(duplicateGroup.value)}"/> copies of the same file</h5>
+        <div class="grid-x grid-margin-x small-up-2 medium-up-3 large-up-5">
+          <c:forEach items="${duplicateGroup.value}" var="image" varStatus="status">
+            <div class="cell card" data-image-card-id="${image.id}">
+              <div class="image-browser" style="position: relative;">
+                <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
+                       data-filename="${fn:escapeXml(image.filename)}"
+                       aria-label="Select <c:out value="${image.filename}"/>"
+                       style="position:absolute; top: 5px; left: 5px; z-index: 1;">
+                <c:set var="imageHref" value="/assets/img/${image.url}"/>
+                <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+                <img src="<c:out value="${ctx}${imageHref}"/>"
+                  <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
+                  decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
+              </div>
+              <div class="card-section">
+                <div>
+                  <small><c:out value="${image.filename}"/></small><br />
+                  <small style="color: #999999">${image.width}x${image.height}</small>
+                  <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
+                  <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
+                  <small><a target="_blank" href="${ctx}/assets/img/${fn:escapeXml(image.url)}">Image Link</a></small><br />
+                  <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
+                  <c:if test="${!empty imageTagsByImageId[image.id]}">
+                    <c:forEach items="${imageTagsByImageId[image.id]}" var="cardTag">
+                      <span class="label secondary" style="margin:1px;"><c:out value="${cardTag.name}"/></span>
+                    </c:forEach>
+                    <br/>
+                  </c:if>
+                  <button type="button" class="setFocalPointBtn button tiny secondary radius margin-top-5"
+                          data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
+                          data-url="${ctx}/assets/img/${fn:escapeXml(image.url)}"
+                          data-focal-x="<c:out value="${image.focalX}"/>" data-focal-y="<c:out value="${image.focalY}"/>">
+                    <i class="fa fa-crosshairs"></i> Focal Point
+                  </button>
+                  <button type="button" class="setTagsBtn button tiny secondary radius margin-top-5"
+                          data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
+                          data-tag-ids="<c:forEach items="${imageTagsByImageId[image.id]}" var="cardTagId" varStatus="cardTagIdStatus">${cardTagId.id}<c:if test="${!cardTagIdStatus.last}">,</c:if></c:forEach>">
+                    <i class="fa fa-tag"></i> Tags
+                  </button>
+                  <button type="button" class="deleteImageBtn button tiny alert radius margin-top-5"
+                          data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}">
+                    <i class="fa fa-remove"></i> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </c:forEach>
+        </div>
+      </c:forEach>
+    </div>
+  </c:if>
+</c:if>
 <%-- Bulk delete confirmation -- selection is scoped to the images currently checked; the list below
      is populated at open time (see the JS) with each selected image's real, freshly-checked usage,
      not just a filename, so the admin sees what deleting an in-use image will break before confirming. --%>
@@ -213,6 +292,17 @@
 </div>
 <script nonce="${cspNonce}">
   (function () {
+    // Whether this render is the duplicates view (?view=duplicates) -- read once here rather than
+    // re-deriving it, since it changes which "command" the shared bulk-delete modal below submits.
+    var isDuplicatesView = ${!empty duplicatesView};
+
+    var scanForDuplicatesBtn = document.getElementById('scanForDuplicatesBtn');
+    if (scanForDuplicatesBtn) {
+      scanForDuplicatesBtn.addEventListener('click', function () {
+        postAction('${widgetContext.uri}?command=scanForDuplicates&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');
+      });
+    }
+
     // Submit the search form when the sort dropdown changes. Bound here rather than with an
     // onchange= attribute (issue #1188): PageServlet sends Content-Security-Policy with
     // script-src 'self' 'nonce-...' and no 'unsafe-inline', so the browser refuses to run inline
@@ -389,6 +479,11 @@
           var $form = $reveal.find('form');
           var $list = $('#bulkDeleteList');
           var $notice = $('#bulkDeleteUsageNotice');
+          // From the duplicates view, deleting goes through a separate, server-side-gated action
+          // that skips (rather than deletes) anything still in use -- see
+          // AdminImageBrowserWidget#deleteDuplicatesAction. The general bulkDelete path is
+          // unchanged for the main grid.
+          $form.find('input[name="command"]').val(isDuplicatesView ? 'deleteDuplicates' : 'bulkDelete');
           $form.find('input[name="imageId"]').remove();
           $list.empty();
           var anyInUse = false;

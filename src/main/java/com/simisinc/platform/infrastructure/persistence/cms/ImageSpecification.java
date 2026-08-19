@@ -35,6 +35,9 @@ public class ImageSpecification extends Entity {
   private String fileType = null;
   // Filters to images carrying this image tag -- used by the /admin/images tag filter dropdown.
   private long tagId = -1;
+  // Exact match on file_hash -- used by the /admin/images duplicates view to fetch one hash
+  // group's member images. Distinct from matchesName's substring search above.
+  private String fileHash = null;
 
   public ImageSpecification() {
   }
@@ -85,6 +88,14 @@ public class ImageSpecification extends Entity {
 
   public void setTagId(long tagId) {
     this.tagId = tagId;
+  }
+
+  public String getFileHash() {
+    return fileHash;
+  }
+
+  public void setFileHash(String fileHash) {
+    this.fileHash = fileHash;
   }
 
 }

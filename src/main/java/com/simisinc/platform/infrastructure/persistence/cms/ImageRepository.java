@@ -22,8 +22,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,6 +62,9 @@ public class ImageRepository {
       if (specification.getTagId() > -1) {
         where.add("EXISTS (SELECT 1 FROM image_tag_map WHERE image_id = images.image_id AND image_tag_id = ?)",
             specification.getTagId());
+      }
+      if (StringUtils.isNotBlank(specification.getFileHash())) {
+        where.add("file_hash = ?", specification.getFileHash());
       }
     }
     return DB.selectAllFrom(TABLE_NAME, where, constraints, ImageRepository::buildRecord);
@@ -101,6 +106,49 @@ public class ImageRepository {
     return (List<Image>) result.getRecords();
   }
 
+  /**
+   * Every {@code file_hash} shared by 2 or more images, newest-hashed-first -- the /admin/images
+   * duplicates view groups images under each of these. Only images that have already been hashed
+   * (see {@link #findAllUnhashed()}) can appear here; a fresh install with nothing scanned yet
+   * returns an empty list, not an error.
+   */
+  public static List<String> findDuplicateFileHashes() {
+    List<String> hashes = new ArrayList<>();
+    String sql = "SELECT file_hash FROM " + TABLE_NAME
+        + " WHERE file_hash IS NOT NULL GROUP BY file_hash HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC";
+    try (Connection connection = DB.getConnection();
+        java.sql.Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery(sql)) {
+      while (rs.next()) {
+        hashes.add(rs.getString("file_hash"));
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return hashes;
+  }
+
+  /**
+   * Images with no {@code file_hash} yet -- existing rows from before this column existed, or any
+   * upload where {@code ValidateImageCommand.checkFile} couldn't read the file. Drives the
+   * admin-triggered "Scan for Duplicates" backfill (see {@code ScanForDuplicateImagesCommand}),
+   * which enqueues one background job per id returned here.
+   */
+  public static List<Long> findAllUnhashed() {
+    List<Long> ids = new ArrayList<>();
+    String sql = "SELECT image_id FROM " + TABLE_NAME + " WHERE file_hash IS NULL";
+    try (Connection connection = DB.getConnection();
+        java.sql.Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery(sql)) {
+      while (rs.next()) {
+        ids.add(rs.getLong("image_id"));
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return ids;
+  }
+
   public static Image save(Image record) {
     if (record.getId() > -1) {
       return update(record);
@@ -119,7 +167,8 @@ public class ImageRepository {
         .add("width", record.getWidth())
         .add("height", record.getHeight())
         .add("focal_x", record.getFocalX())
-        .add("focal_y", record.getFocalY());
+        .add("focal_y", record.getFocalY())
+        .add("file_hash", record.getFileHash());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -139,7 +188,8 @@ public class ImageRepository {
         .add("height", record.getHeight())
         .add("processed", record.getProcessed())
         .add("focal_x", record.getFocalX())
-        .add("focal_y", record.getFocalY());
+        .add("focal_y", record.getFocalY())
+        .add("file_hash", record.getFileHash());
     SqlUtils where = new SqlUtils()
         .add("image_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -177,6 +227,7 @@ public class ImageRepository {
       record.setWebPath(rs.getString("web_path"));
       record.setFocalX(rs.getBigDecimal("focal_x"));
       record.setFocalY(rs.getBigDecimal("focal_y"));
+      record.setFileHash(rs.getString("file_hash"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

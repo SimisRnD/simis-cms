@@ -74,6 +74,7 @@ public class SaveImageCommand {
     image.setFileType(imageBean.getFileType());
     image.setWidth(imageBean.getWidth());
     image.setHeight(imageBean.getHeight());
+    image.setFileHash(imageBean.getFileHash());
     return ImageRepository.save(image);
   }
 
