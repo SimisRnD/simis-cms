@@ -2062,8 +2062,57 @@ div.item-image-large img {
 .hero-banner .hero-slide-caption {
   position: relative;
   z-index: 1;
-  max-width: 560px;
+  max-width: 820px;
   padding: 0 60px;
+}
+
+/* Hero typography. A hero headline has to hold its own against a full-bleed photograph, so it is
+   set far larger than the body scale a heading would normally inherit -- without this the caption
+   inherits ordinary in-page sizing and reads as body copy laid over an image. Sizes are stated
+   here rather than in page content because content-widget HTML is sanitized on save and inline
+   style= attributes are stripped, so a class is the only way to reach these elements. */
+.hero-banner .hero-slide-caption .text-brand {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.hero-banner .hero-slide-caption h1,
+.hero-banner .hero-slide-caption h2,
+.hero-banner .hero-slide-caption h3 {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+.hero-banner .hero-slide-caption p {
+  font-size: 1.3rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+/* Opt-in emphasis for a slide that leads with a short strapline above its description; slides
+   without one are unaffected, so this cannot embolden ordinary body copy by position alone. */
+.hero-banner .hero-slide-caption p.hero-tagline {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.hero-banner .hero-slide-caption .button {
+  font-size: 1.05rem;
+  padding: 13px 30px;
+  margin-top: 12px;
+}
+
+@media (max-width: 1024px) {
+  /* The desktop headline would overflow a narrow slide before the mobile breakpoint below. */
+  .hero-banner .hero-slide-caption h1,
+  .hero-banner .hero-slide-caption h2,
+  .hero-banner .hero-slide-caption h3 {
+    font-size: 2.25rem;
+  }
+  .hero-banner .hero-slide-caption p.hero-tagline {
+    font-size: 1.35rem;
+  }
 }
 @media (max-width: 640px) {
   .hero-banner .swiper-slide {
@@ -2074,5 +2123,14 @@ div.item-image-large img {
   .hero-banner .hero-slide-caption {
     max-width: 100%;
     padding: 0 24px;
+  }
+  .hero-banner .hero-slide-caption h1,
+  .hero-banner .hero-slide-caption h2,
+  .hero-banner .hero-slide-caption h3 {
+    font-size: 1.85rem;
+  }
+  .hero-banner .hero-slide-caption p,
+  .hero-banner .hero-slide-caption p.hero-tagline {
+    font-size: 1.05rem;
   }
 }
