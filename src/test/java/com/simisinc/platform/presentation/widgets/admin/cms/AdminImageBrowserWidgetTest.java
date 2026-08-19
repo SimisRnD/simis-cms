@@ -20,6 +20,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.DeleteImageTagCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
+import com.simisinc.platform.application.cms.ScanForDuplicateImagesCommand;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.domain.model.cms.ImageTag;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -995,113 +996,173 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
-  void setAltTextWithAdminRoleSavesTheTrimmedValue() {
+  void executeWithViewDuplicatesGroupsImagesByFileHashInsteadOfThePaginatedGrid() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
-    setRoles(widgetContext, ADMIN);
-    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
-    addQueryParameter(widgetContext, "imageId", "42");
-    addQueryParameter(widgetContext, "altText", "  A red bicycle leaning against a brick wall  ");
+    addQueryParameter(widgetContext, "view", "duplicates");
 
-    Image image = new Image();
-    image.setId(42L);
-    image.setFilename("bicycle.png");
+    Image copyOne = new Image();
+    copyOne.setId(1L);
+    copyOne.setFileHash("SHA-512;abc");
+    Image copyTwo = new Image();
+    copyTwo.setId(2L);
+    copyTwo.setFileHash("SHA-512;abc");
 
     try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
-      imageRepositoryMockedStatic.when(() -> ImageRepository.save(image)).thenReturn(image);
+        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      imageRepositoryMockedStatic.when(ImageRepository::findDuplicateFileHashes).thenReturn(List.of("SHA-512;abc"));
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), isNull()))
+          .thenReturn(List.of(copyOne, copyTwo));
+      imageVariantRepositoryMockedStatic.when(() -> ImageVariantRepository.findByImageIds(any())).thenReturn(Collections.emptyMap());
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findByImageIds(any())).thenReturn(Collections.emptyMap());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
-      widget.post(widgetContext);
+      widget.execute(widgetContext);
 
-      Assertions.assertEquals("A red bicycle leaning against a brick wall", image.getAltText());
-      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("image.setAltText"),
-          any(), any(), any(), any(), any()));
+      ArgumentCaptor<ImageSpecification> specCaptor = ArgumentCaptor.forClass(ImageSpecification.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(specCaptor.capture(), isNull()));
+      Assertions.assertEquals("SHA-512;abc", specCaptor.getValue().getFileHash());
+      // The normal paginated fetch must not also run
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)), never());
     }
 
-    Assertions.assertEquals("Alt text saved", widgetContext.getSuccessMessage());
-    Assertions.assertEquals("/admin/images", widgetContext.getRedirect());
+    Assertions.assertEquals(AdminImageBrowserWidget.JSP, widgetContext.getJsp());
+    Assertions.assertEquals(Boolean.TRUE, request.getAttribute("duplicatesView"));
+    Map<String, List<Image>> duplicateGroups = (Map) request.getAttribute("duplicateGroups");
+    Assertions.assertEquals(1, duplicateGroups.size());
+    Assertions.assertEquals(2, duplicateGroups.get("SHA-512;abc").size());
   }
 
   @Test
-  void setAltTextWithABlankValueClearsIt() {
+  void executeWithViewDuplicatesAndNoDuplicatesReturnsAnEmptyGroupMap() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "view", "duplicates");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      imageRepositoryMockedStatic.when(ImageRepository::findDuplicateFileHashes).thenReturn(Collections.emptyList());
+      imageVariantRepositoryMockedStatic.when(() -> ImageVariantRepository.findByImageIds(any())).thenReturn(Collections.emptyMap());
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findByImageIds(any())).thenReturn(Collections.emptyMap());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+    }
+
+    Map<String, List<Image>> duplicateGroups = (Map) request.getAttribute("duplicateGroups");
+    Assertions.assertTrue(duplicateGroups.isEmpty());
+  }
+
+  @Test
+  void scanForDuplicatesWithAdminRoleEnqueuesAndReportsHowManyWereQueued() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     setRoles(widgetContext, ADMIN);
-    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
-    addQueryParameter(widgetContext, "imageId", "42");
-    addQueryParameter(widgetContext, "altText", "   ");
+    widgetContext.getParameterMap().put("command", new String[] { "scanForDuplicates" });
 
-    Image image = new Image();
-    image.setId(42L);
-    image.setAltText("Old description");
-
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
-      imageRepositoryMockedStatic.when(() -> ImageRepository.save(image)).thenReturn(image);
+    try (MockedStatic<ScanForDuplicateImagesCommand> scanMockedStatic = mockStatic(ScanForDuplicateImagesCommand.class)) {
+      scanMockedStatic.when(ScanForDuplicateImagesCommand::startScan).thenReturn(5);
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.post(widgetContext);
 
-      Assertions.assertNull(image.getAltText());
+      scanMockedStatic.verify(ScanForDuplicateImagesCommand::startScan);
     }
+
+    Assertions.assertTrue(widgetContext.getSuccessMessage().contains("5 images queued"));
   }
 
   @Test
-  void setAltTextRejectsAValueOverTheColumnLimitAndDoesNotSave() {
-    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
-    setRoles(widgetContext, ADMIN);
-    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
-    addQueryParameter(widgetContext, "imageId", "42");
-    addQueryParameter(widgetContext, "altText", "x".repeat(256));
-
-    Image image = new Image();
-    image.setId(42L);
-
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
-
-      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
-      widget.post(widgetContext);
-
-      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
-    }
-
-    Assertions.assertEquals("Alt text must be 255 characters or fewer.", widgetContext.getErrorMessage());
-  }
-
-  @Test
-  void setAltTextWithAnUnknownImageIdProducesAnErrorAndDoesNotSave() {
-    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
-    setRoles(widgetContext, ADMIN);
-    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
-    addQueryParameter(widgetContext, "imageId", "999");
-    addQueryParameter(widgetContext, "altText", "A description");
-
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(999L)).thenReturn(null);
-
-      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
-      widget.post(widgetContext);
-
-      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
-    }
-
-    Assertions.assertNotNull(widgetContext.getErrorMessage());
-  }
-
-  @Test
-  void setAltTextWithoutPermissionNeverTouchesTheRepository() {
+  void scanForDuplicatesWithoutPermissionNeverCallsStartScan() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     // Default logged-in test user has no roles at all -- neither admin nor content-manager
-    widgetContext.getParameterMap().put("command", new String[] { "setAltText" });
-    addQueryParameter(widgetContext, "imageId", "42");
-    addQueryParameter(widgetContext, "altText", "A description");
+    widgetContext.getParameterMap().put("command", new String[] { "scanForDuplicates" });
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ScanForDuplicateImagesCommand> scanMockedStatic = mockStatic(ScanForDuplicateImagesCommand.class)) {
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.post(widgetContext);
 
-      imageRepositoryMockedStatic.verifyNoInteractions();
+      scanMockedStatic.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void deleteDuplicatesSkipsAnImageThatIsStillInUseAndDeletesTheRest() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteDuplicates" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "1", "2" });
+
+    Image inUseImage = new Image();
+    inUseImage.setId(1L);
+    inUseImage.setFilename("still-used.png");
+    Image orphanedImage = new Image();
+    orphanedImage.setId(2L);
+    orphanedImage.setFilename("safe-to-delete.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageUsageCommand> usageMockedStatic = mockStatic(ImageUsageCommand.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(1L)).thenReturn(inUseImage);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(2L)).thenReturn(orphanedImage);
+      usageMockedStatic.when(() -> ImageUsageCommand.findUsages(inUseImage))
+          .thenReturn(List.of(new ImageUsageCommand.UsageReference("Web Page", "/solutions")));
+      usageMockedStatic.when(() -> ImageUsageCommand.findUsages(orphanedImage)).thenReturn(Collections.emptyList());
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(orphanedImage)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      // The in-use image must never even reach DeleteImageCommand -- this is the server-side gate
+      deleteMockedStatic.verify(() -> DeleteImageCommand.deleteImage(inUseImage), never());
+      deleteMockedStatic.verify(() -> DeleteImageCommand.deleteImage(orphanedImage));
+    }
+
+    Assertions.assertEquals("1 of 2 selected images deleted. 1 skipped -- still in use.",
+        widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void deleteDuplicatesRedirectsBackToTheDuplicatesViewNotTheMainGrid() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteDuplicates" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "2" });
+    addQueryParameter(widgetContext, "view", "duplicates");
+
+    Image orphanedImage = new Image();
+    orphanedImage.setId(2L);
+    orphanedImage.setFilename("safe-to-delete.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageUsageCommand> usageMockedStatic = mockStatic(ImageUsageCommand.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(2L)).thenReturn(orphanedImage);
+      usageMockedStatic.when(() -> ImageUsageCommand.findUsages(orphanedImage)).thenReturn(Collections.emptyList());
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(orphanedImage)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?view=duplicates", widgetContext.getRedirect());
+  }
+
+  @Test
+  void deleteDuplicatesWithoutPermissionNeverCallsDeleteImageCommand() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    // Default logged-in test user has no roles at all -- neither admin nor content-manager
+    widgetContext.getParameterMap().put("command", new String[] { "deleteDuplicates" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "1" });
+
+    try (MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      deleteMockedStatic.verifyNoInteractions();
     }
   }
 }

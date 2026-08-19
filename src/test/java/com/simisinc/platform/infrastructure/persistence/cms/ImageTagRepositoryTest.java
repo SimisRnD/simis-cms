@@ -286,7 +286,7 @@ class ImageTagRepositoryTest {
           + "web_path VARCHAR(50) NOT NULL, "
           + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
           + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
-          + "alt_text VARCHAR(255))");
+          + "file_hash VARCHAR(1024))");
       statement.execute("CREATE TABLE image_tags ("
           + "image_tag_id BIGSERIAL PRIMARY KEY, "
           + "name VARCHAR(255) NOT NULL, "
