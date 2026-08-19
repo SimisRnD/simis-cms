@@ -36,6 +36,14 @@ class SocialMediaLinkTest {
   }
 
   @Test
+  void getIconClassResolvesTwitterAndXToTheSameCurrentLogo() {
+    // Twitter rebranded to X in 2023 -- both names should resolve to the current X glyph
+    assertEquals("fa-x-twitter", iconFor("Twitter"));
+    assertEquals("fa-x-twitter", iconFor("X"));
+    assertEquals("fa-x-twitter", iconFor("x"));
+  }
+
+  @Test
   void getIconClassFallsBackForUnknownOrNewPlatforms() {
     // Bundled FontAwesome predates dedicated Threads/Bluesky glyphs
     assertEquals("fa-link", iconFor("Threads"));

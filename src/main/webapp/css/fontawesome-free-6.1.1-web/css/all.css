@@ -7578,6 +7578,10 @@ readers do not read off random characters that represent icons */
 .fa-twitter-square:before {
   content: "\f081"; }
 
+/* Manually added from Font Awesome Free 6.7.2 (glyph not present in the 6.1.1 bundle vendored here) */
+.fa-x-twitter:before {
+  content: "\e61b"; }
+
 .fa-typo3:before {
   content: "\f42b"; }
 

@@ -32,15 +32,18 @@ public class SocialMediaLink extends Entity {
       Map.entry("facebook", "fa-facebook-square"),
       Map.entry("instagram", "fa-instagram"),
       Map.entry("linkedin", "fa-linkedin"),
-      Map.entry("twitter", "fa-twitter"),
+      // Twitter rebranded to X in 2023; both names resolve to the current X glyph (fa-x-twitter
+      // added to the vendored FontAwesome Free 6.1.1 bundle by hand -- see all.css/v4-shims.css).
+      Map.entry("twitter", "fa-x-twitter"),
+      Map.entry("x", "fa-x-twitter"),
       Map.entry("flickr", "fa-flickr"),
       Map.entry("youtube", "fa-youtube"),
       Map.entry("mastodon", "fa-mastodon"),
       Map.entry("tiktok", "fa-tiktok"),
       Map.entry("discord", "fa-discord"),
       Map.entry("github", "fa-github"));
-  // Bundled FontAwesome Free 6.1.1 predates dedicated Threads/Bluesky/X-rebrand glyphs, and any
-  // future/custom platform name has no known icon at all -- fall back to a generic link icon.
+  // Bundled FontAwesome Free 6.1.1 predates Threads/Bluesky glyphs, and any future/custom
+  // platform name has no known icon at all -- fall back to a generic link icon.
   private static final String DEFAULT_ICON = "fa-link";
 
   private Long id = -1L;
