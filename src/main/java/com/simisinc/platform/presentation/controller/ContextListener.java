@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.jsp.jstl.core.Config;
@@ -72,6 +73,17 @@ public class ContextListener implements ServletContextListener {
 
     // System properties
     System.setProperty("java.awt.headless", "true");
+
+    // Cache-busting token for the platform's own stylesheets (#1333). The vendored CSS carries its
+    // version in the path (foundation-6.8.1, swiper-12.1.2, ...) so a new release is a new URL and
+    // caches never serve a stale copy. platform.css and platform-tokens.css have no such marker,
+    // so a CDN or browser holding the previous build keeps serving it after a deploy -- the deploy
+    // succeeds, the site looks unchanged, and it reads as a failed deploy rather than a cache hit.
+    // Resolved once at startup rather than per request: these are static files that cannot change
+    // while the app is running, and every page render reads this.
+    servletContextEvent.getServletContext().setAttribute("assetVersion",
+        resolveAssetVersion(servletContextEvent.getServletContext(), ApplicationInfo.VERSION,
+            "/css/platform.css", "/css/platform-tokens.css"));
 
     // At-rest secret encryption (#16): warn loudly when the key is absent. Secret storage fails closed, so
     // storing TOTP seeds or integration/payment credentials will be refused until the key is set.
@@ -203,5 +215,44 @@ public class ContextListener implements ServletContextListener {
 
     LOG.info("Shutting down the database...");
     DataSource.shutdown();
+  }
+
+  /**
+   * Builds a cache-busting token for the given static assets, from the newest file modification
+   * time among them.
+   *
+   * <p>A modification time is used rather than {@link ApplicationInfo#VERSION} because VERSION is
+   * hand-edited per release, not per build -- a stylesheet change that ships without a version bump
+   * (the common case) would reuse the same token and keep serving a stale cached file, which is the
+   * exact failure this exists to prevent.
+   *
+   * <p>Falls back to the supplied value when no file can be resolved. {@code getRealPath} returns
+   * null for a WAR served unexpanded, so this cannot assume a filesystem path exists. The fallback
+   * still changes between releases, which is weaker than per-build but never emits an empty or
+   * malformed query string.
+   *
+   * @param servletContext the context used to resolve each path
+   * @param fallback the token to use when no file's timestamp can be read
+   * @param paths context-relative asset paths, e.g. {@code /css/platform.css}
+   * @return a non-blank token safe to use as a query-string value
+   */
+  static String resolveAssetVersion(ServletContext servletContext, String fallback, String... paths) {
+    long newest = 0L;
+    for (String path : paths) {
+      String realPath = servletContext.getRealPath(path);
+      if (realPath == null) {
+        continue;
+      }
+      File file = new File(realPath);
+      if (file.isFile() && file.lastModified() > newest) {
+        newest = file.lastModified();
+      }
+    }
+    if (newest > 0L) {
+      return String.valueOf(newest);
+    }
+    LOG.warn("Could not resolve a modification time for the platform stylesheets; falling back to the "
+        + "release version for cache-busting. A stylesheet change without a version bump may serve stale.");
+    return fallback;
   }
 }
