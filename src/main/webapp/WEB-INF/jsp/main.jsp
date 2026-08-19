@@ -191,10 +191,13 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
+    <%-- ?v= is a cache-busting token (#1333), set at startup from the files' modification time.
+         Unlike the vendored CSS above, these two carry no version in their path, so a CDN or
+         browser holding the previous build keeps serving it after a deploy. --%>
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
     <%-- Design tokens and dark scheme. Loaded after platform.css so it can repaint chrome, and
          before the theme's inline <style> block so a site's own colors still win. --%>
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
   <c:if test="${!empty themePropertyMap}">
       <style><%-- Prevent top-bar flicker --%>
         :root {
