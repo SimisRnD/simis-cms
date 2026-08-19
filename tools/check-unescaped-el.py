@@ -77,6 +77,11 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${!empty duplicatesView}":
+        "image-browser.jsp: duplicatesView is a Boolean request attribute set only by "
+        "AdminImageBrowserWidget#duplicatesViewAction (setAttribute(\"duplicatesView\", true)) "
+        "and never set to any other value or from any user input -- !empty of a Boolean can only "
+        "ever render the literal true or false, never markup.",
     "${empty imageTagCounts[manageTag.id] ? 0 : imageTagCounts[manageTag.id]}":
         "image-browser.jsp's Manage Tags panel: imageTagCounts is a Map<Long,Long> built by "
         "ImageTagRepository.countAllByImageTagId() (a GROUP BY COUNT(*) query) and manageTag.id "
