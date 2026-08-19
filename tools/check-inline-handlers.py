@@ -116,7 +116,6 @@ ALLOWLIST: dict[str, int] = {
     "admin/social-media-link-list.jsp": 1,
     "admin/sub-folder-details.jsp": 1,
     "admin/theme-editor.jsp": 1,
-    "admin/web-page-list-editor.jsp": 1,
     "admin/webhook-subscription-form.jsp": 1,
     "cms/album-gallery.jsp": 1,
     "cms/blog-editor.jsp": 2,
