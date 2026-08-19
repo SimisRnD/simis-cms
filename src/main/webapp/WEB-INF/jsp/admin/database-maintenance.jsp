@@ -93,7 +93,7 @@
           </c:choose>
         </td>
         <td>
-          <a href="#" onclick="return confirmPostAction('Run VACUUM (ANALYZE) on ${fn:escapeXml(tableStats.tableName)}?', '${widgetContext.uri}?command=vacuumAnalyze&table=${fn:escapeXml(tableStats.tableName)}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button tiny secondary">Vacuum</a>
+          <a href="#" data-confirm-post="Run VACUUM (ANALYZE) on ${fn:escapeXml(tableStats.tableName)}?" data-post-url="${widgetContext.uri}?command=vacuumAnalyze&table=${fn:escapeXml(tableStats.tableName)}&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button tiny secondary">Vacuum</a>
         </td>
       </tr>
     </c:forEach>
