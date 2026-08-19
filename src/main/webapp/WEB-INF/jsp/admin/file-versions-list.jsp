@@ -87,7 +87,7 @@
               &mdash;
             </c:when>
             <c:when test="${canRestore eq 'true'}">
-              <a title="Restore this version" href="#" onclick="return confirmPostAction('Restore this version? It will become the current file. <c:out value="${js:escape(version.filename)}" /> will be used going forward.', '${widgetContext.uri}?widget=${widgetContext.uniqueId}&token=${userSession.formToken}&action=restore&fileId=${file.id}&fileVersionId=${version.id}');"><i class="fa fa-undo"></i></a>
+              <a title="Restore this version" href="#" data-confirm-post="Restore this version? It will become the current file. <c:out value="${version.filename}" /> will be used going forward." data-post-url="${widgetContext.uri}?widget=${widgetContext.uniqueId}&token=${userSession.formToken}&action=restore&fileId=${file.id}&fileVersionId=${version.id}"><i class="fa fa-undo"></i></a>
             </c:when>
             <c:otherwise>
               &mdash;
