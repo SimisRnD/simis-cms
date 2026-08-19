@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.mail.DefaultAuthenticator;
+import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailConstants;
 import org.apache.commons.mail.ImageHtmlEmail;
 import org.apache.commons.mail.resolver.DataSourceUrlResolver;
@@ -51,6 +52,45 @@ public class EmailCommand {
     return prepareNewEmail(null);
   }
 
+  /**
+   * Applies the configured SMTP transport security to an email.
+   *
+   * <p>The two schemes are alternatives, not layers, and a server offers one or the other on a given
+   * port: implicit SSL/TLS ({@code mail.ssl}) encrypts from the moment the socket opens, traditionally
+   * on port 465; STARTTLS ({@code mail.starttls}) opens in plain text, traditionally on port 587, and
+   * upgrades afterward. Enabling both is a misconfiguration -- implicit SSL wins, because a connection
+   * that is already encrypted has nothing to upgrade, and a warning is logged so the setting that was
+   * ignored is discoverable rather than silent.
+   *
+   * <p>STARTTLS is set to <em>required</em>, not merely enabled. Enabled-only silently falls back to an
+   * unencrypted connection when a server does not advertise STARTTLS, which would send the SMTP
+   * password in clear text -- the opposite of what an admin who turned this on asked for. Requiring it
+   * fails the send instead, which surfaces as a "tls" category in {@link #categorizeSendFailure}.
+   *
+   * <p>Package-private so it can be unit tested against a real {@link Email}: commons-email types
+   * cannot be mocked (their setters are final), but a real instance's flags can be read back.
+   *
+   * @param email the email being prepared
+   * @param mailSSL the {@code mail.ssl} site property value
+   * @param mailStartTLS the {@code mail.starttls} site property value
+   */
+  static void applyTransportSecurity(Email email, String mailSSL, String mailStartTLS) {
+    boolean useSSL = "true".equals(mailSSL);
+    boolean useStartTLS = "true".equals(mailStartTLS);
+    if (useSSL && useStartTLS) {
+      LOG.warn("Both mail.ssl and mail.starttls are enabled; these are alternatives, not layers. "
+          + "Using implicit SSL and ignoring STARTTLS. Enable only the one your provider documents.");
+      useStartTLS = false;
+    }
+    if (useSSL) {
+      email.setSSLOnConnect(true);
+    }
+    if (useStartTLS) {
+      email.setStartTLSEnabled(true);
+      email.setStartTLSRequired(true);
+    }
+  }
+
   public static ImageHtmlEmail prepareNewEmail(String siteUrl) {
 
     String mailFromAddress = LoadSitePropertyCommand.loadByName("mail.from_address");
@@ -60,6 +100,7 @@ public class EmailCommand {
     String mailUsername = LoadSitePropertyCommand.loadByName("mail.username");
     String mailPassword = LoadSitePropertyCommand.loadByName("mail.password");
     String mailSSL = LoadSitePropertyCommand.loadByName("mail.ssl");
+    String mailStartTLS = LoadSitePropertyCommand.loadByName("mail.starttls");
 
     ImageHtmlEmail email = new ImageHtmlEmail();
     email.setCharset(EmailConstants.UTF_8);
@@ -70,9 +111,7 @@ public class EmailCommand {
     if (StringUtils.isNotBlank(mailUsername) && StringUtils.isNotBlank(mailPassword)) {
       email.setAuthenticator(new DefaultAuthenticator(mailUsername, mailPassword));
     }
-    if ("true".equals(mailSSL)) {
-      email.setSSLOnConnect(true);
-    }
+    applyTransportSecurity(email, mailSSL, mailStartTLS);
     // @todo use the bounce address for tracking because emails can come from different systems and users
     // email.setBounceAddress("bounce@example.com");
 

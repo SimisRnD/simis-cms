@@ -157,6 +157,7 @@ INSERT INTO site_properties (property_label, property_name, property_value) VALU
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP username', 'mail.username', '');
 INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('SMTP password', 'mail.password', '');
 INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('SMTP SSL', 'mail.ssl', 'false', 'boolean');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('SMTP STARTTLS', 'mail.starttls', 'false', 'boolean');
 
 -- Mailing List
 
