@@ -220,7 +220,10 @@ CREATE TABLE images (
   -- Content hash for duplicate detection (issue: image dedup tool), "ALGORITHM;hexdigest" format
   -- via FileSystemCommand.getFileChecksum(), same convention as files/item_files/datasets.file_hash.
   -- Nullable -- see UPGRADE_20260818.1600__image_file_hash.sql for existing databases.
-  file_hash VARCHAR(1024)
+  file_hash VARCHAR(1024),
+  -- Library-level alt text, editable in the admin Media Library. Not yet wired into any public
+  -- <img> rendering -- see UPGRADE_20260819.0900__image_alt_text.sql for existing databases.
+  alt_text VARCHAR(255)
 );
 CREATE INDEX images_created_idx ON images(created);
 CREATE INDEX images_web_path_idx ON images(web_path);
