@@ -45,7 +45,14 @@ COPY --from=gosu /go/bin/gosu /usr/local/bin/gosu
 RUN apt-get update \
     && apt-get -y upgrade \
     && apt-get install -y postgresql-17-postgis-3 postgis \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Drop the setuid bit from mount/umount. PostgreSQL never mounts a
+    # filesystem, so these do not need to escalate -- and while they are setuid
+    # root, any vulnerability in them (e.g. CVE-2026-53613, a TOCTOU in mount
+    # with no Debian fix available) is a postgres-to-root escalation path inside
+    # the container. Removing the bit removes that path; the binaries still work
+    # for a caller that is already root. See docker/db/vex/simis-cms-db.openvex.json.
+    && chmod u-s /usr/bin/mount /usr/bin/umount /bin/mount /bin/umount
 
 # Run init.sql
 ADD ./docker/db/init.sql /docker-entrypoint-initdb.d/
