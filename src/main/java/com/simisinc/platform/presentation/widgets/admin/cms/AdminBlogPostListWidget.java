@@ -90,7 +90,16 @@ public class AdminBlogPostListWidget extends GenericWidget {
     int page = context.getParameterAsInt("page", 1);
     int itemsPerPage = context.getParameterAsInt("items", limit);
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
-    constraints.setDefaultColumnToSortBy("post_id");
+    // Order the admin list the same way the public listing does (BlogPostListWidget sorts
+    // start_date desc), so the two views agree. Sorting on post_id ordered by row identity, i.e.
+    // the sequence posts were entered -- invisible while an author writes chronologically, and
+    // permanently wrong once an archive is back-filled out of order (issue #1362).
+    //
+    // NULLS LAST is deliberate: start_date is non-null for anything published (SaveBlogPostCommand
+    // backfills it from published), but an unpublished draft never given a date can be null, and
+    // Postgres sorts nulls first on DESC -- which would float undated drafts above the archive.
+    // post_id DESC breaks ties, which back-filled posts sharing a date frequently produce.
+    constraints.setDefaultColumnToSortBy("start_date DESC NULLS LAST, post_id DESC");
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
     BlogPostSpecification specification = buildSpecification(context);
