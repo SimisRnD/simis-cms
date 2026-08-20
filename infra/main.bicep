@@ -182,6 +182,21 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
+// CMS_URL seeds the site.url property, which drives the canonical link tag and og:url.
+// It has to be the address visitors actually use: pointing it at the App Service origin
+// tells search engines that origin is the authoritative host -- the very host the Front
+// Door topology exists to keep unaddressed. Prefer an explicit customUrl; otherwise derive
+// it from the Front Door custom domain when one is configured, so a domain cutover does not
+// depend on remembering a second parameter (issue #1356).
+//
+// NOTE: site.url is written from CMS_URL by the V71130__set_properties Flyway migration,
+// which runs ONCE. Changing CMS_URL on an already-initialised deployment does not update
+// site.url -- that has to be corrected in Admin > Site Properties as well. See
+// infra/DEPLOYMENT.md 8.4.
+var publicUrl = !empty(customUrl)
+  ? customUrl
+  : (!empty(customDomainName) ? 'https://${customDomainName}' : '')
+
 module appService 'modules/appservice.bicep' = {
   name: 'appservice'
   params: {
@@ -200,7 +215,7 @@ module appService 'modules/appservice.bicep' = {
     postgresDatabaseName: postgres.outputs.databaseName
     dbUser: dbUser
     trustedProxies: trustedProxies
-    customUrl: customUrl
+    customUrl: publicUrl
     appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
