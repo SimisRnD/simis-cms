@@ -167,6 +167,71 @@ class ImageUsageCommandTest {
   }
 
   @Test
+  void imageReferencedOnlyInlineInAPagesXmlIsDetectedAsUsed() {
+    // A content/contentSlider widget can carry its markup inline as an <html><![CDATA[...]]></html>
+    // preference instead of pointing at a content record, so the only reference lives in page_xml.
+    // This is how the pilot's home page hero and Featured Work cards reference their images.
+    Image image = insertImage("hero-slide.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    String pageXml = "<page><section><column><widget name=\"contentSlider\">"
+        + "<html><![CDATA[<img class=\"orbit-image\" src=\"" + fullUrl + "\" alt=\"Hero\">]]></html>"
+        + "</widget></column></section></page>";
+    insertWebPageXml("/", pageXml, null);
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertFalse(usages.isEmpty(),
+        "an image referenced only inline in a page's XML must be detected as used -- findUsages also "
+            + "gates deletion, so reporting it orphaned allows deleting an image on a live page");
+    assertTrue(usages.stream().anyMatch(u -> "Web Page".equals(u.getSourceType()) && "/".equals(u.getLabel())));
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
+  void imageReferencedOnlyInAPagesSectionBackgroundStyleIsDetectedAsUsed() {
+    // Not every page_xml reference is an <img>: a section can name an image in a background-image
+    // style, which is how the pilot's home page renders its section backdrop.
+    Image image = insertImage("section-backdrop.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    String pageXml = "<page><section style=\"background-image:url(" + fullUrl + ");background-size:cover;\">"
+        + "<column class=\"small-12 cell\"/></section></page>";
+    insertWebPageXml("/solutions", pageXml, null);
+
+    assertFalse(ImageUsageCommand.findUsages(image).isEmpty(),
+        "an image used only as a section background must be detected as used");
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
+  void imageReferencedOnlyInADraftPageXmlIsAlsoDetectedAsUsed() {
+    // Mirrors content/draft_content: unpublished work still counts as a reference, otherwise
+    // deleting the image silently breaks the draft before anyone publishes it.
+    Image image = insertImage("draft-hero.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    String draftXml = "<page><section><column><widget name=\"content\">"
+        + "<html><![CDATA[<img src=\"" + fullUrl + "\">]]></html></widget></column></section></page>";
+    insertWebPageXml("/about-us", "<page><section><column/></section></page>", draftXml);
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertTrue(usages.stream().anyMatch(u -> "Web Page (draft)".equals(u.getSourceType())));
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
+  void anImageInNoPageXmlIsStillReportedOrphaned() {
+    // The fix must not make everything look used -- a genuinely unreferenced image stays orphaned.
+    Image image = insertImage("genuinely-unused.png");
+    String otherUrl = "/assets/img/2026/07/999-other.png";
+    insertWebPageXml("/contact-us",
+        "<page><section><column><widget name=\"content\">"
+            + "<html><![CDATA[<img src=\"" + otherUrl + "\">]]></html></widget></column></section></page>", null);
+
+    assertTrue(ImageUsageCommand.findUsages(image).isEmpty());
+    assertTrue(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
   void imageReferencedOnlyViaMarkdownPastedIntoAWikiPageBodyIsDetectedAsUsed() {
     Image image = insertImage("wiki-diagram.png");
     String fullUrl = "/assets/img/" + image.getUrl();
@@ -292,11 +357,14 @@ class ImageUsageCommandTest {
           + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
           + "file_hash VARCHAR(1024), "
           + "alt_text VARCHAR(255))");
-      // A focused subset of web_pages -- just link + page_image_url, the only columns this scan reads.
+      // A focused subset of web_pages -- link, page_image_url, and both page XML bodies, the only
+      // columns this scan reads.
       statement.execute("CREATE TABLE web_pages ("
           + "web_page_id BIGSERIAL PRIMARY KEY, "
           + "link VARCHAR(255) UNIQUE NOT NULL, "
-          + "page_image_url VARCHAR(255))");
+          + "page_image_url VARCHAR(255), "
+          + "page_xml TEXT, "
+          + "draft_page_xml TEXT)");
       // A focused subset of content -- just the unique id + both HTML bodies.
       statement.execute("CREATE TABLE content ("
           + "content_id BIGSERIAL PRIMARY KEY, "
@@ -358,6 +426,19 @@ class ImageUsageCommandTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not insert test web page", se);
+    }
+  }
+
+  private static void insertWebPageXml(String link, String pageXml, String draftPageXml) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO web_pages (link, page_xml, draft_page_xml) VALUES (?, ?, ?)")) {
+      pst.setString(1, link);
+      pst.setString(2, pageXml);
+      pst.setString(3, draftPageXml);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not insert test web page xml", se);
     }
   }
 

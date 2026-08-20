@@ -93,6 +93,15 @@ public class ImageUsageCommand {
       { "content", "draft_content", "content_unique_id", "Content Block (draft)" },
       { "blog_posts", "body", "title", "Blog Post" },
       { "wiki_pages", "body", "title", "Wiki Page" },
+      // A page's own XML, not just the content records it points at. A content/contentSlider widget
+      // can carry its markup inline as an <html><![CDATA[...]]></html> preference rather than
+      // referencing a content record by uniqueId, and section/column markup can reference an image
+      // directly (e.g. a background-image style). Those references exist only here. Omitting this
+      // did not merely mislabel such images "Orphaned" -- findUsages also gates deletion
+      // (AdminImageBrowserWidget's delete-duplicates guard), so an image used on a live page was
+      // reported unused AND allowed to be deleted.
+      { "web_pages", "page_xml", "link", "Web Page" },
+      { "web_pages", "draft_page_xml", "link", "Web Page (draft)" },
   };
 
   private ImageUsageCommand() {
