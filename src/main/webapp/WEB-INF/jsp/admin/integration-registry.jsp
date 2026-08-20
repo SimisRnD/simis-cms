@@ -52,7 +52,7 @@
                 <a class="button radius secondary" href="${ctx}<c:out value="${card.manageUrl}"/>">Manage</a>
               </c:if>
               <a href="#" class="button radius alert"
-                 onclick="return confirmPostAction('Uninstall ${fn:escapeXml(card.definition.name)}? This removes its saved credential and any webhook subscription it created.', '${widgetContext.uri}?action=uninstall&amp;widget=${widgetContext.uniqueId}&amp;token=${userSession.formToken}&amp;integrationId=${fn:escapeXml(card.definition.id)}');">Uninstall</a>
+                 data-confirm-post="Uninstall ${fn:escapeXml(card.definition.name)}? This removes its saved credential and any webhook subscription it created." data-post-url="${widgetContext.uri}?action=uninstall&amp;widget=${widgetContext.uniqueId}&amp;token=${userSession.formToken}&amp;integrationId=${fn:escapeXml(card.definition.id)}">Uninstall</a>
             </p>
           </c:when>
           <c:when test="${installingId eq card.definition.id}">

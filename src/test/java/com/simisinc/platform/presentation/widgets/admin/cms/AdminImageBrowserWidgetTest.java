@@ -1074,6 +1074,70 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
+  void scanForDuplicatesWithNothingLeftToHashStillReportsDuplicatesThatWereFound() {
+    // The reported bug: a library whose images are all hashed reported only "already scanned",
+    // which reads as a null result -- so an admin with real duplicates concluded none were found
+    // and never opened the Duplicates view where they were already listed.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "scanForDuplicates" });
+
+    try (MockedStatic<ScanForDuplicateImagesCommand> scanMockedStatic = mockStatic(ScanForDuplicateImagesCommand.class);
+        MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      scanMockedStatic.when(ScanForDuplicateImagesCommand::startScan).thenReturn(0);
+      imageRepositoryMockedStatic.when(ImageRepository::findDuplicateFileHashes)
+          .thenReturn(List.of("SHA-512;aaa", "SHA-512;bbb"));
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+    }
+
+    String message = widgetContext.getSuccessMessage();
+    Assertions.assertTrue(message.contains("2 sets"), "should report how many duplicate sets exist: " + message);
+    Assertions.assertTrue(message.contains("Duplicates"), "should point at the Duplicates view: " + message);
+  }
+
+  @Test
+  void scanForDuplicatesWithNothingLeftToHashAndNoDuplicatesSaysSoExplicitly() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "scanForDuplicates" });
+
+    try (MockedStatic<ScanForDuplicateImagesCommand> scanMockedStatic = mockStatic(ScanForDuplicateImagesCommand.class);
+        MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      scanMockedStatic.when(ScanForDuplicateImagesCommand::startScan).thenReturn(0);
+      imageRepositoryMockedStatic.when(ImageRepository::findDuplicateFileHashes).thenReturn(List.of());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+    }
+
+    Assertions.assertTrue(widgetContext.getSuccessMessage().contains("No duplicates found"),
+        "a genuinely clean library must say so, not just 'already scanned'");
+  }
+
+  @Test
+  void scanForDuplicatesThatEnqueuesWorkDoesNotClaimAResultYet() {
+    // While jobs are still queued the duplicate count is not yet meaningful, so the message must
+    // stay about progress rather than assert a finding.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "scanForDuplicates" });
+
+    try (MockedStatic<ScanForDuplicateImagesCommand> scanMockedStatic = mockStatic(ScanForDuplicateImagesCommand.class);
+        MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      scanMockedStatic.when(ScanForDuplicateImagesCommand::startScan).thenReturn(3);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verify(ImageRepository::findDuplicateFileHashes, never());
+    }
+
+    Assertions.assertTrue(widgetContext.getSuccessMessage().contains("3 images queued"));
+  }
+
+  @Test
   void scanForDuplicatesWithoutPermissionNeverCallsStartScan() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     // Default logged-in test user has no roles at all -- neither admin nor content-manager

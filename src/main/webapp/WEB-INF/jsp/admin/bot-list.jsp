@@ -66,7 +66,7 @@
       <td nowrap="true">
         <c:out value="${text:trim(record.userAgent, 40, true)}" />
         <a href="${ctx}/admin/bot-list?botListId=${record.id}" title="Edit"><i class="fa fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to remove <c:out value="${js:escape(record.userAgent)}" /> from the bot list?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&botListId=${record.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.userAgent}" /> from the bot list?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&botListId=${record.id}"><i class="fa fa-remove"></i></a>
       </td>
       <td nowrap="true"><small<c:if test="${fn:length(record.label) > 40}"> title="<c:out value="${record.label}" />"</c:if>><c:out value="${text:trim(record.label, 40, true)}" /></small></td>
       <td nowrap="true"><fmt:formatDate pattern="yyyy-MM-dd" value="${record.created}" /></td>

@@ -53,7 +53,7 @@
 </c:if>
 <p class="text-right">
   <small class="subheader">Events older than <c:out value="${retentionDays}"/> days are purged automatically.</small>
-  <a href="#" onclick="return confirmPostAction('Run the audit log tamper-evidence check now? This walks the entire chain and may take a few seconds on a large log.', '${widgetContext.uri}?runIntegrityCheck=true&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button tiny">
+  <a href="#" data-confirm-post="Run the audit log tamper-evidence check now? This walks the entire chain and may take a few seconds on a large log." data-post-url="${widgetContext.uri}?runIntegrityCheck=true&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button tiny">
     <i class="fa fa-shield-halved"></i> Run Integrity Check Now
   </a>
 </p>
