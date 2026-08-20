@@ -408,6 +408,33 @@ az webapp config appsettings set \
 
 The app uses this for link generation, email, etc.
 
+### 8.5 Correct the `site.url` site property
+
+**`CMS_URL` alone is not enough on an existing deployment.** It is read into the `site.url`
+site property by the `V71130__set_properties` Flyway migration, which runs **once**, at first
+boot. On a deployment that has already initialised, changing the `CMS_URL` app setting in 8.4
+does not update `site.url`.
+
+That matters because `site.url` -- not `CMS_URL` -- is what `PageServlet` reads to build the
+canonical link tag and the Open Graph `og:url`, and the whole Open Graph block is skipped
+entirely when it is blank. Left stale, every page keeps advertising the old address as its
+canonical URL; left blank, no canonical or Open Graph tags are emitted at all.
+
+Set it in **Admin > Site Properties > Site URL** to the same value used for `CMS_URL`, with
+no trailing slash:
+
+```
+https://www.example.org
+```
+
+Then confirm on any public page that the tags now agree with the public hostname:
+
+```bash
+curl -s https://www.example.org/ | grep -E 'rel="canonical"|property="og:url"'
+```
+
+Both should show the public domain. If nothing is returned at all, `site.url` is still blank.
+
 ---
 
 ## 9. Monitoring & Ongoing Operations
@@ -483,6 +510,8 @@ Before switching user traffic:
 - [ ] Proxy IP working (check audit logs for real IPs, not WAF IP)
 - [ ] Custom domain resolves with valid TLS cert
 - [ ] CMS_URL set correctly (links use right domain)
+- [ ] `site.url` site property corrected in Admin (8.5) -- the migration does not redo it
+- [ ] canonical + og:url on a public page show the public domain, not the origin
 - [ ] Backup test passed
 - [ ] Application Insights receiving telemetry (Live Metrics shows requests after a test hit)
 - [ ] Monitoring alerts configured
