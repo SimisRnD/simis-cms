@@ -37,7 +37,7 @@
   <button class="button small radius secondary float-left margin-left-10"><i class="fa fa-download"></i> Download Items</button>
 </form>
 --%>
-<a class="button small radius alert margin-left-10" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(collection.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}');"><i class="fa fa-remove"></i> Delete</a>
+<a class="button small radius alert margin-left-10" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${collection.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}"><i class="fa fa-remove"></i> Delete</a>
 <div class="callout radius warning">
   <p style="margin-bottom:0">
     <i class="fa fa-exclamation-triangle"></i> <strong>Before you delete this collection, know this:</strong>

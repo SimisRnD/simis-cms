@@ -37,7 +37,7 @@
 </div>
 <p class="text-right">
   <small class="subheader">This page refreshes automatically every 30 seconds.</small>
-  <a href="#" onclick="return confirmPostAction('Run all health checks now?', '${widgetContext.uri}?command=runCheckNow&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button tiny">
+  <a href="#" data-confirm-post="Run all health checks now?" data-post-url="${widgetContext.uri}?command=runCheckNow&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button tiny">
     <i class="fa fa-rotate"></i> Run Check Now
   </a>
 </p>
