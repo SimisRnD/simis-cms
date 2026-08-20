@@ -123,8 +123,22 @@
     }
     return !hasErrors;
   }
+  <%-- Bound here instead of an inline onsubmit= -- CSP's script-src-attr is not covered by the
+       nonce above, so the attribute never compiled and this validation silently never ran on a
+       public form: no inline errors, no aria-invalid, no focus moved to the first bad field
+       (issue #1359, same root cause as #1188). --%>
+  document.addEventListener('DOMContentLoaded', function () {
+    var theForm = document.getElementById('form${widgetContext.uniqueId}');
+    if (theForm) {
+      theForm.addEventListener('submit', function (event) {
+        if (!checkForm${widgetContext.uniqueId}()) {
+          event.preventDefault();
+        }
+      });
+    }
+  });
 </script>
-<form id="form${widgetContext.uniqueId}" method="post" onsubmit="return checkForm${widgetContext.uniqueId}()">
+<form id="form${widgetContext.uniqueId}" method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
