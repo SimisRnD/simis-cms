@@ -346,6 +346,17 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getPageKeywords())) {
               pageRenderInfo.setKeywords(widgetContext.getPageKeywords());
             }
+            // Social metadata (issue #1355). PageServlet decides og:type before widgets run, so it
+            // can only ever say "website"; a blog post is not an Item or a Collection, which is the
+            // only case that branch treats as an article. Bridging here lets the widget correct it,
+            // and supplies the image og:image needs -- main.jsp already reads both off
+            // pageRenderInfo, so nothing in the JSP changes.
+            if (StringUtils.isNotBlank(widgetContext.getPageImageUrl())) {
+              pageRenderInfo.setImageUrl(widgetContext.getPageImageUrl());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getPageType())) {
+              pageRenderInfo.setPageType(widgetContext.getPageType());
+            }
             // Product schema fields (issue #403), e.g. from ProductNameWidget
             if (StringUtils.isNotBlank(widgetContext.getProductName())) {
               pageRenderInfo.setProductName(widgetContext.getProductName());

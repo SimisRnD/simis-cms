@@ -80,6 +80,12 @@ public class BlogPostWidget extends GenericWidget {
     if (StringUtils.isNotBlank(blogPost.getKeywords())) {
       context.setPageKeywords(blogPost.getKeywords());
     }
+    // A blog post is an article, not a generic page -- PageServlet defaults every page that is not
+    // an Item or Collection to "website", and it decides before this widget runs (issue #1355).
+    context.setPageType("article");
+    if (StringUtils.isNotBlank(blogPost.getImageUrl())) {
+      context.setPageImageUrl(blogPost.getImageUrl());
+    }
 
     // Set Article schema fields for JSON-LD (issue #403); a post that isn't actually published
     // yet (visible here only to admin/content-manager, see retrieveValidatedBlogPostFromUrl)

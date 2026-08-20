@@ -57,6 +57,12 @@ public class WidgetContext implements Serializable {
   private boolean pageTitleComposed = false;
   private String pageDescription = null;
   private String pageKeywords = null;
+  // Page-level social metadata a widget can contribute, mirroring pageTitle/Description/Keywords
+  // above. WebContainerCommand bridges these into PageRenderInfo after the widget executes, which
+  // is what lets a blog post override the "website" default PageServlet set before widgets ran
+  // (issue #1355).
+  private String pageImageUrl = null;
+  private String pageType = null;
 
   // Product schema fields (issue #403), bridged from an ecommerce widget like ProductNameWidget --
   // there's no URL routing to a specific Product the way there is for an Item/Collection, so a
@@ -208,6 +214,22 @@ public class WidgetContext implements Serializable {
 
   public String getProductName() {
     return productName;
+  }
+
+  public String getPageImageUrl() {
+    return pageImageUrl;
+  }
+
+  public void setPageImageUrl(String pageImageUrl) {
+    this.pageImageUrl = pageImageUrl;
+  }
+
+  public String getPageType() {
+    return pageType;
+  }
+
+  public void setPageType(String pageType) {
+    this.pageType = pageType;
   }
 
   public void setProductName(String productName) {
