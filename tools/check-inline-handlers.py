@@ -111,7 +111,6 @@ ALLOWLIST: dict[str, int] = {
     "items/item-member-form.jsp": 1,
     "items/item-relationship-form.jsp": 1,
     "userProfile/my-email-preferences.jsp": 1,
-    "userProfile/my-profile-form.jsp": 1,
 }
 
 
