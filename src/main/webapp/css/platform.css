@@ -1878,7 +1878,15 @@ div.item-image-large img {
 }
 
 .image-browser {
-  display: inline-block;
+  /* Flex centring rather than a top:50%/translateY(-50%) hack, and object-fit on the image rather
+     than a percentage max-height. A percentage max-height only resolves when the containing block
+     has a definite height; inside the "Browse Images" reveal that chain breaks, max-height stops
+     constraining, and the enclosing .card (overflow:hidden) clips the oversized image to its top
+     slice -- portrait images lost most of their content (issue #1364). */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   max-width: 100%;
   height: 175px;
   text-align: center;
@@ -1892,9 +1900,9 @@ div.item-image-large img {
 .image-browser img {
   max-width: 95%;
   max-height: 95%;
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%);
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Layered badge */
