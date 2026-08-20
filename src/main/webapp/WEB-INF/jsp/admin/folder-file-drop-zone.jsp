@@ -37,7 +37,7 @@
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script src="${ctx}/javascript/dropzone-setup.js"></script>
 <script nonce="${cspNonce}">
-  initializeDropzone('myDropzone', 55);
+  initializeDropzone('myDropzone', ${maxUploadSize});
 
   // Mirror the visible checkbox into the hidden field inside the form. Dropzone only serializes
   // inputs found within its own form element, and the checkbox reads better next to the upload

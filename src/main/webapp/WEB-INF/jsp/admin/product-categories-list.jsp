@@ -65,7 +65,7 @@
       </td>
       <td>
         <a href="${ctx}/admin/product-category?productCategoryId=${productCategory.id}&returnPage=/admin/product-categories"><i class="fa fa-edit"></i></a>
-        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(productCategory.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productCategoryId=${productCategory.id}');"><i class="fa fa-remove"></i></a>
+        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${productCategory.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productCategoryId=${productCategory.id}"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
