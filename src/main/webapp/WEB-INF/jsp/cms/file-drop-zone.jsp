@@ -32,7 +32,7 @@
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script src="${ctx}/javascript/dropzone-setup.js"></script>
 <script nonce="${cspNonce}">
-  initializeDropzone('myDropzone', 20);
+  initializeDropzone('myDropzone', ${maxUploadSize});
 </script>
 
 <p>Drag files here or use "Browse Files" to select them, then click "Upload All Files". Use "Reset" to clear your selections.</p>
