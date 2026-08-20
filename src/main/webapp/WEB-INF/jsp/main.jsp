@@ -105,7 +105,12 @@
        widget-provided -> web page -> site-default cascade as the <title>/description tags above,
        instead of only checking pageRenderInfo directly -- otherwise any page without a widget that
        explicitly sets a page title/description (i.e. most pages that aren't a blog post or similar)
-       got no og:title/og:description at all, even though the primary tags rendered fine. --%>
+       got no og:title/og:description at all, even though the primary tags rendered fine.
+
+       The two halves deliberately use different attributes and must not be harmonised: Open Graph
+       is RDFa and defines these as `property`, and Facebook's crawler ignores `name="og:..."`
+       outright; the Twitter/X Cards spec defines its tags as `name`. Both below are correct as
+       written (issue #1355). --%>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.title}"><c:set var="socialTitle" value="${pageRenderInfo.title}"/></c:when>
     <c:when test="${!empty masterWebPage.title}"><c:set var="socialTitle" value="${masterWebPage.title}"/></c:when>
@@ -117,27 +122,27 @@
     <c:otherwise><c:set var="socialDescription" value="${sitePropertyMap['site.description']}"/></c:otherwise>
   </c:choose>
   <c:if test="${!empty pageRenderInfo.pageType}">
-    <meta name="og:type" content="<c:out value="${pageRenderInfo.pageType}"/>" />
+    <meta property="og:type" content="<c:out value="${pageRenderInfo.pageType}"/>" />
   </c:if>
   <c:if test="${!empty pageRenderInfo.pageUrl}">
-    <meta name="og:url" content="<c:out value="${pageRenderInfo.pageUrl}"/>" />
+    <meta property="og:url" content="<c:out value="${pageRenderInfo.pageUrl}"/>" />
   </c:if>
   <c:if test="${!empty socialTitle}">
-    <meta name="og:title" content="<c:out value="${socialTitle}"/>" />
+    <meta property="og:title" content="<c:out value="${socialTitle}"/>" />
   </c:if>
   <c:if test="${!empty socialDescription}">
-    <meta name="og:description" content="<c:out value="${socialDescription}"/>" />
+    <meta property="og:description" content="<c:out value="${socialDescription}"/>" />
   </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.imageUrl && fn:startsWith(pageRenderInfo.imageUrl, '/')}">
-      <meta name="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${pageRenderInfo.imageUrl}"/>">
+      <meta property="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${pageRenderInfo.imageUrl}"/>">
     </c:when>
     <c:when test="${!empty sitePropertyMap['site.image'] && fn:startsWith(sitePropertyMap['site.image'], '/')}">
-      <meta name="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${sitePropertyMap['site.image']}"/>">
+      <meta property="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${sitePropertyMap['site.image']}"/>">
     </c:when>
   </c:choose>
   <c:if test="${!empty sitePropertyMap['site.name']}">
-    <meta name="og:site_name" content="<c:out value="${sitePropertyMap['site.name']}" />" />
+    <meta property="og:site_name" content="<c:out value="${sitePropertyMap['site.name']}" />" />
   </c:if>
   <meta name="twitter:card" content="summary_large_image" />
   <c:if test="${!empty socialTitle}">
