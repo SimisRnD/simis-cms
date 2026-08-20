@@ -333,7 +333,16 @@ public class AdminImageBrowserWidget extends GenericWidget {
       context.setSuccessMessage(enqueued + " image" + (enqueued == 1 ? "" : "s")
           + " queued for scanning. Check the Job Queue for progress, then come back to Duplicates.");
     } else {
-      context.setSuccessMessage("Every image has already been scanned.");
+      // Nothing left to hash is not the same as nothing found. Reporting only "already scanned"
+      // reads as a null result, so an admin whose library does contain duplicates concludes the
+      // scan found none and never opens the Duplicates view where they are already listed.
+      int duplicateSets = ImageRepository.findDuplicateFileHashes().size();
+      if (duplicateSets > 0) {
+        context.setSuccessMessage("Every image has already been scanned. " + duplicateSets + " set"
+            + (duplicateSets == 1 ? "" : "s") + " of duplicates found -- see Duplicates.");
+      } else {
+        context.setSuccessMessage("Every image has already been scanned. No duplicates found.");
+      }
     }
     context.setRedirect(redirectWithQuery(context));
     return context;

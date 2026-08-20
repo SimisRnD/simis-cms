@@ -160,7 +160,11 @@
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu .is-dropdown-submenu-item a{color:var(--sc-topbar-menu-dropdown-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:var(--sc-button-text-color) !important}</c:if>
+        <%-- Scoped away from .clear/.hollow on purpose. Those variants are transparent, so Foundation
+             gives them a color that contrasts with the PAGE, not the solid-button text color; applying
+             this with !important made every clear button take the solid color and vanish on a light
+             background -- including the WCAG 2.2.2 pause control in content-card-slider.jsp. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow){color:var(--sc-button-text-color) !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>

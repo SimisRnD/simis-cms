@@ -180,7 +180,7 @@
              is ever opened up to that role, the delete action will work with no further changes --
              only this visibility check and the help text below would need the role added back. --%>
         <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-          <a href="#" title="Delete this content block" onclick="return confirmPostAction('Delete this content block? This cannot be undone.', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&uniqueId=${content.uniqueId}');"><i class="fa fa-remove"></i></a>
+          <a href="#" title="Delete this content block" data-confirm-post="Delete this content block? This cannot be undone." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&uniqueId=${content.uniqueId}"><i class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

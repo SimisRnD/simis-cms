@@ -132,9 +132,24 @@ public class ContentImageSrcsetCommand {
     // constraint (.column-container { max-width: 75rem }, i.e. 1200px) is the honest fallback
     // otherwise -- rich-text content has no fixed layout slot the way a template card grid does.
     String width = extractQuotedAttribute(originalTag, "width");
-    String sizesValue = isPositiveInteger(width)
+    String staticSizes = isPositiveInteger(width)
         ? "(max-width: " + width + "px) 100vw, " + width + "px"
         : "(max-width: 1200px) 100vw, 1200px";
+    // That ceiling is still only a guess, though, and guessing high is not free: the browser
+    // resolves sizes= before layout and then picks the smallest candidate that covers it, so a
+    // 1200px claim on an award badge the theme paints at ~104px selects the 800w (or 1600w)
+    // rendition over the 200w one -- the srcset spending bytes instead of saving them, on exactly
+    // the images it was added to help. sizes="auto" hands that decision to the element's real
+    // layout width, which is the case here: a rich-text image's displayed size is set by the
+    // theme's CSS and is genuinely unknowable at render time.
+    //
+    // It prefixes the previous value rather than replacing it. sizes="auto" is only valid on a
+    // lazily-loaded image, and two live paths reach this markup without lazy loading: a content
+    // author's own loading="eager" paste, and ContentCarouselWidget, which strips the loading=
+    // this command adds and lets content-carousel.jsp mark the first slide eager (issue #413/#975).
+    // Both -- along with any browser that predates sizes="auto" -- skip the auto entry and read on,
+    // landing on precisely the behavior they have today instead of the 100vw default.
+    String sizesValue = willLoadLazily(originalTag) ? "auto, " + staticSizes : staticSizes;
     StringBuilder insertion = new StringBuilder(" srcset=\"").append(srcsetValue).append("\" sizes=\"").append(sizesValue)
         .append("\"");
     // Don't add loading=/decoding= on top of an already-declared value -- a content author can
@@ -199,6 +214,20 @@ public class ContentImageSrcsetCommand {
       }
     }
     return -1;
+  }
+
+  /**
+   * {@code sizes="auto"} is valid only on a lazily-loaded image -- on any other image the browser
+   * discards it and falls back to the 100vw default, the worst possible guess for a small one.
+   *
+   * @return true when the rendered tag will carry {@code loading="lazy"}: either it already
+   *         declares it, or it declares no loading= at all and this command is about to add it
+   */
+  private static boolean willLoadLazily(String tag) {
+    if (!StringUtils.containsIgnoreCase(tag, "loading=")) {
+      return true;
+    }
+    return "lazy".equalsIgnoreCase(StringUtils.trimToNull(extractQuotedAttribute(tag, "loading")));
   }
 
   private static boolean isPositiveInteger(String value) {
