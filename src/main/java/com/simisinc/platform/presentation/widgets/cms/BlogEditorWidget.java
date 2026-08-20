@@ -268,6 +268,30 @@ public class BlogEditorWidget extends GenericWidget {
     // before BeanUtils.populate()), and reused here for the "Notify subscribers" option below --
     // an edit to an already-published post, or unpublishing, must never (re-)send a notification.
 
+    // A timestamp the converter cannot parse becomes null rather than raising -- PageServlet
+    // registers SqlTimestampConverter with a null default and a single "MM-dd-yyyy HH:mm" pattern.
+    // SaveBlogPostCommand then backfills a null startDate with the publish time, so a mistyped or
+    // differently-formatted date silently became "today" and looked like it had saved correctly
+    // (issue #1351). That is data loss on any back-dated post, and it is invisible until someone
+    // notices the archive is all one day. Check here, where the raw parameter is still available
+    // to tell "left blank" (legitimately null) apart from "typed something unparseable".
+    String startDateParam = context.getParameter("startDate");
+    if (StringUtils.isNotBlank(startDateParam) && blogPostBean.getStartDate() == null) {
+      context.setErrorMessage(
+          "The publish date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
+      context.setRequestObject(blogPostBean);
+      context.addSharedRequestValue("returnPage", returnPage);
+      return context;
+    }
+    String endDateParam = context.getParameter("endDate");
+    if (StringUtils.isNotBlank(endDateParam) && blogPostBean.getEndDate() == null) {
+      context.setErrorMessage(
+          "The expiration date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
+      context.setRequestObject(blogPostBean);
+      context.addSharedRequestValue("returnPage", returnPage);
+      return context;
+    }
+
     // Save the blog post
     BlogPost blogPost = null;
     try {
