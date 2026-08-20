@@ -110,6 +110,24 @@
     xhr.open("POST", '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}');
     xhr.send(formData);
   }
+  <%-- Bound here instead of inline onchange= -- CSP's script-src-attr isn't covered by the nonce
+       above, so an inline handler attribute silently never fires (issue #1350, same root cause as
+       #1188 and the identical web page editor fix in #1315). --%>
+  document.addEventListener('DOMContentLoaded', function () {
+    var imageFileInput = document.getElementById('imageFile');
+    if (imageFileInput) {
+      imageFileInput.addEventListener('change', function () {
+        SavePhoto(this);
+      });
+    }
+    var notifySubscribers = document.getElementById('notifySubscribers');
+    var notifyMailingListId = document.getElementById('notifyMailingListId');
+    if (notifySubscribers && notifyMailingListId) {
+      notifySubscribers.addEventListener('change', function () {
+        notifyMailingListId.disabled = !this.checked;
+      });
+    }
+  });
 </script>
 <form method="post">
   <%-- Required by controller --%>
@@ -189,7 +207,7 @@
       <div class="small-6 cell">
         <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${blogPost.imageUrl}"/>">
         <label for="imageFile" class="button">Upload Image File...</label>
-        <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
+        <input type="file" id="imageFile" class="show-for-sr">
       </div>
       <div class="small-2 cell">
         <img id="imageUrlPreview" src="<c:out value="${blogPost.imageUrl}"/>" style="max-height: 50px; max-width: 150px"/>
@@ -202,8 +220,7 @@
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blogPost.id == -1 || !empty blogPost.published}">checked</c:if>/><label for="enabled">Publish it?</label>
   <c:if test="${!empty mailingLists}">
     <div class="full-container" style="margin-top:10px">
-      <input id="notifySubscribers" type="checkbox" name="notifySubscribers" value="true"
-          onchange="document.getElementById('notifyMailingListId').disabled = !this.checked;" />
+      <input id="notifySubscribers" type="checkbox" name="notifySubscribers" value="true" />
       <label for="notifySubscribers">Notify subscribers of a mailing list about this post?</label>
       <small>Only sent the moment this post is first published -- editing an already-published post won't re-notify anyone.</small>
       <select id="notifyMailingListId" name="notifyMailingListId" disabled>

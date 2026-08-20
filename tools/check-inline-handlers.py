@@ -97,7 +97,6 @@ ALLOWLIST: dict[str, int] = {
     "admin/theme-editor.jsp": 1,
     "admin/webhook-subscription-form.jsp": 1,
     "cms/album-gallery.jsp": 1,
-    "cms/blog-editor.jsp": 2,
     "cms/form.jsp": 1,
     "cms/web-page-editor.jsp": 1,
     "ecommerce/add-product-sku-to-cart.jsp": 1,
