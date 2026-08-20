@@ -323,7 +323,12 @@
         <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:var(--sc-topbar-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:var(--sc-topbar-menu-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header, #platform-menu button.button i.fa{color:var(--sc-topbar-menu-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{color:var(--sc-topbar-menu-arrow-color)}</c:if>
+        <%-- Foundation draws this caret as a CSS triangle built from borders (foundation.css:
+             border-style:solid; border-width:6px; border-bottom-width:0; border-color:#1779ba
+             transparent transparent), so it takes its color from border-color, not color. Setting
+             color here had no effect at all and the caret stayed Foundation's default blue however
+             the theme's arrow color was set. embedded-layout.jsp already had this right. --%>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:var(--sc-topbar-menu-arrow-color) transparent transparent}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu button.button i.fa:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
