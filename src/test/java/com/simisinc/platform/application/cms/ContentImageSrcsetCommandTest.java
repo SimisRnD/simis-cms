@@ -122,7 +122,7 @@ class ContentImageSrcsetCommandTest {
       // no trailing one -- cosmetically odd, functionally identical HTML either way.
       assertEquals("<p><img src=\"/assets/img/20180503171549-5/photo.jpg\" alt=\"Desk\" "
           + " srcset=\"/assets/img/20180503171549-5/photo.jpg?variant=medium 800w\""
-          + " sizes=\"(max-width: 1200px) 100vw, 1200px\" decoding=\"async\" loading=\"lazy\"/></p>", result);
+          + " sizes=\"auto, (max-width: 1200px) 100vw, 1200px\" decoding=\"async\" loading=\"lazy\"/></p>", result);
     }
   }
 
@@ -133,7 +133,7 @@ class ContentImageSrcsetCommandTest {
       String result = ContentImageSrcsetCommand.injectSrcset(html);
       assertEquals("<img src=\"/assets/img/1-1/x.jpg\""
           + " srcset=\"/assets/img/1-1/x.jpg?variant=medium 800w\""
-          + " sizes=\"(max-width: 1200px) 100vw, 1200px\" decoding=\"async\" loading=\"lazy\">", result);
+          + " sizes=\"auto, (max-width: 1200px) 100vw, 1200px\" decoding=\"async\" loading=\"lazy\">", result);
     }
   }
 
@@ -144,7 +144,7 @@ class ContentImageSrcsetCommandTest {
         + " alt=\"Desk\" width=\"129\" height=\"97\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
       String result = ContentImageSrcsetCommand.injectSrcset(html);
-      assertTrue(result.contains("sizes=\"(max-width: 129px) 100vw, 129px\""), result);
+      assertTrue(result.contains("sizes=\"auto, (max-width: 129px) 100vw, 129px\""), result);
       assertTrue(result.startsWith("<img class=\"align-left\" src=\""), "pre-existing attributes must not be reordered: " + result);
       assertTrue(result.contains("width=\"129\" height=\"97\""), "pre-existing attributes must survive untouched: " + result);
     }
@@ -194,6 +194,10 @@ class ContentImageSrcsetCommandTest {
           "loading must not survive into the extracted attributes -- the JSP's own per-slide choice must be authoritative: "
               + attributes);
       assertTrue(!attributes.endsWith("/"), "the self-closing slash must have been stripped: " + attributes);
+      // sizes= survives the strip (nothing else supplies it), so it has to stay useful for the
+      // eager first slide too -- the auto entry a non-lazy image discards must be backed by the
+      // static one, not left as the only entry.
+      assertTrue(attributes.contains("sizes=\"auto, (max-width: 1200px) 100vw, 1200px\""), attributes);
     }
   }
 
@@ -207,8 +211,53 @@ class ContentImageSrcsetCommandTest {
       String result = ContentImageSrcsetCommand.injectSrcset(html);
       // Same benign double-space-before-insertion / no-space-before-"/>" quirk as the self-closing
       // test above -- cosmetic only.
+      // The sizes= here is deliberately the bare static value: sizes="auto" is valid only on a
+      // lazily-loaded image, so an eager tag must keep the guess rather than get an entry the
+      // browser would discard in favor of the 100vw default.
       assertEquals("<img src=\"/assets/img/1-1/x.jpg\" loading=\"eager\" decoding=\"sync\" "
           + " srcset=\"/assets/img/1-1/x.jpg?variant=medium 800w\" sizes=\"(max-width: 1200px) 100vw, 1200px\"/>", result);
+    }
+  }
+
+  @Test
+  void keepsTheAutoSizesEntryWhenTheTagAlreadyDeclaresLazyLoading() {
+    // No loading= is added here (one is already declared), but the declared value is lazy, so
+    // sizes="auto" is still valid and still the accurate answer.
+    String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"lazy\" />";
+    try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
+      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      assertTrue(result.contains("sizes=\"auto, (max-width: 1200px) 100vw, 1200px\""), result);
+    }
+  }
+
+  @Test
+  void omitsTheAutoSizesEntryForANonLazyLoadingValue() {
+    // Anything that isn't lazy -- including a value neither this command nor a browser recognizes
+    // -- must not get an auto entry, since the browser would discard it for the 100vw default.
+    String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"auto\" />";
+    try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
+      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      assertTrue(result.contains("sizes=\"(max-width: 1200px) 100vw, 1200px\""), result);
+      assertTrue(!result.contains("auto,"), "an eager/unknown loading value must not get sizes=auto: " + result);
+    }
+  }
+
+  @Test
+  void selectsTheSmallestVariantForASmallImageOnceSeveralVariantsExist() {
+    // The defect this guards: with more than one candidate, a sizes= that overstates the layout
+    // width makes the browser pick a larger rendition than the slot needs (a 1200px claim on a
+    // ~104px award badge selected the 800w file over the 200w one). The auto entry is what stops
+    // that, so assert it leads the list for a multi-variant image, not just a single-variant one.
+    String html = "<p><img src=\"/assets/img/1-1/badge.png\" alt=\"Award\" /></p>";
+    try (MockedStatic<ImageVariantRepository> mocked = mockStatic(ImageVariantRepository.class)) {
+      mocked.when(() -> ImageVariantRepository.findByImageId(anyLong()))
+          .thenReturn(List.of(variant("thumbnail", 200), variant("medium", 800), variant("large", 1600)));
+      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      assertTrue(result.contains("srcset=\"/assets/img/1-1/badge.png?variant=thumbnail 200w,"
+          + " /assets/img/1-1/badge.png?variant=medium 800w,"
+          + " /assets/img/1-1/badge.png?variant=large 1600w\""), result);
+      assertTrue(result.startsWith("<p><img src=\"/assets/img/1-1/badge.png\" alt=\"Award\" "
+          + " srcset=") && result.contains("\" sizes=\"auto, (max-width: 1200px) 100vw, 1200px\""), result);
     }
   }
 }
