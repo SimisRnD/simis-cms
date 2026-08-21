@@ -27,7 +27,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.domain.model.cms.ImageVariant;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 class ContentImageSrcsetCommandTest {
@@ -48,36 +50,36 @@ class ContentImageSrcsetCommandTest {
 
   @Test
   void returnsTheSameStringWhenBlank() {
-    assertEquals("", ContentImageSrcsetCommand.injectSrcset(""));
+    assertEquals("", ContentImageSrcsetCommand.enhanceImageTags(""));
   }
 
   @Test
   void returnsNullWhenNull() {
-    assertEquals(null, ContentImageSrcsetCommand.injectSrcset(null));
+    assertEquals(null, ContentImageSrcsetCommand.enhanceImageTags(null));
   }
 
   @Test
   void returnsTheSameObjectWhenThereIsNoImgTagAtAll() {
     String html = "<p>Just some text, no images here.</p>";
-    assertSame(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertSame(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
   void leavesATagWithNoSrcUntouched() {
     String html = "<p><img alt=\"no src here\" /></p>";
-    assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
   void leavesAnExternalSrcUntouched() {
     String html = "<p><img src=\"https://example.com/photo.jpg\" alt=\"external\" /></p>";
-    assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
   void leavesANonAssetInternalSrcUntouched() {
     String html = "<p><img src=\"/images/theme-banner.png\" /></p>";
-    assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
@@ -86,20 +88,20 @@ class ContentImageSrcsetCommandTest {
     // (RenderWikiMarkdownCommandTest, DeltaContentCommandTest) -- refuses to guess attribute
     // boundaries on an unquoted value rather than risk misparsing it.
     String html = "<img src=x onerror=alert(1)>";
-    assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
   void leavesATruncatedTagUntouchedAndStopsScanning() {
     String html = "<p>text <img src=\"/assets/img/1-1/x.jpg\" alt=\"unterminated";
-    assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+    assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
   }
 
   @Test
   void isIdempotentWhenSrcsetAlreadyPresent() {
     String html = "<img src=\"/assets/img/1-1/x.jpg\" srcset=\"/assets/img/1-1/x.jpg?variant=medium 800w\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+      assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
     }
   }
 
@@ -108,7 +110,7 @@ class ContentImageSrcsetCommandTest {
     String html = "<img src=\"/assets/img/1-1/x.jpg\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockStatic(ImageVariantRepository.class)) {
       mocked.when(() -> ImageVariantRepository.findByImageId(anyLong())).thenReturn(List.of());
-      assertEquals(html, ContentImageSrcsetCommand.injectSrcset(html));
+      assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
     }
   }
 
@@ -116,7 +118,7 @@ class ContentImageSrcsetCommandTest {
   void injectsSrcsetIntoAQualifyingSelfClosingTag() {
     String html = "<p><img src=\"/assets/img/20180503171549-5/photo.jpg\" alt=\"Desk\" /></p>";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       // Note the double space before "srcset" and no space before the closing "/>": the input's own
       // trailing space (before "/>") survives, the insertion contributes its own leading space but
       // no trailing one -- cosmetically odd, functionally identical HTML either way.
@@ -130,7 +132,7 @@ class ContentImageSrcsetCommandTest {
   void injectsSrcsetIntoANonSelfClosingTag() {
     String html = "<img src=\"/assets/img/1-1/x.jpg\">";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertEquals("<img src=\"/assets/img/1-1/x.jpg\""
           + " srcset=\"/assets/img/1-1/x.jpg?variant=medium 800w\""
           + " sizes=\"auto, (max-width: 1200px) 100vw, 1200px\" decoding=\"async\" loading=\"lazy\">", result);
@@ -143,7 +145,7 @@ class ContentImageSrcsetCommandTest {
     String html = "<img class=\"align-left\" src=\"/assets/img/20210219211416-3/Office%20Desk.jpg\""
         + " alt=\"Desk\" width=\"129\" height=\"97\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertTrue(result.contains("sizes=\"auto, (max-width: 129px) 100vw, 129px\""), result);
       assertTrue(result.startsWith("<img class=\"align-left\" src=\""), "pre-existing attributes must not be reordered: " + result);
       assertTrue(result.contains("width=\"129\" height=\"97\""), "pre-existing attributes must survive untouched: " + result);
@@ -156,7 +158,7 @@ class ContentImageSrcsetCommandTest {
         + "<p><img src=\"https://example.com/external.jpg\" /></p>"
         + "<p><img src=\"/assets/img/1-2/b.jpg\" /></p>";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertTrue(result.contains("<img src=\"https://example.com/external.jpg\" />"),
           "the external-src neighbor must be untouched: " + result);
       assertTrue(result.contains("/assets/img/1-1/a.jpg?variant=medium 800w"), result);
@@ -168,11 +170,11 @@ class ContentImageSrcsetCommandTest {
   void composesCorrectlyWithContentCarouselWidgetsOwnAttributeExtraction() {
     // ContentCarouselWidget's "images" display mode does its own naive, non-quote-aware extraction
     // of everything between "<img " and the next ">" (see ContentCarouselWidget.java) on HTML that
-    // has already been through ContentHtmlCommand.toHtml() -> injectSrcset(). This reproduces that
+    // has already been through ContentHtmlCommand.toHtml() -> enhanceImageTags(). This reproduces that
     // exact extraction against injected output to confirm the two compose correctly.
     String card = "<p><img src=\"/assets/img/20190826142844-128/Small%20Business.jpg\" alt=\"\" /></p>";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String injected = ContentImageSrcsetCommand.injectSrcset(card);
+      String injected = ContentImageSrcsetCommand.enhanceImageTags(card);
 
       int imgAttributesStartIdx = injected.indexOf("<img ") + 5;
       int imgAttributesEndIdx = injected.indexOf(">", imgAttributesStartIdx);
@@ -208,7 +210,7 @@ class ContentImageSrcsetCommandTest {
     // than getting a second, conflicting one appended.
     String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"eager\" decoding=\"sync\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       // Same benign double-space-before-insertion / no-space-before-"/>" quirk as the self-closing
       // test above -- cosmetic only.
       // The sizes= here is deliberately the bare static value: sizes="auto" is valid only on a
@@ -225,7 +227,7 @@ class ContentImageSrcsetCommandTest {
     // sizes="auto" is still valid and still the accurate answer.
     String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"lazy\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertTrue(result.contains("sizes=\"auto, (max-width: 1200px) 100vw, 1200px\""), result);
     }
   }
@@ -236,7 +238,7 @@ class ContentImageSrcsetCommandTest {
     // -- must not get an auto entry, since the browser would discard it for the 100vw default.
     String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"auto\" />";
     try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertTrue(result.contains("sizes=\"(max-width: 1200px) 100vw, 1200px\""), result);
       assertTrue(!result.contains("auto,"), "an eager/unknown loading value must not get sizes=auto: " + result);
     }
@@ -252,12 +254,99 @@ class ContentImageSrcsetCommandTest {
     try (MockedStatic<ImageVariantRepository> mocked = mockStatic(ImageVariantRepository.class)) {
       mocked.when(() -> ImageVariantRepository.findByImageId(anyLong()))
           .thenReturn(List.of(variant("thumbnail", 200), variant("medium", 800), variant("large", 1600)));
-      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
       assertTrue(result.contains("srcset=\"/assets/img/1-1/badge.png?variant=thumbnail 200w,"
           + " /assets/img/1-1/badge.png?variant=medium 800w,"
           + " /assets/img/1-1/badge.png?variant=large 1600w\""), result);
       assertTrue(result.startsWith("<p><img src=\"/assets/img/1-1/badge.png\" alt=\"Award\" "
           + " srcset=") && result.contains("\" sizes=\"auto, (max-width: 1200px) 100vw, 1200px\""), result);
+    }
+  }
+
+  private static MockedStatic<ImageRepository> mockStoredAltText(String altText) {
+    Image image = new Image();
+    image.setAltText(altText);
+    MockedStatic<ImageRepository> mocked = mockStatic(ImageRepository.class);
+    mocked.when(() -> ImageRepository.findById(anyLong())).thenReturn(image);
+    return mocked;
+  }
+
+  @Test
+  void fillsAnEmptyAltFromTheLibrary() {
+    String html = "<p><img src=\"/assets/img/1-1/check.jpg\" alt=\"\" /></p>";
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStoredAltText("Officers present a check")) {
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
+      assertTrue(result.contains("alt=\"Officers present a check\""), result);
+      // Exactly one alt attribute -- replaced in place, not appended alongside the empty one.
+      assertEquals(1, result.split("alt=", -1).length - 1, result);
+    }
+  }
+
+  @Test
+  void addsAltWhenTheTagHasNoAltAttributeAtAll() {
+    String html = "<img src=\"/assets/img/1-1/check.jpg\">";
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStoredAltText("Officers present a check")) {
+      assertTrue(ContentImageSrcsetCommand.enhanceImageTags(html).contains(" alt=\"Officers present a check\""));
+    }
+  }
+
+  @Test
+  void neverOverwritesAnAltTheAuthorActuallyWrote() {
+    String html = "<img src=\"/assets/img/1-1/check.jpg\" alt=\"The author's own words\" />";
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStoredAltText("Something else entirely")) {
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
+      assertTrue(result.contains("alt=\"The author's own words\""), result);
+      assertTrue(!result.contains("Something else entirely"), result);
+    }
+  }
+
+  @Test
+  void leavesTheTagAloneWhenTheLibraryHasNoAltTextForTheImage() {
+    String html = "<img src=\"/assets/img/1-1/spacer.gif\" alt=\"\" />";
+    try (MockedStatic<ImageVariantRepository> variants = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageRepository> images = mockStoredAltText(null)) {
+      variants.when(() -> ImageVariantRepository.findByImageId(anyLong())).thenReturn(List.of());
+      // A genuine spacer has no stored alt text either, which is what keeps it decorative.
+      assertEquals(html, ContentImageSrcsetCommand.enhanceImageTags(html));
+    }
+  }
+
+  @Test
+  void escapesTheStoredAltTextForAnAttributeContext() {
+    String html = "<img src=\"/assets/img/1-1/x.jpg\" alt=\"\" />";
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStoredAltText("Fish & \"Chips\" <br>")) {
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
+      assertTrue(result.contains("alt=\"Fish &amp; &quot;Chips&quot; &lt;br&gt;\""), result);
+    }
+  }
+
+  @Test
+  void appliesAltEvenWhenThereIsNoSrcsetToOffer() {
+    String html = "<img src=\"/assets/img/1-1/only.jpg\" alt=\"\" />";
+    try (MockedStatic<ImageVariantRepository> variants = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageRepository> images = mockStoredAltText("A description")) {
+      variants.when(() -> ImageVariantRepository.findByImageId(anyLong())).thenReturn(List.of());
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
+      // The width on a bare Image is 0, so there is no candidate at all -- alt must not ride on it.
+      assertTrue(result.contains("alt=\"A description\""), result);
+      assertTrue(!result.contains("srcset="), result);
+    }
+  }
+
+  @Test
+  void aFailingVariantsLookupStillLeavesTheAltTextApplied() {
+    String html = "<img src=\"/assets/img/1-1/x.jpg\" alt=\"\" />";
+    try (MockedStatic<ImageVariantRepository> variants = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageRepository> images = mockStoredAltText("A description")) {
+      variants.when(() -> ImageVariantRepository.findByImageId(anyLong()))
+          .thenThrow(new RuntimeException("no database"));
+      String result = ContentImageSrcsetCommand.enhanceImageTags(html);
+      assertTrue(result.contains("alt=\"A description\""), result);
+      assertTrue(!result.contains("srcset="), result);
     }
   }
 }
