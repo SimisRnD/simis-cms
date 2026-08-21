@@ -30,6 +30,8 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URI;
+
 /**
  * Description
  *
@@ -60,6 +62,13 @@ public class BlogPostWidget extends GenericWidget {
       return null;
     }
     context.getRequest().setAttribute("blog", blog);
+    // "Back to List" used blog.link alone, so a reader who opened a 2021 post from page 4 was
+    // returned to page 1 and had to paginate back (issue reported on the pilot). The listing page
+    // and sort are recovered from the referrer rather than carried on the post's own URL, which
+    // would put ?page=4 on every article link and into canonical/og:url for no reader benefit.
+    context.getRequest().setAttribute("backToListUrl",
+        buildBackToListUrl(blog.getLink(), context.getRequest().getHeader("Referer"),
+            context.getRequest().getServerName()));
 
     // Determine the blog post
     BlogPost blogPost = retrieveValidatedBlogPostFromUrl(context, blog);
@@ -190,5 +199,95 @@ public class BlogPostWidget extends GenericWidget {
       context.setErrorMessage("The post could not be deleted: " + e.getMessage());
     }
     return context;
+  }
+
+  /**
+   * Rebuilds the listing URL the reader came from, so "Back to List" returns them to the page and
+   * sort they were on rather than to page 1.
+   *
+   * <p>
+   * The referrer is treated strictly as untrusted input and is never echoed. It is used only to
+   * answer "which listing page", and only when it is same-host and its path is exactly this blog's
+   * listing. The returned URL is then rebuilt from the trusted blog link plus values that have each
+   * been validated -- an integer page, and sort names matched against a conservative pattern -- so
+   * nothing from the header can reach the markup verbatim.
+   * </p>
+   *
+   * <p>
+   * Referer is present for this case because PageServlet sends
+   * {@code Referrer-Policy: strict-origin-when-cross-origin}, which still sends the full path on a
+   * same-origin navigation. When it is absent, cross-origin, or points somewhere else -- a search
+   * result, a bookmark, a link from another article -- the plain listing link is returned, which is
+   * exactly today's behaviour.
+   * </p>
+   *
+   * @return the blog's listing link, with a validated page/sort query appended when one is
+   *         recoverable
+   */
+  static String buildBackToListUrl(String blogLink, String referer, String serverName) {
+    if (StringUtils.isBlank(blogLink) || StringUtils.isBlank(referer)) {
+      return blogLink;
+    }
+    URI uri;
+    try {
+      uri = new URI(referer);
+    } catch (Exception e) {
+      return blogLink;
+    }
+    if (!blogLink.equals(uri.getPath())) {
+      return blogLink;
+    }
+    // A same-origin navigation reports the host we are serving; anything else is not a reader
+    // arriving from this listing and must not steer where the button goes.
+    if (uri.getHost() != null && serverName != null && !uri.getHost().equalsIgnoreCase(serverName)) {
+      return blogLink;
+    }
+    String page = null;
+    String sortBy = null;
+    String sortOrder = null;
+    String query = uri.getQuery();
+    if (query != null) {
+      for (String pair : query.split("&")) {
+        int equals = pair.indexOf('=');
+        if (equals < 1) {
+          continue;
+        }
+        String name = pair.substring(0, equals);
+        String value = pair.substring(equals + 1);
+        if ("page".equals(name)) {
+          page = value;
+        } else if ("sortBy".equals(name)) {
+          sortBy = value;
+        } else if ("sortOrder".equals(name)) {
+          sortOrder = value;
+        }
+      }
+    }
+    StringBuilder url = new StringBuilder(blogLink);
+    // Page 1 is what the plain link already gives, so it earns no query string.
+    if (isPageBeyondTheFirst(page)) {
+      url.append("?page=").append(page);
+    }
+    if (isSimpleName(sortBy) && isSimpleName(sortOrder)) {
+      url.append(url.indexOf("?") == -1 ? "?" : "&")
+          .append("sortBy=").append(sortBy).append("&sortOrder=").append(sortOrder);
+    }
+    return url.toString();
+  }
+
+  private static boolean isPageBeyondTheFirst(String value) {
+    if (StringUtils.isBlank(value)) {
+      return false;
+    }
+    try {
+      return Integer.parseInt(value) > 1;
+    } catch (NumberFormatException e) {
+      return false;
+    }
+  }
+
+  /** Sort names are developer-defined words; anything else is not one and is dropped. */
+  private static boolean isSimpleName(String value) {
+    return value != null && value.length() <= 20 && value.matches("[A-Za-z]+");
   }
 }
