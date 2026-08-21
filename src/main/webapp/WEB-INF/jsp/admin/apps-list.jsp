@@ -94,7 +94,7 @@
       <td>
         <a href="${ctx}/admin/app?appId=${app.id}"><i class="${font:fas()} fa-edit"></i></a>
         <c:if test="${userSession.hasRole('admin')}">
-          <a href="javascript:deleteApp(${app.id});"><i class="fa fa-remove"></i></a>
+          <a href="#" data-js-call="deleteApp" data-js-arg1="${app.id}"><i class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

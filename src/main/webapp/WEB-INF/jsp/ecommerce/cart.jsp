@@ -150,7 +150,7 @@
                     <p><small>Some state shipping restrictions apply</small></p>
                   </c:if>
                   <p>
-                    <small><a href="javascript:removeItem${widgetContext.uniqueId}(${cartItem.id})">remove</a></small>
+                    <small><a href="#" data-js-call="removeItem${widgetContext.uniqueId}" data-js-arg1="${cartItem.id}">remove</a></small>
                   </p>
                 </div>
               </div>
@@ -271,9 +271,9 @@
           <hr/>
           <div>
             <div class="float-right">
-              <a class="accordion-button" href="javascript:showPromoCodeEntry()"><i class="${font:fal()} fa-plus-circle"></i></a>
+              <a class="accordion-button" href="#" data-js-call="showPromoCodeEntry"><i class="${font:fal()} fa-plus-circle"></i></a>
             </div>
-            <a class="accordion-button" href="javascript:showPromoCodeEntry()">Promo Code</a>
+            <a class="accordion-button" href="#" data-js-call="showPromoCodeEntry">Promo Code</a>
           </div>
           <div id="promoCodeEntry" style="display:none" class="margin-top-10">
             <div class="grid-x">

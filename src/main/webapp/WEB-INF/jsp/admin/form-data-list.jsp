@@ -220,9 +220,9 @@
       <td nowrap valign="top"><c:out value="${formData.ipAddress}"/></td>
       <td nowrap valign="top"><c:out value="${formData.formUniqueId}"/></td>
       <td nowrap valign="top">
-        <a class="button radius small primary" href="javascript:claimForm(${formData.id});">Claim</a>
-        <a class="button radius small primary" href="javascript:markFormAsProcessed(${formData.id});">Mark as Processed</a>
-        <a class="button radius small alert" href="javascript:archiveForm(${formData.id});">Remove</a>
+        <a class="button radius small primary" href="#" data-js-call="claimForm" data-js-arg1="${formData.id}">Claim</a>
+        <a class="button radius small primary" href="#" data-js-call="markFormAsProcessed" data-js-arg1="${formData.id}">Mark as Processed</a>
+        <a class="button radius small alert" href="#" data-js-call="archiveForm" data-js-arg1="${formData.id}">Remove</a>
       </td>
     </tr>
   </c:forEach>

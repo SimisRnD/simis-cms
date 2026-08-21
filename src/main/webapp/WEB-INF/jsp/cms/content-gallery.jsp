@@ -44,7 +44,7 @@
         <div class="grid-x grid-margin-x">
           <c:forEach items="${cardList}" var="card" varStatus="cardStatus">
             <div id="image${widgetContext.uniqueId}${cardStatus.index}" class="cell small-3 text-center">
-              <a href="javascript:changeImage${widgetContext.uniqueId}(${cardStatus.index})">${card}</a>
+              <a href="#" data-js-call="changeImage${widgetContext.uniqueId}" data-js-arg1="${cardStatus.index}" data-js-numeric="1">${card}</a>
             </div>
           </c:forEach>
         </div>

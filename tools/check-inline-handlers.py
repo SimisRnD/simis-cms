@@ -132,6 +132,24 @@ def strip_noise(text: str) -> str:
     return text
 
 
+# A javascript: URL is script, governed by script-src, so with 'self' + a nonce and no
+# 'unsafe-inline' the navigation is refused and the control silently does nothing -- the same
+# failure the on*= sweep above addressed, in a form that sweep did not look for (issue #1383).
+# There is no allowlist: every occurrence was converted, so any new one is a regression.
+# Convert with data-js-call/data-js-arg1..4, bound by the delegated listener in main.jsp.
+JS_URL = re.compile(r"""\b(?:href|src|action|formaction)\s*=\s*["']\s*javascript:""", re.IGNORECASE)
+
+
+def scan_js_urls(path: str) -> "list[tuple[int, str]]":
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        text = fh.read()
+    hits: "list[tuple[int, str]]" = []
+    for lineno, line in enumerate(strip_noise(text).splitlines(), start=1):
+        for m in JS_URL.finditer(line):
+            hits.append((lineno, m.group(0).strip()))
+    return hits
+
+
 def scan(path: str) -> "list[tuple[int, str]]":
     with open(path, encoding="utf-8", errors="replace") as fh:
         text = fh.read()
@@ -153,6 +171,7 @@ def main() -> int:
         sys.exit("error: %s not found (run from the repository root)" % base)
 
     counts: "dict[str, list[tuple[int, str]]]" = {}
+    js_url_hits: "dict[str, list[tuple[int, str]]]" = {}
     scanned = 0
     for dirpath, _, files in os.walk(base):
         for name in sorted(files):
@@ -164,6 +183,9 @@ def main() -> int:
             hits = scan(path)
             if hits:
                 counts[rel] = hits
+            js_hits = scan_js_urls(path)
+            if js_hits:
+                js_url_hits[rel] = js_hits
 
     # Guard against a path/regex change silently turning this into a no-op.
     if scanned < 50:
@@ -206,9 +228,24 @@ def main() -> int:
             print("  %-56s recorded %d, now %d" % (rel, recorded, actual))
         print()
 
-    if args.strict and violations:
-        print("FAIL: %d file(s) carry inline event handlers that are not accounted for."
-              % len(violations))
+    if js_url_hits:
+        print("javascript: URLs -- refused by the CSP, so the control does nothing (issue #1383):")
+        print("Convert to data-js-call + data-js-arg1..4, bound by the listener in main.jsp.\n")
+        for rel, hits in sorted(js_url_hits.items()):
+            print("  %-56s %d:" % (rel, len(hits)))
+            for lineno, frag in hits:
+                print("      :%-5d %s" % (lineno, frag))
+        print()
+    else:
+        print("No javascript: URLs.\n")
+
+    if args.strict and (violations or js_url_hits):
+        if violations:
+            print("FAIL: %d file(s) carry inline event handlers that are not accounted for."
+                  % len(violations))
+        if js_url_hits:
+            print("FAIL: %d file(s) carry javascript: URLs, which the CSP refuses to run."
+                  % len(js_url_hits))
         return 1
     print("OK")
     return 0

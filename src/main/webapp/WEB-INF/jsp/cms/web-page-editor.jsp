@@ -52,7 +52,7 @@
         <div>
           <div style="position: absolute;right: 5px;top: 0;">
             <small>
-              <c:if test="${!status.first}"><a href="javascript:deleteMenuTab(${menuTab.id});"><i class="fa fa-circle-xmark"></i></a></c:if>
+              <c:if test="${!status.first}"><a href="#" data-js-call="deleteMenuTab" data-js-arg1="${menuTab.id}"><i class="fa fa-circle-xmark"></i></a></c:if>
             </small>
           </div>
           <div class="float-left">
@@ -79,7 +79,7 @@
               <div id="site-map-menu-item-${menuItem.id}" class="site-map-submenu-tab">
                 <div style="position: absolute;right: 5px;top: 0;">
                   <small>
-                    <a href="javascript:deleteMenuItem(${menuItem.id});"><i class="fa fa-circle-xmark"></i></a>
+                    <a href="#" data-js-call="deleteMenuItem" data-js-arg1="${menuItem.id}"><i class="fa fa-circle-xmark"></i></a>
                   </small>
                 </div>
                 <div class="float-left">

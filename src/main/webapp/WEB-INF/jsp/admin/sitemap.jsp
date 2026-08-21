@@ -107,7 +107,6 @@
           <div style="position: absolute;right: 5px;top: 0;">
             <small>
               <c:if test="${!status.first}"><a href="#" class="site-map-delete-tab" data-menu-tab-id="${menuTab.id}" data-menu-tab-name="<c:out value="${menuTab.name}" />" data-menu-item-count="${fn:length(menuTab.menuItemList)}" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></c:if>
-                <%--<a href="javascript:addTabAfter(${menuTab.id});"><i class="fa fa-plus"></i></a>--%>
             </small>
           </div>
           <div class="float-left">

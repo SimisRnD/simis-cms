@@ -92,7 +92,7 @@
         <td class="text-center">
           <a href="${ctx}/admin/blog?blogId=${blog.id}&returnPage=/admin/blogs"><i class="${font:fas()} fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="javascript:deleteBlog(${blog.id});"><i class="fa fa-remove"></i></a>
+            <a href="#" data-js-call="deleteBlog" data-js-arg1="${blog.id}"><i class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

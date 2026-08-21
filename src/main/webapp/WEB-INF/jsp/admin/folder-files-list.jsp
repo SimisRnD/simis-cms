@@ -140,7 +140,7 @@
                instead of a link that throws when it can't find the modal. --%>
           <c:choose>
             <c:when test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-              <a href="javascript:selectFile(${file.id});"><c:out value="${file.title}" /></a>
+              <a href="#" data-js-call="selectFile" data-js-arg1="${file.id}"><c:out value="${file.title}" /></a>
             </c:when>
             <c:otherwise>
               <c:out value="${file.title}" />

@@ -913,6 +913,32 @@
           event.preventDefault();
           confirmPostAction($(this).attr('data-confirm-post'), $(this).attr('data-post-url'));
         });
+        <%-- CSP-safe action links, part two (issue #1383). The sweep above covered inline onclick=;
+             a javascript: URL in an href fails for the same reason and was missed. Such a URL is
+             governed by script-src, so with 'self' and a nonce and no 'unsafe-inline' the navigation
+             is simply refused -- the handler function is fine, only the click never reaches it.
+             Such links now declare the function in data-js-call and its arguments in data-js-arg1..4.
+             Arguments arrive as strings; data-js-numeric lists the 1-based positions that must be
+             coerced to Number, which only matters where the handler does arithmetic rather than
+             string-building a URL. --%>
+        $(document).on('click', 'a[data-js-call]', function (event) {
+          event.preventDefault();
+          var element = this;
+          var callable = window[element.getAttribute('data-js-call')];
+          if (typeof callable !== 'function') {
+            return;
+          }
+          var numeric = (element.getAttribute('data-js-numeric') || '').split(',');
+          var args = [];
+          for (var position = 1; position <= 4; position++) {
+            var value = element.getAttribute('data-js-arg' + position);
+            if (value === null) {
+              break;
+            }
+            args.push(numeric.indexOf(String(position)) === -1 ? value : Number(value));
+          }
+          callable.apply(element, args);
+        });
         <%-- Fallback image-text captcha (shown when no reCAPTCHA/Turnstile site key is
              configured) has no way to request a new challenge short of a full page reload.
              A GET to /assets/captcha always regenerates the session's captcha text
