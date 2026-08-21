@@ -157,6 +157,7 @@ public class ImageUsageCommand {
       usages.addAll(queryUsages(source[0], source[1], source[2], source[3], likeValue));
     }
     usages.addAll(querySitePropertyUsages(likeValue));
+    usages.addAll(queryStylesheetUsages(likeValue));
     return usages;
   }
 
@@ -208,6 +209,47 @@ public class ImageUsageCommand {
       }
     } catch (SQLException se) {
       LOG.warn("Usage scan failed for site_properties.property_value: " + se.getMessage());
+    }
+    return results;
+  }
+
+  /**
+   * The custom stylesheets, where a page background lives.
+   *
+   * <p>
+   * Its own source rather than a HTML_BODY_SOURCES entry, so the reference can be labelled with the
+   * page the stylesheet belongs to -- or "(site-wide)" for the global one, which is the common case
+   * and which no single label column on {@code stylesheets} could have produced.
+   * </p>
+   *
+   * <p>
+   * Omitting this had the same two consequences the page_xml entry above documents, and for the
+   * same reason: {@link #isOrphaned} gates deletion, so artwork painting a live page background was
+   * badged "Orphaned" AND cleared for deletion. Measured on a live site: four backgrounds set in
+   * the CSS editor, all four reported unused.
+   * </p>
+   *
+   * <p>
+   * A plain substring match is enough here even for a filename containing spaces or an ampersand:
+   * {@link Image#getUrl()} runs the filename through {@code UrlCommand.encodeUri}, which is the
+   * same spelling the picker writes into the stylesheet.
+   * </p>
+   */
+  private static List<UsageReference> queryStylesheetUsages(String likeValue) {
+    List<UsageReference> results = new ArrayList<>();
+    String sql = "SELECT COALESCE(w.link, '(site-wide)') FROM stylesheets s "
+        + "LEFT JOIN web_pages w ON w.web_page_id = s.web_page_id "
+        + "WHERE s.css LIKE ?";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setString(1, likeValue);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          results.add(new UsageReference("Stylesheet", rs.getString(1)));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.warn("Usage scan failed for stylesheets.css: " + se.getMessage());
     }
     return results;
   }
