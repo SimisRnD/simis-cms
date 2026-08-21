@@ -1277,7 +1277,7 @@ public class PageServlet extends HttpServlet {
       graph.add(webPageSchema);
 
       // Add Article schema for blog post pages (issue #403)
-      Map<String, Object> article = computeArticleSchema(pageRenderInfo);
+      Map<String, Object> article = computeArticleSchema(pageRenderInfo, siteUrl);
       if (article != null) {
         graph.add(article);
       }
@@ -1325,12 +1325,16 @@ public class PageServlet extends HttpServlet {
    * that's only set by a content widget (BlogPostWidget) for a post that's actually published --
    * every other page type leaves it blank, so this doubles as the "is this a blog post" check.
    */
-  static Map<String, Object> computeArticleSchema(PageRenderInfo pageRenderInfo) {
+  static Map<String, Object> computeArticleSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
     if (StringUtils.isBlank(pageRenderInfo.getArticleHeadline())) {
       return null;
     }
     Map<String, Object> article = new LinkedHashMap<>();
-    article.put("@type", "Article");
+    // NewsArticle rather than the generic Article parent (issue #1366): this schema is only built
+    // for blog posts, and Google's news surfaces look for the specific subtype. BlogPosting is the
+    // other candidate -- if a site ever runs a blog that is not news (engineering notes, say), the
+    // right answer is to derive this per blog rather than to fall back to the generic parent.
+    article.put("@type", "NewsArticle");
     article.put("headline", pageRenderInfo.getArticleHeadline());
     if (pageRenderInfo.getArticlePublishedDate() != null) {
       article.put("datePublished", pageRenderInfo.getArticlePublishedDate().toInstant().toString());
@@ -1343,6 +1347,19 @@ public class PageServlet extends HttpServlet {
       author.put("@type", "Person");
       author.put("name", pageRenderInfo.getArticleAuthorName());
       article.put("author", author);
+    }
+    // Google's Article guidance treats an image as strongly recommended -- without one a post is
+    // unlikely to qualify for rich results however correct the rest is. Absolutised the same way
+    // the WebPage node above does it, since a relative path is not resolvable by a consumer that
+    // only has the JSON-LD.
+    String imageUrl = pageRenderInfo.getImageUrl();
+    if (StringUtils.isNotBlank(imageUrl) && StringUtils.isNotBlank(siteUrl)) {
+      article.put("image", imageUrl.startsWith("/") ? siteUrl + imageUrl : imageUrl);
+    }
+    // Referenced by @id rather than repeating the object -- the Organization node is already in
+    // the graph, and duplicating it would let the two copies drift.
+    if (StringUtils.isNotBlank(siteUrl)) {
+      article.put("publisher", Collections.singletonMap("@id", siteUrl + "#organization"));
     }
     return article;
   }
