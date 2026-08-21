@@ -16,7 +16,10 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.ImageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -89,9 +92,31 @@ public class ImageWidget extends GenericWidget {
     // codebase's existing accessibility convention (see ContentAccessibilityCommand) of only
     // flagging a genuinely *missing* alt attribute, not an empty one.
     String altText = StringUtils.defaultString(context.getPreferences().get("altText"));
+    // Fall back to the description the author saved against the image itself in the media library.
+    // Without this the stored alt_text is written and never read anywhere -- an author who
+    // describes an image once, expecting the description to travel with it, gets nothing
+    // (issue #1367). The preference still wins when set, since a per-placement description beats a
+    // global one, and an image with neither still renders alt="" -- which keeps the decorative
+    // convention above intact: leaving both blank is how an author marks an image decorative.
+    if (StringUtils.isBlank(altText)) {
+      altText = StringUtils.defaultString(lookupStoredAltText(imageUrl));
+    }
     context.getRequest().setAttribute("altText", altText);
 
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * The alt text saved against an internal image record, or null when the url is not an internal
+   * image, the record is gone, or no description was ever set.
+   */
+  private static String lookupStoredAltText(String imageUrl) {
+    Long imageId = ImageCommand.parseImageId(imageUrl);
+    if (imageId == null) {
+      return null;
+    }
+    Image image = ImageRepository.findById(imageId);
+    return image != null ? image.getAltText() : null;
   }
 }
