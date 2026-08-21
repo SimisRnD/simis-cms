@@ -104,7 +104,7 @@
                           <p><strong>This item will ship when it becomes available</strong></p>
                         </c:if>
                         <p>
-                          <small><a href="javascript:removeItem${widgetContext.uniqueId}(${cartItem.id})">remove</a></small>
+                          <small><a href="#" data-js-call="removeItem${widgetContext.uniqueId}" data-js-arg1="${cartItem.id}">remove</a></small>
                         </p>
                       </div>
                     </div>

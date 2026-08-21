@@ -400,7 +400,7 @@
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
         <input id="duplicateButton" style="display:none" type="submit" class="button radius primary expanded" name="duplicate" value="Duplicate" />
-        <a id="deleteButton" style="display:none" href="javascript:deleteCalendarEvent()" class="button radius alert expanded">Delete</a>
+        <a id="deleteButton" style="display:none" href="#" data-js-call="deleteCalendarEvent" class="button radius alert expanded">Delete</a>
       </div>
     </form>
   </div>

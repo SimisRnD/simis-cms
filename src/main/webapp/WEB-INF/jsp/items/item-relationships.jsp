@@ -78,7 +78,7 @@
           <small class="subheader"><c:out value="${item.city}"/></small>
         </c:if>
         <c:if test="${showRemoveRelationshipButton eq 'true'}">
-          <a href="javascript:removeRelationship${widgetContext.uniqueId}(${itemRelationship.relatedItemId})" class="button radius tiny warning no-gap">Remove</a>
+          <a href="#" data-js-call="removeRelationship${widgetContext.uniqueId}" data-js-arg1="${itemRelationship.relatedItemId}" class="button radius tiny warning no-gap">Remove</a>
         </c:if>
       </li>
     </c:forEach>

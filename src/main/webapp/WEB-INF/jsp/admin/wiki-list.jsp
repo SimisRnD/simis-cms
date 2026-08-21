@@ -65,7 +65,7 @@
         <td class="text-center">
           <a href="${ctx}/admin/wiki?wikiId=${wiki.id}&returnPage=/admin/wikis"><i class="fa fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="javascript:deleteWiki(${wiki.id});"><i class="fa fa-remove"></i></a>
+            <a href="#" data-js-call="deleteWiki" data-js-arg1="${wiki.id}"><i class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

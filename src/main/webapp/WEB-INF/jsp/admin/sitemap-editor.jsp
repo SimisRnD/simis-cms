@@ -104,7 +104,7 @@
                 <%--
                 <div style="position: absolute;right: 5px;top: 0;">
                   <small>
-                    <a href="javascript:deleteMenuItem(${menuItem.id});"><i class="fa fa-circle-xmark"></i></a>
+                    <a href="#" data-js-call="deleteMenuItem" data-js-arg1="${menuItem.id}"><i class="fa fa-circle-xmark"></i></a>
                   </small>
                 </div>
                 --%>

@@ -174,7 +174,7 @@
     <c:choose>
       <c:when test="${!empty returnPage}">
         <p class="platform-calendar-event-return">
-          <i class="fa fa-fw"></i> <a href="javascript:goBack('<c:out value="${returnPage}" />');"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
+          <i class="fa fa-fw"></i> <a href="#" data-js-call="goBack" data-js-arg1="<c:out value="${returnPage}"/>"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
         </p>
       </c:when>
       <c:otherwise>

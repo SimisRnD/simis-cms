@@ -67,7 +67,7 @@
           <%-- #492 Phase 3: an elevated-role account can't be reactivated by one admin acting
                alone -- Restore stays a direct one-click action for everyone else. --%>
           <c:if test="${!user.enabled && !isElevatedTarget}">
-            <li><a href="javascript:restoreAccount()">Restore Account</a></li>
+            <li><a href="#" data-js-call="restoreAccount">Restore Account</a></li>
           </c:if>
           <c:if test="${!user.enabled && isElevatedTarget && empty pendingUnsuspendRequest}">
             <li><a href="#" data-open="requestUnsuspendReveal">Request Unsuspend&hellip;</a></li>
@@ -77,9 +77,9 @@
             <li><a href="#" data-open="denyUnsuspendReveal">Deny Unsuspend Request</a></li>
           </c:if>
           <c:if test="${user.locked}">
-            <li><a href="javascript:unlockAccount()">Unlock Account</a></li>
+            <li><a href="#" data-js-call="unlockAccount">Unlock Account</a></li>
           </c:if>
-          <li><a href="javascript:deleteAccount()">Delete Account</a></li>
+          <li><a href="#" data-js-call="deleteAccount">Delete Account</a></li>
         </ul>
       </li>
     </ul>

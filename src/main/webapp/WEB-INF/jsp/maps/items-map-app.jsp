@@ -59,7 +59,7 @@
           <c:forEach items="${itemList}" var="item" varStatus="status">
           <tr>
             <td>
-              <a href="javascript:showMarker${widgetContext.uniqueId}(${status.index},${item.latitude},${item.longitude});"><c:out value="${item.name}" /></a>
+              <a href="#" data-js-call="showMarker${widgetContext.uniqueId}" data-js-arg1="${status.index}" data-js-arg2="${item.latitude}" data-js-arg3="${item.longitude}" data-js-numeric="1,2,3"><c:out value="${item.name}" /></a>
               <c:if test="${!empty item.address}"><br />
                 <small class="subheader">
                   <c:out value="${item.street}" /><br />

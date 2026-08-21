@@ -38,7 +38,7 @@ function deleteTheme(themeId) {
     <c:forEach items="${themeList}" var="thisTheme">
       <li>
         <a href="#" onclick="postAction('${widgetContext.uri}?action=restore&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=${thisTheme.id}'); return false;"><c:out value="${thisTheme.name}"/></a>
-        <a href="javascript:deleteTheme(${thisTheme.id})"><i class="fa fa-trash-o"></i></a>
+        <a href="#" data-js-call="deleteTheme" data-js-arg1="${thisTheme.id}"><i class="fa fa-trash-o"></i></a>
       </li>
     </c:forEach>
   </ol>

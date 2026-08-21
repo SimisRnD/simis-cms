@@ -56,7 +56,7 @@
         <div style="position: absolute; right: 5px; top: 5px;">
           <small>
             <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}&fieldId=${field.id}" title="Edit this field"><i class="${font:fas()} fa-edit"></i></a>
-            <a href="javascript:deleteField(${field.id}, '<c:out value="${js:escape(field.label)}" />');" title="Delete this field"><i class="fa fa-circle-xmark"></i></a>
+            <a href="#" data-js-call="deleteField" data-js-arg1="${field.id}" data-js-arg2="<c:out value="${field.label}"/>" title="Delete this field"><i class="fa fa-circle-xmark"></i></a>
           </small>
         </div>
         <div>
