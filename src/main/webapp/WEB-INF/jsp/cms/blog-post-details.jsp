@@ -79,7 +79,7 @@
   </div>
 </div>
 <hr/>
-<a class="button radius secondary no-gap" href="${ctx}${blog.link}"><i class="fa fa-arrow-left"></i> Back to List</a>
+<a class="button radius secondary no-gap" href="${ctx}<c:out value="${backToListUrl}"/>"><i class="fa fa-arrow-left"></i> Back to List</a>
 <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
   <c:choose>
     <c:when test="${!empty link}">

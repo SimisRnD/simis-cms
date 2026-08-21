@@ -200,4 +200,49 @@ class BlogPostWidgetTest extends WidgetBase {
       Assertions.assertSame(blogPost, result, "a content-manager should still be able to preview an archived post");
     }
   }
+
+  private static String backTo(String referer) {
+    return BlogPostWidget.buildBackToListUrl("/news", referer, "example.com");
+  }
+
+  @Test
+  void backToListKeepsThePageTheReaderCameFrom() {
+    Assertions.assertEquals("/news?page=4", backTo("https://example.com/news?page=4"));
+  }
+
+  @Test
+  void backToListKeepsAChangedSortToo() {
+    Assertions.assertEquals("/news?page=3&sortBy=title&sortOrder=oldest",
+        backTo("https://example.com/news?page=3&sortBy=title&sortOrder=oldest"));
+    Assertions.assertEquals("/news?sortBy=title&sortOrder=oldest",
+        backTo("https://example.com/news?sortBy=title&sortOrder=oldest"));
+  }
+
+  @Test
+  void pageOneEarnsNoQueryStringBecauseThePlainLinkAlreadyGoesThere() {
+    Assertions.assertEquals("/news", backTo("https://example.com/news?page=1"));
+    Assertions.assertEquals("/news", backTo("https://example.com/news"));
+  }
+
+  @Test
+  void anythingOtherThanThisListingFallsBackToThePlainLink() {
+    Assertions.assertEquals("/news", backTo(null));
+    Assertions.assertEquals("/news", backTo(""));
+    // another article, a search engine, a different blog, a bookmark
+    Assertions.assertEquals("/news", backTo("https://example.com/news/some-article?page=4"));
+    Assertions.assertEquals("/news", backTo("https://www.google.com/news?page=4"));
+    Assertions.assertEquals("/news", backTo("https://example.com/blog?page=4"));
+    Assertions.assertEquals("/news", backTo("not a url at all"));
+  }
+
+  @Test
+  void refererValuesAreValidatedRatherThanEchoed() {
+    // The header is untrusted: only an integer page and alphabetic sort names survive, so nothing
+    // from it can reach the markup verbatim.
+    Assertions.assertEquals("/news", backTo("https://example.com/news?page=4\" onmouseover=alert(1)"));
+    Assertions.assertEquals("/news", backTo("https://example.com/news?page=notanumber"));
+    Assertions.assertEquals("/news?page=4",
+        backTo("https://example.com/news?page=4&sortBy=title%27&sortOrder=oldest"));
+    Assertions.assertEquals("/news?page=4", backTo("https://example.com/news?page=4&sortBy=title"));
+  }
 }
