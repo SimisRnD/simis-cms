@@ -138,7 +138,7 @@ class PageServletTest {
   void computeArticleSchemaReturnsNullWhenNotABlogPostPage() {
     // articleHeadline is only ever set by a content widget like BlogPostWidget; a plain page
     // (or one whose bridged data hasn't run yet) must not get a fabricated Article entry
-    assertNull(PageServlet.computeArticleSchema(new PageRenderInfo()));
+    assertNull(PageServlet.computeArticleSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
@@ -149,9 +149,9 @@ class PageServletTest {
     pageRenderInfo.setArticleModifiedDate(Timestamp.from(java.time.Instant.parse("2026-07-15T14:30:00Z")));
     pageRenderInfo.setArticleAuthorName("Jane Author");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo);
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
 
-    assertEquals("Article", article.get("@type"));
+    assertEquals("NewsArticle", article.get("@type"));
     assertEquals("Launch Announcement", article.get("headline"));
     assertEquals("2026-07-01T09:00:00Z", article.get("datePublished"));
     assertEquals("2026-07-15T14:30:00Z", article.get("dateModified"));
@@ -167,10 +167,39 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo);
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertNull(article.get("author"));
     assertNull(article.get("dateModified"));
+    // no image was bridged, so none is claimed -- an absent image is better than a wrong one
+    assertNull(article.get("image"));
+  }
+
+  @Test
+  void computeArticleSchemaAbsolutisesImageAndReferencesPublisher() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setArticleHeadline("Launch Announcement");
+    pageRenderInfo.setImageUrl("/assets/img/12345-1/banner.png");
+
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+
+    // a relative path is not resolvable by a consumer that only has the JSON-LD
+    assertEquals("https://example.org/assets/img/12345-1/banner.png", article.get("image"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> publisher = (Map<String, Object>) article.get("publisher");
+    // referenced by @id rather than duplicating the Organization node already in the graph
+    assertEquals("https://example.org#organization", publisher.get("@id"));
+  }
+
+  @Test
+  void computeArticleSchemaLeavesAnAbsoluteImageUntouched() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setArticleHeadline("Launch Announcement");
+    pageRenderInfo.setImageUrl("https://cdn.example.net/banner.png");
+
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+
+    assertEquals("https://cdn.example.net/banner.png", article.get("image"));
   }
 
   @Test
@@ -199,7 +228,7 @@ class PageServletTest {
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     // @graph = [Organization, WebPage, Article] -- single-segment path, no BreadcrumbList
     JsonNode article = parsed.get("@graph").get(2);
-    assertEquals("Article", article.get("@type").asText());
+    assertEquals("NewsArticle", article.get("@type").asText());
     assertEquals("Launch Announcement", article.get("headline").asText());
     assertEquals("Jane Author", article.get("author").get("name").asText());
   }
