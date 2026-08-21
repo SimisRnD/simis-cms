@@ -55,7 +55,7 @@
                 decoding="async" loading="lazy" /></a>
             </c:when>
             <c:when test="${!empty product.imageUrl}">
-              <c:set var="productImageSrcset" value="${image:srcsetBatch(product.imageUrl, imageVariantsByImageId)}"/>
+              <c:set var="productImageSrcset" value="${image:srcsetBatch(product.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
               <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>"
                 <c:if test="${not empty productImageSrcset}"> srcset="<c:out value="${productImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
                 decoding="async" loading="lazy" /></a>

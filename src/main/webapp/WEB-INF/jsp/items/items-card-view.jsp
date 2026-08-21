@@ -122,7 +122,7 @@
         <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
-              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId)}"/>
+              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
               <c:set var="itemImageAttrs">
                 <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
                 decoding="async" loading="lazy"

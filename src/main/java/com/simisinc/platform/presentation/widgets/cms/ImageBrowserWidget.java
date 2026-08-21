@@ -61,6 +61,9 @@ public class ImageBrowserWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(browserImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
+    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(browserImageIds));
 
     if ("reveal".equals(context.getRequest().getParameter("view"))) {
       context.setEmbedded(true);

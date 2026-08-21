@@ -135,6 +135,34 @@ class ImageCommandTest {
   }
 
   @Test
+  void buildSrcsetOffersTheOriginalAsACandidate() {
+    // the whole point of #1370: a 626px upload only ever gets a 200w thumbnail, because
+    // GenerateImageVariantsCommand skips medium/large as upscales -- so without the original in
+    // the list the browser stretches 200px across a much larger slot
+    String result = ImageCommand.buildSrcset("/assets/img/1-1/x.jpg", List.of(variant("thumbnail", 200)), 626);
+    assertEquals("/assets/img/1-1/x.jpg?variant=thumbnail 200w, /assets/img/1-1/x.jpg 626w", result);
+  }
+
+  @Test
+  void buildSrcsetOffersTheOriginalEvenWithNoVariants() {
+    String result = ImageCommand.buildSrcset("/assets/img/1-1/x.jpg", List.of(), 626);
+    assertEquals("/assets/img/1-1/x.jpg 626w", result);
+  }
+
+  @Test
+  void buildSrcsetOmitsTheOriginalWhenItsWidthIsUnknown() {
+    // width 0 means "not recorded" -- claiming a descriptor we cannot substantiate would be worse
+    // than offering variants alone, so the old behaviour is preserved exactly
+    String result = ImageCommand.buildSrcset("/assets/img/1-1/x.jpg", List.of(variant("thumbnail", 200)), 0);
+    assertEquals("/assets/img/1-1/x.jpg?variant=thumbnail 200w", result);
+  }
+
+  @Test
+  void buildSrcsetReturnsEmptyWhenThereIsNeitherAVariantNorAWidth() {
+    assertEquals("", ImageCommand.buildSrcset("/assets/img/1-1/x.jpg", null, 0));
+  }
+
+  @Test
   void buildSrcsetSkipsANullVariantEntry() {
     List<ImageVariant> variants = new java.util.ArrayList<>();
     variants.add(null);

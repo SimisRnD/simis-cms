@@ -36,6 +36,6 @@
         </description>
         <name>srcsetBatch</name>
         <function-class>com.simisinc.platform.application.cms.ImageCommand</function-class>
-        <function-signature>java.lang.String srcsetBatch(java.lang.String,java.util.Map)</function-signature>
+        <function-signature>java.lang.String srcsetBatch(java.lang.String,java.util.Map,java.util.Map)</function-signature>
     </function>
 </taglib>

@@ -26,7 +26,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves image objects
@@ -68,6 +71,42 @@ public class ImageRepository {
       }
     }
     return DB.selectAllFrom(TABLE_NAME, where, constraints, ImageRepository::buildRecord);
+  }
+
+  /**
+   * Batch-loads the pixel width of every listed image in one query, for srcset building (issue
+   * #1370). Mirrors {@code ImageVariantRepository#findByImageIds}' IN-list pattern: one {@code ?}
+   * per id, bound as real PreparedStatement parameters, never string-concatenated into the SQL.
+   *
+   * <p>Deliberately returns widths rather than whole {@code Image} records -- the srcset builder
+   * needs one integer per image, and the variant lists it is paired with must keep containing only
+   * real variant rows, because {@code DeleteImageCommand} iterates them to remove files from disk.
+   *
+   * @return imageId to width, omitting any image whose width was never recorded
+   */
+  public static Map<Long, Integer> findWidthsByIds(Collection<Long> imageIds) {
+    Map<Long, Integer> widthsByImageId = new LinkedHashMap<>();
+    if (imageIds == null || imageIds.isEmpty()) {
+      return widthsByImageId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < imageIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    List<Image> images = (List<Image>) DB.selectAllFrom(
+        TABLE_NAME,
+        new SqlUtils().add("image_id IN (" + placeholders + ")", imageIds.toArray(new Long[0])),
+        null,
+        ImageRepository::buildRecord).getRecords();
+    for (Image image : images) {
+      if (image != null && image.getWidth() > 0) {
+        widthsByImageId.put(image.getId(), image.getWidth());
+      }
+    }
+    return widthsByImageId;
   }
 
   public static Image findById(long id) {

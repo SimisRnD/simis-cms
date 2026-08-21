@@ -52,7 +52,7 @@
       <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
         <div class="grid-x grid-padding-x margin-bottom-30">
           <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
-            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId)}"/>
+            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
             <div class="small-12 medium-5 cell">
               <div class="featured-blog-image">
                 <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"
