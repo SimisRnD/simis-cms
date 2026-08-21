@@ -28,6 +28,7 @@ import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -161,6 +162,9 @@ public class BlogPostListWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(blogPostImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
+    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(blogPostImageIds));
 
     // Governed publish workflow status per post (#407, phase 2), keyed by post id -- only shown to
     // admin/content-manager viewers (the same audience already shown unpublished posts here at all,

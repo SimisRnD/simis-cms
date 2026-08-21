@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.NumberCommand;
 import com.simisinc.platform.application.ecommerce.LoadProductListCommand;
 import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.domain.model.ecommerce.Product;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
@@ -115,6 +116,9 @@ public class ProductBrowserWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(productImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
+    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(productImageIds));
 
     // Show the JSP
     String view = context.getPreferences().get("view");

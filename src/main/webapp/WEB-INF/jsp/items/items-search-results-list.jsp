@@ -68,7 +68,7 @@
         <li>
           <c:choose>
             <c:when test="${!empty item.imageUrl}">
-              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId)}"/>
+              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
               <div class="item-image">
                 <img alt="item image" src="<c:out value="${item.imageUrl}"/>"
                   <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="150px"</c:if>

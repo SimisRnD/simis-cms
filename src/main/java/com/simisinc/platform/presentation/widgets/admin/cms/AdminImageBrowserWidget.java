@@ -187,6 +187,9 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(browserImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
+    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(browserImageIds));
 
     // Batch-fetch every listed image's tags in one query, same pattern as the variants above
     Map<Long, List<ImageTag>> imageTagsByImageId = ImageTagRepository.findByImageIds(browserImageIds);
@@ -256,6 +259,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
 
     // Same batch-prefetch pattern as the main grid, just scoped to the images actually shown here
     context.getRequest().setAttribute("imageVariantsByImageId", ImageVariantRepository.findByImageIds(allImageIds));
+    // Originals' widths for srcset, same as the browser grid above (issue #1370).
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(allImageIds));
     context.getRequest().setAttribute("imageTagsByImageId", ImageTagRepository.findByImageIds(allImageIds));
 
     context.setJsp(JSP);

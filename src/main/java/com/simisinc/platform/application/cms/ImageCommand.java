@@ -22,6 +22,10 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.domain.model.cms.ImageVariant;
+import com.simisinc.platform.domain.model.cms.Image;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 /**
@@ -33,6 +37,8 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantReposito
  * @author SimIS Inc.
  */
 public class ImageCommand {
+
+  private static Log LOG = LogFactory.getLog(ImageCommand.class);
 
   private static final String IMAGE_PATH_PREFIX = "/assets/img/";
 
@@ -98,11 +104,30 @@ public class ImageCommand {
    * @return a ready-to-use srcset value, or "" if there's nothing usable
    */
   static String buildSrcset(String imageUrl, List<ImageVariant> variants) {
-    if (variants == null || variants.isEmpty()) {
+    return buildSrcset(imageUrl, variants, 0);
+  }
+
+  /**
+   * As above, but also offers the original file as a candidate at {@code originalWidth} (issue
+   * #1370).
+   *
+   * <p>Without it the list contains variants only, and GenerateImageVariantsCommand deliberately
+   * skips any variant that would not be smaller than the original -- so a 626px upload yields a
+   * 200w thumbnail and nothing else. A srcset carrying w descriptors is authoritative: the browser
+   * chooses from those candidates and treats {@code src} only as a fallback for browsers that do
+   * not understand srcset. The 200px thumbnail was therefore being stretched across far larger
+   * slots while the full-size file sat unused on disk.
+   *
+   * @param originalWidth the original's pixel width, or 0 when it is not known -- in which case
+   *                      this behaves exactly as before and offers variants only
+   */
+  static String buildSrcset(String imageUrl, List<ImageVariant> variants, int originalWidth) {
+    boolean hasVariants = variants != null && !variants.isEmpty();
+    if (!hasVariants && originalWidth <= 0) {
       return "";
     }
     StringBuilder sb = new StringBuilder();
-    for (ImageVariant variant : variants) {
+    for (ImageVariant variant : hasVariants ? variants : java.util.Collections.<ImageVariant>emptyList()) {
       // width <= 0 shouldn't happen (NOT NULL column, always set by GenerateImageVariantsCommand)
       // but a malformed/partial row must never produce a bogus "0w" descriptor.
       if (variant == null || variant.getWidth() <= 0) {
@@ -113,6 +138,14 @@ public class ImageCommand {
       }
       sb.append(imageUrl).append("?variant=").append(variant.getVariantType())
           .append(" ").append(variant.getWidth()).append("w");
+    }
+    // The original goes in last, with no ?variant= suffix -- it is the same url the <img> already
+    // uses for src, so no new route is needed and browsers that ignore srcset are unaffected.
+    if (originalWidth > 0) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append(imageUrl).append(" ").append(originalWidth).append("w");
     }
     return sb.toString();
   }
@@ -129,7 +162,23 @@ public class ImageCommand {
     if (imageId == null) {
       return "";
     }
-    return buildSrcset(imageUrl, ImageVariantRepository.findByImageId(imageId));
+    // Two queries rather than one: the variants, plus the original's width so it can be offered as
+    // a candidate (issue #1370). Batch render sites should use srcsetBatch, which takes both maps
+    // pre-fetched and issues none.
+    // Defensive: the original's width is an enhancement, not a precondition. If this lookup fails
+    // the srcset must still be built from the variants, exactly as before #1370 -- otherwise one
+    // failing query silently removes srcset from the page, since ContentImageSrcsetCommand catches
+    // and leaves content unchanged.
+    int originalWidth = 0;
+    try {
+      Image image = ImageRepository.findById(imageId);
+      if (image != null) {
+        originalWidth = image.getWidth();
+      }
+    } catch (Exception e) {
+      LOG.debug("Could not resolve original width for srcset: " + imageUrl, e);
+    }
+    return buildSrcset(imageUrl, ImageVariantRepository.findByImageId(imageId), originalWidth);
   }
 
   /**
@@ -140,10 +189,28 @@ public class ImageCommand {
    * @return a ready-to-use srcset value, or "" (never null)
    */
   public static String srcsetBatch(String imageUrl, Map<Long, List<ImageVariant>> variantsByImageId) {
+    return srcsetBatch(imageUrl, variantsByImageId, null);
+  }
+
+  /**
+   * As above, but also offers the original as a candidate using a widths map the widget batch
+   * fetched via {@link com.simisinc.platform.infrastructure.persistence.cms.ImageRepository#findWidthsByIds}
+   * (issue #1370). Still zero DB calls per invocation.
+   *
+   * <p>The widths arrive as a separate map rather than being folded into the variants list on
+   * purpose: {@code DeleteImageCommand} iterates those lists to delete files from disk, so a
+   * synthetic entry standing for the original would make it delete the original itself.
+   *
+   * @param widthsByImageId imageId to original width, or null to offer variants only
+   */
+  public static String srcsetBatch(String imageUrl, Map<Long, List<ImageVariant>> variantsByImageId,
+      Map<Long, Integer> widthsByImageId) {
     Long imageId = parseImageId(imageUrl);
-    if (imageId == null || variantsByImageId == null) {
+    if (imageId == null) {
       return "";
     }
-    return buildSrcset(imageUrl, variantsByImageId.get(imageId));
+    List<ImageVariant> variants = variantsByImageId != null ? variantsByImageId.get(imageId) : null;
+    Integer originalWidth = widthsByImageId != null ? widthsByImageId.get(imageId) : null;
+    return buildSrcset(imageUrl, variants, originalWidth != null ? originalWidth : 0);
   }
 }

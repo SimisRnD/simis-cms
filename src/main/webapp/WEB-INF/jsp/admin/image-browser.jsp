@@ -87,7 +87,7 @@
                  aria-label="Select <c:out value="${image.filename}"/>"
                  style="position:absolute; top: 5px; left: 5px; z-index: 1;">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
-          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
           <img src="<c:out value="${ctx}${imageHref}"/>"
             <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
             decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
@@ -163,7 +163,7 @@
                        aria-label="Select <c:out value="${image.filename}"/>"
                        style="position:absolute; top: 5px; left: 5px; z-index: 1;">
                 <c:set var="imageHref" value="/assets/img/${image.url}"/>
-                <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+                <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
                 <img src="<c:out value="${ctx}${imageHref}"/>"
                   <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
                   decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>

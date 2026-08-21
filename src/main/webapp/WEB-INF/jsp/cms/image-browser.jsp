@@ -246,7 +246,7 @@
       <div class="cell card">
         <div class="image-browser">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
-          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
           <button type="button" class="image-browser-select js-mySubmit" data-src="<c:out value="${ctx}${imageHref}"/>" data-target-id="<c:out value="${inputId}"/>" data-target-attr="value" aria-label="Select <c:out value="${image.filename}"/>">
             <img src="<c:out value="${ctx}${imageHref}"/>" alt=""
               <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>

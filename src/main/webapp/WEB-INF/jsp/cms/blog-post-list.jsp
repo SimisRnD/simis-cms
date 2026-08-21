@@ -85,7 +85,7 @@
             </h3>
           </div>
           <c:if test="${!empty blogPost.imageUrl}">
-            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId)}"/>
+            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
             <div class="platform-blog-image">
               <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="<c:out value="${ctx}${blogPost.imageUrl}"/>"
                 <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="100vw"</c:if>

@@ -34,6 +34,7 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemTag;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
@@ -165,6 +166,9 @@ public class CollectionItemsListWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(itemImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
+    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
+    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(itemImageIds));
 
     // Carry the filter through pagination (paging_control.jspf appends this to each page link)
     String recordPagingParams = "collectionId=" + collection.getId() + (includeArchived ? "&includeArchived=true" : "");
