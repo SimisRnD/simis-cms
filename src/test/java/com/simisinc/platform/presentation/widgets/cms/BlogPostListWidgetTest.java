@@ -20,6 +20,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
@@ -32,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.JSP;
 import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.PANEL_JSP;
@@ -149,5 +151,53 @@ class BlogPostListWidgetTest extends WidgetBase {
       Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getArchivedOnly(),
           "a guest must never see archived posts in this listing");
     }
+  }
+
+  private static BlogPost post(long id, String title, String imageUrl) {
+    BlogPost blogPost = new BlogPost();
+    blogPost.setId(id);
+    blogPost.setTitle(title);
+    blogPost.setImageUrl(imageUrl);
+    return blogPost;
+  }
+
+  private static Image image(long id, String altText) {
+    Image image = new Image();
+    image.setId(id);
+    image.setAltText(altText);
+    return image;
+  }
+
+  @Test
+  void bannerAltTextPrefersTheLibrarysStoredDescription() {
+    BlogPost blogPost = post(7L, "SimIS Wins the Workforce Innovation Award",
+        "/assets/img/20161006120000-42/award.jpg");
+    Map<Long, String> altText = BlogPostListWidget.resolveImageAltText(List.of(blogPost),
+        Map.of(42L, image(42L, "Dr. Garcia accepting the award at a podium")));
+    Assertions.assertEquals("Dr. Garcia accepting the award at a podium", altText.get(7L));
+  }
+
+  @Test
+  void bannerAltTextFallsBackToThePostTitle() {
+    BlogPost blogPost = post(7L, "SimIS Wins the Workforce Innovation Award",
+        "/assets/img/20161006120000-42/award.jpg");
+    // No stored alt text: the title is at least true and distinct per card. An empty alt is not an
+    // option -- the banner sits inside the post link, which would leave that link unnamed.
+    Map<Long, String> altText = BlogPostListWidget.resolveImageAltText(List.of(blogPost),
+        Map.of(42L, image(42L, "   ")));
+    Assertions.assertEquals("SimIS Wins the Workforce Innovation Award", altText.get(7L));
+  }
+
+  @Test
+  void bannerAltTextFallsBackWhenTheImageRecordIsMissingEntirely() {
+    BlogPost blogPost = post(7L, "A Post", "/assets/img/20161006120000-42/award.jpg");
+    Assertions.assertEquals("A Post",
+        BlogPostListWidget.resolveImageAltText(List.of(blogPost), Map.of()).get(7L));
+  }
+
+  @Test
+  void postsWithNoBannerImageGetNoEntryAtAll() {
+    Assertions.assertTrue(
+        BlogPostListWidget.resolveImageAltText(List.of(post(7L, "A Post", null)), Map.of()).isEmpty());
   }
 }
