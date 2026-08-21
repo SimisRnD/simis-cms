@@ -16,14 +16,32 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.text.StringEscapeUtils;
+
+import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 /**
- * Injects a {@code srcset} attribute into {@code <img src="/assets/img/...">} tags found inside
- * rich-text HTML bodies (Content blocks, blog post bodies, wiki pages, FAQ answers -- issue #411
- * PR2's second half, distinct from the JSP-template attributes {@link ImageCommand} handles).
+ * Fills in {@code <img src="/assets/img/...">} tags found inside rich-text HTML bodies (Content
+ * blocks, blog post bodies, wiki pages, FAQ answers) from what the media library already knows
+ * about the image: a {@code srcset} (issue #411 PR2's second half, distinct from the JSP-template
+ * attributes {@link ImageCommand} handles) and the author's alt text (issue #1373).
+ *
+ * <p>
+ * The alt half exists because the two halves of that job were never connected. An author can enter
+ * alt text against an image in {@code /admin/images}, and it is stored on the {@code Image} record
+ * -- but the editor's image picker never carried the value, so inserting that image into an article
+ * produced {@code alt=""}, and no renderer but {@code ImageWidget} ever read it back. Measured on a
+ * live site before this change: 61 of 94 library images had author-written alt text, and 31 of 34
+ * images inside post bodies rendered {@code alt=""}.
+ * </p>
  *
  * <p>
  * Runs at render time, not save time: these bodies are authored over years, sanitized once at save
@@ -57,12 +75,13 @@ public class ContentImageSrcsetCommand {
   /**
    * @param html a rendered HTML (or, for wiki, already-sanitized Markdown-to-HTML) string that may
    *             contain zero or more {@code <img>} tags
-   * @return the same content with a {@code srcset}/{@code sizes}/{@code decoding}/{@code loading}
-   *         attribute spliced into any tag whose {@code src} resolves to an image with existing
-   *         variants; the original string, untouched, if anything is null/blank, has no images, or
-   *         a tag doesn't confidently parse
+   * @return the same content with {@code srcset}/{@code sizes}/{@code decoding}/{@code loading}
+   *         spliced into any tag whose {@code src} resolves to an image with existing variants, and
+   *         {@code alt} filled from the image's stored alt text where the tag has none of its own;
+   *         the original string, untouched, if anything is null/blank, has no images, or a tag
+   *         doesn't confidently parse
    */
-  public static String injectSrcset(String html) {
+  public static String enhanceImageTags(String html) {
     if (StringUtils.isBlank(html) || !StringUtils.containsIgnoreCase(html, IMG_TAG_START)) {
       return html;
     }
@@ -71,7 +90,7 @@ public class ContentImageSrcsetCommand {
     } catch (Exception e) {
       // Never let a markup surprise turn into a broken/blank page -- worst case, this render is
       // missing srcset, exactly like before this feature existed.
-      LOG.warn("srcset injection failed; leaving content unchanged", e);
+      LOG.warn("Image tag enhancement failed; leaving content unchanged", e);
       return html;
     }
   }
@@ -111,21 +130,105 @@ public class ContentImageSrcsetCommand {
   }
 
   /**
-   * @return a copy of originalTag with srcset/sizes/decoding/loading spliced in, or null if this
-   *         tag should be left exactly as-is (no src, external/non-internal src, no variants yet,
-   *         already has srcset, or the tag didn't confidently parse)
+   * @return a copy of originalTag with alt and/or srcset/sizes/decoding/loading spliced in, or null
+   *         if this tag should be left exactly as-is (no src, external/non-internal src, nothing
+   *         the library can add, or the tag didn't confidently parse)
    */
   private static String tryBuildReplacement(String originalTag) {
-    if (StringUtils.containsIgnoreCase(originalTag, "srcset=")) {
-      return null; // idempotency guard
-    }
     String src = extractQuotedAttribute(originalTag, "src");
     if (src == null) {
       return null;
     }
-    String srcsetValue = ImageCommand.srcset(src);
-    if (StringUtils.isBlank(srcsetValue)) {
+    Long imageId = ImageCommand.parseImageId(src);
+    if (imageId == null) {
       return null;
+    }
+    // One record load serves both halves: the original's width, so it can be offered as a srcset
+    // candidate (issue #1370), and the author's alt text (issue #1373).
+    Image image = lookupImage(imageId);
+    String result = applySrcset(applyStoredAltText(originalTag, image), src, imageId, image);
+    return result.equals(originalTag) ? null : result;
+  }
+
+  /** Defensive: a missing record must cost this tag its enhancement, never the whole page. */
+  private static Image lookupImage(Long imageId) {
+    try {
+      return ImageRepository.findById(imageId);
+    } catch (Exception e) {
+      LOG.debug("Could not load the image record for a content <img>: " + imageId, e);
+      return null;
+    }
+  }
+
+  /**
+   * Fills alt from the image's stored alt text when the tag has none of its own.
+   *
+   * <p>
+   * An alt the author actually wrote always wins -- this only fills a missing attribute or an empty
+   * one. Overwriting {@code alt=""} is deliberate and is the whole point: the editor emits it on
+   * every insert whether or not anyone decided anything, so on its own it cannot be read as "I
+   * considered this image and it is decorative." The distinguishing signal is the library record --
+   * a genuine spacer has no alt text stored against it either, so it is left alone here. The
+   * residual case, an image with stored alt text that some page uses purely decoratively, gets a
+   * description it does not need; that is a far smaller harm than the 31 photographs currently
+   * announcing nothing.
+   * </p>
+   *
+   * @return originalTag when there is nothing to add or the alt attribute doesn't confidently parse
+   */
+  private static String applyStoredAltText(String originalTag, Image image) {
+    if (image == null) {
+      return originalTag;
+    }
+    String storedAltText = StringUtils.trimToNull(image.getAltText());
+    if (storedAltText == null) {
+      return originalTag;
+    }
+    if (StringUtils.isNotBlank(extractQuotedAttribute(originalTag, "alt"))) {
+      return originalTag;
+    }
+    String value = StringEscapeUtils.escapeXml11(storedAltText);
+    int nameIdx = indexOfAttributeName(originalTag, "alt");
+    if (nameIdx == -1) {
+      return spliceIntoTag(originalTag, " alt=\"" + value + "\"");
+    }
+    // Replace the existing (empty) value in place rather than appending a second alt attribute,
+    // which would be invalid and which browsers resolve by keeping the first -- the empty one.
+    int quoteIdx = nameIdx + "alt=".length();
+    if (quoteIdx >= originalTag.length()) {
+      return originalTag;
+    }
+    char quoteChar = originalTag.charAt(quoteIdx);
+    if (quoteChar != '"' && quoteChar != '\'') {
+      return originalTag;
+    }
+    int endIdx = originalTag.indexOf(quoteChar, quoteIdx + 1);
+    if (endIdx == -1) {
+      return originalTag;
+    }
+    return originalTag.substring(0, quoteIdx + 1) + value + originalTag.substring(endIdx);
+  }
+
+  /**
+   * @return originalTag when srcset is already declared, when the variants can't be read, or when
+   *         there is no candidate to offer
+   */
+  private static String applySrcset(String originalTag, String src, Long imageId, Image image) {
+    if (StringUtils.containsIgnoreCase(originalTag, "srcset=")) {
+      return originalTag; // idempotency guard
+    }
+    List<ImageVariant> variants;
+    try {
+      variants = ImageVariantRepository.findByImageId(imageId);
+    } catch (Exception e) {
+      // Defensive for the same reason as lookupImage, and specifically so a variants failure can
+      // no longer cost this tag its alt text, which has already been applied by this point.
+      LOG.debug("Could not load image variants for a content <img>: " + imageId, e);
+      return originalTag;
+    }
+    String srcsetValue = ImageCommand.buildSrcset(src, variants, image != null ? image.getWidth() : 0);
+    if (StringUtils.isBlank(srcsetValue)) {
+      return originalTag;
     }
     // TinyMCE writes an explicit width when an author resizes an image in place -- more precise
     // than the theme's grid ceiling when present. platform.css's one sitewide content-column
@@ -162,8 +265,13 @@ public class ContentImageSrcsetCommand {
     if (!StringUtils.containsIgnoreCase(originalTag, "loading=")) {
       insertion.append(" loading=\"lazy\"");
     }
-    int insertAt = originalTag.endsWith("/>") ? originalTag.length() - 2 : originalTag.length() - 1;
-    return originalTag.substring(0, insertAt) + insertion + originalTag.substring(insertAt);
+    return spliceIntoTag(originalTag, insertion.toString());
+  }
+
+  /** Inserts attribute text immediately before the tag's closing {@code >} or {@code />}. */
+  private static String spliceIntoTag(String tag, String insertion) {
+    int insertAt = tag.endsWith("/>") ? tag.length() - 2 : tag.length() - 1;
+    return tag.substring(0, insertAt) + insertion + tag.substring(insertAt);
   }
 
   /**
@@ -172,18 +280,12 @@ public class ContentImageSrcsetCommand {
    * and a matching quote character (so an unquoted value is refused rather than guessed at).
    */
   private static String extractQuotedAttribute(String tag, String attributeName) {
-    String needle = attributeName + "=";
-    int searchFrom = IMG_TAG_START.length();
-    while (true) {
-      int nameIdx = tag.indexOf(needle, searchFrom);
-      if (nameIdx == -1) {
-        return null;
-      }
-      if (!Character.isWhitespace(tag.charAt(nameIdx - 1))) {
-        searchFrom = nameIdx + 1;
-        continue;
-      }
-      int quoteIdx = nameIdx + needle.length();
+    int nameIdx = indexOfAttributeName(tag, attributeName);
+    if (nameIdx == -1) {
+      return null;
+    }
+    {
+      int quoteIdx = nameIdx + attributeName.length() + 1;
       if (quoteIdx >= tag.length()) {
         return null;
       }
@@ -196,6 +298,26 @@ public class ContentImageSrcsetCommand {
         return null;
       }
       return tag.substring(quoteIdx + 1, endIdx);
+    }
+  }
+
+  /**
+   * @return the index of {@code attributeName} within the tag, requiring a whitespace boundary
+   *         immediately before it so {@code src=} cannot match inside {@code data-src=}; -1 if the
+   *         attribute is not present at all
+   */
+  private static int indexOfAttributeName(String tag, String attributeName) {
+    String needle = attributeName + "=";
+    int searchFrom = IMG_TAG_START.length();
+    while (true) {
+      int nameIdx = tag.indexOf(needle, searchFrom);
+      if (nameIdx == -1) {
+        return -1;
+      }
+      if (Character.isWhitespace(tag.charAt(nameIdx - 1))) {
+        return nameIdx;
+      }
+      searchFrom = nameIdx + 1;
     }
   }
 

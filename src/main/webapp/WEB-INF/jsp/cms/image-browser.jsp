@@ -247,7 +247,7 @@
         <div class="image-browser">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
           <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
-          <button type="button" class="image-browser-select js-mySubmit" data-src="<c:out value="${ctx}${imageHref}"/>" data-target-id="<c:out value="${inputId}"/>" data-target-attr="value" aria-label="Select <c:out value="${image.filename}"/>">
+          <button type="button" class="image-browser-select js-mySubmit" data-src="<c:out value="${ctx}${imageHref}"/>" data-alt-text="<c:out value="${image.altText}"/>" data-target-id="<c:out value="${inputId}"/>" data-target-attr="value" aria-label="Select <c:out value="${image.filename}"/>">
             <img src="<c:out value="${ctx}${imageHref}"/>" alt=""
               <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
               decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
@@ -281,17 +281,22 @@
     </c:when>
     <c:otherwise>
       <%-- Called by TinyMCE --%>
-      function mySubmit(itemUrl) {
+      // altText rides alongside the url so the editor's image dialog can prefill its description
+      // field from the library, instead of asking the author to write it a second time (#1373).
+      // "FileSelected" is not one of TinyMCE's own SUPPORTED_MESSAGE_ACTIONS, so the whole payload
+      // is delivered verbatim to the dialog's onMessage handler -- extra keys included.
+      function mySubmit(itemUrl, altText) {
         window.parent.postMessage({
             mceAction: 'FileSelected',
-            content: itemUrl
+            content: itemUrl,
+            altText: altText
         }, '*');
       }
     </c:otherwise>
   </c:choose>
   document.querySelectorAll(".js-mySubmit").forEach(function (el) {
     el.addEventListener("click", function () {
-      mySubmit(el.dataset.src);
+      mySubmit(el.dataset.src, el.dataset.altText);
     });
   });
 </script>

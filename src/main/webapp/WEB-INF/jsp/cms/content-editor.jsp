@@ -82,8 +82,11 @@
     file_picker_types: 'file image media',
     // link_default_target: '_blank',
     file_picker_callback: function (callback, value, meta) {
-        FileBrowser(value, meta.filetype, function (fileUrl) {
-            callback(fileUrl);
+        FileBrowser(value, meta.filetype, function (fileUrl, altText) {
+            // A second argument populates other fields of the dialog TinyMCE is about to show. The
+            // image plugin reads meta.alt into its "Alternative description" field; the file and
+            // media dialogs have no such field and ignore it (#1373).
+            callback(fileUrl, altText ? { alt: altText } : {});
         });
     },
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }
@@ -108,7 +111,7 @@
         width: 850,
         height: 650,
         onMessage: function(dialogApi, details) {
-            callback(details.content);
+            callback(details.content, details.altText);
             instanceApi.close();
         }
     });
