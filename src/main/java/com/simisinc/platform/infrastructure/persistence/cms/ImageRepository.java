@@ -86,8 +86,31 @@ public class ImageRepository {
    */
   public static Map<Long, Integer> findWidthsByIds(Collection<Long> imageIds) {
     Map<Long, Integer> widthsByImageId = new LinkedHashMap<>();
+    for (Image image : findByIds(imageIds).values()) {
+      if (image.getWidth() > 0) {
+        widthsByImageId.put(image.getId(), image.getWidth());
+      }
+    }
+    return widthsByImageId;
+  }
+
+  /**
+   * Loads several image records in one IN-list query, for render paths that hold a page's worth of
+   * image ids and would otherwise issue a findById per row.
+   *
+   * <p>
+   * {@link #findWidthsByIds} projects widths out of this; the blog list views take alt text from it
+   * (issue #1372). Both ask for the same rows, so they share the query rather than each running
+   * their own.
+   * </p>
+   *
+   * @return the records that exist, keyed by image id, in query order; never null, and silently
+   *         short of any id with no row
+   */
+  public static Map<Long, Image> findByIds(Collection<Long> imageIds) {
+    Map<Long, Image> imagesById = new LinkedHashMap<>();
     if (imageIds == null || imageIds.isEmpty()) {
-      return widthsByImageId;
+      return imagesById;
     }
     StringBuilder placeholders = new StringBuilder();
     for (int i = 0; i < imageIds.size(); i++) {
@@ -102,11 +125,11 @@ public class ImageRepository {
         null,
         ImageRepository::buildRecord).getRecords();
     for (Image image : images) {
-      if (image != null && image.getWidth() > 0) {
-        widthsByImageId.put(image.getId(), image.getWidth());
+      if (image != null) {
+        imagesById.put(image.getId(), image);
       }
     }
-    return widthsByImageId;
+    return imagesById;
   }
 
   public static Image findById(long id) {

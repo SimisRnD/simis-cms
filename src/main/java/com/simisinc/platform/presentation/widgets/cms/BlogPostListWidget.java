@@ -24,6 +24,7 @@ import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
@@ -37,6 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -162,9 +164,22 @@ public class BlogPostListWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(blogPostImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
-    // The originals' widths, so srcset can offer the full-size file as a candidate rather than
-    // topping out at a thumbnail (issue #1370). One extra query for the whole page, not per row.
-    context.getRequest().setAttribute("imageWidthsByImageId", ImageRepository.findWidthsByIds(blogPostImageIds));
+    // The image records themselves, in one more query for the whole page rather than one per row.
+    // Two things come out of them: the originals' widths, so srcset can offer the full-size file as
+    // a candidate rather than topping out at a thumbnail (issue #1370), and the author's alt text
+    // (issue #1372).
+    Map<Long, Image> imagesByImageId = ImageRepository.findByIds(blogPostImageIds);
+    Map<Long, Integer> imageWidthsByImageId = new LinkedHashMap<>();
+    for (Image image : imagesByImageId.values()) {
+      if (image.getWidth() > 0) {
+        imageWidthsByImageId.put(image.getId(), image.getWidth());
+      }
+    }
+    context.getRequest().setAttribute("imageWidthsByImageId", imageWidthsByImageId);
+    // Resolved per post rather than per image, because the fallback needs the post: an image can be
+    // reused across posts, and the title is what distinguishes the cards when the library has
+    // nothing stored. Keyed by post id so the JSPs read one value and make no decision of their own.
+    context.getRequest().setAttribute("blogPostImageAltText", resolveImageAltText(blogPostList, imagesByImageId));
 
     // Governed publish workflow status per post (#407, phase 2), keyed by post id -- only shown to
     // admin/content-manager viewers (the same audience already shown unpublished posts here at all,
@@ -229,5 +244,33 @@ public class BlogPostListWidget extends GenericWidget {
       context.setJsp(JSP);
     }
     return context;
+  }
+
+  /**
+   * Resolves the alt text for each post's banner image.
+   *
+   * <p>
+   * The banner is inside the post's own link, so an empty alt is not an option here: it would leave
+   * that link with no accessible name at all (WCAG 2.4.4), which is a worse failure than a generic
+   * description. The post title is therefore the floor, and it is at least true and distinct per
+   * card -- unlike the {@code "Blog post banner image"} literal these views used to hardcode, which
+   * was announced identically on every card on the page (issue #1372).
+   * </p>
+   *
+   * @return alt text keyed by blog post id, for every post that has a banner image
+   */
+  static Map<Long, String> resolveImageAltText(List<BlogPost> blogPostList,
+      Map<Long, Image> imagesByImageId) {
+    Map<Long, String> altTextByPostId = new LinkedHashMap<>();
+    for (BlogPost blogPost : blogPostList) {
+      if (StringUtils.isBlank(blogPost.getImageUrl())) {
+        continue;
+      }
+      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      Image image = (imageId != null ? imagesByImageId.get(imageId) : null);
+      String storedAltText = (image != null ? StringUtils.trimToNull(image.getAltText()) : null);
+      altTextByPostId.put(blogPost.getId(), storedAltText != null ? storedAltText : blogPost.getTitle());
+    }
+    return altTextByPostId;
   }
 }
