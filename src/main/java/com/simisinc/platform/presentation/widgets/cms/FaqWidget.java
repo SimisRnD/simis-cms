@@ -58,7 +58,7 @@ public class FaqWidget extends GenericWidget {
       }
       FaqQuestion faqQuestion = new FaqQuestion();
       faqQuestion.setQuestion(question);
-      faqQuestion.setAnswerHtml(ContentImageSrcsetCommand.injectSrcset(answer));
+      faqQuestion.setAnswerHtml(ContentImageSrcsetCommand.enhanceImageTags(answer));
       faqQuestion.setAnswerText(HtmlCommand.text(answer));
       faqQuestionList.add(faqQuestion);
     }
