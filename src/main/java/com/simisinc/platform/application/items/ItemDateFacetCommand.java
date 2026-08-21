@@ -78,9 +78,13 @@ public class ItemDateFacetCommand {
     ZoneId siteZoneId = FormatDateCommand.getSiteZoneId();
     ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), siteZoneId);
 
-    Timestamp sevenDaysAgo = Timestamp.valueOf(now.minusDays(7).toLocalDateTime());
-    Timestamp thirtyDaysAgo = Timestamp.valueOf(now.minusDays(30).toLocalDateTime());
-    Timestamp oneYearAgo = Timestamp.valueOf(now.minusYears(1).toLocalDateTime());
+    // See UpcomingCalendarEventsWidget: toLocalDateTime() drops the offset and valueOf re-reads it
+    // in the JVM zone, so these bucket edges moved by that offset wherever the two disagree
+    // (issue #1386). The buckets are relative windows, so the error was less visible here than on a
+    // calendar -- it still put each boundary in the wrong place.
+    Timestamp sevenDaysAgo = Timestamp.from(now.minusDays(7).toInstant());
+    Timestamp thirtyDaysAgo = Timestamp.from(now.minusDays(30).toInstant());
+    Timestamp oneYearAgo = Timestamp.from(now.minusYears(1).toInstant());
 
     List<DateFacetBucket> buckets = new ArrayList<>();
     buckets.add(new DateFacetBucket("last7", "Last 7 days", sevenDaysAgo, null));

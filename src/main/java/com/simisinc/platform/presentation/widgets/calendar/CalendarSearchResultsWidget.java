@@ -74,7 +74,9 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     Instant instant = Instant.now();
     ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, clientZoneId);
     ZonedDateTime zdtStart = zdt.toLocalDate().atStartOfDay(clientZoneId);
-    Timestamp startingDateRange = Timestamp.valueOf(zdtStart.toLocalDateTime());
+    // See UpcomingCalendarEventsWidget: toLocalDateTime() drops the offset and valueOf re-reads it
+    // in the JVM zone, moving the boundary whenever the two disagree (issue #1386).
+    Timestamp startingDateRange = Timestamp.from(zdtStart.toInstant());
 
     // Determine the active facet filter (issue #634; calendarId is fully supported by
     // CalendarEventRepository, single-select since an event belongs to exactly one calendar)

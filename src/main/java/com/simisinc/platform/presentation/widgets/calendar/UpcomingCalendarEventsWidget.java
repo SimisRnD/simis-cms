@@ -138,13 +138,17 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     if (calendarId > -1) {
       eventSpecification.setCalendarId(calendarId);
     }
-    eventSpecification.setStartingDateRange(Timestamp.valueOf(zdtStart.toLocalDateTime()));
+    // Timestamp.from(instant), not Timestamp.valueOf(localDateTime): toLocalDateTime() discards the
+    // offset, and valueOf re-reads the result in the JVM's own zone. Where the site timezone and the
+    // JVM disagree -- America/New_York against a UTC container, say -- that silently moves the
+    // boundary by the offset, so "from the start of today" became 20:00 yesterday (issue #1386).
+    eventSpecification.setStartingDateRange(Timestamp.from(zdtStart.toInstant()));
     if (daysToShow > 0) {
       ZonedDateTime endDate = zdtStart.plusDays(daysToShow);
-      eventSpecification.setEndingDateRange(Timestamp.valueOf(endDate.toLocalDateTime()));
+      eventSpecification.setEndingDateRange(Timestamp.from(endDate.toInstant()));
     } else if (monthsToShow > 0) {
       ZonedDateTime endDate = zdtStart.plusMonths(monthsToShow);
-      eventSpecification.setEndingDateRange(Timestamp.valueOf(endDate.toLocalDateTime()));
+      eventSpecification.setEndingDateRange(Timestamp.from(endDate.toInstant()));
     }
     List<CalendarEvent> calendarEventList = CalendarEventRepository.findAll(eventSpecification, constraints);
 
