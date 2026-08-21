@@ -32,10 +32,21 @@ public class SocialMediaLink extends Entity {
       Map.entry("facebook", "fa-facebook-square"),
       Map.entry("instagram", "fa-instagram"),
       Map.entry("linkedin", "fa-linkedin"),
-      // Twitter rebranded to X in 2023; both names resolve to the current X glyph (fa-x-twitter
-      // added to the vendored FontAwesome Free 6.1.1 bundle by hand -- see all.css/v4-shims.css).
+      // Twitter rebranded to X in 2023; every name people actually write for it resolves to the
+      // current X glyph (fa-x-twitter added to the vendored FontAwesome Free 6.1.1 bundle by hand
+      // -- see all.css/v4-shims.css).
+      //
+      // The compound spellings are listed because a rebrand leaves both names in circulation and
+      // people write them together -- and because "X/Twitter" is the name the Add a Platform form's
+      // own help text tells an author to use (admin/social-media-link-form.jsp). Matching stays
+      // exact rather than fuzzy on purpose: a contains() on "twitter" would claim "Twitterrific".
       Map.entry("twitter", "fa-x-twitter"),
       Map.entry("x", "fa-x-twitter"),
+      Map.entry("x/twitter", "fa-x-twitter"),
+      Map.entry("twitter/x", "fa-x-twitter"),
+      Map.entry("x (twitter)", "fa-x-twitter"),
+      Map.entry("twitter (x)", "fa-x-twitter"),
+      Map.entry("x (formerly twitter)", "fa-x-twitter"),
       Map.entry("flickr", "fa-flickr"),
       Map.entry("youtube", "fa-youtube"),
       Map.entry("mastodon", "fa-mastodon"),

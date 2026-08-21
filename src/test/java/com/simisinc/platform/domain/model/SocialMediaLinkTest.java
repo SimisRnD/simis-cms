@@ -44,6 +44,26 @@ class SocialMediaLinkTest {
   }
 
   @Test
+  void getIconClassResolvesTheCompoundSpellingsOfTheRebrand() {
+    // "X/Twitter" is the name the Add a Platform form's own help text offers, so it has to work --
+    // it silently produced the generic link icon, which is how a live site ended up with one.
+    assertEquals("fa-x-twitter", iconFor("X/Twitter"));
+    assertEquals("fa-x-twitter", iconFor("x/twitter"));
+    assertEquals("fa-x-twitter", iconFor("Twitter/X"));
+    assertEquals("fa-x-twitter", iconFor("X (Twitter)"));
+    assertEquals("fa-x-twitter", iconFor("Twitter (X)"));
+    assertEquals("fa-x-twitter", iconFor("X (formerly Twitter)"));
+  }
+
+  @Test
+  void getIconClassStillMatchesExactlyRatherThanBySubstring() {
+    // The reason the spellings above are enumerated instead of matched fuzzily.
+    assertEquals("fa-link", iconFor("Twitterrific"));
+    assertEquals("fa-link", iconFor("Xbox"));
+    assertEquals("fa-link", iconFor("X-Files Fan Club"));
+  }
+
+  @Test
   void getIconClassFallsBackForUnknownOrNewPlatforms() {
     // Bundled FontAwesome predates dedicated Threads/Bluesky glyphs
     assertEquals("fa-link", iconFor("Threads"));
