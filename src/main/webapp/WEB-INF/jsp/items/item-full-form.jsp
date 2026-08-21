@@ -44,25 +44,38 @@
       {title: 'Image Right/Wrap Text left', value: 'image-right'},
       {title: 'Image Center On Line', value: 'image-center'}
     ]
-    // file_picker_types: 'file image media',
+    <%-- The pickers this reaches (/image-browser, /video-browser, /file-browser) are
+         role="admin,content-manager" pages in cms-layout.xml, while this form is reached through
+         CheckCollectionPermissionCommand's collection-scoped add permission -- the same ACL
+         mismatch the Browse Images button further down is already gated for. Offer the picker
+         only to users whose session can actually load those pages; for everyone else TinyMCE's
+         image dialog keeps its plain "source" field, which depends on no extra route. --%>
+    <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">,
+    file_picker_types: 'file image media',
     // link_default_target: '_blank',
-    // file_picker_callback: function (callback, value, meta) {
-    //   FileBrowser(value, meta.filetype, function (fileUrl) {
-    //     callback(fileUrl);
-    //   });
-    // },
+    file_picker_callback: function (callback, value, meta) {
+      FileBrowser(value, meta.filetype, function (fileUrl, altText) {
+        // A second argument populates other fields of the dialog TinyMCE is about to show. The
+        // image plugin reads meta.alt into its "Alternative description" field; the file and
+        // media dialogs have no such field and ignore it (#1373).
+        callback(fileUrl, altText ? { alt: altText } : {});
+      });
+    }</c:if>
     <%--images_upload_url: '${ctx}/item-image-upload?widget=itemImageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }--%>
     // paste_data_images: true,
     // automatic_uploads: true
   });
 
+<c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
   function FileBrowser(value, type, callback) {
-    // type will be: file, image, media
-    var cmsType = 'item-image';
+    // type will be: file, image, media. The browsers are CMS-wide, the same ones blog-editor.jsp
+    // and content-editor.jsp open -- the 'item-image'/'item-video'/'item-file' prefixes this
+    // carried while it was commented out named routes that were never built.
+    var cmsType = 'image';
     if (type === 'media') {
-      cmsType = 'item-video';
+      cmsType = 'video';
     } else if (type === 'file') {
-      cmsType = 'item-file';
+      cmsType = 'file';
     }
     var cmsURL = '${ctx}/' + cmsType + '-browser';
     const instanceApi = tinyMCE.activeEditor.windowManager.openUrl({
@@ -71,12 +84,13 @@
       width: 850,
       height: 650,
       onMessage: function(dialogApi, details) {
-        callback(details.content);
+        callback(details.content, details.altText);
         instanceApi.close();
       }
     });
     return false;
   }
+</c:if>
 </script>
 <%-- Handle item image uploads --%>
 <script nonce="${cspNonce}">
