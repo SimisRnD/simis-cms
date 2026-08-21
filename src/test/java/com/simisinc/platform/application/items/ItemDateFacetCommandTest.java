@@ -44,8 +44,12 @@ class ItemDateFacetCommandTest {
    * cache -- mock it to a fixed zone instead.
    */
   private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone() {
+    return mockSiteTimezone("America/New_York");
+  }
+
+  private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone(String zoneId) {
     MockedStatic<LoadSitePropertyCommand> mock = mockStatic(LoadSitePropertyCommand.class);
-    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn(zoneId);
     return mock;
   }
 
@@ -128,5 +132,44 @@ class ItemDateFacetCommandTest {
     assertEquals("Label", bucket.getLabel());
     assertEquals(start, bucket.getStart());
     assertEquals(end, bucket.getEnd());
+  }
+
+  @Test
+  void bucketEdgesLandOnTheSameInstantWhateverTheSiteTimezoneIs() {
+    // "Seven days ago" is a single instant. Which timezone the site happens to display it in cannot
+    // move it, so asking for the buckets under two very different zones must produce the same edges.
+    //
+    // This is the regression guard for issue #1386. The previous
+    // Timestamp.valueOf(zoned.toLocalDateTime()) dropped the offset and let Timestamp.valueOf
+    // re-read the result in the JVM's own zone, which moved every edge by the difference between
+    // the two -- four hours on a UTC container with an America/New_York site. Comparing two site
+    // zones against each other, rather than against a literal, keeps this deterministic no matter
+    // what timezone the machine running the tests is set to.
+    Timestamp newYorkEdge;
+    Timestamp tokyoEdge;
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockSiteTimezone("America/New_York")) {
+      newYorkEdge = ItemDateFacetCommand.buckets().get(0).getStart();
+    }
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockSiteTimezone("Asia/Tokyo")) {
+      tokyoEdge = ItemDateFacetCommand.buckets().get(0).getStart();
+    }
+    // Both are computed from Instant.now(), so allow for the milliseconds between the two calls --
+    // the bug this guards against was thirteen hours, not milliseconds.
+    long driftMillis = Math.abs(newYorkEdge.getTime() - tokyoEdge.getTime());
+    assertTrue(driftMillis < 5_000L,
+        "bucket edges differed by " + driftMillis + "ms across site timezones; they must be the same instant");
+  }
+
+  @Test
+  void bucketEdgesAreMeasuredBackFromNowRatherThanFromAWallClockReading() {
+    // The complement of the test above: the edge must actually sit seven days before now, not
+    // seven days before some zone-shifted reading of now.
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockSiteTimezone()) {
+      long expected = System.currentTimeMillis() - java.time.Duration.ofDays(7).toMillis();
+      long actual = ItemDateFacetCommand.buckets().get(0).getStart().getTime();
+      long driftMillis = Math.abs(expected - actual);
+      assertTrue(driftMillis < 5_000L,
+          "the last-7-days edge was " + driftMillis + "ms away from seven days before now");
+    }
   }
 }
