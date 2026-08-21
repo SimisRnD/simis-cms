@@ -120,6 +120,7 @@ class ImageUsageCommandTest {
       statement.execute("TRUNCATE TABLE content RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE wiki_pages RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE site_properties RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE stylesheets RESTART IDENTITY");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
@@ -377,6 +378,11 @@ class ImageUsageCommandTest {
           + "title VARCHAR(255) NOT NULL, "
           + "body TEXT)");
       // A focused subset of site_properties -- just the columns this scan reads/filters on.
+      // A stylesheet is either site-wide (web_page_id NULL) or attached to one page.
+      statement.execute("CREATE TABLE stylesheets ("
+          + "stylesheet_id BIGSERIAL PRIMARY KEY, "
+          + "web_page_id BIGINT, "
+          + "css TEXT)");
       statement.execute("CREATE TABLE site_properties ("
           + "property_id BIGSERIAL PRIMARY KEY, "
           + "property_label VARCHAR(50), "
@@ -478,6 +484,72 @@ class ImageUsageCommandTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not insert test content block", se);
+    }
+  }
+
+  @Test
+  void imageReferencedOnlyFromTheSiteStylesheetIsDetectedAsUsed() {
+    // A page background set in /admin/css-editor exists nowhere else: not in page_xml, not in a
+    // content body, not in a site property. Four such backgrounds on a live site were all badged
+    // "Orphaned" -- and isOrphaned() gates deletion, so they were cleared for deletion too.
+    Image image = insertImage("careersbg2.jpg");
+    insertStylesheet(null, ".careers-hero { background-image: url(/assets/img/" + image.getUrl() + "); }");
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+    assertFalse(usages.isEmpty(), "an image used only as a stylesheet background must be detected as used");
+    assertEquals("Stylesheet", usages.get(0).getSourceType());
+    assertEquals("(site-wide)", usages.get(0).getLabel(),
+        "the global stylesheet has no page to name, so it must say so rather than show a null");
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
+  void aPageScopedStylesheetUsageNamesThePage() {
+    Image image = insertImage("aubg.jpg");
+    insertWebPage("/about-us", null);
+    insertStylesheet(1L, "body { background-image: url(/assets/img/" + image.getUrl() + "); }");
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+    assertFalse(usages.isEmpty());
+    assertEquals("/about-us", usages.get(0).getLabel());
+  }
+
+  @Test
+  void aStylesheetReferenceToAFilenameWithSpacesIsDetected() {
+    // getUrl() runs the filename through UrlCommand.encodeUri, which is the same spelling the
+    // picker writes into the stylesheet -- so a plain substring match is enough, and deliberately
+    // no re-encoding happens on the way in (that would double-encode and match nothing).
+    Image image = insertImage("Modeling & Simulation Background.png");
+    String url = "/assets/img/" + image.getUrl();
+    assertTrue(url.contains("%20") && url.contains("%26"), url);
+    insertStylesheet(null, ".hero { background-image: url(\"" + url + "\"); }");
+
+    assertFalse(ImageUsageCommand.findUsages(image).isEmpty(),
+        "an encoded filename must be detected, since that is how both sides spell it");
+  }
+
+  @Test
+  void aStylesheetThatDoesNotMentionTheImageIsNotCountedAsUsage() {
+    Image image = insertImage("unused-backdrop.png");
+    insertStylesheet(null, ".hero { background-image: url(/assets/img/9-9/something-else.png); }");
+
+    assertTrue(ImageUsageCommand.isOrphaned(image),
+        "an unrelated stylesheet must not make an image look used");
+  }
+
+  private static void insertStylesheet(Long webPageId, String css) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO stylesheets (web_page_id, css) VALUES (?, ?)")) {
+      if (webPageId == null) {
+        pst.setNull(1, java.sql.Types.BIGINT);
+      } else {
+        pst.setLong(1, webPageId);
+      }
+      pst.setString(2, css);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not insert test stylesheet", se);
     }
   }
 }

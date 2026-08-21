@@ -26,16 +26,6 @@
 <jsp:useBean id="showTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showAuthor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showDate" class="java.lang.String" scope="request"/>
-<c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-  <script nonce="${cspNonce}">
-    function deletePost() {
-      if (!confirm("Are you sure you want to DELETE this post?")) {
-        return;
-      }
-      postAction('${widgetContext.uri}?action=deletePost&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blogPostId=${blogPost.id}');
-    }
-  </script>
-</c:if>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
@@ -93,11 +83,13 @@
 <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
   <c:choose>
     <c:when test="${!empty link}">
-      <a class="button radius secondary no-gap"" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=${link}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
+      <a class="button radius secondary no-gap" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=${link}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
     </c:when>
     <c:otherwise>
-      <a class="button radius secondary no-gap"" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=/${blog.uniqueId}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
+      <a class="button radius secondary no-gap" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=/${blog.uniqueId}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
     </c:otherwise>
   </c:choose>
-  <a class="button radius alert no-gap"" href="javascript:deletePost()"><i class="fa fa-trash-o"></i> Delete Post</a>
+  <a class="button radius alert no-gap" href="#"
+     data-confirm-post="Are you sure you want to DELETE this post?"
+     data-post-url="${widgetContext.uri}?action=deletePost&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blogPostId=${blogPost.id}"><i class="fa fa-trash-o"></i> Delete Post</a>
 </c:if>
