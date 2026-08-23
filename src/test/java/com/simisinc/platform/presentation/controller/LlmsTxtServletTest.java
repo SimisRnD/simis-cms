@@ -293,6 +293,23 @@ class LlmsTxtServletTest {
   }
 
   @Test
+  void doGetExcludesAWildcardRouteTemplate() throws Exception {
+    // Same wildcard-route exclusion SitemapServlet.webPageEntries() applies to this same entity:
+    // "/news/*" is a route template whose literal form answers 404, so it must not be listed here.
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/news/*", "News Article", null));
+    pages.add(webPage("/news/a-real-article", "A Real Article", null));
+
+    String body = runDoGet(siteProperties("Acme", null, "https://example.org"), new HashMap<>(), new ArrayList<>(),
+        pages, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+
+    assertFalse(body.contains("/news/*"),
+        "a wildcard route template must not be advertised as a URL: " + body);
+    assertTrue(body.contains("https://example.org/news/a-real-article"),
+        "a real page under the same prefix must still appear: " + body);
+  }
+
+  @Test
   void doGetExcludesAWebPageThatHasNeverBeenPublished() throws Exception {
     // Blank page_xml means never-published, same conflation SitemapServlet already guards against
     WebPage neverPublished = webPage("/coming-soon", "Coming Soon", null);

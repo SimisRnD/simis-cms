@@ -369,6 +369,24 @@ class SitemapServletTest {
   }
 
   @Test
+  void doGetExcludesAWildcardRouteTemplate() throws Exception {
+    // Regression: a web page whose link ends in "/*" is a route template, not a page -- one record
+    // renders every URL beneath it (e.g. "/news/*" renders each news article). The literal string
+    // answers 404, so emitting it verbatim hands crawlers a URL that cannot resolve.
+    // PageServlet.computeCanonicalUrl() already excludes these links for the same reason.
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/news/*", "daily", null));
+    pages.add(webPage("/news/a-real-article", "daily", null));
+
+    String body = runDoGet(siteProperties(true, true), pages, new ArrayList<>());
+
+    assertFalse(body.contains("/news/*"),
+        "a wildcard route template must not be advertised as a URL: " + body);
+    assertTrue(body.contains("<loc>https://example.org/news/a-real-article</loc>"),
+        "a real page under the same prefix must still appear: " + body);
+  }
+
+  @Test
   void doGetExcludesAWebPageAGuestCannotAccess() throws Exception {
     // Regression: webPageEntries() never checked ValidateUserAccessToWebPageCommand.hasAccess(),
     // unlike LlmsTxtServlet's buildPagesSection() for this same entity -- a role/group-restricted
