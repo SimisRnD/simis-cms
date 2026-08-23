@@ -32,15 +32,73 @@ this VNet's subnet list, which is the disruptive kind.
 ''')
 param gatewaySubnetPrefix string = '10.20.255.0/27'
 
+@description('''
+Deploy a NAT Gateway on the app subnet so the App Service has a route to the public internet.
+The app runs with vnetRouteAllEnabled, which sends every outbound packet into this VNet -- and a
+VNet has no default internet path -- so without this the app cannot reach any external service.
+reCAPTCHA's server-side siteverify call and any outbound SMTP relay both fail in ways that look
+like bad credentials rather than a network fault.
+
+Also gives egress a single static address, which is what an SMTP relay or a partner API needs on
+its allow-list.
+''')
+param enableNatGateway bool = true
+
+@description('''
+Idle timeout for NAT Gateway SNAT flows. Raised above the 4-minute default because SMTP relays
+hold connections open between sends and a shorter timeout drops them mid-conversation.
+''')
+@minValue(4)
+@maxValue(120)
+param natIdleTimeoutInMinutes int = 10
+
 var appSubnetName = 'snet-app'
 var privateEndpointSubnetName = 'snet-private-endpoints'
 // Azure requires this exact name; the gateway will not deploy into anything else.
 var gatewaySubnetName = 'GatewaySubnet'
+var natGatewayName = 'nat-${namePrefix}'
+var natPublicIpName = 'pip-nat-${namePrefix}'
+
+// Egress path for the app subnet. Standard SKU and a static address are both required by NAT
+// Gateway; this address is the one to hand to an SMTP relay. Deliberately regional rather than
+// zonal -- a zonal NAT Gateway survives only its own zone, and pinning the single egress path to
+// one zone would turn a zone outage into a total outbound outage.
+resource natPublicIp 'Microsoft.Network/publicIPAddresses@2023-11-01' = if (enableNatGateway) {
+  name: natPublicIpName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+    publicIPAddressVersion: 'IPv4'
+    idleTimeoutInMinutes: 4
+  }
+}
+
+resource natGateway 'Microsoft.Network/natGateways@2023-11-01' = if (enableNatGateway) {
+  name: natGatewayName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    idleTimeoutInMinutes: natIdleTimeoutInMinutes
+    publicIpAddresses: [
+      {
+        id: natPublicIp.id
+      }
+    ]
+  }
+}
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
   name: 'vnet-${namePrefix}'
   location: location
   tags: tags
+  dependsOn: enableNatGateway ? [natGateway] : []
   properties: {
     addressSpace: {
       addressPrefixes: [vnetAddressPrefix]
@@ -51,6 +109,10 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
         name: appSubnetName
         properties: {
           addressPrefix: appSubnetPrefix
+          // Attached inline for the same reason the subnets are declared inline: a separate subnet
+          // child resource would race the VNet's own subnet list. Referenced by name rather than
+          // symbolically because the resource is conditional; the dependsOn below supplies ordering.
+          natGateway: enableNatGateway ? { id: resourceId('Microsoft.Network/natGateways', natGatewayName) } : null
           delegations: [
             {
               name: 'appservice-delegation'
