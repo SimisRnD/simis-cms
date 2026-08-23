@@ -122,6 +122,8 @@ class PageServletSecurityHeadersTest {
         "the nonce-based script-src must actually reach the browser, not be dropped by a later overwrite: " + actualCsp);
     assertTrue(actualCsp.contains("base-uri 'self'") && actualCsp.contains("object-src 'none'") && actualCsp.contains("frame-ancestors 'self'"),
         "the rest of the baseline policy must still be present: " + actualCsp);
+    assertTrue(actualCsp.contains("form-action 'self'"),
+        "form-action must be present so an injected form cannot post to another origin: " + actualCsp);
   }
 
   @Test
