@@ -158,6 +158,14 @@ resource keyVaultDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   tags: tags
 }
 
+// Azure Files private endpoint for the CMS_PATH share. Without this zone the app resolves the
+// storage account's public FQDN and the SMB mount never reaches the private endpoint.
+resource fileDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.file.${environment().suffixes.storage}'
+  location: 'global'
+  tags: tags
+}
+
 resource postgresDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: postgresDnsZone
   name: 'link-${namePrefix}'
@@ -182,12 +190,22 @@ resource keyVaultDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@
   }
 }
 
+resource fileDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: fileDnsZone
+  name: 'link-${namePrefix}'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
 output vnetId string = vnet.id
 output appSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, appSubnetName)
 output privateEndpointSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, privateEndpointSubnetName)
 output gatewaySubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, gatewaySubnetName)
 output postgresDnsZoneId string = postgresDnsZone.id
 output keyVaultDnsZoneId string = keyVaultDnsZone.id
-
-@description('Static outbound address for the app subnet; allow-list this at the SMTP relay.')
-output natGatewayPublicIp string = enableNatGateway ? natPublicIp.properties.ipAddress : ''
+output fileDnsZoneId string = fileDnsZone.id

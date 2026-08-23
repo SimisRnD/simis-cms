@@ -174,8 +174,12 @@ public class PageServlet extends HttpServlet {
     SECURE_RANDOM.nextBytes(nonceBytes);
     String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);
     request.setAttribute("cspNonce", cspNonce);
+    // form-action 'self' keeps an injected <form> from posting to an attacker's origin. Every form
+    // the platform serves is same-origin: the payment forms tokenize client-side through the
+    // Stripe/Square SDK and then post the token back here, so none of them are affected.
     response.setHeader("Content-Security-Policy",
-        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'nonce-" + cspNonce + "'");
+        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'nonce-"
+            + cspNonce + "'");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
