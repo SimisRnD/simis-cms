@@ -65,7 +65,12 @@ public class FolderDetailsWidget extends GenericWidget {
       // (and everything in it) is more destructive than deleting a file, which is already gated on
       // CheckFolderPermissionCommand.userHasDeletePermission -- without this, any user who can reach
       // the action could delete any folder by id.
-      if (folder == null || !CheckFolderPermissionCommand.userHasDeletePermission(folder.getId(), context.getUserId())) {
+      // The admin bypass matches SubFolderDetailsWidget.delete(), FolderFilesListWidget and
+      // FolderSubFoldersListWidget: userHasDeletePermission is purely folder_groups membership, so
+      // without it a folder whose groups grant no delete permission cannot be deleted by anyone at
+      // all, including an administrator.
+      if (folder == null || !(context.hasRole("admin")
+          || CheckFolderPermissionCommand.userHasDeletePermission(folder.getId(), context.getUserId()))) {
         context.setErrorMessage("Error. Folder could not be deleted.");
         context.setRedirect("/admin/folders");
         return context;
