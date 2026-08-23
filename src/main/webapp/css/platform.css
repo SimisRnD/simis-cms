@@ -251,6 +251,22 @@ p {
    above it (its own section, so it stays outside the tint), the individual
    white/callout tiles sit inside it. Radius is a step larger than the
    tiles' own ~4px so the nesting reads as deliberate, not accidental. */
+/* Horizontal geometry for the section label's own row.
+
+   The label lives in its own section (above) so it stays outside the group's tint. That section
+   was a plain .grid-container, which centres itself with margin:auto -- but every content section
+   below it also carries Foundation's .grid-margin-x, whose negative gutter margins overwrite that
+   auto margin and pin the content flush left. The two therefore disagree by half the leftover
+   width, so the label drifts further right the wider the window gets (360px at 2200px wide).
+
+   Matching the group's own -15px/20px horizontal box puts the label back above its tiles at every
+   width. Only the horizontal axis is copied: no background, border or vertical padding, so the
+   label still reads as sitting outside the panel. */
+.platform-dashboard-section {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
 .platform-dashboard-group {
   background-color: #eceef1;
   border: 1px solid #d9dce1;
