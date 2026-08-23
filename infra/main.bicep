@@ -143,6 +143,8 @@ module storage 'modules/storage.bicep' = {
     namePrefix: namePrefix
     tags: tags
     fileShareQuotaGb: fileShareQuotaGb
+    privateEndpointSubnetId: network.outputs.privateEndpointSubnetId
+    fileDnsZoneId: network.outputs.fileDnsZoneId
   }
 }
 
