@@ -299,7 +299,12 @@ public class SitemapServlet extends HttpServlet {
           // draft=true (draft only means it also has a pending edit -- see WebPageRepository.publish(),
           // the only place that clears page_xml, which always flips draft back to false in the same
           // statement). Blank pageXml is what correctly excludes a page that has never been published.
-          if (page != null && StringUtils.isNotBlank(page.getLink()) && StringUtils.isNotBlank(page.getPageXml())
+          // A link ending in "/*" is a wildcard route template, not a page: one web page record
+          // renders every URL beneath it (e.g. "/news/*" renders each news article). The literal
+          // string answers 404, so it must never reach a file that tells crawlers what to fetch.
+          // PageServlet.computeCanonicalUrl() already excludes these links for the same reason.
+          if (page != null && StringUtils.isNotBlank(page.getLink()) && !page.getLink().endsWith("/*")
+              && StringUtils.isNotBlank(page.getPageXml())
               && ValidateUserAccessToWebPageCommand.hasAccess(page.getLink(), anonymousSession)) {
             String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
             long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;

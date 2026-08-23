@@ -38,6 +38,19 @@
 .site-map-menu-tab .subheader {
   color: #82a8c5;
 }
+
+/* .site-map-container sets white-space:nowrap so the top-level tabs stay on one horizontal row.
+   That inherits into everything inside each tab, where it does the opposite of what's wanted:
+   since the boxes are a fixed 220px, a page path or item name longer than the box can't wrap and
+   paints outside it instead, over the neighbouring column and under the delete control.
+   Restoring normal wrapping on the boxes themselves fixes the labels without affecting the row --
+   the container's nowrap still governs breaks *between* the inline-block tabs. overflow-wrap
+   covers a long path with no natural break opportunity. */
+.site-map-menu-tab,
+.site-map-submenu-tab {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .site-map-submenu-tab {
   border: 1px solid #bcd8e8;
   border-radius: 5px;

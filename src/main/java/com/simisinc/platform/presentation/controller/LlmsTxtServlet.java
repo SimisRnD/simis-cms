@@ -262,7 +262,10 @@ public class LlmsTxtServlet extends HttpServlet {
 
       if (pages != null) {
         for (WebPage page : pages) {
-          if (page == null || StringUtils.isBlank(page.getLink()) || StringUtils.isBlank(page.getPageXml())
+          // Same wildcard-route exclusion SitemapServlet.webPageEntries() applies to this same
+          // entity: a "/news/*" style link is a route template whose literal form answers 404.
+          if (page == null || StringUtils.isBlank(page.getLink()) || page.getLink().endsWith("/*")
+              || StringUtils.isBlank(page.getPageXml())
               || !ValidateUserAccessToWebPageCommand.hasAccess(page.getLink(), anonymousSession)) {
             continue;
           }
