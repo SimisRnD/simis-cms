@@ -48,6 +48,31 @@ public class EmailCommand {
 
   private static Log LOG = LogFactory.getLog(EmailCommand.class);
 
+  /** The from address seeded by the installer (NEW_10000__new_database.sql) */
+  private static final String INSTALL_DEFAULT_FROM_ADDRESS = "auto-sender@site.local";
+
+  /**
+   * Whether outbound mail has actually been set up for this site.
+   *
+   * <p>A fresh install seeds working-looking values -- host {@code 127.0.0.1}, port 25, from
+   * {@code auto-sender@site.local} -- so a blank-host check reports "configured" on a site that
+   * cannot deliver anything. The from address is the reliable signal: a deployment that really
+   * relays through localhost still has to set a deliverable from address, because recipients
+   * reject {@code site.local}. So the seeded value being untouched means nobody configured mail.
+   *
+   * <p>Callers use this to avoid telling an admin that a message was sent when it could not be.
+   *
+   * @return true when the site has mail settings that could plausibly deliver
+   */
+  public static boolean isOutboundMailConfigured() {
+    if (StringUtils.isBlank(LoadSitePropertyCommand.loadByName("mail.host_name"))) {
+      return false;
+    }
+    String fromAddress = LoadSitePropertyCommand.loadByName("mail.from_address");
+    return StringUtils.isNotBlank(fromAddress)
+        && !INSTALL_DEFAULT_FROM_ADDRESS.equalsIgnoreCase(fromAddress.trim());
+  }
+
   public static ImageHtmlEmail prepareNewEmail() {
     return prepareNewEmail(null);
   }

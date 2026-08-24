@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.ProcessUserCSVFileCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
@@ -221,7 +222,16 @@ public class UsersListWidget extends GenericWidget {
     LOG.info("User is uploading a user file...");
     try {
       int userCount = ProcessUserCSVFileCommand.processCSV(context);
-      context.setSuccessMessage(userCount + " user" + (userCount != 1 ? "s" : "") + " added");
+      String addedMessage = userCount + " user" + (userCount != 1 ? "s" : "") + " added";
+      if (EmailCommand.isOutboundMailConfigured()) {
+        context.setSuccessMessage(addedMessage);
+      } else {
+        // Each imported user fires the same invitation event as the single-add path above, so a
+        // bulk import into an unconfigured site silently produces accounts nobody can sign in to
+        context.setWarningMessage(addedMessage + ", but no invitations could be sent because the site's mail "
+            + "settings have not been configured. Set them up under Admin > Email Settings; users can then use "
+            + "\"Forgot Password\" to set their passwords.");
+      }
     } catch (Exception e) {
       context.setErrorMessage(e.getMessage());
     }
@@ -409,8 +419,19 @@ public class UsersListWidget extends GenericWidget {
     User invitedBy = LoadUserCommand.loadUser(user.getCreatedBy());
     WorkflowManager.triggerWorkflowForEvent(new UserInvitedEvent(user, invitedBy));
 
-    // Determine the page to return to
-    context.setSuccessMessage("User was added, and an email invitation was sent with further instructions");
+    // Determine the page to return to. The invitation is queued as an async workflow job
+    // (EmailTask), so nothing has been delivered by the time this renders -- and on a site whose
+    // mail settings are still the installer's defaults it never will be. That matters more here
+    // than elsewhere: the invitation link is the only way an invited user sets a password, and
+    // there is no resend action, so an admin who trusts a false "was sent" leaves the person with
+    // no way in and no signal that anything is wrong.
+    if (EmailCommand.isOutboundMailConfigured()) {
+      context.setSuccessMessage("User was added, and an email invitation is on its way with further instructions");
+    } else {
+      context.setWarningMessage("User was added, but no invitation could be sent because the site's mail settings "
+          + "have not been configured. Set them up under Admin > Email Settings; the user can then use "
+          + "\"Forgot Password\" to set their password.");
+    }
     context.setRedirect("/admin/users");
     return context;
   }

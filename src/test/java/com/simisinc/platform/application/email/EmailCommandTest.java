@@ -19,6 +19,7 @@ package com.simisinc.platform.application.email;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
@@ -33,6 +34,9 @@ import javax.net.ssl.SSLException;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.SimpleEmail;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 /**
  * Covers {@link EmailCommand#categorizeSendFailure}, particularly the plain-{@link SocketException}
@@ -182,5 +186,56 @@ class EmailCommandTest {
     EmailCommand.applyTransportSecurity(email, "TRUE", "yes");
     assertFalse(email.isSSLOnConnect());
     assertFalse(email.isStartTLSEnabled());
+  }
+
+  private MockedStatic<LoadSitePropertyCommand> mailSettings(String hostName, String fromAddress) {
+    MockedStatic<LoadSitePropertyCommand> m = mockStatic(LoadSitePropertyCommand.class);
+    m.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn(hostName);
+    m.when(() -> LoadSitePropertyCommand.loadByName("mail.from_address")).thenReturn(fromAddress);
+    return m;
+  }
+
+  @Test
+  void aFreshInstallIsNotConfiguredForOutboundMail() {
+    // The installer seeds working-looking values, which is exactly what a blank-host check misses
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("127.0.0.1", "auto-sender@site.local")) {
+      assertFalse(EmailCommand.isOutboundMailConfigured());
+    }
+  }
+
+  @Test
+  void theSeededFromAddressIsRecognizedRegardlessOfCaseOrPadding() {
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("smtp.example.com", "  Auto-Sender@Site.Local  ")) {
+      assertFalse(EmailCommand.isOutboundMailConfigured());
+    }
+  }
+
+  @Test
+  void aBlankHostIsNotConfiguredForOutboundMail() {
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("", "postmaster@example.com")) {
+      assertFalse(EmailCommand.isOutboundMailConfigured());
+    }
+  }
+
+  @Test
+  void aBlankFromAddressIsNotConfiguredForOutboundMail() {
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("smtp.example.com", null)) {
+      assertFalse(EmailCommand.isOutboundMailConfigured());
+    }
+  }
+
+  @Test
+  void aRealRelayIsConfiguredForOutboundMail() {
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("smtp.example.com", "postmaster@example.com")) {
+      assertTrue(EmailCommand.isOutboundMailConfigured());
+    }
+  }
+
+  @Test
+  void aLocalhostRelayWithARealFromAddressIsConfiguredForOutboundMail() {
+    // Relaying through a local MTA is a valid setup -- the host alone must not condemn it
+    try (MockedStatic<LoadSitePropertyCommand> m = mailSettings("127.0.0.1", "postmaster@example.com")) {
+      assertTrue(EmailCommand.isOutboundMailConfigured());
+    }
   }
 }

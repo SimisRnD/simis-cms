@@ -138,7 +138,54 @@ class UserFormWidgetTest extends WidgetBase {
       new UserFormWidget().post(widgetContext);
     }
     Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
-    Assertions.assertNull(widgetContext.getRedirect());
+    Assertions.assertNotNull(widgetContext.getRedirect(),
+        "the prompt must come back on a URL that still identifies the record being edited");
+    Assertions.assertTrue(widgetContext.getRedirect().contains("userId=-1"),
+        "the New User form must return to itself, not to an edit of some other record");
+  }
+
+  @Test
+  void postWithoutStepUpKeepsTheRecordBeingEdited() throws Exception {
+    // Regression: the step-up prompt used to re-render the form without carrying the submitted bean,
+    // and the redirect dropped the userId. execute() then fell back to new User(), so the prompt came
+    // back as an empty form with id="-1" -- the editor's selections were gone and the next submit
+    // would have created a user instead of updating this one. The two-step prompt could therefore
+    // never be completed for an existing user, which made every role/group change impossible.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "groupId2", "2");
+
+    Group allEmployees = new Group("All Employees", "all-employees");
+    allEmployees.setId(2L);
+    User target = new User();
+    target.setId(42L);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(List.of(allEmployees));
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verifyNoInteractions();
+    }
+
+    Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+    Assertions.assertNotNull(widgetContext.getRedirect(),
+        "the prompt must come back on a URL that still identifies the record being edited");
+    Assertions.assertTrue(widgetContext.getRedirect().contains("userId=42"),
+        "the prompt must return to the same user, otherwise the next submit becomes a create");
+
+    User redisplayed = (User) widgetContext.getRequestObject();
+    Assertions.assertNotNull(redisplayed, "the submitted record must travel with the prompt");
+    Assertions.assertEquals(42L, redisplayed.getId().longValue(),
+        "user-form.jsp renders the hidden id from this bean; losing it turns the next submit into a create");
+    List<String> names = redisplayed.getGroupList().stream().map(Group::getName).toList();
+    Assertions.assertTrue(names.contains("All Employees"),
+        "the selections being confirmed must survive the prompt, or the editor has to re-enter them");
   }
 
   @Test
