@@ -9,7 +9,7 @@
         </widget>
       </column>
     </section>
-    <section class="grid-container">
+    <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<h5 class="platform-dashboard-section-label">Activity</h5>]]></html>
@@ -39,7 +39,7 @@
         </widget>
       </column>
     </section>
-    <section class="grid-container">
+    <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<h5 class="platform-dashboard-section-label">Security</h5>]]></html>
@@ -80,7 +80,7 @@
         </widget>
       </column>
     </section>
-    <section class="grid-container">
+    <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<h5 class="platform-dashboard-section-label">Deliverability</h5>]]></html>
@@ -97,7 +97,7 @@
         </widget>
       </column>
     </section>
-    <section class="grid-container">
+    <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<h5 class="platform-dashboard-section-label">Workflow</h5>]]></html>
@@ -138,7 +138,7 @@
         </widget>
       </column>
     </section>
-    <section class="grid-container">
+    <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<h5 class="platform-dashboard-section-label">Insights</h5>]]></html>
