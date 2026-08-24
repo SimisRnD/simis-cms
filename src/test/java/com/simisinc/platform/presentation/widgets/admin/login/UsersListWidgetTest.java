@@ -37,6 +37,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -119,7 +120,11 @@ class UsersListWidgetTest extends WidgetBase {
         MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<EmailCommand> emailCmd = mockStatic(EmailCommand.class)) {
+      // The add-user path now checks whether mail is set up before it claims an invitation
+      // was sent; these tests are about roles, so keep them on the configured-mail path
+      emailCmd.when(EmailCommand::isOutboundMailConfigured).thenReturn(true);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
@@ -149,7 +154,11 @@ class UsersListWidgetTest extends WidgetBase {
         MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<EmailCommand> emailCmd = mockStatic(EmailCommand.class)) {
+      // The add-user path now checks whether mail is set up before it claims an invitation
+      // was sent; these tests are about roles, so keep them on the configured-mail path
+      emailCmd.when(EmailCommand::isOutboundMailConfigured).thenReturn(true);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
@@ -178,7 +187,11 @@ class UsersListWidgetTest extends WidgetBase {
         MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<EmailCommand> emailCmd = mockStatic(EmailCommand.class)) {
+      // The add-user path now checks whether mail is set up before it claims an invitation
+      // was sent; these tests are about roles, so keep them on the configured-mail path
+      emailCmd.when(EmailCommand::isOutboundMailConfigured).thenReturn(true);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
@@ -256,7 +269,11 @@ class UsersListWidgetTest extends WidgetBase {
         MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<EmailCommand> emailCmd = mockStatic(EmailCommand.class)) {
+      // The add-user path now checks whether mail is set up before it claims an invitation
+      // was sent; these tests are about roles, so keep them on the configured-mail path
+      emailCmd.when(EmailCommand::isOutboundMailConfigured).thenReturn(true);
       roleRepo.when(RoleRepository::findAll).thenReturn(rolesWithoutCommunityManager);
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
@@ -478,7 +495,11 @@ class UsersListWidgetTest extends WidgetBase {
         MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<EmailCommand> emailCmd = mockStatic(EmailCommand.class)) {
+      // The add-user path now checks whether mail is set up before it claims an invitation
+      // was sent; these tests are about roles, so keep them on the configured-mail path
+      emailCmd.when(EmailCommand::isOutboundMailConfigured).thenReturn(true);
       roleRepo.when(RoleRepository::findAll).thenReturn(Collections.emptyList());
       groupRepo.when(GroupRepository::findAll).thenReturn(Collections.emptyList());
       saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(saved);
