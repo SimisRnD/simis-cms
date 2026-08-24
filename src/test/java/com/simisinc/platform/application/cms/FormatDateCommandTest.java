@@ -128,4 +128,53 @@ class FormatDateCommandTest {
       Assertions.assertEquals(ZoneId.systemDefault(), FormatDateCommand.getSiteZoneId());
     }
   }
+
+  // --- formatDateTimeInput(): the value that goes back into a date/time form input -------------
+  // PageServlet registers a SqlTimestampConverter with pattern "MM-dd-yyyy HH:mm" and the site
+  // timezone. A form pre-filled with the raw Timestamp ("2026-10-15 13:00:00.0") does not match
+  // that pattern, so BeanUtils converts it to null and the save fails -- these pin the format.
+
+  @Test
+  void formatDateTimeInputUsesTheConverterPatternInTheSiteZone() {
+    // 2026-10-15T13:00:00Z is 09:00 in New York (UTC-4 in October)
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-10-15T13:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      Assertions.assertEquals("10-15-2026 09:00", FormatDateCommand.formatDateTimeInput(timestamp));
+    }
+  }
+
+  @Test
+  void formatDateTimeInputReturnsEmptyForNullSoTheInputRendersBlank() {
+    Assertions.assertEquals("", FormatDateCommand.formatDateTimeInput(null));
+  }
+
+  @Test
+  void formatDateTimeInputRoundTripsThroughTheConvertersPattern() throws Exception {
+    // The regression guard: whatever this emits must parse back, in the same zone, to the same
+    // instant (to the minute -- the pattern carries no seconds).
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-10-15T13:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      String rendered = FormatDateCommand.formatDateTimeInput(timestamp);
+
+      java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("MM-dd-yyyy HH:mm");
+      parser.setTimeZone(java.util.TimeZone.getTimeZone(ZoneId.of("America/New_York")));
+      Date parsed = parser.parse(rendered);
+
+      Assertions.assertEquals(timestamp.toInstant().getEpochSecond() / 60, parsed.toInstant().getEpochSecond() / 60,
+          "the pre-filled form value must convert back to the instant it came from");
+    }
+  }
+
+  @Test
+  void formatDateTimeInputHonorsDaylightSavingBoundaries() {
+    // Late November is EST (UTC-5); the same wall-clock hour maps to a different UTC instant than
+    // it would in October, so a hard-coded offset would fail this.
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-11-30T14:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      Assertions.assertEquals("11-30-2026 09:00", FormatDateCommand.formatDateTimeInput(timestamp));
+    }
+  }
 }
