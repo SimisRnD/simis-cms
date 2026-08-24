@@ -94,23 +94,6 @@ public class UserFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    // Require a recent step-up before saving role or group changes
-    String stepUpCredential = context.getParameter("stepUpCredential");
-    if (!StepUpAuthCommand.isValid(context.getUserSession())) {
-      if (StringUtils.isBlank(stepUpCredential)) {
-        context.addSharedRequestValue("stepUpRequired", "true");
-        context.setJsp(JSP);
-        return context;
-      }
-      User actingUser = LoadUserCommand.loadUser(context.getUserId());
-      if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
-        context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
-        context.addSharedRequestValue("stepUpRequired", "true");
-        context.setJsp(JSP);
-        return context;
-      }
-    }
-
     // Populate the fields
     User userBean = new User();
     BeanUtils.populate(userBean, context.getParameterMap());
@@ -168,6 +151,12 @@ public class UserFormWidget extends GenericWidget {
       userBean.setGroupList(userGroupList);
     }
 
+    // Require a recent step-up before saving role or group changes. This runs after the bean is
+    // populated so the prompt can redisplay what was submitted -- see redisplayForStepUp().
+    if (!isStepUpSatisfied(context, userBean)) {
+      return context;
+    }
+
     // An existing id means an edit; a new record is a create
     boolean isUpdate = userBean.getId() > -1;
     String eventType = isUpdate ? "user.update" : "user.create";
@@ -199,6 +188,42 @@ public class UserFormWidget extends GenericWidget {
     context.setRedirect("/admin/user-details?userId=" + user.getId());
     return context;
 
+  }
+
+  /**
+   * Whether the acting user has satisfied step-up authentication for this save. When they have not,
+   * the form is redisplayed with the prompt and this returns false, leaving the caller to return the
+   * context untouched -- nothing is written.
+   */
+  private boolean isStepUpSatisfied(WidgetContext context, User userBean) {
+    if (StepUpAuthCommand.isValid(context.getUserSession())) {
+      return true;
+    }
+    String stepUpCredential = context.getParameter("stepUpCredential");
+    if (StringUtils.isNotBlank(stepUpCredential)) {
+      User actingUser = LoadUserCommand.loadUser(context.getUserId());
+      if (StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+        return true;
+      }
+      context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+    }
+    redisplayForStepUp(context, userBean);
+    return false;
+  }
+
+  /**
+   * Redisplay the form with the step-up prompt, carrying the submitted record back to the JSP.
+   *
+   * <p>The bean has to travel with the redisplay. user-form.jsp renders the hidden id from the "user"
+   * request attribute, and UserFormWidget#execute falls back to <code>new User()</code> when neither a
+   * request object nor a resolvable userId parameter is present. Without both of these the prompt came
+   * back as an empty form with id="-1", which discarded the editor's selections and turned the very
+   * next submit into a create -- so the two-step prompt could never be completed for an existing user.
+   */
+  private void redisplayForStepUp(WidgetContext context, User userBean) {
+    context.addSharedRequestValue("stepUpRequired", "true");
+    context.setRequestObject(userBean);
+    context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
   }
 
   /**
