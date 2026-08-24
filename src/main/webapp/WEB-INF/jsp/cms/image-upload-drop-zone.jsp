@@ -42,7 +42,9 @@
     <input name="file" type="file" accept="image/*" multiple />
   </div>
 </form>
-<div id="upload-errors" role="alert" aria-live="assertive" class="callout alert"></div>
+<%-- Kept in the DOM (empty) so aria-live announces into it; the callout/alert styling is added by
+     dropzone-setup.js only while a message is present, or it paints an empty red box on every load --%>
+<div id="upload-errors" role="alert" aria-live="assertive"></div>
 <div id="upload-status" role="status" aria-live="polite"></div>
 <button type="button" class="button secondary no-gap" id="dz-browse">Browse Files</button>
 <button class="button primary no-gap" id="submit-all" disabled>Upload All Files</button>
