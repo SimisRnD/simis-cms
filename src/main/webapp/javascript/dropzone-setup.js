@@ -19,11 +19,27 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
       var noticeCount  = 0;
       var myDropzone = this;
 
+      // The region stays in the DOM (empty) so its aria-live announces reliably, but it must not
+      // paint as an alert while it holds nothing -- with the callout/alert classes hard-coded in
+      // the markup it rendered an empty red box under the drop target on every page load. Add the
+      // styling only while a message is showing.
+      function addUploadMessage(text) {
+        var msg = document.createElement('p');
+        msg.textContent = text;
+        errorRegion.appendChild(msg);
+        errorRegion.classList.add('callout', 'alert');
+      }
+
+      function clearUploadMessages() {
+        errorRegion.innerHTML = '';
+        errorRegion.classList.remove('callout', 'alert');
+      }
+
       submitButton.addEventListener("click", function() {
         errorCount = 0;
         successCount = 0;
         noticeCount = 0;
-        errorRegion.innerHTML = '';
+        clearUploadMessages();
         statusRegion.textContent = '';
         myDropzone.processQueue();
       });
@@ -45,9 +61,7 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
             file.previewElement.classList.remove('dz-success');
             file.previewElement.classList.add('dz-error');
           }
-          var msg = document.createElement('p');
-          msg.textContent = file.name + ': ' + response.error;
-          errorRegion.appendChild(msg);
+          addUploadMessage(file.name + ': ' + response.error);
         } else {
           successCount++;
           // The file itself uploaded, but something optional alongside it did not (issue #1197: the
@@ -56,9 +70,7 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
           // exactly what made that issue so hard to diagnose from the UI.
           if (response && typeof response === 'object' && response.libraryError) {
             noticeCount++;
-            var notice = document.createElement('p');
-            notice.textContent = file.name + ': ' + response.libraryError;
-            errorRegion.appendChild(notice);
+            addUploadMessage(file.name + ': ' + response.libraryError);
           }
         }
         myDropzone.processQueue();
@@ -66,9 +78,7 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
 
       this.on("error", function(file, message) {
         errorCount++;
-        var msg = document.createElement('p');
-        msg.textContent = file.name + ': ' + (typeof message === 'string' ? message : (message.error || 'Upload failed'));
-        errorRegion.appendChild(msg);
+        addUploadMessage(file.name + ': ' + (typeof message === 'string' ? message : (message.error || 'Upload failed')));
       });
 
       this.on("queuecomplete", function() {
@@ -89,7 +99,7 @@ function initializeDropzone(containerId, maxFilesize, acceptedFiles) {
         errorCount = 0;
         successCount = 0;
         noticeCount = 0;
-        errorRegion.innerHTML = '';
+        clearUploadMessages();
         statusRegion.textContent = '';
         submitButton.disabled = true;
       });
