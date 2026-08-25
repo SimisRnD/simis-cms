@@ -36,6 +36,17 @@ class SocialMediaLinkTest {
   }
 
   @Test
+  void getIconClassResolvesRssEvenThoughItIsNotABrandGlyph() {
+    // Every other entry is a FontAwesome Brands glyph. RSS is a format rather than a company, so
+    // its icon comes from Free (solid) instead -- worth pinning, because the widget renders the
+    // shared "fa" prefix and relies on v4-shims to pick the right family. If the bundled shim
+    // stopped covering Free, this would silently fall through to fa-link like any unknown name.
+    assertEquals("fa-rss", iconFor("RSS"));
+    assertEquals("fa-rss", iconFor("rss"));
+    assertEquals("fa-rss", iconFor("  Rss  "));
+  }
+
+  @Test
   void getIconClassResolvesTwitterAndXToTheSameCurrentLogo() {
     // Twitter rebranded to X in 2023 -- both names should resolve to the current X glyph
     assertEquals("fa-x-twitter", iconFor("Twitter"));
