@@ -36,6 +36,9 @@ public class BlogPostSpecification {
   // archived rows (the default, unchanged for any caller that never sets this), TRUE returns only
   // archived rows, FALSE excludes them.
   private int archivedOnly = DataConstants.UNDEFINED;
+  // Syndication opt-out (#1419): UNDEFINED ignores the column entirely (the default, so no
+  // existing caller changes behaviour), TRUE returns only opted-out posts, FALSE excludes them.
+  private int excludedFromFeed = DataConstants.UNDEFINED;
   private int startDateIsBeforeNow = DataConstants.UNDEFINED;
   private int isWithinEndDate = DataConstants.UNDEFINED;
   // issue #426 (editorial calendar): matches a post whose startDate OR endDate falls within
@@ -101,6 +104,18 @@ public class BlogPostSpecification {
 
   public void setPublishedOnly(int publishedOnly) {
     this.publishedOnly = publishedOnly;
+  }
+
+  public int getExcludedFromFeed() {
+    return excludedFromFeed;
+  }
+
+  public void setExcludedFromFeed(boolean excludedFromFeed) {
+    this.excludedFromFeed = (excludedFromFeed ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public void setExcludedFromFeed(int excludedFromFeed) {
+    this.excludedFromFeed = excludedFromFeed;
   }
 
   public int getArchivedOnly() {

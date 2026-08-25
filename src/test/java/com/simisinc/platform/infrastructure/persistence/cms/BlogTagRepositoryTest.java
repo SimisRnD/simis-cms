@@ -294,7 +294,9 @@ class BlogTagRepositoryTest {
           + "draft_status VARCHAR(20), "
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
-          + "release_reference VARCHAR(255))");
+          + "release_reference VARCHAR(255), "
+          // #1419: per-post syndication opt-out; FeedServlet filters on it
+          + "exclude_from_feed BOOLEAN NOT NULL DEFAULT false)");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "

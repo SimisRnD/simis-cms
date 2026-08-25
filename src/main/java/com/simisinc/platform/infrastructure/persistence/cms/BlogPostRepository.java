@@ -82,6 +82,13 @@ public class BlogPostRepository {
       } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
         where.add("archived IS NULL");
       }
+      // Syndication opt-out (#1419). UNDEFINED leaves the column alone, so every caller that
+      // does not ask about it keeps its existing result set.
+      if (specification.getExcludedFromFeed() == DataConstants.TRUE) {
+        where.add("exclude_from_feed = true");
+      } else if (specification.getExcludedFromFeed() == DataConstants.FALSE) {
+        where.add("exclude_from_feed = false");
+      }
       if (specification.getStartDateIsBeforeNow() != DataConstants.UNDEFINED) {
         if (specification.getStartDateIsBeforeNow() == DataConstants.TRUE) {
           // Show the ones which are active
@@ -218,6 +225,7 @@ public class BlogPostRepository {
         .add("modified_by", record.getModifiedBy())
         .add("published", record.getPublished())
         .add("archived", record.getArchived())
+        .add("exclude_from_feed", record.getExcludeFromFeed())
         .add("start_date", record.getStartDate())
         .add("end_date", record.getEndDate())
         .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
@@ -269,6 +277,7 @@ public class BlogPostRepository {
         .add("modified", new Timestamp(System.currentTimeMillis()))
         .add("published", record.getPublished())
         .add("archived", record.getArchived())
+        .add("exclude_from_feed", record.getExcludeFromFeed())
         .add("start_date", record.getStartDate())
         .add("end_date", record.getEndDate())
         .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
@@ -378,6 +387,7 @@ public class BlogPostRepository {
       record.setModified(rs.getTimestamp("modified"));
       record.setPublished(rs.getTimestamp("published"));
       record.setArchived(rs.getTimestamp("archived"));
+      record.setExcludeFromFeed(rs.getBoolean("exclude_from_feed"));
       record.setStartDate(rs.getTimestamp("start_date"));
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setKeywords(rs.getString("keywords"));

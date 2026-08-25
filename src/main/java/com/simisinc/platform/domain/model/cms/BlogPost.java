@@ -45,6 +45,10 @@ public class BlogPost extends Entity implements Reviewable {
   private Timestamp modified = null;
   private Timestamp published = null;
   private Timestamp archived = null;
+  // Syndication opt-out (#1419): the post stays published, searchable and at its own URL, but
+  // FeedServlet leaves it out of the RSS/Atom feeds. Distinct from archived, which hides a post
+  // from every public surface at once.
+  private boolean excludeFromFeed = false;
   private Timestamp startDate = null;
   private Timestamp endDate = null;
   private double latitude = 0.0;
@@ -180,6 +184,14 @@ public class BlogPost extends Entity implements Reviewable {
 
   public void setPublished(Timestamp published) {
     this.published = published;
+  }
+
+  public boolean getExcludeFromFeed() {
+    return excludeFromFeed;
+  }
+
+  public void setExcludeFromFeed(boolean excludeFromFeed) {
+    this.excludeFromFeed = excludeFromFeed;
   }
 
   public Timestamp getArchived() {
