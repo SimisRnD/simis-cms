@@ -182,13 +182,7 @@ RUN groupadd --gid ${APP_GID} simis \
          /usr/local/tomcat/bin/setenv.sh
 USER simis
 
-# -Duser.language/-Duser.country give the JVM a determinate default locale. The base image sets no
-# LANG, so without these the default locale is undetermined, and JSTL's <fmt:formatDate> silently
-# prints the raw value instead of applying its pattern whenever it cannot resolve a formatting
-# locale for the request (issue #1385). Set as JVM properties rather than ENV LANG because the
-# base image does not ship generated locales. Requests carrying Accept-Language still format in
-# their own locale; this only supplies the fallback.
-ENV CATALINA_OPTS="-javaagent:/opt/applicationinsights-agent.jar -Duser.language=en -Duser.country=US -XX:InitialRAMPercentage=10 -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XX:+ExitOnOutOfMemoryError"
+ENV CATALINA_OPTS="-javaagent:/opt/applicationinsights-agent.jar -XX:InitialRAMPercentage=10 -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XX:+ExitOnOutOfMemoryError"
 # 8080 is deliberately unprivileged -- a non-root process cannot bind <1024.
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 CMD curl -f --max-time 5 http://localhost:8080/healthz || exit 1
