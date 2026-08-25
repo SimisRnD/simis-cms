@@ -335,7 +335,9 @@ class SaveBlogPostCommandTest {
           // which made both of these NOT NULL on the real table -- BlogPostRepository.add() now
           // sets translation_group unconditionally, so this schema needs the column too.
           + "locale VARCHAR(35) NOT NULL DEFAULT 'en', "
-          + "translation_group VARCHAR(255) NOT NULL)");
+          + "translation_group VARCHAR(255) NOT NULL, "
+          // #1419: per-post syndication opt-out; FeedServlet filters on it
+          + "exclude_from_feed BOOLEAN NOT NULL DEFAULT false)");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
       statement.execute("CREATE UNIQUE INDEX uq_blog_posts_group_locale ON blog_posts (translation_group, locale)");
       // BlogPostRepository.findById() also loads tags; these are otherwise-unused by this test

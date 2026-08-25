@@ -165,6 +165,20 @@ class FeedServletTest {
   }
 
   @Test
+  void doGetLeavesOutPostsFlaggedToSkipTheFeed() throws Exception {
+    // #1419: a post can opt out of syndication while staying published and searchable. Archiving
+    // would hide it from the site too, which is a different editorial decision.
+    ArgumentCaptor<BlogPostSpecification> specCaptor = ArgumentCaptor.forClass(BlogPostSpecification.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGet(siteProperties(true, true), null, List.of(post(1L, "first-post", "First Post")), blog, blog,
+        mock(HttpServletResponse.class), specCaptor);
+
+    assertEquals(DataConstants.FALSE, specCaptor.getValue().getExcludedFromFeed(),
+        "the feed must ask for posts that have not opted out");
+  }
+
+  @Test
   void doGetSkipsAPostWhoseBlogIsDisabled() throws Exception {
     // A disabled blog's posts are not public even when the post itself is published
     Blog disabled = blog(1L, "news", false);
