@@ -64,6 +64,10 @@ public class BlogPost extends Entity implements Reviewable {
   private String county = null;
   private String imageUrl = null;
   private String videoUrl = null;
+  // Curated link posts (#1420): the original article this post points at. When set, the headline,
+  // "read more" and the feed entry's rel="alternate" link resolve here instead of this post's own
+  // page; the permalink still exists and remains the feed entry's <id>.
+  private String sourceUrl = null;
   private String videoEmbed = null;
   private String scriptEmbed = null;
   //  private String fileUrl = null;
@@ -312,6 +316,19 @@ public class BlogPost extends Entity implements Reviewable {
 
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
+  }
+
+  public String getSourceUrl() {
+    return sourceUrl;
+  }
+
+  public void setSourceUrl(String sourceUrl) {
+    this.sourceUrl = sourceUrl;
+  }
+
+  /** True when this post points at someone else's article rather than its own page. */
+  public boolean getHasSourceUrl() {
+    return sourceUrl != null && !sourceUrl.trim().isEmpty();
   }
 
   public String getVideoUrl() {

@@ -73,7 +73,16 @@
         <div class="platform-blog-list-item">
           <div class="platform-blog-title">
             <h3>
-              <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
+              <c:choose>
+                <c:when test="${blogPost.hasSourceUrl}"><%--
+                  #1420: a curated post points at someone else's article, so the headline goes
+                  straight there. The post keeps its own permalink for the feed's <id>. --%>
+                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-fw fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
+                </c:when>
+                <c:otherwise>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
+                </c:otherwise>
+              </c:choose>
               <c:if test="${!empty blogPost.city}">
                 <span class="platform-blog-city"><c:out value="${blogPost.city}"/></span>
               </c:if>
@@ -116,7 +125,7 @@
                     <small>
                       <i class="fa fa-tag"></i>
                       <c:forEach items="${blogPost.tagsList}" var="tag">
-                        <span class="label secondary"><c:out value="${tag}"/></span>
+                        <span class="label secondary" data-tag="<c:out value="${tag}"/>"><c:out value="${tag}"/></span>
                       </c:forEach>
                     </small>
                   </div>
@@ -128,7 +137,14 @@
             <div class="grid-x grid-margin-x">
               <div class="small-12 cell">
                   ${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}
-                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
+                <c:choose>
+                  <c:when test="${blogPost.hasSourceUrl}">
+                    <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the article<span class="show-for-sr"> (opens in a new tab)</span></a>
+                  </c:when>
+                  <c:otherwise>
+                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
+                  </c:otherwise>
+                </c:choose>
               </div>
             </div>
           </div>

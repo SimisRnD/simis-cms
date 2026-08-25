@@ -36,4 +36,15 @@
         <function-class>com.simisinc.platform.application.cms.UrlCommand</function-class>
         <function-signature>java.lang.String encodeUri(java.lang.String)</function-signature>
     </function>
+    <function>
+        <description>
+            Returns the url when it is safe to place in an href/src attribute -- a site-relative
+            path, anchor, or an http(s)/mailto/tel absolute url with no attribute-breakout
+            characters -- otherwise an empty string. Active schemes such as javascript: and data:
+            are rejected, as are protocol-relative "//" targets.
+        </description>
+        <name>sanitize</name>
+        <function-class>com.simisinc.platform.application.cms.UrlCommand</function-class>
+        <function-signature>java.lang.String sanitizeForAttribute(java.lang.String)</function-signature>
+    </function>
 </taglib>

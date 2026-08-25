@@ -286,6 +286,49 @@ class FeedServletTest {
     assertEquals("1970-01-01T00:00:00Z", FeedServlet.formatDate(null));
   }
 
+  // --- curated link posts (#1420) ---------------------------------------------------------------
+
+  @Test
+  void doGetPointsRelAlternateAtTheSourceButKeepsThePermalinkAsTheId() throws Exception {
+    // A curation feed's entry link has to be the article; a stub page makes the feed useless.
+    // <id> must NOT follow it: Atom requires a permanent, unique identifier, and two posts citing
+    // the same article would collide.
+    BlogPost post = post(1L, "first-post", "First Post");
+    post.setSourceUrl("https://example.org/some-article");
+
+    String body = runSiteWideFeed(siteProperties(true, true), List.of(post), blog(1L, "news", true));
+
+    assertTrue(body.contains("<link rel=\"alternate\" href=\"https://example.org/some-article\"/>"),
+        "rel=alternate must be the source article: " + body);
+    assertTrue(body.contains("<id>") && body.contains("/news/first-post</id>"),
+        "the id must stay the post's own permalink: " + body);
+    assertTrue(body.contains("<link rel=\"related\"") && body.contains("/news/first-post\"/>"),
+        "the commentary page must stay reachable as rel=related: " + body);
+  }
+
+  @Test
+  void doGetKeepsTheInternalLinkWhenNoSourceUrlIsSet() throws Exception {
+    String body = runSiteWideFeed(siteProperties(true, true),
+        List.of(post(1L, "first-post", "First Post")), blog(1L, "news", true));
+
+    assertTrue(body.contains("<link rel=\"alternate\"") && body.contains("/news/first-post"),
+        "an ordinary post still links to its own page: " + body);
+    assertFalse(body.contains("rel=\"related\""), "no related link without a source url: " + body);
+  }
+
+  @Test
+  void doGetRefusesAnUnsafeSourceUrlRatherThanEmittingIt() throws Exception {
+    // Defense in depth: save-time validation rejects non-http(s), but a value arriving another way
+    // must not reach the feed either.
+    BlogPost post = post(1L, "first-post", "First Post");
+    post.setSourceUrl("javascript:alert(1)");
+
+    String body = runSiteWideFeed(siteProperties(true, true), List.of(post), blog(1L, "news", true));
+
+    assertFalse(body.contains("javascript:"), "an active-scheme url must never be emitted: " + body);
+    assertTrue(body.contains("/news/first-post"), "it falls back to the permalink: " + body);
+  }
+
   // --- ordering ------------------------------------------------------------------------------
   // The feed caps at MAX_ENTRIES. Without an ORDER BY the database returned rows in arbitrary
   // order, so on a bulk-imported site the cap kept the oldest posts and nothing recent was ever
