@@ -54,16 +54,16 @@
     <h1><c:out value="${calendarEvent.title}" /></h1>
     <c:choose>
       <c:when test="${calendarEvent.allDay}">
-        <c:if test="${startDateTime ne endDateTime}">
-          <p class="platform-calendar-event-date">
-            <i class="fa fa-calendar-o fa-fw"></i>
-            ${date:format(calendarEvent.startDate, "MMMM d, yyyy")}
-            <c:if test="${startDateTime ne endDateTime}">
-              -
-              ${date:format(calendarEvent.endDate, "MMMM d, yyyy")}
-            </c:if>
-          </p>
-        </c:if>
+        <%-- A single-day all-day event still has a date worth showing; only the range
+             is conditional, which the inner test below handles. --%>
+        <p class="platform-calendar-event-date">
+          <i class="fa fa-calendar-o fa-fw"></i>
+          ${date:format(calendarEvent.startDate, "MMMM d, yyyy")}
+          <c:if test="${startDateTime ne endDateTime}">
+            -
+            ${date:format(calendarEvent.endDate, "MMMM d, yyyy")}
+          </c:if>
+        </p>
       </c:when>
       <c:otherwise>
         <p class="platform-calendar-event-date">

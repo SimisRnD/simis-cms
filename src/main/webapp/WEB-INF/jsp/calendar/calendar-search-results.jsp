@@ -115,16 +115,16 @@
           <c:set var="endTime" scope="request"><fmt:formatDate pattern="h:mm a" value="${calendarEvent.endDate}" /></c:set>
           <c:choose>
             <c:when test="${calendarEvent.allDay}">
-              <c:if test="${startDateTime ne endDateTime}">
-                <p class="platform-calendar-event-date">
-                  <i class="fa fa-calendar-o fa-fw"></i>
-                  <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" />
-                  <c:if test="${startDateTime ne endDateTime}">
-                    -
-                    <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.endDate}" />
-                  </c:if>
-                </p>
-              </c:if>
+              <%-- A single-day all-day event still has a date worth showing; only the range
+                   is conditional, which the inner test below handles. --%>
+              <p class="platform-calendar-event-date">
+                <i class="fa fa-calendar-o fa-fw"></i>
+                <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" />
+                <c:if test="${startDateTime ne endDateTime}">
+                  -
+                  <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.endDate}" />
+                </c:if>
+              </p>
             </c:when>
             <c:otherwise>
               <p class="platform-calendar-event-date">
