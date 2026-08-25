@@ -52,7 +52,14 @@ public class SocialMediaLink extends Entity {
       Map.entry("mastodon", "fa-mastodon"),
       Map.entry("tiktok", "fa-tiktok"),
       Map.entry("discord", "fa-discord"),
-      Map.entry("github", "fa-github"));
+      Map.entry("github", "fa-github"),
+      // The only non-Brands entry: RSS is a format, not a company, so its glyph lives in
+      // FontAwesome Free (solid, weight 900) rather than Brands (400). The "fa" prefix the widget
+      // renders resolves either family via v4-shims, so no markup change is needed -- and unlike
+      // fa-x-twitter above, this glyph already ships in the bundled Free 6.1.1 set and needed no
+      // hand-vendoring. At fa-2x it renders 28x32, the same box as fa-linkedin and fa-instagram,
+      // so it lines up with the other icons in the footer row.
+      Map.entry("rss", "fa-rss"));
   // Bundled FontAwesome Free 6.1.1 predates Threads/Bluesky glyphs, and any future/custom
   // platform name has no known icon at all -- fall back to a generic link icon.
   private static final String DEFAULT_ICON = "fa-link";
