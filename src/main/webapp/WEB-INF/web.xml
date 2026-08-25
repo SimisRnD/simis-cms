@@ -20,6 +20,33 @@
          version="6.1">
   <display-name>App Platform</display-name>
   <!-- Context Params -->
+  <!-- Give JSTL a formatting locale to fall back on, so <fmt:formatDate> formats for every client
+       rather than only for those that send an Accept-Language header (issue #1385).
+
+       JSTL does not honour the Servlet spec's "no Accept-Language means use the server's default
+       locale" rule. Util.getRequestLocales() returns an EMPTY enumeration when the header is
+       absent, rather than the container's default:
+
+         Enumeration values = request.getHeaders("accept-language");
+         if (values.hasMoreElements()) { return request.getLocales(); } else { return values; }
+
+       findFormattingMatch() then iterates nothing, getFormattingLocale() returns null, and
+       FormatDateSupport prints the raw value: a java.sql.Timestamp renders as
+       "2026-09-17 04:00:00.0" where the JSP asked for "MMMM d, yyyy". The tag never fails, so
+       nothing surfaces in the logs. Browsers always send the header and so mostly look correct;
+       crawlers generally do not, which is why the indexed render is the broken one and manual
+       spot-checks pass. This is the only remaining escape hatch on that path: no value of
+       -Duser.language, LANG or LC_ALL can reach it, because Locale.getDefault() is never consulted.
+
+       fallbackLocale, NOT locale: fmt.locale forces a locale on every request and would override a
+       real browser preference, so a fr-FR visitor would start getting English dates. fallbackLocale
+       applies only when matching produced nothing, leaving genuine client locales intact. Verified
+       against tomcat:11.0-jdk21 with the vendored Glassfish JSTL 3.0.1: with no header the date
+       formats as "September 17, 2026", and an fr-FR request still yields "septembre 17, 2026". -->
+  <context-param>
+    <param-name>jakarta.servlet.jsp.jstl.fmt.fallbackLocale</param-name>
+    <param-value>en_US</param-value>
+  </context-param>
   <!--<context-param>-->
     <!--<param-name>resteasy.servlet.mapping.prefix</param-name>-->
     <!--<param-value>/api</param-value>-->
