@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +43,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 
@@ -109,6 +111,27 @@ class FeedServletTest {
     return body.toString();
   }
 
+  private String runDoGetCapturingConstraints(List<BlogPost> posts, Blog blog,
+      ArgumentCaptor<DataConstraints> constraintsCaptor) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getPathInfo()).thenReturn(null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      blogRepository.when(() -> BlogRepository.findByUniqueId(any())).thenReturn(blog);
+      blogRepository.when(() -> BlogRepository.findById(org.mockito.ArgumentMatchers.anyLong())).thenReturn(blog);
+      blogPostRepository.when(() -> BlogPostRepository.findAll(any(), constraintsCaptor.capture()))
+          .thenReturn(posts);
+      new FeedServlet().doGet(request, response);
+    }
+    return body.toString();
+  }
+
   private String runSiteWideFeed(Map<String, String> properties, List<BlogPost> posts, Blog blog)
       throws Exception {
     return runDoGet(properties, null, posts, blog, blog, mock(HttpServletResponse.class), null);
@@ -162,6 +185,20 @@ class FeedServletTest {
     BlogPostSpecification spec = specCaptor.getValue();
     assertEquals(DataConstants.TRUE, spec.getPublishedOnly(), "publishedOnly must be set");
     assertEquals(DataConstants.FALSE, spec.getArchivedOnly(), "archivedOnly must be false");
+  }
+
+  @Test
+  void doGetLeavesOutPostsFlaggedToSkipTheFeed() throws Exception {
+    // #1419: a post can opt out of syndication while staying published and searchable. Archiving
+    // would hide it from the site too, which is a different editorial decision.
+    ArgumentCaptor<BlogPostSpecification> specCaptor = ArgumentCaptor.forClass(BlogPostSpecification.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGet(siteProperties(true, true), null, List.of(post(1L, "first-post", "First Post")), blog, blog,
+        mock(HttpServletResponse.class), specCaptor);
+
+    assertEquals(DataConstants.FALSE, specCaptor.getValue().getExcludedFromFeed(),
+        "the feed must ask for posts that have not opted out");
   }
 
   @Test
@@ -290,5 +327,40 @@ class FeedServletTest {
 
     assertFalse(body.contains("javascript:"), "an active-scheme url must never be emitted: " + body);
     assertTrue(body.contains("/news/first-post"), "it falls back to the permalink: " + body);
+  }
+
+  // --- ordering ------------------------------------------------------------------------------
+  // The feed caps at MAX_ENTRIES. Without an ORDER BY the database returned rows in arbitrary
+  // order, so on a bulk-imported site the cap kept the oldest posts and nothing recent was ever
+  // syndicated.
+
+  @Test
+  void doGetOrdersPostsNewestFirstSoTheEntryCapKeepsRecentOnes() throws Exception {
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGetCapturingConstraints(List.of(post(1L, "first-post", "First Post")), blog, constraintsCaptor);
+
+    DataConstraints constraints = constraintsCaptor.getValue();
+    assertNotNull(constraints, "the feed must ask for an explicit order, not whatever the table returns");
+    String sort = constraints.getDefaultColumnToSortBy();
+    assertNotNull(sort, "a sort column is required");
+    assertTrue(sort.toUpperCase().contains("DESC"), "newest first, got: " + sort);
+    // <published> falls back from startDate to published, so the ordering must key on the same value
+    assertTrue(sort.contains("start_date") && sort.contains("published"),
+        "ordering must match the date the feed actually publishes, got: " + sort);
+  }
+
+  @Test
+  void doGetDoesNotLimitTheQuerySoDisabledBlogPostsCannotUnderFillTheFeed() throws Exception {
+    // The MAX_ENTRIES cap is applied after posts on a disabled blog are skipped; a SQL LIMIT at
+    // the same number would quietly return fewer entries than the feed is meant to carry.
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGetCapturingConstraints(List.of(post(1L, "first-post", "First Post")), blog, constraintsCaptor);
+
+    assertTrue(constraintsCaptor.getValue().getPageSize() <= 0,
+        "the feed must not apply a SQL row limit");
   }
 }

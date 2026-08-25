@@ -561,7 +561,11 @@ CREATE TABLE blog_posts (
   -- Multi-language content variants (#414). locale is BCP 47;
   -- translation_group is shared by every locale variant of the same content.
   locale VARCHAR(35) NOT NULL DEFAULT 'en',
-  translation_group VARCHAR(255)
+  translation_group VARCHAR(255),
+  -- Syndication opt-out: a post stays published, searchable, and at its own URL, but is left
+  -- out of the RSS/Atom feeds. Archiving already hides a post everywhere at once, which is the
+  -- wrong tool when the post should remain readable -- see FeedServlet.
+  exclude_from_feed BOOLEAN NOT NULL DEFAULT false
 );
 CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id);
 CREATE INDEX blog_posts_geom_gix ON blog_posts USING GIST (geom);

@@ -84,4 +84,14 @@
         <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
         <function-signature>java.sql.Timestamp addDays(java.sql.Timestamp, int)</function-signature>
     </function>
+    <function>
+        <description>
+            Formats a timestamp with a SimpleDateFormat pattern in the site's display timezone
+            (site.timezone). The EL equivalent of fmt:formatDate, but bound to the configured
+            site zone rather than the container locale/zone context.
+        </description>
+        <name>format</name>
+        <function-class>com.simisinc.platform.application.cms.FormatDateCommand</function-class>
+        <function-signature>java.lang.String format(java.sql.Timestamp, java.lang.String)</function-signature>
+    </function>
 </taglib>

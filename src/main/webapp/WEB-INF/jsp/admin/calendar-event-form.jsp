@@ -59,7 +59,7 @@
   </label>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
-      <label for="startDate">Start Date/Time
+      <label for="startDate">Start <span class="js-date-label">Date/Time</span>
         <div class="input-group">
           <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.startDate)}"/>" readonly aria-label="Select event start date and time" />
           <span class="input-group-addon">
@@ -67,19 +67,10 @@
           </span>
         </div>
       </label>
-      <small class="help-text"><i class="fa fa-info-circle"></i> Format: mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</small>
-      <script nonce="${cspNonce}">
-        $(function () {
-          $('#startDate').fdatepicker({
-            format: 'mm-dd-yyyy hh:ii',
-            disableDblClickSelection: true,
-            pickTime: true
-          });
-        });
-      </script>
+      <small class="help-text"><i class="fa fa-info-circle"></i> Format: <span class="js-date-hint">mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</span></small>
     </div>
     <div class="small-12 medium-6 cell">
-      <label for="endDate">End Date/Time
+      <label for="endDate">End <span class="js-date-label">Date/Time</span>
         <div class="input-group">
           <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.endDate)}"/>" readonly aria-label="Select event end date and time" />
           <span class="input-group-addon">
@@ -87,20 +78,81 @@
           </span>
         </div>
       </label>
-      <small class="help-text"><i class="fa fa-info-circle"></i> Must be after start time</small>
-      <script nonce="${cspNonce}">
-        $(function () {
-          $('#endDate').fdatepicker({
-            format: 'mm-dd-yyyy hh:ii',
-            disableDblClickSelection: true,
-            pickTime: true
-          });
-        });
-      </script>
+      <small class="help-text"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
     </div>
   </div>
   <link rel="stylesheet" href="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.css" />
   <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
+  <script nonce="${cspNonce}">
+    $(function () {
+      // An all-day event has no meaningful time, so the picker drops to a date-only view when
+      // "All day?" is on. The value on the wire still has to carry a time either way:
+      // PageServlet registers the Timestamp converter with pattern "MM-dd-yyyy HH:mm", and a
+      // date-only string converts to null, which fails the save.
+      var DATE_ONLY = 'mm-dd-yyyy';
+      var DATE_TIME = 'mm-dd-yyyy hh:ii';
+      var TIME_SUFFIX = / \d{1,2}:\d{2}$/;
+      var $allDay = $('#allDay-yes-no');
+      var $fields = $('#startDate, #endDate');
+
+      function isAllDay() {
+        return $allDay.is(':checked');
+      }
+
+      function withoutTime(value) {
+        return $.trim(value).replace(TIME_SUFFIX, '');
+      }
+
+      function withTime(value) {
+        var trimmed = $.trim(value);
+        if (trimmed === '' || TIME_SUFFIX.test(trimmed)) {
+          return trimmed;
+        }
+        return trimmed + ' 00:00';
+      }
+
+      function applyMode() {
+        var allDay = isAllDay();
+        $fields.each(function () {
+          var $field = $(this);
+          // Re-create rather than reconfigure: fdatepicker reads format/pickTime once, at
+          // construction. 'remove' detaches its handlers and clears the element's data.
+          if ($field.data('datepicker')) {
+            $field.fdatepicker('remove');
+          }
+          // Convert the current value first, so the rebuilt picker can parse its own field.
+          $field.val(allDay ? withoutTime($field.val()) : withTime($field.val()));
+          $field.attr('aria-label', $field.attr('id') === 'startDate'
+              ? (allDay ? 'Select event start date' : 'Select event start date and time')
+              : (allDay ? 'Select event end date' : 'Select event end date and time'));
+          $field.fdatepicker({
+            format: allDay ? DATE_ONLY : DATE_TIME,
+            disableDblClickSelection: true,
+            pickTime: !allDay
+          });
+        });
+        $('.js-date-label').text(allDay ? 'Date' : 'Date/Time');
+        $('.js-date-hint').text(allDay
+            ? 'mm-dd-yyyy (e.g., 07-26-2026)'
+            : 'mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)');
+        $('.js-end-hint').text(allDay
+            ? 'Same day as the start, or later'
+            : 'Must be after start time');
+      }
+
+      applyMode();
+      $allDay.on('change', applyMode);
+
+      // The field shows only a date in all-day mode; put midnight back before it is submitted.
+      $allDay.closest('form').on('submit', function () {
+        if (isAllDay()) {
+          $fields.each(function () {
+            $(this).val(withTime($(this).val()));
+          });
+        }
+      });
+    });
+  </script>
   <label>Location
     <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>">
   </label>

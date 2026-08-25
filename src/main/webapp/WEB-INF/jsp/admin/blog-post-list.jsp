@@ -66,6 +66,8 @@
   <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
   <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
   <button type="button" class="button tiny radius" id="bulkArchiveBtn">Archive</button>
+  <button type="button" class="button tiny radius" id="bulkFeedOutBtn">Remove from Feed</button>
+  <button type="button" class="button tiny radius" id="bulkFeedInBtn">Restore to Feed</button>
   <button type="button" class="button tiny radius" id="bulkMoveBtn">Move</button>
   <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
 </div>
@@ -172,6 +174,40 @@
     <span aria-hidden="true">&times;</span>
   </button>
 </div>
+<div class="reveal" id="bulkFeedOutReveal" role="dialog" aria-modal="true" aria-labelledby="bulkFeedOutRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkFeedOutRevealTitle">Remove from Feed <span id="bulkFeedOutCount">0</span> Blog Post(s)</h4>
+  <p class="help-text">These posts stay published, searchable, and at their own addresses -- they are only left out of the RSS/Atom feeds. Unlike archiving, nothing is hidden from the site.</p>
+  <ul id="bulkFeedOutList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkExcludeFromFeed"/>
+    <input type="submit" class="button radius" value="Remove from Feed"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+
+<div class="reveal" id="bulkFeedInReveal" role="dialog" aria-modal="true" aria-labelledby="bulkFeedInRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkFeedInRevealTitle">Restore to Feed <span id="bulkFeedInCount">0</span> Blog Post(s)</h4>
+  <p class="help-text">These posts start syndicating again in the RSS/Atom feeds. Whether a reader sees them still depends on the feed&rsquo;s entry limit.</p>
+  <ul id="bulkFeedInList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkIncludeInFeed"/>
+    <input type="submit" class="button radius" value="Restore to Feed"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+
 <div class="reveal" id="bulkArchiveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkArchiveRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="bulkArchiveRevealTitle">Archive <span id="bulkArchiveCount">0</span> Blog Post(s)</h4>
@@ -272,6 +308,8 @@
     $('#bulkPublishBtn').on('click', function () { populateBulkModal('bulkPublishReveal', 'bulkPublishList', 'bulkPublishCount'); });
     $('#bulkUnpublishBtn').on('click', function () { populateBulkModal('bulkUnpublishReveal', 'bulkUnpublishList', 'bulkUnpublishCount'); });
     $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList', 'bulkArchiveCount'); });
+    $('#bulkFeedOutBtn').on('click', function () { populateBulkModal('bulkFeedOutReveal', 'bulkFeedOutList', 'bulkFeedOutCount'); });
+    $('#bulkFeedInBtn').on('click', function () { populateBulkModal('bulkFeedInReveal', 'bulkFeedInList', 'bulkFeedInCount'); });
     $('#bulkMoveBtn').on('click', function () { populateBulkModal('bulkMoveReveal', 'bulkMoveList', 'bulkMoveCount'); });
     $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList', 'bulkDeleteCount'); });
 
