@@ -164,6 +164,9 @@ public class FeedServlet extends HttpServlet {
     BlogPostSpecification spec = new BlogPostSpecification();
     spec.setPublishedOnly(true);
     spec.setArchivedOnly(false);
+    // Syndication opt-out (#1419): a post can stay published and searchable while being kept out
+    // of the feed. Archiving would hide it from the site as well, which is a different decision.
+    spec.setExcludedFromFeed(false);
     if (blog != null) {
       spec.setBlogId(blog.getId());
     }

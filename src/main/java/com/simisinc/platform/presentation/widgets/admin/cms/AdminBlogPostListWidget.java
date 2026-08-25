@@ -181,6 +181,12 @@ public class AdminBlogPostListWidget extends GenericWidget {
     if ("bulkArchive".equals(command)) {
       return bulkArchiveAction(context);
     }
+    if ("bulkExcludeFromFeed".equals(command)) {
+      return bulkFeedVisibilityAction(context, true);
+    }
+    if ("bulkIncludeInFeed".equals(command)) {
+      return bulkFeedVisibilityAction(context, false);
+    }
     if ("bulkMove".equals(command)) {
       return bulkMoveAction(context);
     }
@@ -330,6 +336,55 @@ public class AdminBlogPostListWidget extends GenericWidget {
    * Archiving is a plain repository save against the {@code archived} column that already exists
    * on {@code blog_posts} -- not a publish-workflow event.
    */
+  /**
+   * Flips the per-post syndication opt-out (#1419) on the selected posts. Deliberately separate
+   * from archiving: an excluded post stays published, searchable and at its own URL, and only
+   * FeedServlet filters on it -- so this is a metadata-only change with no visibility side
+   * effects. Shares bulkArchiveAction's per-row outcome accounting and audit shape.
+   *
+   * @param exclude true to take the posts out of the feeds, false to put them back
+   */
+  private WidgetContext bulkFeedVisibilityAction(WidgetContext context, boolean exclude) {
+    List<Long> blogPostIds = resolveSelectedBlogPostIds(context);
+    if (blogPostIds == null) {
+      return rejectBulkSelection(context);
+    }
+    if (blogPostIds.isEmpty()) {
+      return rejectEmptySelection(context);
+    }
+
+    int succeeded = 0;
+    int notFound = 0;
+    int failed = 0;
+    List<String> rowIssues = new ArrayList<>();
+    for (Long blogPostId : blogPostIds) {
+      BlogPost blogPost = BlogPostRepository.findById(blogPostId);
+      if (blogPost == null) {
+        ++notFound;
+        rowIssues.add("#" + blogPostId + ": not found");
+        continue;
+      }
+      blogPost.setExcludeFromFeed(exclude);
+      blogPost.setModifiedBy(context.getUserId());
+      BlogPost result = BlogPostRepository.save(blogPost);
+      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
+      if (result != null) {
+        ++succeeded;
+      } else {
+        ++failed;
+        rowIssues.add(blogPost.getTitle() + " (#" + blogPost.getId() + "): save failed");
+      }
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT,
+          exclude ? "content.feed.exclude" : "content.feed.include", outcome,
+          "blog_post", String.valueOf(blogPost.getId()), blogPost.getTitle(), "(bulk)");
+    }
+
+    setBulkResultMessage(context, exclude ? "removed from the feed" : "restored to the feed",
+        succeeded, blogPostIds.size(), notFound, failed, rowIssues);
+    context.setRedirect("/admin/blog-posts");
+    return context;
+  }
+
   private WidgetContext bulkArchiveAction(WidgetContext context) {
     List<Long> blogPostIds = resolveSelectedBlogPostIds(context);
     if (blogPostIds == null) {
