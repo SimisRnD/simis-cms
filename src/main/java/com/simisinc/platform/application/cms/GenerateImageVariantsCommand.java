@@ -58,18 +58,28 @@ public class GenerateImageVariantsCommand {
   private static final Log LOG = LogFactory.getLog(GenerateImageVariantsCommand.class);
 
   public static final String THUMBNAIL = "thumbnail";
+  public static final String SMALL = "small";
   public static final String MEDIUM = "medium";
   public static final String LARGE = "large";
   public static final String SQUARE = "square";
 
   // A card-thumbnail-ish size; nothing consumes this variant at a specific size yet, so it's an
   // easy constant to retune once more callers exist.
+  /** Exposed so the #1422 backfill can ask for exactly the rung it is filling. */
+  public static final int SMALL_MAX_DIMENSION = 400;
+
   private static final int SQUARE_DIMENSION = 400;
 
   /** Max dimension (the longer side) each variant is resized to fit within, aspect-preserved. */
   private static final Map<String, Integer> VARIANT_MAX_DIMENSION = new LinkedHashMap<>();
   static {
     VARIANT_MAX_DIMENSION.put(THUMBNAIL, 200);
+    // 400 closes a 4x hole between the thumbnail and the original (issue #1422). Because variants
+    // are shrink-only, an original narrower than 800px produced no medium and no large, leaving a
+    // srcset of just "200w, original". A 251px slot cannot use the 200w thumbnail, so the browser
+    // correctly fell through to the full original -- the candidate list was the problem, not the
+    // picker. On the SimIS library 98 of 305 images (32%) sat in that 201-799px band.
+    VARIANT_MAX_DIMENSION.put(SMALL, SMALL_MAX_DIMENSION);
     VARIANT_MAX_DIMENSION.put(MEDIUM, 800);
     VARIANT_MAX_DIMENSION.put(LARGE, 1600);
   }

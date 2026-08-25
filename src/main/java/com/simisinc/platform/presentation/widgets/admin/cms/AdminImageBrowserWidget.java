@@ -36,6 +36,8 @@ import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.DeleteImageTagCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.application.cms.SaveImageTagCommand;
+import com.simisinc.platform.application.cms.RegenerateImageVariantsCommand;
+import com.simisinc.platform.application.cms.GenerateImageVariantsCommand;
 import com.simisinc.platform.application.cms.ScanForDuplicateImagesCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Image;
@@ -315,6 +317,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
       return deleteDuplicatesAction(context);
     } else if ("scanForDuplicates".equals(command)) {
       return scanForDuplicatesAction(context);
+    } else if ("generateMissingSizes".equals(command)) {
+      return generateMissingSizesAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
     } else if ("setAltText".equals(command)) {
@@ -332,6 +336,24 @@ public class AdminImageBrowserWidget extends GenericWidget {
    * every image that has no {@code file_hash} yet. Idempotent -- a re-click only re-enqueues
    * whatever is still un-hashed, so it's safe to click again after new uploads.
    */
+  /**
+   * Backfills a variant rung across images uploaded before that rung existed (issue #1422).
+   * Variants are generated once at upload, so widening the ladder does nothing for the existing
+   * library on its own.
+   */
+  private WidgetContext generateMissingSizesAction(WidgetContext context) {
+    int enqueued = RegenerateImageVariantsCommand.startBackfill(
+        GenerateImageVariantsCommand.SMALL, GenerateImageVariantsCommand.SMALL_MAX_DIMENSION);
+    if (enqueued > 0) {
+      context.setSuccessMessage(enqueued + " image" + (enqueued == 1 ? "" : "s")
+          + " queued. Check the Job Queue for progress -- pages will start serving the smaller size as each finishes.");
+    } else {
+      context.setSuccessMessage("Every image already has all of its sizes. Nothing to generate.");
+    }
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
   private WidgetContext scanForDuplicatesAction(WidgetContext context) {
     int enqueued = ScanForDuplicateImagesCommand.startScan();
     if (enqueued > 0) {
