@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +43,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 
@@ -106,6 +108,27 @@ class FeedServletTest {
       new FeedServlet().doGet(request, response);
     }
 
+    return body.toString();
+  }
+
+  private String runDoGetCapturingConstraints(List<BlogPost> posts, Blog blog,
+      ArgumentCaptor<DataConstraints> constraintsCaptor) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getPathInfo()).thenReturn(null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      blogRepository.when(() -> BlogRepository.findByUniqueId(any())).thenReturn(blog);
+      blogRepository.when(() -> BlogRepository.findById(org.mockito.ArgumentMatchers.anyLong())).thenReturn(blog);
+      blogPostRepository.when(() -> BlogPostRepository.findAll(any(), constraintsCaptor.capture()))
+          .thenReturn(posts);
+      new FeedServlet().doGet(request, response);
+    }
     return body.toString();
   }
 
@@ -247,5 +270,40 @@ class FeedServletTest {
   void formatDateFallsBackToTheEpochRatherThanEmittingAnEmptyElement() {
     // Atom requires <updated>; an empty element would make the document invalid
     assertEquals("1970-01-01T00:00:00Z", FeedServlet.formatDate(null));
+  }
+
+  // --- ordering ------------------------------------------------------------------------------
+  // The feed caps at MAX_ENTRIES. Without an ORDER BY the database returned rows in arbitrary
+  // order, so on a bulk-imported site the cap kept the oldest posts and nothing recent was ever
+  // syndicated.
+
+  @Test
+  void doGetOrdersPostsNewestFirstSoTheEntryCapKeepsRecentOnes() throws Exception {
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGetCapturingConstraints(List.of(post(1L, "first-post", "First Post")), blog, constraintsCaptor);
+
+    DataConstraints constraints = constraintsCaptor.getValue();
+    assertNotNull(constraints, "the feed must ask for an explicit order, not whatever the table returns");
+    String sort = constraints.getDefaultColumnToSortBy();
+    assertNotNull(sort, "a sort column is required");
+    assertTrue(sort.toUpperCase().contains("DESC"), "newest first, got: " + sort);
+    // <published> falls back from startDate to published, so the ordering must key on the same value
+    assertTrue(sort.contains("start_date") && sort.contains("published"),
+        "ordering must match the date the feed actually publishes, got: " + sort);
+  }
+
+  @Test
+  void doGetDoesNotLimitTheQuerySoDisabledBlogPostsCannotUnderFillTheFeed() throws Exception {
+    // The MAX_ENTRIES cap is applied after posts on a disabled blog are skipped; a SQL LIMIT at
+    // the same number would quietly return fewer entries than the feed is meant to carry.
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+    Blog blog = blog(1L, "news", true);
+
+    runDoGetCapturingConstraints(List.of(post(1L, "first-post", "First Post")), blog, constraintsCaptor);
+
+    assertTrue(constraintsCaptor.getValue().getPageSize() <= 0,
+        "the feed must not apply a SQL row limit");
   }
 }

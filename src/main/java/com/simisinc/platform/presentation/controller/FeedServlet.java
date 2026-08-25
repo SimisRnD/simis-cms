@@ -21,6 +21,7 @@ import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 
@@ -167,7 +168,18 @@ public class FeedServlet extends HttpServlet {
       spec.setBlogId(blog.getId());
     }
 
-    List<BlogPost> posts = BlogPostRepository.findAll(spec, null);
+    // Newest first. The <published> element below uses startDate when set and falls back to
+    // published, so the ordering has to key on the same value or the feed's own dates come back
+    // out of sequence. Without any ORDER BY the database returned rows in arbitrary (effectively
+    // insertion) order and the MAX_ENTRIES cap kept whichever 50 arrived first -- on a site whose
+    // posts were bulk-imported that was the oldest 50, so recent posts never reached subscribers.
+    //
+    // No page size is set: the cap is applied below, after posts belonging to a disabled blog are
+    // skipped, so a SQL LIMIT here would silently under-fill the feed.
+    DataConstraints constraints = new DataConstraints();
+    constraints.setUseCount(false);
+    constraints.setDefaultColumnToSortBy("COALESCE(start_date, published) DESC, post_id DESC");
+    List<BlogPost> posts = BlogPostRepository.findAll(spec, constraints);
     List<FeedEntry> entries = new ArrayList<>();
 
     if (posts != null) {
