@@ -137,15 +137,16 @@ class GenerateImageVariantsCommandTest {
   }
 
   @Test
-  void generateVariantsProducesThumbnailMediumAndLargeForALargeOriginal(@TempDir Path tempDir) throws Exception {
+  void generateVariantsProducesEveryRungForALargeOriginal(@TempDir Path tempDir) throws Exception {
     Image image = insertImageWithRealFile(tempDir, "large-original.png", 2000, 1500);
 
     List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
 
     Map<String, ImageVariant> byType = variants.stream()
         .collect(Collectors.toMap(ImageVariant::getVariantType, v -> v));
-    assertEquals(3, variants.size(), "a 2000x1500 original is larger than all three variant targets");
+    assertEquals(4, variants.size(), "a 2000x1500 original is larger than all four variant targets");
     assertTrue(byType.get("thumbnail").getWidth() <= 200 && byType.get("thumbnail").getHeight() <= 200);
+    assertTrue(byType.get("small").getWidth() <= 400 && byType.get("small").getHeight() <= 400);
     assertTrue(byType.get("medium").getWidth() <= 800 && byType.get("medium").getHeight() <= 800);
     assertTrue(byType.get("large").getWidth() <= 1600 && byType.get("large").getHeight() <= 1600);
     // 2000x1500 is a 4:3 image -- fitting within an 800x800 box is width-constrained
@@ -166,6 +167,32 @@ class GenerateImageVariantsCommandTest {
 
     assertTrue(variants.isEmpty(), "a 150x100 original is smaller than even the thumbnail target -- nothing to generate");
     assertTrue(ImageVariantRepository.findByImageId(image.getId()).isEmpty());
+  }
+
+  @Test
+  void generateVariantsFillsTheGapForAnOriginalBetweenTheThumbnailAndMediumTargets(@TempDir Path tempDir)
+      throws Exception {
+    // Issue #1422: a 752px-wide original is larger than the thumbnail target (200) but smaller than
+    // both medium (800) and large (1600), which variant generation correctly skips as upscales. The
+    // ladder therefore produced exactly one variant, leaving a srcset of "200w, original" with a 4x
+    // hole -- and a 251px slot, unable to use a 200w thumbnail, fell through to the full original.
+    // The browser was picking correctly; the candidate list was the problem. The 400px rung fills it.
+    Image image = insertImageWithRealFile(tempDir, "card-art.png", 752, 246);
+
+    List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
+
+    Map<String, ImageVariant> byType = variants.stream()
+        .collect(java.util.stream.Collectors.toMap(ImageVariant::getVariantType, v -> v));
+    assertEquals(2, variants.size(), "a 752x246 original clears thumbnail and small, but not medium or large");
+    assertTrue(byType.containsKey("thumbnail"));
+    assertTrue(byType.containsKey("small"), "the 400px rung is what closes the gap this issue is about");
+    assertTrue(!byType.containsKey("medium"), "752 is below the medium target -- generating it would upscale");
+    assertTrue(!byType.containsKey("large"));
+    // Width-constrained: 752x246 fitted into a 400x400 box lands on 400 wide.
+    assertEquals(400, byType.get("small").getWidth());
+    assertTrue(byType.get("small").getWidth() > byType.get("thumbnail").getWidth(),
+        "the new rung must sit strictly between the thumbnail and the original");
+    assertTrue(byType.get("small").getWidth() < image.getWidth());
   }
 
   @Test
@@ -247,9 +274,10 @@ class GenerateImageVariantsCommandTest {
     Map<String, ImageVariant> byType = variants.stream()
         .collect(Collectors.toMap(ImageVariant::getVariantType, v -> v));
     assertTrue(byType.containsKey("thumbnail"), "thumbnail must still be generated despite medium failing");
+    assertTrue(byType.containsKey("small"), "small must still be generated despite medium failing");
     assertTrue(byType.containsKey("large"), "large must still be generated despite medium failing");
     assertTrue(!byType.containsKey("medium"), "medium must have failed rather than crashed the whole method");
-    assertEquals(2, variants.size());
+    assertEquals(3, variants.size());
   }
 
   @Test
@@ -301,7 +329,7 @@ class GenerateImageVariantsCommandTest {
 
     Map<String, ImageVariant> byType = variants.stream()
         .collect(Collectors.toMap(ImageVariant::getVariantType, v -> v));
-    assertEquals(3, variants.size(), "a 2000x1500 WebP original is larger than all three variant targets");
+    assertEquals(4, variants.size(), "a 2000x1500 WebP original is larger than all four variant targets");
     assertEquals(800, byType.get("medium").getWidth(), "the medium variant's own dimensions must be readable");
     assertEquals(600, byType.get("medium").getHeight());
   }

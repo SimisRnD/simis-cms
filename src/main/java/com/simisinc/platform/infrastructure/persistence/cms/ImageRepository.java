@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -196,6 +197,45 @@ public class ImageRepository {
    * admin-triggered "Scan for Duplicates" backfill (see {@code ScanForDuplicateImagesCommand}),
    * which enqueues one background job per id returned here.
    */
+  /**
+   * Finds images that ought to have the given variant but do not -- i.e. the original is larger
+   * than the variant's target on at least one axis (otherwise variant generation correctly skips
+   * it as an upscale), and no row for that variant type exists yet.
+   *
+   * <p>
+   * Used to backfill a newly added rung of the variant ladder over an existing library (issue
+   * #1422) without regenerating every image: variant generation rewrites all of an image's
+   * variants, so a blanket re-run would redo work for images that are already complete. Safe to
+   * run repeatedly -- {@link ImageVariantRepository#save} upserts on (image_id, variant_type), and
+   * an image drops out of this query once its variant exists.
+   * </p>
+   *
+   * @param variantType the variant to look for, e.g. GenerateImageVariantsCommand.SMALL
+   * @param maxDimension that variant's target size, so originals already smaller are left alone
+   * @return the image ids needing this variant, empty if none
+   */
+  public static List<Long> findAllMissingVariant(String variantType, int maxDimension) {
+    List<Long> ids = new ArrayList<>();
+    String sql = "SELECT i.image_id FROM " + TABLE_NAME + " i"
+        + " WHERE (i.width > ? OR i.height > ?)"
+        + " AND NOT EXISTS (SELECT 1 FROM image_variants v"
+        + " WHERE v.image_id = i.image_id AND v.variant_type = ?)";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setInt(1, maxDimension);
+      pst.setInt(2, maxDimension);
+      pst.setString(3, variantType);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          ids.add(rs.getLong("image_id"));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return ids;
+  }
+
   public static List<Long> findAllUnhashed() {
     List<Long> ids = new ArrayList<>();
     String sql = "SELECT image_id FROM " + TABLE_NAME + " WHERE file_hash IS NULL";

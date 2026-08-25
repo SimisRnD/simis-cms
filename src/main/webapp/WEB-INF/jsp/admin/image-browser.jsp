@@ -35,6 +35,7 @@
   <a class="button tiny <c:if test="${empty duplicatesView}">primary</c:if><c:if test="${!empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}">All Images</a>
   <a class="button tiny <c:if test="${!empty duplicatesView}">primary</c:if><c:if test="${empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}?view=duplicates">Duplicates</a>
   <button type="button" id="scanForDuplicatesBtn" class="button tiny secondary radius">Scan for Duplicates</button>
+  <button type="button" id="generateMissingSizesBtn" class="button tiny secondary radius">Generate Missing Sizes</button>
 </div>
 <c:if test="${empty duplicatesView}">
 <form id="imageSearchForm" method="get" autocomplete="off" class="float-right">
@@ -329,6 +330,15 @@
     if (scanForDuplicatesBtn) {
       scanForDuplicatesBtn.addEventListener('click', function () {
         postAction('${widgetContext.uri}?command=scanForDuplicates&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');
+      });
+    }
+
+    // Backfills a variant rung across images uploaded before it existed (issue #1422). Bound the
+    // same way as the duplicates scan above: both queue background work and redirect.
+    var generateMissingSizesBtn = document.getElementById('generateMissingSizesBtn');
+    if (generateMissingSizesBtn) {
+      generateMissingSizesBtn.addEventListener('click', function () {
+        postAction('${widgetContext.uri}?command=generateMissingSizes&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');
       });
     }
 

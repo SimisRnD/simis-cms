@@ -268,19 +268,23 @@ class ImageVariantRepositoryTest {
     return variant;
   }
 
-  private static Image insertImage() {
+  private static Image insertImage(int width, int height) {
     Image image = new Image();
     image.setFilename("photo.png");
     image.setFileServerPath("images/2026/08/photo.png");
     image.setCreatedBy(userId);
     image.setFileLength(1000);
     image.setFileType("image/png");
-    image.setWidth(2000);
-    image.setHeight(1500);
+    image.setWidth(width);
+    image.setHeight(height);
     image.setWebPath("20260803120000");
     Image saved = ImageRepository.save(image);
     assertNotNull(saved, "test setup: image must save");
     return saved;
+  }
+
+  private static Image insertImage() {
+    return insertImage(2000, 1500);
   }
 
   private static boolean isDockerAvailable() {
@@ -363,4 +367,30 @@ class ImageVariantRepositoryTest {
       throw new IllegalStateException("Could not insert test user", se);
     }
   }
+  @Test
+  void findAllMissingVariantReturnsOnlyImagesThatCanAndShouldGainIt() {
+    // Covers ImageRepository.findAllMissingVariant(), which decides what the #1422 backfill
+    // touches. Lives here rather than with the other ImageRepository tests because the query is a
+    // join across images and image_variants, and this class already has both tables set up.
+    Image needsIt = insertImage(752, 246);
+    Image tallEnoughOnOneAxis = insertImage(300, 900);
+    Image tooSmallToBother = insertImage(300, 200);
+    Image alreadyDone = insertImage(752, 246);
+    ImageVariantRepository.save(newVariant(alreadyDone.getId(), "small", "images/small.png", 900, 400, 131));
+    // A different variant type must not count as "done" for this one.
+    Image hasOnlyAThumbnail = insertImage(752, 246);
+    ImageVariantRepository.save(newVariant(hasOnlyAThumbnail.getId(), "thumbnail", "images/t.png", 300, 200, 65));
+
+    List<Long> ids = ImageRepository.findAllMissingVariant("small", 400);
+
+    assertTrue(ids.contains(needsIt.getId()), "a 752x246 original with no small variant must be queued");
+    assertTrue(ids.contains(tallEnoughOnOneAxis.getId()),
+        "exceeding the target on either axis is enough -- generation shrinks to fit the box");
+    assertTrue(ids.contains(hasOnlyAThumbnail.getId()),
+        "having some other variant must not count as having this one");
+    assertTrue(!ids.contains(tooSmallToBother.getId()),
+        "a 300x200 original is inside the 400 box -- generating would upscale, which is skipped anyway");
+    assertTrue(!ids.contains(alreadyDone.getId()), "an image that already has the variant must not be requeued");
+  }
+
 }
