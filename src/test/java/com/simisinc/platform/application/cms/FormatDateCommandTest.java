@@ -177,4 +177,62 @@ class FormatDateCommandTest {
       Assertions.assertEquals("11-30-2026 09:00", FormatDateCommand.formatDateTimeInput(timestamp));
     }
   }
+
+  // --- format(Timestamp, pattern): the EL stand-in for <fmt:formatDate> -----------------------
+  // calendar-event-details.jsp rendered every date through <fmt:formatDate>, which emitted the
+  // raw Timestamp on the deployed build ("2026-11-30 05:00:00.0") and skipped the site timezone
+  // with it. These pin the shapes that JSP actually asks for.
+
+  @Test
+  void formatAppliesTheSiteTimezoneNotUtc() {
+    // 2026-11-30T05:00:00Z is midnight in New York (UTC-5 in November, after DST ends)
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-11-30T05:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      Assertions.assertEquals("November 30, 2026", FormatDateCommand.format(timestamp, "MMMM d, yyyy"));
+    }
+  }
+
+  @Test
+  void formatSupportsEveryPatternTheEventDetailsPageUses() {
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-11-30T05:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      Assertions.assertEquals("November 30", FormatDateCommand.format(timestamp, "MMMM d"));
+      Assertions.assertEquals("2026", FormatDateCommand.format(timestamp, "yyyy"));
+      Assertions.assertEquals("November 2026", FormatDateCommand.format(timestamp, "MMMM yyyy"));
+      Assertions.assertEquals("12:00 AM", FormatDateCommand.format(timestamp, "h:mm a"));
+      Assertions.assertEquals("11/30/2026", FormatDateCommand.format(timestamp, "MM/dd/yyyy"));
+      Assertions.assertEquals("2026-11-30", FormatDateCommand.format(timestamp, "yyyy-MM-dd"));
+    }
+  }
+
+  @Test
+  void formatEmitsAnIso8601OffsetForTheAddToCalendarLinks() {
+    // The add-to-calendar spans feed .ics/Outlook links; a raw Timestamp there produces a
+    // malformed entry, so the offset has to be the site's, not the container's.
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-11-30T05:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      Assertions.assertEquals("2026-11-30T00:00:00-05:00",
+          FormatDateCommand.format(timestamp, "yyyy-MM-dd'T'HH:mm:00XXX"));
+    }
+  }
+
+  @Test
+  void formatReturnsEmptyRatherThanTheLiteralNullWhenUnset() {
+    Assertions.assertEquals("", FormatDateCommand.format(null, "MMMM d, yyyy"));
+    Assertions.assertEquals("", FormatDateCommand.format(Timestamp.from(Instant.parse("2026-11-30T05:00:00Z")), null));
+    Assertions.assertEquals("", FormatDateCommand.format(Timestamp.from(Instant.parse("2026-11-30T05:00:00Z")), ""));
+  }
+
+  @Test
+  void formatSwallowsAnInvalidPatternInsteadOfBreakingThePage() {
+    Timestamp timestamp = Timestamp.from(Instant.parse("2026-11-30T05:00:00Z"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      // an unterminated quote is the classic SimpleDateFormat parse failure
+      Assertions.assertEquals("", FormatDateCommand.format(timestamp, "yyyy 'unterminated"));
+    }
+  }
 }

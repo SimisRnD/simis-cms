@@ -14,8 +14,8 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="subFolder" class="com.simisinc.platform.domain.model.cms.SubFolder" scope="request"/>
@@ -49,7 +49,7 @@
   <label>Start Date <span class="required">*</span>
     <div class="input-group">
       <span class="input-group-label"><i class="fa fa-calendar"></i></span>
-      <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate${widgetContext.uniqueId}" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${subFolder.startDate}" />">
+      <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate${widgetContext.uniqueId}" name="startDate" value="<c:out value="${date:formatDateTimeInput(subFolder.startDate)}"/>">
     </div>
   </label>
   <script nonce="${cspNonce}">

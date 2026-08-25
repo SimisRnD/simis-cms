@@ -16,7 +16,6 @@
 <%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
@@ -35,16 +34,16 @@
   </div>
 </c:if>
   <%-- Date Formatting --%>
-  <c:set var="startDateTime" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" /></c:set>
-  <c:set var="endDateTime" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.endDate}" /></c:set>
-  <c:set var="startDate" scope="request"><fmt:formatDate pattern="MMMM d" value="${calendarEvent.startDate}" /></c:set>
-  <c:set var="endDate" scope="request"><fmt:formatDate pattern="MMMM d" value="${calendarEvent.endDate}" /></c:set>
-  <c:set var="startYear" scope="request"><fmt:formatDate pattern="yyyy" value="${calendarEvent.startDate}" /></c:set>
-  <c:set var="endYear" scope="request"><fmt:formatDate pattern="yyyy" value="${calendarEvent.endDate}" /></c:set>
-  <c:set var="startTime" scope="request"><fmt:formatDate pattern="h:mm a" value="${calendarEvent.startDate}" /></c:set>
-  <c:set var="endTime" scope="request"><fmt:formatDate pattern="h:mm a" value="${calendarEvent.endDate}" /></c:set>
-  <c:set var="thisMonth" scope="request"><fmt:formatDate pattern="MMMM yyyy" value="${calendarEvent.startDate}" /></c:set>
-  <c:set var="thisDay" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" /></c:set>
+  <c:set var="startDateTime" scope="request">${date:format(calendarEvent.startDate, "MMMM d, yyyy")}</c:set>
+  <c:set var="endDateTime" scope="request">${date:format(calendarEvent.endDate, "MMMM d, yyyy")}</c:set>
+  <c:set var="startDate" scope="request">${date:format(calendarEvent.startDate, "MMMM d")}</c:set>
+  <c:set var="endDate" scope="request">${date:format(calendarEvent.endDate, "MMMM d")}</c:set>
+  <c:set var="startYear" scope="request">${date:format(calendarEvent.startDate, "yyyy")}</c:set>
+  <c:set var="endYear" scope="request">${date:format(calendarEvent.endDate, "yyyy")}</c:set>
+  <c:set var="startTime" scope="request">${date:format(calendarEvent.startDate, "h:mm a")}</c:set>
+  <c:set var="endTime" scope="request">${date:format(calendarEvent.endDate, "h:mm a")}</c:set>
+  <c:set var="thisMonth" scope="request">${date:format(calendarEvent.startDate, "MMMM yyyy")}</c:set>
+  <c:set var="thisDay" scope="request">${date:format(calendarEvent.startDate, "MMMM d, yyyy")}</c:set>
   <%-- Show the month header--%>
   <div class="platform-calendar-month text-center"><h2><c:out value="${thisDay}" /></h2></div>
   <%-- Show the day --%>
@@ -58,10 +57,10 @@
         <c:if test="${startDateTime ne endDateTime}">
           <p class="platform-calendar-event-date">
             <i class="fa fa-calendar-o fa-fw"></i>
-            <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" />
+            ${date:format(calendarEvent.startDate, "MMMM d, yyyy")}
             <c:if test="${startDateTime ne endDateTime}">
               -
-              <fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.endDate}" />
+              ${date:format(calendarEvent.endDate, "MMMM d, yyyy")}
             </c:if>
           </p>
         </c:if>
@@ -71,21 +70,21 @@
           <c:choose>
             <c:when test="${startDateTime eq endDateTime}">
               <i class="fa fa-clock-o fa-fw"></i>
-              <fmt:formatDate pattern="h:mm a" value="${calendarEvent.startDate}" />
+              ${date:format(calendarEvent.startDate, "h:mm a")}
               <c:if test="${startTime ne endTime}">
-                - <fmt:formatDate pattern="h:mm a" value="${calendarEvent.endDate}" />
+                - ${date:format(calendarEvent.endDate, "h:mm a")}
               </c:if>
             </c:when>
             <c:otherwise>
               <i class="fa fa-calendar-o fa-fw"></i>
-              <fmt:formatDate pattern="MMMM d, h:mm a" value="${calendarEvent.startDate}" />
+              ${date:format(calendarEvent.startDate, "MMMM d, h:mm a")}
               -
               <c:choose>
                 <c:when test="${startYear ne endYear}">
-                  <fmt:formatDate pattern="MMMM d, yyyy h:mm a" value="${calendarEvent.endDate}" />
+                  ${date:format(calendarEvent.endDate, "MMMM d, yyyy h:mm a")}
                 </c:when>
                 <c:otherwise>
-                  <fmt:formatDate pattern="MMMM d, h:mm a" value="${calendarEvent.endDate}" />
+                  ${date:format(calendarEvent.endDate, "MMMM d, h:mm a")}
                 </c:otherwise>
               </c:choose>
             </c:otherwise>
@@ -109,16 +108,16 @@
       <c:choose>
         <c:when test="${calendarEvent.allDay}">
           <span class="allday">true</span>
-          <span class="start"><fmt:formatDate pattern="MM/dd/yyyy" value="${calendarEvent.startDate}" /></span>
-          <span class="end"><fmt:formatDate pattern="MM/dd/yyyy" value="${calendarEvent.endDate}" /></span>
-          <span class="outlookStart"><fmt:formatDate pattern="yyyy-MM-dd" value="${calendarEvent.startDate}" /></span>
-          <span class="outlookEnd"><fmt:formatDate pattern="yyyy-MM-dd" value="${date:adjustDays(calendarEvent.endDate, 1)}" /></span>
+          <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy")}</span>
+          <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy")}</span>
+          <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd")}</span>
+          <span class="outlookEnd">${date:format(date:adjustDays(calendarEvent.endDate, 1), "yyyy-MM-dd")}</span>
         </c:when>
         <c:otherwise>
-          <span class="start"><fmt:formatDate pattern="MM/dd/yyyy hh:mm a" value="${calendarEvent.startDate}" /></span>
-          <span class="end"><fmt:formatDate pattern="MM/dd/yyyy hh:mm a" value="${calendarEvent.endDate}" /></span>
-          <span class="outlookStart"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm:00XXX" value="${calendarEvent.startDate}" /></span>
-          <span class="outlookEnd"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm:00XXX" value="${calendarEvent.endDate}" /></span>
+          <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy hh:mm a")}</span>
+          <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy hh:mm a")}</span>
+          <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
+          <span class="outlookEnd">${date:format(calendarEvent.endDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
         </c:otherwise>
       </c:choose>
       <span class="title"><c:out value="${calendarEvent.title}" /></span>

@@ -92,6 +92,34 @@ public class FormatDateCommand {
   }
 
   /**
+   * Formats a timestamp with an arbitrary {@link SimpleDateFormat} pattern in the site's display
+   * timezone -- the EL equivalent of {@code <fmt:formatDate>}, but bound to site.timezone rather
+   * than the container's locale/zone context.
+   *
+   * <p>Calendar JSPs need more shapes than a fixed set of named helpers can reasonably cover
+   * ("MMMM d", "yyyy", "MM/dd/yyyy", the ISO-8601 form the add-to-calendar links use, and so on),
+   * so this takes the pattern the way the JSTL tag did.
+   *
+   * @param timestamp the value to format; may be null
+   * @param pattern a SimpleDateFormat pattern
+   * @return the formatted value, or an empty string when either argument is missing or the
+   *         pattern is not valid -- a malformed pattern must not take the whole page down
+   */
+  public static String format(Timestamp timestamp, String pattern) {
+    if (timestamp == null || pattern == null || pattern.isEmpty()) {
+      return "";
+    }
+    try {
+      DateFormat dateFormat = new SimpleDateFormat(pattern);
+      dateFormat.setTimeZone(TimeZone.getTimeZone(getSiteZoneId()));
+      return dateFormat.format(timestamp);
+    } catch (IllegalArgumentException e) {
+      LOG.error("Invalid date pattern: " + pattern, e);
+      return "";
+    }
+  }
+
+  /**
    * The site's configured display timezone (site.timezone), which is what calendar/event dates
    * are meant to be shown in -- falls back to the JVM's own default only if the property is
    * unset, since the server's runtime zone is not guaranteed to match the configured site zone.
