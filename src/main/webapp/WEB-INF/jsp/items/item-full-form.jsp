@@ -14,8 +14,8 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -500,7 +500,7 @@
           <label>Expected Start Date
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-calendar"></i></span>
-              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expectedDate" name="expectedDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expectedDate}" />">
+              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expectedDate" name="expectedDate" value="<c:out value="${date:formatDateTimeInput(item.expectedDate)}"/>">
             </div>
           </label>
           <script nonce="${cspNonce}">
@@ -517,7 +517,7 @@
           <label>Expiration Date
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-calendar"></i></span>
-              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expirationDate" name="expirationDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expirationDate}" />">
+              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expirationDate" name="expirationDate" value="<c:out value="${date:formatDateTimeInput(item.expirationDate)}"/>">
             </div>
           </label>
           <script nonce="${cspNonce}">
@@ -536,7 +536,7 @@
           <label>Actual Start Date
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-calendar"></i></span>
-              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.startDate}" />">
+              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="<c:out value="${date:formatDateTimeInput(item.startDate)}"/>">
             </div>
           </label>
           <script nonce="${cspNonce}">
@@ -553,7 +553,7 @@
           <label>Actual End Date
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-calendar"></i></span>
-              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.endDate}" />">
+              <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="<c:out value="${date:formatDateTimeInput(item.endDate)}"/>">
             </div>
           </label>
           <script nonce="${cspNonce}">
