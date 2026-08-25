@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.BlogPostPublishedEvent;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
@@ -64,6 +65,15 @@ public class SaveBlogPostCommand {
         errorMessages.append("; ");
       }
       errorMessages.append("The end date needs to come after the start date");
+    }
+    // #1420: source_url is rendered into an href, so constrain it at the source. isUrlValid
+    // accepts http/https only, which rules out javascript: and data: before the value is stored.
+    if (StringUtils.isNotBlank(blogPostBean.getSourceUrl())
+        && !UrlCommand.isUrlValid(blogPostBean.getSourceUrl().trim())) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append("; ");
+      }
+      errorMessages.append("The source article link must be a full http:// or https:// address");
     }
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());

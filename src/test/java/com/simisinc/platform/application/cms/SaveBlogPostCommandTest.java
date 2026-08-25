@@ -323,6 +323,8 @@ class SaveBlogPostCommandTest {
           + "image_url VARCHAR(255), "
           + "video_url VARCHAR(255), "
           + "video_embed VARCHAR(512), "
+          // #1420: curated link posts
+          + "source_url VARCHAR(512), "
           + "script_embed VARCHAR(512), "
           + "tags_list VARCHAR(255), "
           + "keywords VARCHAR(255), "

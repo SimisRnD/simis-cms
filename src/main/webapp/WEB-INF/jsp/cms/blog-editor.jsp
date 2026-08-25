@@ -178,6 +178,10 @@
   <label>Description
     <input type="text" placeholder="Provide an optional description..." name="summary" value="<c:out value="${blogPost.summary}"/>">
   </label>
+  <label>Source article link
+    <input type="url" placeholder="https://... (leave blank for a normal post)" name="sourceUrl" value="<c:out value="${blogPost.sourceUrl}"/>">
+    <small class="help-text">For a curated link post. When set, the headline and &ldquo;read the article&rdquo; go straight to the original, and feed subscribers get the same link. The post still keeps its own page.</small>
+  </label>
   <p>
     <small>Write the post...</small>
     <textarea name="body"><c:out value="${blogPost.body}"/></textarea>

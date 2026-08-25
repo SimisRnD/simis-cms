@@ -214,6 +214,7 @@ public class BlogPostRepository {
         .add("summary", StringUtils.trimToNull(record.getSummary()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
+        .add("source_url", StringUtils.trimToNull(record.getSourceUrl()))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
         .add("published", record.getPublished())
@@ -265,6 +266,7 @@ public class BlogPostRepository {
         .add("summary", StringUtils.trimToNull(record.getSummary()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
+        .add("source_url", StringUtils.trimToNull(record.getSourceUrl()))
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()))
         .add("published", record.getPublished())
@@ -372,6 +374,7 @@ public class BlogPostRepository {
       record.setBody(rs.getString("body"));
       record.setSummary(rs.getString("summary"));
       record.setImageUrl(rs.getString("image_url"));
+      record.setSourceUrl(rs.getString("source_url"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));
