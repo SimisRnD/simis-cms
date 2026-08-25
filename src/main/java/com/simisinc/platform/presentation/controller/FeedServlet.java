@@ -21,6 +21,7 @@ import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
@@ -232,7 +233,18 @@ public class FeedServlet extends HttpServlet {
       BlogPost post = entry.post;
       xml.append("  <entry>\n");
       xml.append("    <title>").append(escapeXml(StringUtils.defaultString(post.getTitle()))).append("</title>\n");
-      xml.append("    <link href=\"").append(escapeXml(entry.url)).append("\"/>\n");
+      // #1420: for a curated link post, rel="alternate" -- the link a reader opens -- is the
+      // original article. <id> is deliberately NOT changed: Atom requires it to be permanent and
+      // unique, and deriving it from the source would collide whenever two posts cite the same
+      // article and would change identity if a source URL were corrected, so readers would drop
+      // entries or re-notify for old ones. The post's own permalink stays the identity, and is
+      // still reachable as rel="related" so the commentary is not lost.
+      String sourceUrl = UrlCommand.sanitizeUrl(post.getSourceUrl());
+      String alternateUrl = sourceUrl != null ? sourceUrl : entry.url;
+      xml.append("    <link rel=\"alternate\" href=\"").append(escapeXml(alternateUrl)).append("\"/>\n");
+      if (sourceUrl != null) {
+        xml.append("    <link rel=\"related\" href=\"").append(escapeXml(entry.url)).append("\"/>\n");
+      }
       xml.append("    <id>").append(escapeXml(entry.url)).append("</id>\n");
       xml.append("    <updated>").append(formatDate(entry.updated())).append("</updated>\n");
       if (post.getStartDate() != null || post.getPublished() != null) {

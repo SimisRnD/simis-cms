@@ -541,6 +541,10 @@ CREATE TABLE blog_posts (
   image_url VARCHAR(255),
   video_url VARCHAR(255),
   video_embed VARCHAR(512),
+  -- Curated link posts (#1420): when set, the headline, "read more" and the feed entry's
+  -- rel="alternate" link point at the original article instead of this post's own page. The
+  -- post still has its own permalink, which stays the feed entry's <id>.
+  source_url VARCHAR(512),
   script_embed VARCHAR(512),
   tags_list VARCHAR(255),
   keywords VARCHAR(255),

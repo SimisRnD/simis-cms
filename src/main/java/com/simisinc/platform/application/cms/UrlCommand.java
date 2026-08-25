@@ -116,6 +116,15 @@ public class UrlCommand {
    * {@code SaveWebRedirectCommand} for an example.
    * </p>
    */
+  /**
+   * EL-facing wrapper for {@link #sanitizeUrl(String)} that returns an empty string rather than
+   * null, so a JSP rendering an unsafe or missing value emits href="" instead of href="null".
+   */
+  public static String sanitizeForAttribute(String url) {
+    String sanitized = sanitizeUrl(url);
+    return sanitized == null ? "" : sanitized;
+  }
+
   public static String sanitizeUrl(String url) {
     if (StringUtils.isBlank(url)) {
       return null;
