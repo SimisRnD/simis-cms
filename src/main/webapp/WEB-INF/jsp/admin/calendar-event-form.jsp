@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -60,7 +61,7 @@
     <div class="small-12 medium-6 cell">
       <label for="startDate">Start Date/Time
         <div class="input-group">
-          <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${calendarEvent.startDate}"/>" readonly aria-label="Select event start date and time" />
+          <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.startDate)}"/>" readonly aria-label="Select event start date and time" />
           <span class="input-group-addon">
             <i class="fa fa-calendar"></i>
           </span>
@@ -80,7 +81,7 @@
     <div class="small-12 medium-6 cell">
       <label for="endDate">End Date/Time
         <div class="input-group">
-          <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${calendarEvent.endDate}"/>" readonly aria-label="Select event end date and time" />
+          <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.endDate)}"/>" readonly aria-label="Select event end date and time" />
           <span class="input-group-addon">
             <i class="fa fa-calendar"></i>
           </span>

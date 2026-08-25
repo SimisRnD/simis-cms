@@ -40,6 +40,13 @@ public class FormatDateCommand {
   private static final DateTimeFormatter ISO_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
   private static final DateTimeFormatter ISO_OFFSET_FORMAT = DateTimeFormatter.ofPattern("xxx");
 
+  /**
+   * The date/time pattern PageServlet registers with BeanUtils for Timestamp form fields. A form
+   * input pre-filled in any other pattern converts back to null on submit, so this constant is
+   * the single source of truth for both directions.
+   */
+  private static final String FORM_INPUT_PATTERN = "MM-dd-yyyy HH:mm";
+
   private static String[] suffixes =
       {  "0th",  "1st",  "2nd",  "3rd",  "4th",  "5th",  "6th",  "7th",  "8th",  "9th",
           "10th", "11th", "12th", "13th", "14th", "15th", "16th", "17th", "18th", "19th",
@@ -64,6 +71,24 @@ public class FormatDateCommand {
     DateFormat timeFormat = new SimpleDateFormat("h:mm a");
     timeFormat.setTimeZone(TimeZone.getTimeZone(getSiteZoneId()));
     return timeFormat.format(timestamp);
+  }
+
+  /**
+   * Formats a timestamp for a date/time form input, using the same pattern and timezone that
+   * BeanUtils parses it back with on submit (see PageServlet's SqlTimestampConverter). Rendering
+   * the raw Timestamp instead -- "2026-10-15 13:00:00.0" -- does not match that pattern, so the
+   * converter yields null and the save fails.
+   *
+   * @return the formatted value, or an empty string when the timestamp is not set, so the input
+   *         renders blank rather than the literal "null"
+   */
+  public static String formatDateTimeInput(Timestamp timestamp) {
+    if (timestamp == null) {
+      return "";
+    }
+    DateFormat dateFormat = new SimpleDateFormat(FORM_INPUT_PATTERN);
+    dateFormat.setTimeZone(TimeZone.getTimeZone(getSiteZoneId()));
+    return dateFormat.format(timestamp);
   }
 
   /**

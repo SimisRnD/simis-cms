@@ -62,6 +62,14 @@
     </function>
     <function>
         <description>
+            Returns the date/time in the MM-dd-yyyy HH:mm form-input format, in the site timezone
+        </description>
+        <name>formatDateTimeInput</name>
+        <function-class>com.simisinc.platform.application.cms.FormatDateCommand</function-class>
+        <function-signature>java.lang.String formatDateTimeInput(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
             Returns the relative date/time
         </description>
         <name>relative</name>
