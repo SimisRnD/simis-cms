@@ -186,7 +186,7 @@ public class LlmsTxtServlet extends HttpServlet {
     appendSection(sb, "Pages", buildPagesSection(siteUrl, anonymousSession));
     appendSection(sb, "Collections", buildCollectionsSection(siteUrl));
     appendSection(sb, "Blogs", buildBlogsSection(siteUrl));
-    appendSection(sb, "Wikis", buildWikisSection(siteUrl));
+    appendSection(sb, "Wikis", buildWikisSection(siteUrl, anonymousSession));
 
     return sb.toString();
   }
@@ -343,13 +343,22 @@ public class LlmsTxtServlet extends HttpServlet {
   }
 
   /** Same curated, index-page-only approach as {@link #buildBlogsSection(String)}, for wikis. */
-  private String buildWikisSection(String siteUrl) {
+  private String buildWikisSection(String siteUrl, UserSession anonymousSession) {
     StringBuilder sb = new StringBuilder();
     try {
       List<Wiki> wikis = WikiRepository.findAll();
       if (wikis != null) {
         for (Wiki wiki : wikis) {
           if (wiki == null || !wiki.getEnabled() || StringUtils.isBlank(wiki.getUniqueId())) {
+            continue;
+          }
+          // llms.txt is fully public and unauthenticated, and wiki.enabled says nothing about
+          // whether a guest may reach the wiki -- its route is a web page record carrying the same
+          // role and group rules as any other page. buildPagesSection() above already applies this
+          // check to web pages for the same reason. Skipping it here published a gated wiki's name
+          // AND description to LLM crawlers; for an internal wiki the description is itself the
+          // sensitive part, even though its pages correctly answer 404 (issue #1402).
+          if (!ValidateUserAccessToWebPageCommand.hasAccess("/" + wiki.getUniqueId(), anonymousSession)) {
             continue;
           }
           String name = StringUtils.isNotBlank(wiki.getName()) ? wiki.getName() : wiki.getUniqueId();
