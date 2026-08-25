@@ -405,6 +405,21 @@ public class SitemapServlet extends HttpServlet {
 
       if (pages != null) {
         Map<Long, Wiki> wikiById = new HashMap<>();
+
+        // sitemap.xml is fully public and unauthenticated, and wiki.enabled says nothing about
+        // whether an anonymous visitor may actually reach the wiki. A wiki's URLs are served by a
+        // web page record like any other page -- LoadWebPageCommand.loadByLink() resolves
+        // "/a-wiki/a-page" to the "/a-wiki" page whose XML carries name="/*" -- so the wiki route
+        // carries the same role and group restrictions every other page does. webPageEntries()
+        // above already applies this check for the same reason: don't advertise a URL a guest
+        // would just be denied on (issue #1402).
+        UserSession anonymousSession = new UserSession();
+
+        // Access is a property of the wiki's route page, not of the individual wiki page: every
+        // page beneath a wiki resolves to that same web page record, so its layout is loaded and
+        // its group rules walked once per wiki rather than once per page.
+        Map<Long, Boolean> guestCanReachWiki = new HashMap<>();
+
         for (WikiPage page : pages) {
           if (page == null || StringUtils.isBlank(page.getUniqueId())) {
             continue;
@@ -413,10 +428,15 @@ public class SitemapServlet extends HttpServlet {
           if (wiki == null || !wiki.getEnabled()) {
             continue;
           }
+          String wikiPagePath = "/" + wiki.getUniqueId() + "/" + page.getUniqueId();
+          if (!guestCanReachWiki.computeIfAbsent(page.getWikiId(),
+              wikiId -> ValidateUserAccessToWebPageCommand.hasAccess(wikiPagePath, anonymousSession))) {
+            continue;
+          }
           String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
           long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
           entries.add(new SitemapUrlEntry(
-              escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId()), lastmod, null, null, modifiedTimestamp));
+              escapeXml(siteUrl + wikiPagePath), lastmod, null, null, modifiedTimestamp));
         }
       }
     } catch (Exception e) {

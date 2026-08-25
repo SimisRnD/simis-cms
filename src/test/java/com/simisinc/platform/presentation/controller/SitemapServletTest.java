@@ -461,7 +461,8 @@ class SitemapServletTest {
         MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
         MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class);
-        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class)) {
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
       webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
@@ -469,6 +470,9 @@ class SitemapServletTest {
       blogRepository.when(() -> BlogRepository.findById(anyLong())).thenAnswer(invocation -> blogById.get((Long) invocation.getArgument(0)));
       wikiPageRepository.when(() -> WikiPageRepository.findAll(any(), any())).thenReturn(wikiPageList);
       wikiRepository.when(() -> WikiRepository.findById(anyLong())).thenAnswer(invocation -> wikiById.get((Long) invocation.getArgument(0)));
+      // Every fixture is reachable by an anonymous visitor by default -- the dedicated ACL test
+      // below stubs this per-path itself instead of using this shared helper.
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new SitemapServlet().doGet(request, response);
     }
@@ -548,6 +552,49 @@ class SitemapServletTest {
     String body = runDoGetWithBlogAndWiki(new ArrayList<>(), new HashMap<>(), pages, wikiById);
 
     assertFalse(body.contains("internal-only"), "pages in a disabled wiki must not appear in the sitemap: " + body);
+  }
+
+  @Test
+  void doGetExcludesAWikiAGuestCannotAccess() throws Exception {
+    // Regression for #1402: wikiPageEntries() filtered only on wiki.getEnabled(), so a wiki whose
+    // route is role- or group-restricted was advertised on this public, unauthenticated endpoint
+    // even though every URL under it answers 404 to the guest who followed it. Enabled is not a
+    // visibility signal on its own -- a wiki's route is a web page record like any other, and
+    // webPageEntries() already applies exactly this check to that same entity.
+    List<WikiPage> pages = new ArrayList<>();
+    pages.add(wikiPage(1L, "home", Timestamp.valueOf("2026-04-01 09:00:00")));
+    pages.add(wikiPage(2L, "welcome", Timestamp.valueOf("2026-04-01 09:00:00")));
+    Map<Long, Wiki> wikiById = new HashMap<>();
+    wikiById.put(1L, wiki("internal-docs", true));
+    wikiById.put(2L, wiki("public-handbook", true));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      wikiPageRepository.when(() -> WikiPageRepository.findAll(any(), any())).thenReturn(pages);
+      wikiRepository.when(() -> WikiRepository.findById(anyLong()))
+          .thenAnswer(invocation -> wikiById.get((Long) invocation.getArgument(0)));
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/internal-docs/home"), any())).thenReturn(false);
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/public-handbook/welcome"), any())).thenReturn(true);
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    assertTrue(body.toString().contains("<loc>https://example.org/public-handbook/welcome</loc>"),
+        "a guest-accessible wiki must still appear: " + body);
+    assertFalse(body.toString().contains("internal-docs"),
+        "a wiki a guest cannot reach must not be disclosed via the public sitemap: " + body);
   }
 
   private HttpServletResponse runDoGetForResponse(Map<String, String> properties, List<WebPage> webPageList,

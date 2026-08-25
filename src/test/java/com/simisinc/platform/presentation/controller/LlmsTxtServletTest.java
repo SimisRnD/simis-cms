@@ -621,6 +621,54 @@ class LlmsTxtServletTest {
   }
 
   @Test
+  void doGetExcludesAWikiTheAnonymousVisitorCannotAccess() throws Exception {
+    // Regression for #1402: buildWikisSection() filtered only on getEnabled() and a blank uniqueId,
+    // so a gated wiki's name AND description were published to LLM crawlers. The pages themselves
+    // correctly answer 404, so the leak is the metadata, not the content -- and for an internal
+    // wiki the description ("...site structure, configuration and technical implementation") is
+    // precisely the sensitive part. buildPagesSection() above already applies this same check.
+    List<Wiki> wikis = new ArrayList<>();
+    Wiki restricted = wiki("internal-docs", "Internal Documentation", true);
+    restricted.setDescription("How the site is configured and deployed");
+    Wiki open = wiki("handbook", "Handbook", true);
+    wikis.add(restricted);
+    wikis.add(open);
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties("Acme", null, "https://example.org"));
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
+      menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      collectionRepository.when(CollectionRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepository.when(BlogRepository::findAll).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(wikis);
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/internal-docs"), any())).thenReturn(false);
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/handbook"), any())).thenReturn(true);
+
+      new LlmsTxtServlet().doGet(request, response);
+    }
+
+    String result = body.toString();
+    assertTrue(result.contains("- [Handbook](https://example.org/handbook)"),
+        "a guest-accessible wiki must still be listed: " + result);
+    assertFalse(result.contains("internal-docs"), "a gated wiki's URL must not be published: " + result);
+    assertFalse(result.contains("Internal Documentation"), "a gated wiki's name must not be published: " + result);
+    assertFalse(result.contains("How the site is configured"),
+        "a gated wiki's description must not be published: " + result);
+  }
+
+  @Test
   void doGetEscapesTheCustomLlmsDescriptionSoItCannotForgeAHeading() throws Exception {
     Map<String, String> llmsProperties = new HashMap<>();
     llmsProperties.put("llms.description", "Real prose.\n## Fake Heading\n- [Evil](https://evil.example)");
