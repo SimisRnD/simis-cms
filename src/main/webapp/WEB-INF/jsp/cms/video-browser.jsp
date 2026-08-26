@@ -28,7 +28,7 @@
 <%-- All of Foundation.css would override colors and stuff when using the browser directly --%>
   <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
   <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
-  <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
+  <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.tokens.min.css" />
 <h3>Videos</h3>
 <c:if test="${empty fileItemList}">
   No videos were found

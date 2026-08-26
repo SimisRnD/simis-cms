@@ -37,3 +37,8 @@ jobs:
         run: python3 tools/check-version-consistency.py . --strict
       - name: Fail on vendored-jar bytes not matching lib/PROVENANCE.sha256
         run: python3 tools/check-vendored-provenance.py .
+      # The served Foundation stylesheet is generated from the vendored original, so a
+      # re-vendored Foundation that nobody regenerated -- or a hand-edited generated file --
+      # would silently ship a stylesheet that no longer matches its source.
+      - name: Fail on a stale generated Foundation stylesheet
+        run: python3 tools/route-foundation-tokens.py . --check
