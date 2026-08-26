@@ -31,7 +31,9 @@ def test_generates_and_routes_the_base_palette(repo):
     r = run_tool(TOOL, repo)
     assert r.returncode == 0, r.stdout + r.stderr
     out = (repo / GENERATED).read_text()
-    assert "var(--sc-fnd-white,#fefefe)" in out
+    # $white and $black are role-split (see test_splits_white_by_role); the rest are 1:1.
+    assert "var(--sc-fnd-on-accent,#fefefe)" in out
+    assert "var(--sc-fnd-ink-surface,#0a0a0a)" in out
     assert "var(--sc-fnd-primary,#1779ba)" in out
     assert "var(--sc-fnd-alert,#cc4b37)" in out
 
@@ -104,3 +106,38 @@ def test_check_mode_fails_when_generated_file_is_missing(repo):
     r = run_tool(TOOL, repo, "--check")
     assert r.returncode == 1
     assert "MISSING" in r.stdout + r.stderr
+
+
+def test_splits_white_by_role(repo):
+    """$white is a surface in one place and text-on-a-coloured-fill in another; in a dark
+    theme those move in opposite directions, so they cannot share a token."""
+    seed(repo, ".a{background:#fefefe}.b{color:#fefefe}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert "background:var(--sc-fnd-surface,#fefefe)" in out
+    assert "color:var(--sc-fnd-on-accent,#fefefe)" in out
+
+
+def test_splits_black_by_role(repo):
+    seed(repo, ".a{background:#0a0a0a}.b{color:#0a0a0a}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert "background:var(--sc-fnd-ink-surface,#0a0a0a)" in out
+    assert "color:var(--sc-fnd-ink,#0a0a0a)" in out
+
+
+def test_non_text_properties_follow_the_surface(repo):
+    """Borders and shadows sit against the surface, not the text drawn on it."""
+    seed(repo, ".a{border:1px solid #fefefe}.b{box-shadow:0 0 2px #0a0a0a}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert "--sc-fnd-surface" in out
+    assert "--sc-fnd-ink-surface" in out
+
+
+def test_accent_and_status_colours_are_not_split(repo):
+    """A themed alert is one colour whether it paints text, a fill or a border."""
+    seed(repo, ".a{color:#cc4b37}.b{background:#cc4b37}.c{border:1px solid #cc4b37}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert out.count("var(--sc-fnd-alert,#cc4b37)") == 3
