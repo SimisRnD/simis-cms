@@ -25,19 +25,22 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 
 import javax.imageio.ImageIO;
 
+import org.im4java.process.ProcessStarter;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Verifies {@link ImageDimensionCommand} reads dimensions via the fast {@code javax.imageio}
- * path for formats the JDK can decode, and falls back to ImageMagick's {@code identify} for
- * formats it can't (WebP) -- issue #931. The WebP-specific tests require a real ImageMagick
- * binary on PATH and are skipped otherwise (this repo's ImageMagick-dependent tests all follow
- * this pattern; see {@link GenerateImageVariantsCommandTest}).
+ * path for formats the JDK can decode -- choosing that decoder from the file's bytes rather than
+ * its extension (#1445) -- and falls back to ImageMagick's {@code identify} for formats it can't
+ * (WebP) -- issue #931. The WebP-specific tests require a real ImageMagick binary on PATH and are
+ * skipped otherwise (this repo's ImageMagick-dependent tests all follow this pattern; see
+ * {@link GenerateImageVariantsCommandTest}).
  *
  * @author SimIS Inc.
  */
@@ -67,6 +70,37 @@ class ImageDimensionCommandTest {
   }
 
   @Test
+  void readDimensionSelectsTheDecoderFromTheFileContentsNotTheFilename(@TempDir Path tempDir) throws Exception {
+    // PNG bytes under a .jpg name -- the misdescribed upload behind issue #1445. Selecting the
+    // decoder by suffix handed this to the JPEG reader, which threw "Not a JPEG file: starts with
+    // 0x89 0x50" and logged a stack trace before ImageMagick silently recovered the dimensions.
+    File pngNamedJpg = tempDir.resolve("actually-a-png.jpg").toFile();
+    ImageIO.write(new BufferedImage(320, 240, BufferedImage.TYPE_INT_ARGB), "png", pngNamedJpg);
+
+    // Put ImageMagick out of reach for the duration, so the fallback cannot rescue this read and a
+    // result can only have come from the in-process ImageIO path.
+    Dimension dimension = withImageMagickUnavailable(tempDir,
+        () -> ImageDimensionCommand.readDimension(pngNamedJpg));
+
+    assertEquals(320, dimension.width, "ImageIO must sniff the PNG header rather than trust the .jpg name");
+    assertEquals(240, dimension.height);
+  }
+
+  @Test
+  void theImageMagickFallbackIsGenuinelyUnavailableInsideTheHelper(@TempDir Path tempDir) throws Exception {
+    // Positive control for the test above: prove withImageMagickUnavailable() really does disable
+    // the fallback. WebP is the one format here that ONLY the fallback can read, so if this file
+    // still reads its dimensions, the helper is a no-op and the assertion above proves nothing.
+    Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH - the fallback is already unavailable");
+
+    File webpFile = buildRealWebpFixture(tempDir, 320, 240);
+
+    assertThrows(IOException.class,
+        () -> withImageMagickUnavailable(tempDir, () -> ImageDimensionCommand.readDimension(webpFile)),
+        "the helper must actually prevent the identify subprocess from running");
+  }
+
+  @Test
   void readDimensionThrowsIoExceptionForAFileThatIsNotAnImage(@TempDir Path tempDir) throws Exception {
     File notAnImage = tempDir.resolve("not-an-image.png").toFile();
     Files.write(notAnImage.toPath(), "this is plain text, not a PNG".getBytes());
@@ -80,6 +114,23 @@ class ImageDimensionCommandTest {
     Files.write(noExtension.toPath(), "not an image at all".getBytes());
 
     assertThrows(IOException.class, () -> ImageDimensionCommand.readDimension(noExtension));
+  }
+
+  /**
+   * Runs {@code body} with im4java's command search path pointed at an empty directory, so any
+   * {@code identify} subprocess fails to launch and {@link ImageDimensionCommand}'s ImageMagick
+   * fallback cannot supply an answer. The search path is a JVM-wide static and the whole suite
+   * shares one forked JVM, so the previous value is always restored.
+   */
+  private static <T> T withImageMagickUnavailable(Path tempDir, Callable<T> body) throws Exception {
+    Path emptyDir = Files.createDirectory(tempDir.resolve("no-imagemagick-here"));
+    String previousSearchPath = ProcessStarter.getGlobalSearchPath();
+    ProcessStarter.setGlobalSearchPath(emptyDir.toAbsolutePath().toString());
+    try {
+      return body.call();
+    } finally {
+      ProcessStarter.setGlobalSearchPath(previousSearchPath);
+    }
   }
 
   /** Builds a real WebP file via a `convert`/`cwebp` subprocess -- the JDK cannot write WebP either. */
