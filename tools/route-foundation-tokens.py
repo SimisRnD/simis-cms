@@ -84,6 +84,7 @@ SPLIT = {
     ("#fefefe", "surface"): "--sc-fnd-surface",
     ("#0a0a0a", "text"): "--sc-fnd-ink",
     ("#0a0a0a", "surface"): "--sc-fnd-ink-surface",
+    ("#0a0a0a", "on-light-accent"): "--sc-fnd-ink-on-accent",
 }
 
 HEADER = (
@@ -117,6 +118,20 @@ def _expand(hex_value: str) -> str:
 # "background of a panel" from "background of a 2px bar used as an icon".
 MARK_SELECTORS = (".menu-icon", ".button.dropdown")
 
+# Selectors where `color:` is text drawn on a LIGHT accent fill rather than on the page.
+# Foundation puts dark text on its light semantic fills (warning #ffae00, success #3adb76),
+# and those fills keep their light values in dark mode because they are brand-adjacent. So
+# this text has to stay dark too: routed to --sc-fnd-ink it would follow the theme, turn
+# light, and land light-on-light -- 1.70:1 on warning, 1.66:1 on success, down from ~10.7:1.
+# The mirror image of MARK_SELECTORS above: there a background was really an icon, here
+# `color:` is really text-on-a-fill.
+LIGHT_ACCENT_TEXT_SELECTORS = (
+    ".button.success",
+    ".button.warning",
+    ".button-group.success",
+    ".button-group.warning",
+)
+
 
 def _selector_for(css: str, pos: int) -> str:
     """The selector of the rule containing `pos`."""
@@ -146,6 +161,14 @@ def _role_for(css: str, pos: int) -> str:
     return "surface"
 
 
+def _text_role_for(css: str, pos: int) -> str:
+    """Which flavour of text this is: on the page, or on a light accent fill."""
+    selector = _selector_for(css, pos)
+    if any(s in selector for s in LIGHT_ACCENT_TEXT_SELECTORS):
+        return "on-light-accent"
+    return "text"
+
+
 def route(css: str) -> tuple[str, int]:
     """Return the routed CSS and how many declarations were rewritten."""
     spans = [m.span() for m in URL_VALUE.finditer(css)]
@@ -162,7 +185,10 @@ def route(css: str) -> tuple[str, int]:
         value = _expand(match.group(0))
         token = PALETTE.get(value)
         if token is None:
-            token = SPLIT.get((value, _role_for(css, match.start())))
+            role = _role_for(css, match.start())
+            if role == "text":
+                role = _text_role_for(css, match.start())
+            token = SPLIT.get((value, role))
         if token is None:
             return match.group(0)
         count += 1
