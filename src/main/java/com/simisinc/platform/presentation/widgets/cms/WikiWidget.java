@@ -66,7 +66,10 @@ public class WikiWidget extends GenericWidget {
     if (StringUtils.isBlank(wikiUniqueId)) {
       if (wikiUniqueIdFromProperty) {
         // Nothing has been chosen yet -- show the same status page as an unresolved wiki id below,
-        // rather than silently rendering nothing.
+        // rather than silently rendering nothing. The reason is passed through so the page can say
+        // which of the two situations it is; they need different things done about them.
+        context.getRequest().setAttribute("wikiSetupIssue", "none-selected");
+        context.getRequest().setAttribute("wikiSetupProperty", wikiUniqueIdProperty);
         context.setJsp(WIKI_NOT_SETUP_JSP);
         return context;
       }
@@ -76,6 +79,11 @@ public class WikiWidget extends GenericWidget {
     Wiki wiki = LoadWikiCommand.loadWikiByUniqueId(wikiUniqueId);
     if (wiki == null) {
       LOG.warn("Wiki unique id not found: " + wikiUniqueId);
+      context.getRequest().setAttribute("wikiSetupIssue", "not-found");
+      context.getRequest().setAttribute("wikiSetupUniqueId", wikiUniqueId);
+      if (wikiUniqueIdFromProperty) {
+        context.getRequest().setAttribute("wikiSetupProperty", wikiUniqueIdProperty);
+      }
       context.setJsp(WIKI_NOT_SETUP_JSP);
       return context;
     }
