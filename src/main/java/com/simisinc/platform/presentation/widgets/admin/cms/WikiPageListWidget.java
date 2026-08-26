@@ -20,6 +20,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -62,6 +64,7 @@ public class WikiPageListWidget extends GenericWidget {
       return context;
     }
     context.getRequest().setAttribute("pageListWiki", wiki);
+    context.getRequest().setAttribute("wikiViewPrefix", determineViewPrefix(wiki));
 
     WikiPageSpecification specification = new WikiPageSpecification();
     specification.setWikiId(wikiId);
@@ -72,6 +75,32 @@ public class WikiPageListWidget extends GenericWidget {
 
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * Where this wiki's pages are actually readable, or null if nowhere.
+   *
+   * A wiki has no route of its own -- it is rendered by whichever web page hosts the wiki widget,
+   * either with a uniqueId baked into that page's layout or, for the built-in documentation page,
+   * through a site property. The page list used to assume {@code /<wikiUniqueId>/<pageUniqueId>},
+   * which is only correct when a site happens to have built a page at that path. On a site whose
+   * only wiki is the documentation one, every View link led to "This is a new page and is not
+   * available to users yet."
+   *
+   * Checked in the order a reader would find them: the documentation page if this is the wiki it is
+   * pointed at, then the conventional path if a page really exists there, then nothing -- an absent
+   * link being better than one that leads somewhere broken.
+   */
+  static String determineViewPrefix(Wiki wiki) {
+    String documentationWikiUniqueId = LoadSitePropertyCommand.loadByName("documentation.wiki.uniqueId");
+    if (StringUtils.isNotBlank(documentationWikiUniqueId)
+        && documentationWikiUniqueId.equals(wiki.getUniqueId())) {
+      return "/admin/documentation/wiki";
+    }
+    if (LoadWebPageCommand.loadByLink("/" + wiki.getUniqueId()) != null) {
+      return "/" + wiki.getUniqueId();
+    }
+    return null;
   }
 
   /**

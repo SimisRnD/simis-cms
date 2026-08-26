@@ -104,7 +104,10 @@
           </c:if>
         </td>
         <td class="text-center">
-          <a href="${ctx}/${pageListWiki.uniqueId}/${wikiPage.uniqueId}" title="View"><i class="fa fa-eye"></i></a>
+          <%-- Only offered when the wiki is actually readable somewhere; see
+               WikiPageListWidget.determineViewPrefix. A wiki has no route of its own, so the old
+               assumption of /<wikiUniqueId>/<pageUniqueId> sent every View to an unbuilt page. --%>
+          <c:if test="${not empty wikiViewPrefix}"><a href="${ctx}${wikiViewPrefix}/${wikiPage.uniqueId}" title="View"><i class="fa fa-eye"></i></a></c:if>
           <a href="${ctx}/wiki-editor?wikiUniqueId=${pageListWiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${widgetContext.uri}%3FwikiId%3D${pageListWiki.id}" title="Edit"><i class="fa fa-edit"></i></a>
           <a href="#" title="Delete" data-delete-wiki-page="${wikiPage.id}" data-delete-wiki-page-title="<c:out value="${wikiPage.title}" />"><i class="fa fa-remove"></i></a>
         </td>
