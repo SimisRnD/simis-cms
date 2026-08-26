@@ -188,6 +188,41 @@
   --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
   --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
 
+  /* ---- Foundation base palette, dark ------------------------------------
+     Only the structural tokens move. The five accent colours (primary,
+     secondary, success, warning, alert) deliberately keep their light-mode
+     values: they are brand-adjacent, Foundation's own defaults already carry
+     enough contrast on a dark ground, and restyling them is a design decision
+     rather than a mechanical inversion.
+
+     Verified against how Foundation actually pairs these, not in isolation:
+       ink on surface .............. 6.67:1     on-accent on primary ... 4.65:1
+       ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
+       on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
+
+  /* Surfaces darken; text drawn ON a coloured fill must not. A dark
+     --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
+     exactly why #1437 split these two roles apart. */
+  --sc-fnd-surface: var(--sc-surface-raised);
+  --sc-fnd-on-accent: #fefefe;
+  --sc-fnd-ink: var(--sc-text);
+
+  /* Stays dark, deliberately. Foundation pairs it with on-accent:
+     `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
+     light chip while on-accent correctly stays light would put white text on a
+     white background. A dark tooltip on a dark page is the right reading of that
+     pairing, lifted off the page so it still reads as a chip. The one casualty is
+     abbr's dotted underline, which shares this token and is faint here --
+     decorative, and not worth breaking every tooltip to rescue. */
+  --sc-fnd-ink-surface: #23262c;
+
+  /* The grey ramp inverts by role, not by value: "light" stays the subtlest
+     against its ground and "dark" the most prominent, so their actual lightness
+     swaps over on a dark page. */
+  --sc-fnd-light-gray: #2b2f36;
+  --sc-fnd-medium-gray: #4a4f57;
+  --sc-fnd-dark-gray: #8f959d;
+
   color-scheme: dark;
 }
 
@@ -219,6 +254,41 @@
     --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45);
     --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.45);
     --sc-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+
+    /* ---- Foundation base palette, dark ------------------------------------
+       Only the structural tokens move. The five accent colours (primary,
+       secondary, success, warning, alert) deliberately keep their light-mode
+       values: they are brand-adjacent, Foundation's own defaults already carry
+       enough contrast on a dark ground, and restyling them is a design decision
+       rather than a mechanical inversion.
+
+       Verified against how Foundation actually pairs these, not in isolation:
+         ink on surface .............. 6.67:1     on-accent on primary ... 4.65:1
+         ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
+         on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
+
+    /* Surfaces darken; text drawn ON a coloured fill must not. A dark
+       --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
+       exactly why #1437 split these two roles apart. */
+    --sc-fnd-surface: var(--sc-surface-raised);
+    --sc-fnd-on-accent: #fefefe;
+    --sc-fnd-ink: var(--sc-text);
+
+    /* Stays dark, deliberately. Foundation pairs it with on-accent:
+       `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
+       light chip while on-accent correctly stays light would put white text on a
+       white background. A dark tooltip on a dark page is the right reading of that
+       pairing, lifted off the page so it still reads as a chip. The one casualty is
+       abbr's dotted underline, which shares this token and is faint here --
+       decorative, and not worth breaking every tooltip to rescue. */
+    --sc-fnd-ink-surface: #23262c;
+
+    /* The grey ramp inverts by role, not by value: "light" stays the subtlest
+       against its ground and "dark" the most prominent, so their actual lightness
+       swaps over on a dark page. */
+    --sc-fnd-light-gray: #2b2f36;
+    --sc-fnd-medium-gray: #4a4f57;
+    --sc-fnd-dark-gray: #8f959d;
 
     color-scheme: dark;
   }
