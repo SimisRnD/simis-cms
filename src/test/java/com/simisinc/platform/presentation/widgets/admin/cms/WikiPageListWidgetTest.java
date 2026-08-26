@@ -29,8 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
@@ -67,10 +70,16 @@ class WikiPageListWidgetTest extends WidgetBase {
 
     addQueryParameter(widgetContext, "wikiId", "5");
 
+    // execute() now resolves where the wiki is readable, which reads a site property and may look
+    // up a web page -- both stubbed here so this stays a unit test with no DataSource.
     try (MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class)) {
+        MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadWebPageCommand> webPage = mockStatic(LoadWebPageCommand.class)) {
       wikiRepository.when(() -> WikiRepository.findById(5L)).thenReturn(wiki);
       wikiPageRepository.when(() -> WikiPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(any())).thenReturn(null);
+      webPage.when(() -> LoadWebPageCommand.loadByLink(any())).thenReturn(null);
 
       new WikiPageListWidget().execute(widgetContext);
     }
@@ -176,6 +185,44 @@ class WikiPageListWidgetTest extends WidgetBase {
       new WikiPageListWidget().post(widgetContext);
 
       wikiPageRepository.verify(() -> WikiPageRepository.remove(any()), never());
+    }
+  }
+
+  @Test
+  void viewPrefixUsesTheDocumentationPageWhenThisIsTheWikiItPointsAt() {
+    Wiki wiki = new Wiki();
+    wiki.setUniqueId("website-documentation");
+    try (MockedStatic<LoadSitePropertyCommand> p = mockStatic(LoadSitePropertyCommand.class)) {
+      p.when(() -> LoadSitePropertyCommand.loadByName(eq("documentation.wiki.uniqueId")))
+          .thenReturn("website-documentation");
+      Assertions.assertEquals("/admin/documentation/wiki", WikiPageListWidget.determineViewPrefix(wiki));
+    }
+  }
+
+  @Test
+  void viewPrefixFallsBackToTheConventionalPathWhenAPageActuallyExistsThere() {
+    Wiki wiki = new Wiki();
+    wiki.setUniqueId("handbook");
+    try (MockedStatic<LoadSitePropertyCommand> p = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadWebPageCommand> w = mockStatic(LoadWebPageCommand.class)) {
+      p.when(() -> LoadSitePropertyCommand.loadByName(any())).thenReturn(null);
+      w.when(() -> LoadWebPageCommand.loadByLink(eq("/handbook"))).thenReturn(new WebPage());
+      Assertions.assertEquals("/handbook", WikiPageListWidget.determineViewPrefix(wiki));
+    }
+  }
+
+  @Test
+  void viewPrefixIsNullWhenTheWikiIsNotReadableAnywhere() {
+    // The bug this fixes: the old code always emitted /<uniqueId>/<page>, so on a site with no page
+    // built at that path every View link led to "This is a new page and is not available to users
+    // yet." No link is better than one that goes somewhere broken.
+    Wiki wiki = new Wiki();
+    wiki.setUniqueId("website-documentation");
+    try (MockedStatic<LoadSitePropertyCommand> p = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadWebPageCommand> w = mockStatic(LoadWebPageCommand.class)) {
+      p.when(() -> LoadSitePropertyCommand.loadByName(any())).thenReturn("");
+      w.when(() -> LoadWebPageCommand.loadByLink(any())).thenReturn(null);
+      Assertions.assertNull(WikiPageListWidget.determineViewPrefix(wiki));
     }
   }
 }
