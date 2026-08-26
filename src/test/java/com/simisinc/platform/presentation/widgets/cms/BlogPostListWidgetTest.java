@@ -37,6 +37,7 @@ import java.util.Map;
 
 import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.JSP;
 import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.PANEL_JSP;
+import static com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget.SHOWCASE_JSP;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -199,5 +200,47 @@ class BlogPostListWidgetTest extends WidgetBase {
   void postsWithNoBannerImageGetNoEntryAtAll() {
     Assertions.assertTrue(
         BlogPostListWidget.resolveImageAltText(List.of(post(7L, "A Post", null)), Map.of()).isEmpty());
+  }
+
+  @Test
+  void executeSelectsTheShowcaseJspAndStillResolvesTheCardCounts() {
+    // The showcase view shares the cards view's preference handling rather than duplicating it, so
+    // this pins both halves: that "showcase" reaches its own template, and that it still gets the
+    // responsive card counts. If someone later splits the branch and forgets the counts, the JSP
+    // renders "small-up-" with nothing after it and the grid silently collapses to one column.
+    preferences.put("blogUniqueId", "news");
+    preferences.put("view", "showcase");
+    preferences.put("smallCardCount", "1");
+    preferences.put("largeCardCount", "3");
+
+    Blog blog = new Blog();
+    blog.setId(1L);
+    blog.setUniqueId("news");
+    blog.setName("News");
+    blog.setEnabled(true);
+
+    List<BlogPost> blogPostList = new ArrayList<>();
+    BlogPost blogPost = new BlogPost();
+    blogPost.setId(1L);
+    blogPost.setBlogId(blog.getId());
+    blogPost.setUniqueId("blog-post-1");
+    blogPost.setTitle("This is blog post 1");
+    blogPostList.add(blogPost);
+
+    try (MockedStatic<LoadBlogCommand> loadBlogCommandMockedStatic = mockStatic(LoadBlogCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
+      loadBlogCommandMockedStatic.when(() -> LoadBlogCommand.loadBlogByUniqueId(eq("news"))).thenReturn(blog);
+      blogPostRepositoryMockedStatic.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(blogPostList);
+
+      widgetContext = new BlogPostListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertNotNull(widgetContext);
+    Assertions.assertTrue(widgetContext.hasJsp());
+    Assertions.assertEquals(SHOWCASE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("1", widgetContext.getRequest().getAttribute("smallCardCount"));
+    Assertions.assertEquals("1", widgetContext.getRequest().getAttribute("mediumCardCount"),
+        "medium falls back to small when left unset");
+    Assertions.assertEquals("3", widgetContext.getRequest().getAttribute("largeCardCount"));
   }
 }

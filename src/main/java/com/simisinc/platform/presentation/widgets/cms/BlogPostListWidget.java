@@ -59,6 +59,7 @@ public class BlogPostListWidget extends GenericWidget {
   static String CARDS_JSP = "/cms/blog-post-list-cards.jsp";
   static String FEATURED_JSP = "/cms/blog-post-list-featured.jsp";
   static String MASONRY_JSP = "/cms/blog-post-list-masonry.jsp";
+  static String SHOWCASE_JSP = "/cms/blog-post-list-showcase.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -217,7 +218,10 @@ public class BlogPostListWidget extends GenericWidget {
       context.getRequest().setAttribute("viewAllUrl", context.getPreferences().get("viewAllUrl"));
       context.getRequest().setAttribute("viewAllText", context.getPreferences().getOrDefault("viewAllText", "View all"));
       context.setJsp(PANEL_JSP);
-    } else if ("cards".equals(view)) {
+    } else if ("cards".equals(view) || "showcase".equals(view)) {
+      // "showcase" is the same grid as "cards" -- same card counts, same responsive breakpoints --
+      // and differs only in its template and styling, so it shares this preference handling rather
+      // than duplicating it and drifting.
 
       // Determine the number of cards to use across
       String smallCardCount = context.getPreferences().getOrDefault("smallCardCount", "3");
@@ -235,7 +239,7 @@ public class BlogPostListWidget extends GenericWidget {
       context.getRequest().setAttribute("largeCardCount", NumberCommand.filterPositiveInteger(largeCardCount, "3"));
       context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
 
-      context.setJsp(CARDS_JSP);
+      context.setJsp("showcase".equals(view) ? SHOWCASE_JSP : CARDS_JSP);
     } else if ("masonry".equals(view)) {
       context.setJsp(MASONRY_JSP);
     } else if ("featured".equals(view)) {

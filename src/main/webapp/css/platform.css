@@ -2122,3 +2122,239 @@ div.item-image-large img {
     padding: 0 24px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Blog post list -- "showcase" view (blog-post-list-showcase.jsp)
+
+   Every selector here is scoped to .platform-blog-showcase-container. That is
+   deliberate and load-bearing: an earlier draft of this styling used a bare
+   "nav { display: flex }" for the pagination and flattened the site header,
+   because the header is also a <nav>. Scope to the component, never to the
+   element type.
+
+   Colour policy: this view takes its accent from the site's own theme
+   (--sc-button-primary-background-color) and otherwise inherits colour from the
+   surrounding page. It does NOT hardcode a palette. The pagination in
+   particular inherits currentColor rather than picking a colour, because the
+   platform cannot know what a given site puts behind it -- a fixed colour here
+   would be a contrast defect on every site whose background differs from the
+   one it was designed against.
+   --------------------------------------------------------------------------- */
+
+.platform-blog-showcase-container .card {
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--sc-surface, #ffffff);
+  box-shadow: var(--sc-shadow-lg, 0 2px 10px rgba(0, 0, 0, 0.10));
+  transition: transform var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease),
+              box-shadow var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease);
+}
+
+/* Thin brand rule along the top edge. Decorative only -- it carries no
+   information, so it has no contrast minimum to meet. */
+.platform-blog-showcase-container .card::before {
+  content: "";
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg,
+              var(--sc-button-primary-background-color, #2c79be),
+              rgba(0, 0, 0, 0.15));
+}
+
+.platform-blog-showcase-container .card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+}
+
+/* The image is contained, not cropped. A blog archive's images are whatever
+   editors uploaded -- portrait event flyers, square award seals, wide banners --
+   and a fixed crop silently destroys whichever of those it did not anticipate.
+   The sunken surface token gives the letterboxing a deliberate ground. */
+.platform-blog-showcase-container .card-image {
+  overflow: hidden;
+  background: var(--sc-surface-sunken, #f4f5f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.platform-blog-showcase-container .card-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  transition: transform 450ms var(--sc-motion-ease, ease);
+}
+
+.platform-blog-showcase-container .card:hover .card-image img {
+  transform: scale(1.045);
+}
+
+.platform-blog-showcase-container .card-section.blog-title h3,
+.platform-blog-showcase-container .card-section.blog-title h3 a {
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  margin: 0;
+  min-height: 0;
+}
+
+/* The summary grows into whatever height the image did not use, so a short
+   image buys more prose rather than leaving the card half empty. The cut is a
+   mask fade rather than -webkit-line-clamp because the available line count is
+   not knowable in CSS -- a fixed clamp would either overflow the short cards or
+   waste the tall ones. */
+.platform-blog-showcase-container .card > .card-section.blog-intro {
+  flex: 1 1 auto;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+}
+
+.platform-blog-showcase-container .card-section.blog-intro > p {
+  margin-bottom: 0;
+}
+
+/* Date and Read More on one row. Foundation gives every .card-section
+   flex: 1 0 auto, so the footer needs an explicit auto top margin to sink to
+   the bottom and put every Read More on a single baseline across a row. */
+.platform-blog-showcase-container .card-section.blog-showcase-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--sc-border, rgba(0, 0, 0, 0.07));
+}
+
+.platform-blog-showcase-container .blog-showcase-date {
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--sc-text-muted, #71767d);
+}
+
+/* Shape only. The colours stay whatever the site's theme gives .button, so this
+   inherits the site's palette and its contrast along with it. */
+.platform-blog-showcase-container .card-section.blog-showcase-footer .button {
+  border-radius: var(--sc-radius-pill, 999px);
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* --- Pagination -------------------------------------------------------------
+   Foundation puts the border on the <li>, the ellipsis glyph on ::after with
+   its own colour, and sizes the box from the <a> -- so numbered items render
+   45px tall while the current page and Next render 38px, and the shorter ones
+   visibly sink in the row. All three are corrected here.
+   --------------------------------------------------------------------------- */
+
+.platform-blog-showcase-container nav ul.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  margin: var(--sc-space-5, 1.5rem) 0 0;
+  list-style: none;
+}
+
+.platform-blog-showcase-container nav ul.pagination li {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  list-style: none;
+}
+
+.platform-blog-showcase-container nav ul.pagination li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.75;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  text-decoration: none;
+  transition: opacity var(--sc-motion-fast, 120ms) var(--sc-motion-ease, ease);
+}
+
+.platform-blog-showcase-container nav ul.pagination li a:hover {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.platform-blog-showcase-container nav ul.pagination li.current {
+  position: relative;
+  min-width: 38px;
+  padding: 0 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: inherit;
+  background: none;
+}
+
+/* A short bar under the digit rather than a full-width border: the cell is 38px
+   wide and a digit is about 8px, so a full-width rule reads as detached from
+   the number it is marking. */
+.platform-blog-showcase-container nav ul.pagination li.current::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* Foundation colours this glyph explicitly, so it does not inherit and can end
+   up near-black on a dark background. */
+.platform-blog-showcase-container nav ul.pagination li.ellipsis::after {
+  color: inherit;
+  opacity: 0.6;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.platform-blog-showcase-container nav ul.pagination li a:focus-visible {
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline-offset: var(--sc-focus-ring-offset, 2px);
+  border-radius: 3px;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-blog-showcase-container .card,
+  .platform-blog-showcase-container .card-image img,
+  .platform-blog-showcase-container nav ul.pagination li a {
+    transition: none;
+  }
+  .platform-blog-showcase-container .card:hover {
+    transform: none;
+  }
+  .platform-blog-showcase-container .card:hover .card-image img {
+    transform: none;
+  }
+}
