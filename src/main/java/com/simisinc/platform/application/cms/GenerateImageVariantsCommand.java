@@ -250,7 +250,17 @@ public class GenerateImageVariantsCommand {
   }
 
   private static VariantPath resolveVariantPath(Image image, String variantType) {
-    String extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(image.getFilename()));
+    // The variant's extension comes from the image's detected content type, never its filename.
+    // ImageMagick chooses its output encoder from the target file's extension, so a name that
+    // misdescribes the contents makes it re-encode into the wrong format: PNG data named ".jpg"
+    // is written back out as JPEG, and JPEG has no alpha channel, so every transparent pixel
+    // composites to solid black (issue #1445). The original file is never rewritten, which is why
+    // only the generated variants were affected. Falls back to the filename for a type with no
+    // known extension -- SUPPORTED_MIME_TYPES already keeps those from reaching here.
+    String extension = DetectContentTypeCommand.imageExtensionFor(image.getFileType());
+    if (extension == null) {
+      extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(image.getFilename()));
+    }
     String relativeDir = FilenameUtils.getFullPath(image.getFileServerPath());
     String baseName = FilenameUtils.getBaseName(image.getFileServerPath());
     String relativeVariantPath = relativeDir + baseName + "-" + variantType
