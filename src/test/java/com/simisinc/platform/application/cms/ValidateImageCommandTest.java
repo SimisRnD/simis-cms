@@ -67,6 +67,21 @@ class ValidateImageCommandTest {
   }
 
   @Test
+  void checkFileRecordsTheRealTypeWhenTheFilenameMisdescribesIt(@TempDir Path tempDir) throws Exception {
+    // Issue #1445, as reported: an editor uploaded PNG data named "gsa-alt.jpg". Recording it as
+    // image/jpeg from the extension is what made variant generation re-encode it into a format
+    // with no alpha channel, so every card rendered the image on solid black. Nothing warned --
+    // the library preview shows the untouched original, so only the rendered pages looked wrong.
+    Image image = imageForRealFile(tempDir, "gsa-alt.jpg", 400, 300, "png");
+
+    withStubbedRoot(tempDir, () -> ValidateImageCommand.checkFile(image));
+
+    assertEquals("image/png", image.getFileType());
+    assertEquals(400, image.getWidth());
+    assertEquals(300, image.getHeight());
+  }
+
+  @Test
   void checkFileAcceptsAWebpAndRecordsItsDimensions(@TempDir Path tempDir) throws Exception {
     Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH - skipping WebP upload test");
 

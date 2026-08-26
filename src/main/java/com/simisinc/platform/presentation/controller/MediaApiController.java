@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.DetectContentTypeCommand;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.MutateLayoutCommand;
@@ -44,7 +45,6 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -398,70 +398,10 @@ public class MediaApiController extends HttpServlet {
     return maxBytes;
   }
 
-  // Real format signatures ("magic bytes") for the file types this endpoint accepts (images + PDF,
-  // per the isImage/isPdf check below). Files.probeContentType() alone is not trustworthy here: on a
-  // minimal JDK/container with no mime-magic database it silently falls back to guessing from the
-  // extension, so a plain-text file renamed to "malware.png" would be accepted, stored, and served
-  // back as "image/png" -- identical in effect to trusting the filename with no real verification.
-  // These signatures are checked directly against the uploaded bytes on disk instead.
-  private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-  private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-  private static final byte[] GIF87A_SIGNATURE = {'G', 'I', 'F', '8', '7', 'a'};
-  private static final byte[] GIF89A_SIGNATURE = {'G', 'I', 'F', '8', '9', 'a'};
-  private static final byte[] PDF_SIGNATURE = {'%', 'P', 'D', 'F', '-'};
-  // WebP is a RIFF container: bytes 0-3 are "RIFF", bytes 4-7 are a little-endian chunk size specific
-  // to each file (not checked here), bytes 8-11 are "WEBP".
-  private static final byte[] RIFF_SIGNATURE = {'R', 'I', 'F', 'F'};
-  private static final byte[] WEBP_SIGNATURE = {'W', 'E', 'B', 'P'};
-  private static final int SNIFF_HEADER_BYTES = 12;
-
-  private static boolean headerStartsWith(byte[] header, int headerLength, byte[] signature) {
-    if (headerLength < signature.length) {
-      return false;
-    }
-    for (int i = 0; i < signature.length; i++) {
-      if (header[i] != signature[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Detects a file's real content type by inspecting its actual header bytes on disk -- never the
-   * submitted filename, its extension, or the client-declared {@code Part} content type. Only the
-   * formats this endpoint supports are recognized; anything else (including a disguised file whose
-   * extension claims one of these types but whose bytes don't match, e.g. a script renamed to
-   * ".png") returns {@code null} so the caller rejects it.
-   */
-  private static String sniffContentType(File file) {
-    byte[] header = new byte[SNIFF_HEADER_BYTES];
-    int headerLength;
-    try (InputStream in = Files.newInputStream(file.toPath())) {
-      headerLength = in.readNBytes(header, 0, header.length);
-    } catch (Exception e) {
-      LOG.warn("Could not read the uploaded file's header bytes: " + e.getMessage());
-      return null;
-    }
-    if (headerStartsWith(header, headerLength, PNG_SIGNATURE)) {
-      return "image/png";
-    }
-    if (headerStartsWith(header, headerLength, JPEG_SIGNATURE)) {
-      return "image/jpeg";
-    }
-    if (headerStartsWith(header, headerLength, GIF87A_SIGNATURE) || headerStartsWith(header, headerLength, GIF89A_SIGNATURE)) {
-      return "image/gif";
-    }
-    if (headerStartsWith(header, headerLength, PDF_SIGNATURE)) {
-      return "application/pdf";
-    }
-    if (headerLength >= SNIFF_HEADER_BYTES && headerStartsWith(header, headerLength, RIFF_SIGNATURE)
-        && header[8] == WEBP_SIGNATURE[0] && header[9] == WEBP_SIGNATURE[1]
-        && header[10] == WEBP_SIGNATURE[2] && header[11] == WEBP_SIGNATURE[3]) {
-      return "image/webp";
-    }
-    return null;
-  }
+  // Content-type detection is shared with the image-library upload path -- see
+  // DetectContentTypeCommand, which inspects the file's real header bytes rather than trusting the
+  // submitted filename, its extension, or the client-declared Part content type. Kept in one place
+  // so the two upload entry points cannot drift apart on what they consider a valid image.
 
   /**
    * Handles a real multipart file upload from the media library panel's drag-and-drop area or file
@@ -581,9 +521,9 @@ public class MediaApiController extends HttpServlet {
     }
 
     // Never trust the client-declared Part content type or the file extension alone -- inspect the
-    // actual bytes written to disk. See sniffContentType's javadoc for why Files.probeContentType()
+    // actual bytes written to disk. See DetectContentTypeCommand for why Files.probeContentType()
     // alone is not sufficient here.
-    String sniffedMimeType = sniffContentType(targetFile);
+    String sniffedMimeType = DetectContentTypeCommand.detect(targetFile);
     boolean isImage = sniffedMimeType != null && sniffedMimeType.startsWith("image/");
     boolean isPdf = "application/pdf".equals(sniffedMimeType);
     if (!isImage && !isPdf) {

@@ -17,10 +17,13 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -157,6 +160,28 @@ class GenerateImageVariantsCommandTest {
     ImageVariant persisted = ImageVariantRepository.findByImageIdAndVariantType(image.getId(), "medium");
     File variantFile = new File(tempDir.toString() + "/" + persisted.getFileServerPath());
     assertTrue(variantFile.isFile(), "the resized file must actually exist on disk");
+  }
+
+  @Test
+  void generateVariantsKeepsTransparencyWhenTheFilenameMisdescribesTheFormat(@TempDir Path tempDir)
+      throws Exception {
+    // Issue #1445: an editor uploaded PNG data named "gsa-alt.jpg". ImageMagick chooses its output
+    // encoder from the target file's extension, so variants named ".jpg" were written as JPEG --
+    // a format with no alpha channel -- and every transparent pixel composited to solid black.
+    // The original is never rewritten, which is why only the rendered cards looked wrong.
+    Image image = insertTransparentImageWithRealFile(tempDir, "gsa-alt.jpg", 2000, 1500);
+
+    List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
+
+    assertFalse(variants.isEmpty(), "a 2000x1500 original should produce variants");
+    for (ImageVariant variant : variants) {
+      assertTrue(variant.getFileServerPath().endsWith(".png"),
+          "the variant must be named for its real format, not the misleading upload name: "
+              + variant.getFileServerPath());
+      File variantFile = new File(tempDir.toString() + "/" + variant.getFileServerPath());
+      assertEquals(0, cornerAlpha(variantFile),
+          "transparency must survive the resize for the " + variant.getVariantType() + " variant");
+    }
   }
 
   @Test
@@ -480,6 +505,44 @@ class GenerateImageVariantsCommandTest {
       fsc.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString() + "/");
       return body.get();
     }
+  }
+
+  /**
+   * Writes real PNG data under whatever filename is given -- deliberately allowing a name that
+   * misdescribes the contents -- with the left half fully transparent and the right half opaque, so
+   * a downscale that drops the alpha channel is visible at the corner pixel.
+   */
+  private static Image insertTransparentImageWithRealFile(Path tempDir, String filename, int width, int height)
+      throws IOException {
+    String relativePath = "images/2026/08/" + filename;
+    File file = tempDir.resolve(relativePath).toFile();
+    file.getParentFile().mkdirs();
+    BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D graphics = bufferedImage.createGraphics();
+    graphics.setColor(new Color(0, 0, 255, 255));
+    graphics.fillRect(width / 2, 0, width - (width / 2), height);
+    graphics.dispose();
+    ImageIO.write(bufferedImage, "png", file);
+
+    Image image = new Image();
+    image.setFilename(filename);
+    image.setFileServerPath(relativePath);
+    image.setCreatedBy(userId);
+    image.setFileLength(file.length());
+    // What ValidateImageCommand now records after sniffing the header bytes, regardless of the
+    // ".jpg" name the file arrived under.
+    image.setFileType("image/png");
+    image.setWidth(width);
+    image.setHeight(height);
+    image.setWebPath("20260803120000");
+    return ImageRepository.save(image);
+  }
+
+  /** Alpha of the top-left pixel: 0 when transparency survived, 255 once it has been flattened. */
+  private static int cornerAlpha(File imageFile) throws IOException {
+    BufferedImage variant = ImageIO.read(imageFile);
+    assertTrue(variant != null, "could not read the variant file: " + imageFile);
+    return (variant.getRGB(0, 0) >>> 24) & 0xFF;
   }
 
   private static Image insertImageWithRealFile(Path tempDir, String filename, int width, int height)
