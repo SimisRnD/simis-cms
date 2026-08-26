@@ -118,8 +118,20 @@
    ========================================================================== */
 
 :root {
-  --sc-fnd-white: #fefefe;
-  --sc-fnd-black: #0a0a0a;
+  /* $white and $black are split by role. Foundation uses each across both text and
+     surfaces, and in a dark theme those move in opposite directions: surfaces go dark
+     while text sitting on a coloured button must stay light. A single token cannot
+     express that -- a dark --sc-fnd-white would turn 32 button captions dark-on-dark. */
+  --sc-fnd-surface: #fefefe;      /* $white painting a surface (27 uses) */
+  --sc-fnd-on-accent: #fefefe;    /* $white as text ON a coloured fill (32 uses) */
+  --sc-fnd-ink: #0a0a0a;          /* $black as text (36 uses) */
+  --sc-fnd-ink-surface: #0a0a0a;  /* $black painting a surface (12 uses) */
+
+  /* Deprecated aliases, kept so first-party stylesheets routed before the split keep
+     working. Prefer the role-specific names above; these cannot be themed for dark. */
+  --sc-fnd-white: var(--sc-fnd-surface);
+  --sc-fnd-black: var(--sc-fnd-ink);
+
   --sc-fnd-primary: #1779ba;
   --sc-fnd-secondary: #767676;
   --sc-fnd-success: #3adb76;

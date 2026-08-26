@@ -53,9 +53,19 @@ GENERATED = f"{VENDOR_DIR}/foundation.tokens.min.css"
 # Foundation's base palette -> token name. Foundation uses one Sass variable per
 # colour across every role it plays (its $white is both a surface and inverse
 # text), so a 1:1 colour-to-token mapping reproduces its own semantics exactly.
+# Foundation's base palette -> token.
+#
+# Most colours keep a single token: Foundation uses one Sass variable per colour
+# across every role it plays, and for an accent or a status colour that is right --
+# a themed alert is one colour whether it is painting text, a fill or a border.
+#
+# Two colours are different, and the difference only shows up in dark mode. $white
+# is used 21 times as a background and 32 times as text sitting ON a coloured fill;
+# $black likewise. In a dark theme those move in OPPOSITE directions -- surfaces go
+# dark while text on a coloured button must stay light -- so a single token cannot
+# express it. Giving --sc-fnd-white a dark value would turn 32 button captions
+# dark-on-dark. Those two are therefore split by role.
 PALETTE = {
-    "#fefefe": "--sc-fnd-white",
-    "#0a0a0a": "--sc-fnd-black",
     "#1779ba": "--sc-fnd-primary",
     "#767676": "--sc-fnd-secondary",
     "#3adb76": "--sc-fnd-success",
@@ -64,6 +74,16 @@ PALETTE = {
     "#e6e6e6": "--sc-fnd-light-gray",
     "#cacaca": "--sc-fnd-medium-gray",
     "#8a8a8a": "--sc-fnd-dark-gray",
+}
+
+# (colour, role) -> token, for the two that invert. Role is derived from the
+# declaration's property; anything that is not text is treated as a surface, which
+# keeps borders and shadows moving with the surface they sit against.
+SPLIT = {
+    ("#fefefe", "text"): "--sc-fnd-on-accent",
+    ("#fefefe", "surface"): "--sc-fnd-surface",
+    ("#0a0a0a", "text"): "--sc-fnd-ink",
+    ("#0a0a0a", "surface"): "--sc-fnd-ink-surface",
 }
 
 HEADER = (
@@ -88,6 +108,19 @@ def _expand(hex_value: str) -> str:
     return h
 
 
+def _role_for(css: str, pos: int) -> str:
+    """'text' or 'surface', from the property this colour belongs to.
+
+    Scans back to the start of the declaration and reads its property name. Anything
+    that is not `color` counts as a surface, so borders and shadows follow the surface
+    they sit against rather than the text drawn on it.
+    """
+    start = max(css.rfind(";", 0, pos), css.rfind("{", 0, pos), css.rfind("}", 0, pos))
+    decl = css[start + 1:pos]
+    name, _, _ = decl.partition(":")
+    return "text" if name.strip().lower() == "color" else "surface"
+
+
 def route(css: str) -> tuple[str, int]:
     """Return the routed CSS and how many declarations were rewritten."""
     spans = [m.span() for m in URL_VALUE.finditer(css)]
@@ -101,7 +134,10 @@ def route(css: str) -> tuple[str, int]:
         nonlocal count
         if inside_url(match.start()):
             return match.group(0)
-        token = PALETTE.get(_expand(match.group(0)))
+        value = _expand(match.group(0))
+        token = PALETTE.get(value)
+        if token is None:
+            token = SPLIT.get((value, _role_for(css, match.start())))
         if token is None:
             return match.group(0)
         count += 1
