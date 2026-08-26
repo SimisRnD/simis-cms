@@ -177,8 +177,22 @@ public class PageServlet extends HttpServlet {
     // form-action 'self' keeps an injected <form> from posting to an attacker's origin. Every form
     // the platform serves is same-origin: the payment forms tokenize client-side through the
     // Stripe/Square SDK and then post the token back here, so none of them are affected.
+    // style-src and font-src close the two directives that were silently ungoverned: with no
+    // default-src, an absent directive falls back to nothing at all, so stylesheets and fonts could
+    // be fetched from any origin. Measured against every published page before choosing these --
+    // all 12 served stylesheets (including the site-specific one) reference zero external origins,
+    // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
+    // 'unsafe-inline' is unavoidable: the theme's colour tokens are emitted as an inline <style>
+    // block by design, and several hundred inline style attributes exist across the JSPs. It still
+    // leaves style-src strictly stronger than absent, because a foreign stylesheet is now refused.
+    //
+    // img-src and default-src are deliberately NOT set yet (issue #1430). img-src is the directive
+    // that would close the CSS-based exfiltration channel, but published content still references
+    // images on an external origin, so setting it now would break real pages. default-src has to
+    // come last, after img-src and frame-src, or the video and careers iframes fall through to it.
     response.setHeader("Content-Security-Policy",
-        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' 'nonce-"
+        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
+            + "style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'nonce-"
             + cspNonce + "'");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
