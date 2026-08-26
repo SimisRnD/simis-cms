@@ -99,6 +99,38 @@
 }
 
 /* ==========================================================================
+   Layer 1b - Foundation's own palette
+   ==========================================================================
+   Foundation is vendored as compiled CSS with no Sass source, so its palette
+   was baked into the shipped file -- which is why most of the product still
+   renders in Foundation's factory colours regardless of the site's theme.
+   tools/route-foundation-tokens.py rewrites that file's base colours to the
+   tokens below, making 285 of its 351 colour declarations addressable at
+   runtime.
+
+   These ship with Foundation's OWN values, so nothing changes appearance until
+   a theme deliberately overrides them. They are intentionally NOT overridden in
+   the dark block yet: doing so would change how the product looks today, which
+   belongs in its own reviewable change rather than riding along with the
+   plumbing. Naming keeps the -fnd- infix because these describe Foundation's
+   palette slots, not semantic roles -- a later pass can point them at the
+   semantic tokens once the first-party stylesheets are routed too.
+   ========================================================================== */
+
+:root {
+  --sc-fnd-white: #fefefe;
+  --sc-fnd-black: #0a0a0a;
+  --sc-fnd-primary: #1779ba;
+  --sc-fnd-secondary: #767676;
+  --sc-fnd-success: #3adb76;
+  --sc-fnd-warning: #ffae00;
+  --sc-fnd-alert: #cc4b37;
+  --sc-fnd-light-gray: #e6e6e6;
+  --sc-fnd-medium-gray: #cacaca;
+  --sc-fnd-dark-gray: #8a8a8a;
+}
+
+/* ==========================================================================
    Layer 2 - Dark token overrides
    ==========================================================================
    Note what is NOT overridden: brand accent colors (theme.button.*,
