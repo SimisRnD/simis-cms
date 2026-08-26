@@ -42,3 +42,7 @@ jobs:
       # would silently ship a stylesheet that no longer matches its source.
       - name: Fail on a stale generated Foundation stylesheet
         run: python3 tools/route-foundation-tokens.py . --check
+      # Hardcoded colours in first-party CSS may fall, never rise -- otherwise every
+      # new rule is a chance to add another literal and the routing work only keeps level.
+      - name: Fail on new hardcoded colours in first-party CSS
+        run: python3 tools/check-css-token-adoption.py .
