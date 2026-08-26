@@ -108,17 +108,42 @@ def _expand(hex_value: str) -> str:
     return h
 
 
+# Selectors where a non-`color` property paints a foreground mark rather than a
+# surface. The hamburger bars are drawn on a dark top bar and the dropdown caret is
+# drawn on a coloured button fill: both belong with the text sitting on that fill,
+# not with the page behind it. Routed as surfaces they would darken along with every
+# background and disappear entirely in dark mode -- two controls silently erased.
+# Matched on the enclosing selector, because the property alone cannot distinguish
+# "background of a panel" from "background of a 2px bar used as an icon".
+MARK_SELECTORS = (".menu-icon", ".button.dropdown")
+
+
+def _selector_for(css: str, pos: int) -> str:
+    """The selector of the rule containing `pos`."""
+    brace = css.rfind("{", 0, pos)
+    if brace == -1:
+        return ""
+    start = max(css.rfind("}", 0, brace), css.rfind("{", 0, brace), css.rfind(";", 0, brace))
+    return css[start + 1:brace]
+
+
 def _role_for(css: str, pos: int) -> str:
     """'text' or 'surface', from the property this colour belongs to.
 
     Scans back to the start of the declaration and reads its property name. Anything
     that is not `color` counts as a surface, so borders and shadows follow the surface
-    they sit against rather than the text drawn on it.
+    they sit against rather than the text drawn on it -- except for the handful of
+    selectors in MARK_SELECTORS, where a background paints an icon rather than a panel.
     """
     start = max(css.rfind(";", 0, pos), css.rfind("{", 0, pos), css.rfind("}", 0, pos))
     decl = css[start + 1:pos]
     name, _, _ = decl.partition(":")
-    return "text" if name.strip().lower() == "color" else "surface"
+    if name.strip().lower() == "color":
+        return "text"
+    selector = _selector_for(css, pos)
+    if any(mark in selector for mark in MARK_SELECTORS):
+        return "text"
+    return "surface"
 
 
 def route(css: str) -> tuple[str, int]:
