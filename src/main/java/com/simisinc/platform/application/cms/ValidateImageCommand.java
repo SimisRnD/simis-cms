@@ -45,12 +45,19 @@ public class ValidateImageCommand {
       return;
     }
 
-    // Check mime type
-    String mimeType = null;
-    try {
-      mimeType = Files.probeContentType(imageFile.toPath());
-    } catch (Exception e) {
-      LOG.error("Error checking file for image data", e);
+    // Check mime type. The file's own header bytes decide: Files.probeContentType() commonly
+    // resolves by filename extension instead of content, so PNG data named ".jpg" is reported as
+    // image/jpeg -- and is then re-encoded as JPEG when variants are generated, flattening any
+    // transparency to black with no error anywhere (issue #1445). The extension-based probe is
+    // kept only as a fallback for accepted formats that have no magic-byte signature to match,
+    // SVG being the one that reaches here.
+    String mimeType = DetectContentTypeCommand.detect(imageFile);
+    if (mimeType == null) {
+      try {
+        mimeType = Files.probeContentType(imageFile.toPath());
+      } catch (Exception e) {
+        LOG.error("Error checking file for image data", e);
+      }
     }
     if (mimeType == null || !mimeType.split("/")[0].equals("image")) {
       LOG.warn("Detected mimeType = " + mimeType);
