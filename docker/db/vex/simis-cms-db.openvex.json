@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 11,
+  "version": 12,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1223,7 +1223,61 @@
       "status": "not_affected",
       "justification": "inline_mitigations_already_exist",
       "impact_statement": "TOCTOU in util-linux's mount program. Debian bookworm has no fixed version, so the package cannot be upgraded out of the image; all nine entries are binary packages built from the one util-linux source, so this is a single defect counted nine times. Exploitation requires an unprivileged local user to invoke mount across its setuid-root privilege transition. docker/db/Dockerfile removes that transition: the build runs `chmod u-s` on /usr/bin/mount, /usr/bin/umount, /bin/mount and /bin/umount, so no privilege boundary is crossed when they execute and the race has no privilege to win. Verified on the built image -- mount and umount are mode 0755 root:root, and neither appears in the image's remaining setuid set. The binaries stay functional for a caller that is already root, which is the only caller this image has: PostgreSQL never mounts a filesystem, and the base entrypoint never invokes mount (it appears only in comments and one diagnostic message). Confirmed the mitigation is behaviour-preserving by building the image and starting it -- pg_isready accepted connections and CREATE EXTENSION postgis reported 3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11822"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite, so enabling it does not change this analysis. Consistent with the existing CVE-2025-7458 statement for this same package."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11824"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite, so enabling it does not change this analysis. Consistent with the existing CVE-2025-7458 statement for this same package."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-52490"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libtiff6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The CVE is attributed to process_command_opts(), an option-handling routine belonging to libtiff's command-line utilities; this image installs the libtiff6 shared library as a GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is likewise reachable only through postgis_raster. Consistent with the existing CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
     }
   ],
-  "last_updated": "2026-08-20T00:00:00Z"
+  "last_updated": "2026-08-26T21:00:00Z"
 }

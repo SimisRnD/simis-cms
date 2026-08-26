@@ -8,31 +8,10 @@
 # its line here. A lapsed expiry re-fails the publish gate on the next run --
 # deliberately, so triage cannot be forgotten silently.
 #
-# Currently empty: the 7 CVEs pending as of 2026-07-23 were all triaged
-# not_affected (vulnerable_code_not_in_execute_path) with recorded evidence
-# on 2026-07-24 -- see the VEX statements' impact_statement fields.
-
-# --- Added 2026-08-26 ---------------------------------------------------------
-# Three Debian CVEs published overnight, all with NO fixed version available, so a
-# rebuild cannot clear them. They blocked the publish gate for ~17 hours and with it
-# every merge to main, since the rolling deploy runs at the end of that same workflow.
-#
-# Both packages are already covered by the GDAL_CHAIN policy in
-# tools/generate-db-vex.py -- they reach this image only as transitive dependencies of
-# PostGIS's GDAL stack, and the database creates vector PostGIS only, never
-# postgis_raster, so GDAL's raster/image decoders and its embedded SQLite reader are
-# never loaded. libtiff6 and libsqlite3-0 each already carry not_affected statements
-# on that basis for earlier CVEs.
-#
-# They are entered here rather than as not_affected because the VEX document is
-# generated, not hand-edited, and it cannot currently be regenerated (see the note in
-# the pull request). The expiry is short deliberately: this is an unblock, not a
-# triage, and it should be replaced by real statements once the generator works again.
-#
-# CVE-2026-11822  libsqlite3-0  SQLite FTS5 arbitrary code execution   (fix_deferred)
-# CVE-2026-11824  libsqlite3-0  SQLite FTS5 heap buffer overflow       (fix_deferred)
-# CVE-2026-52490  libtiff6      process_command_opts() -- a CLI argument-parsing
-#                               entry point, not a library decode path
-CVE-2026-11822 exp:2026-09-26
-CVE-2026-11824 exp:2026-09-26
-CVE-2026-52490 exp:2026-09-26
+# Currently empty:
+#   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
+#     (vulnerable_code_not_in_execute_path) with recorded evidence on 2026-07-24
+#   - CVE-2026-11822, CVE-2026-11824 and CVE-2026-52490, entered on 2026-08-26 to
+#     unblock the gate, were triaged not_affected on the same GDAL-stack basis and
+#     removed from here the same day
+# See the VEX statements' impact_statement fields for the evidence in each case.
