@@ -85,7 +85,10 @@
       <div class="tabs-content" data-tabs-content="wikiEditorSideTabs">
         <div class="tabs-panel is-active" id="wikiHelpPanel">
           <div class="callout secondary" style="height:65vh;overflow:scroll">
-            <p><a target="_blank" href="http://commonmark.org/help">CommonMark Help</a></p>
+            <%-- https, and rel on a target=_blank: commonmark.org 301s http to https anyway, and an
+                 opener-less new tab cannot reach back into this editor via window.opener. --%>
+            <p><a target="_blank" rel="noopener noreferrer" href="https://commonmark.org/help">CommonMark Help</a>
+              &mdash; the markdown syntax this editor uses</p>
             # Title<br />
             <br />
             ## List of things<br />
