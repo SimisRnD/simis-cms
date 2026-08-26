@@ -280,6 +280,17 @@ public class HtmlCommand {
     safelist.addAttributes("video", "src", "controls", "poster", "type", "width", "height", "autoplay");
     safelist.addTags("source");
     safelist.addAttributes("source", "src", "type");
+    // <track kind="captions" src="/assets/view/.../SimIS-HTT.vtt" srclang="en" label="English" default>
+    // Captions are what makes a video with audio meet WCAG 1.2.2, and there is no other route to
+    // them: a video's markup is authored as content, and the same cleanContent() runs on the way in
+    // (SaveContentCommand) and, for page-layout XML preferences, on the way out (ContentHtmlCommand)
+    // -- so a track injected by hand into either was silently dropped before reaching the browser.
+    // srclang/label/default are listed individually because jsoup drops any attribute not named
+    // here, and a <track> without kind and srclang is inert. Protocol is left unrestricted, matching
+    // the sibling video/source tags above; a track src is fetched as a text resource, so it is not a
+    // script-execution vector.
+    safelist.addTags("track");
+    safelist.addAttributes("track", "kind", "src", "srclang", "label", "default");
     // style="border-collapse: collapse; width: 100%;"
     safelist.addTags("table");
     safelist.addAttributes("table", "style");

@@ -19,6 +19,7 @@ package com.simisinc.platform.application.cms;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests HTML functions
@@ -142,6 +143,38 @@ class HtmlCleanerTest {
     String value = HtmlCommand.cleanContent(html);
     assertEquals(expected, value);
   }
+  @Test
+  void checkVideoCaptionTrackSurvives() {
+    // A caption track is what takes a video with audio from failing WCAG 1.2.2 to passing it, so
+    // the sanitizer has to let it through intact -- kind and srclang included, or the track is inert.
+    String html = "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
+        "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" />\n" +
+        "<track kind=\"captions\" src=\"/assets/view/20200914083941-104/SimIS-HTT.vtt\" srclang=\"en\" label=\"English\" default /></video>";
+    String expected = "<div class=\"responsive-embed widescreen\"><video controls=\"controls\" width=\"300\" height=\"150\">\n" +
+        "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\">\n" +
+        "<track kind=\"captions\" src=\"/assets/view/20200914083941-104/SimIS-HTT.vtt\" srclang=\"en\" label=\"English\" default></video></div>";
+
+    String value = HtmlCommand.cleanContent(html);
+    assertEquals(expected, value);
+  }
+
+  @Test
+  void checkVideoCaptionTrackKeepsEveryAttribute() {
+    // jsoup drops any attribute not named in the safelist, so a track can survive as an element
+    // while quietly losing what makes it usable. Assert each attribute individually rather than
+    // trusting the element's presence.
+    String html = "<video controls=\"controls\">" +
+        "<track kind=\"subtitles\" src=\"/assets/view/1-2/clip.vtt\" srclang=\"es\" label=\"Espanol\" /></video>";
+
+    String value = HtmlCommand.cleanContent(html);
+
+    assertTrue(value.contains("<track"), "the track element itself must survive");
+    assertTrue(value.contains("kind=\"subtitles\""), "kind must survive");
+    assertTrue(value.contains("src=\"/assets/view/1-2/clip.vtt\""), "src must survive");
+    assertTrue(value.contains("srclang=\"es\""), "srclang must survive");
+    assertTrue(value.contains("label=\"Espanol\""), "label must survive");
+  }
+
   @Test
   void checkVideos() {
     String html = "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
