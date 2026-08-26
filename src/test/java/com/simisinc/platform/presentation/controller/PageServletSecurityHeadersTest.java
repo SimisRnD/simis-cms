@@ -124,6 +124,18 @@ class PageServletSecurityHeadersTest {
         "the rest of the baseline policy must still be present: " + actualCsp);
     assertTrue(actualCsp.contains("form-action 'self'"),
         "form-action must be present so an injected form cannot post to another origin: " + actualCsp);
+
+    // Issue #1430: with no default-src, an absent directive falls back to nothing -- styles and
+    // fonts were governed by neither. Both origins were measured as entirely first-party before
+    // being locked to 'self'.
+    assertTrue(actualCsp.contains("style-src 'self' 'unsafe-inline'"),
+        "style-src must be present so a stylesheet cannot be loaded from a foreign origin: " + actualCsp);
+    assertTrue(actualCsp.contains("font-src 'self'"),
+        "font-src must be present so a webfont cannot be loaded from a foreign origin: " + actualCsp);
+    // Deliberately still absent: img-src cannot be set until published content stops referencing
+    // external images, and default-src must come after it or the video/careers iframes break.
+    assertTrue(!actualCsp.contains("default-src"),
+        "default-src must not be added before img-src and frame-src are settled: " + actualCsp);
   }
 
   @Test
