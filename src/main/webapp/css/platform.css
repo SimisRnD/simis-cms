@@ -89,7 +89,7 @@ p {
 }
 
 .modal-prompt {
-  background-color: #ffffff;
+  background-color: var(--sc-surface, #ffffff);
   padding: 50px;
   text-align: center;
 }
@@ -200,7 +200,7 @@ p {
 
 .utility-bar {
   background-color: #000000;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 11.5px;
@@ -221,7 +221,7 @@ p {
   margin-left: 10px;
 }
 .utility-bar a {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
   text-decoration: underline;
 }
 
@@ -269,7 +269,7 @@ p {
 
 .platform-dashboard-group {
   background-color: #eceef1;
-  border: 1px solid #d9dce1;
+  border: 1px solid var(--sc-border, #d9dce1);
   border-radius: 10px;
   padding: 20px;
   margin-top: 10px;
@@ -442,14 +442,14 @@ ul.pagination li.page {
 }
 
 ul.pagination li.page:hover {
-  border: 1px solid #1779ba;
+  border: 1px solid var(--sc-fnd-primary, #1779ba);
 }
 
 ul.pagination li.page a {
   padding: 0;
   height: 100%;
   line-height: 40px;
-  color: #1779ba;
+  color: var(--sc-fnd-primary, #1779ba);
 }
 
 ul.pagination li.page a:hover {
@@ -459,12 +459,12 @@ ul.pagination li.page a:hover {
 
 ul.pagination li.current {
   line-height: 40px;
-  border: 1px solid #1779ba;
+  border: 1px solid var(--sc-fnd-primary, #1779ba);
 }
 
 ul.pagination li.pagination-previous a,
 ul.pagination li.pagination-next a {
-  color: #1779ba;
+  color: var(--sc-fnd-primary, #1779ba);
 }
 
 ul.pagination li.pagination-previous a:hover,
@@ -476,7 +476,7 @@ ul.pagination li.pagination-next a:hover {
 /* Tooltip */
 
 .tooltip h5 {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 
 /* Wiki Content */
@@ -561,7 +561,7 @@ ul.pagination li.pagination-next a:hover {
   padding-left: 32px;
 }
 .platform-toc-container li a:hover {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 .platform-toc-editor {
   position: absolute;
@@ -593,7 +593,7 @@ ul.pagination li.pagination-next a:hover {
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option {
   position: relative;
   padding-right: 1.5rem;
-  color: #1779ba;
+  color: var(--sc-fnd-primary, #1779ba);
 }
 
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option::before {
@@ -604,7 +604,7 @@ ul.pagination li.pagination-next a:hover {
   content: '';
   border-bottom-width: 0;
   border-top-style: solid;
-  border-color: #1779ba transparent transparent;
+  border-color: var(--sc-fnd-primary, #1779ba) transparent transparent;
   left: 5px;
   right: auto;
   margin-right: 5px;
@@ -723,7 +723,7 @@ ul.pagination li.pagination-next a:hover {
 .clean-hero-slider .orbit-caption {
   width: auto;
   height: auto;
-  background: #0a0a0a;
+  background: var(--sc-fnd-black, #0a0a0a);
   position: absolute;
   text-align: center;
   right: 0;
@@ -770,7 +770,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-caption h3 {
-  color: #ffae00;
+  color: var(--sc-fnd-warning, #ffae00);
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 0;
@@ -785,7 +785,7 @@ ul.pagination li.pagination-next a:hover {
 
 .clean-hero-slider .orbit-slide {
   padding-bottom: 40%;
-  background: #0a0a0a;
+  background: var(--sc-fnd-black, #0a0a0a);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -795,13 +795,13 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-controls button {
-  background: #ffae00;
+  background: var(--sc-fnd-warning, #ffae00);
   padding: 1rem 0.5rem;
 }
 
 .clean-hero-slider .orbit-controls button:hover {
-  background: #fefefe;
-  color: #0a0a0a;
+  background: var(--sc-fnd-white, #fefefe);
+  color: var(--sc-fnd-black, #0a0a0a);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -834,11 +834,11 @@ ul.pagination li.pagination-next a:hover {
   width: 3rem;
   height: 0.4rem;
   border-radius: 0;
-  background-color: #fefefe;
+  background-color: var(--sc-fnd-white, #fefefe);
 }
 
 .clean-hero-slider .orbit-bullets button.is-active {
-  background-color: #ffae00;
+  background-color: var(--sc-fnd-warning, #ffae00);
 }
 
 .clean-hero-slider li.orbit-slide {
@@ -856,10 +856,10 @@ ul.pagination li.pagination-next a:hover {
 /* Activity Input */
 
 .status-update-input-box {
-  background-color: #fefefe;
+  background-color: var(--sc-fnd-white, #fefefe);
   padding: 0;
   width: 100%;
-  border: 1px solid #cacaca;
+  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
 }
 
 .status-update-input-box .input-box-container textarea {
@@ -885,7 +885,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box {
   padding: 0;
-  border: 1px solid #cacaca;
+  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -893,7 +893,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box .action-area {
   width: 20%;
-  border-right: 0.0625rem solid #cacaca;
+  border-right: 0.0625rem solid var(--sc-fnd-medium-gray, #cacaca);
   text-align: center;
   padding-top: 0.275rem;
   padding-bottom: 0.275rem;
@@ -909,12 +909,12 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .user-action-container .user-action-box .action-area .action-anchor .fa {
-  color: #1779ba;
+  color: var(--sc-fnd-primary, #1779ba);
 }
 
 .status-update-input-box .user-action-container .user-submit-box {
   padding: 0.35rem 0.5rem;
-  border: 1px solid #cacaca;
+  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -977,7 +977,7 @@ ul.pagination li.pagination-next a:hover {
   line-height: 1.3;
   padding: 10px 20px;
   background-color: #17191e;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -987,7 +987,7 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 11px;
-  color: #979ca4;
+  color: var(--sc-field-placeholder, #979ca4);
 }
 .admin-menu .app-user {
   margin-bottom: 10px;
@@ -996,10 +996,10 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 13px;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 .admin-menu .app-user i {
-  color: #979ca4;
+  color: var(--sc-field-placeholder, #979ca4);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1008,7 +1008,7 @@ ul.pagination li.pagination-next a:hover {
   font-size: 11px;
   letter-spacing: 0.05em;
   padding-left: 20px;
-  color: #979ca4;
+  color: var(--sc-field-placeholder, #979ca4);
 }
 .admin-menu a {
   padding-left: 20px;
@@ -1018,7 +1018,7 @@ ul.pagination li.pagination-next a:hover {
 /* Icons read one step quieter than their label -- pewter at rest, white
    only once the item is active (see .is-active > a i below). */
 .admin-menu a i {
-  color: #979ca4;
+  color: var(--sc-field-placeholder, #979ca4);
 }
 .admin-menu ul {
   padding-left: 0;
@@ -1041,7 +1041,7 @@ ul.pagination li.pagination-next a:hover {
   background-color: transparent;
 }
 .admin-menu a:hover {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 /* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
    Higher specificity than Foundation's .menu .is-active > a (#1779ba) so
@@ -1053,12 +1053,12 @@ ul.pagination li.pagination-next a:hover {
    bold) carries the emphasis, matching every other active-state label. */
 .admin-menu li.is-active > a {
   background-color: #53575c;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
   font-weight: 500;
   box-shadow: inset 3px 0 0 #7faed7;
 }
 .admin-menu li.is-active > a i {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 
 /* Cards */
@@ -1158,10 +1158,10 @@ ul.pagination li.pagination-next a:hover {
 /* User Card Profile */
 
 .card-profile-stats {
-  border: 1px solid #cacaca;
+  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
   margin: 0 0 1.25rem;
   padding: 1.25rem;
-  background: #fefefe;
+  background: var(--sc-fnd-white, #fefefe);
 }
 
 .card-profile-stats .card-profile-stats-intro {
@@ -1193,7 +1193,7 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   text-align: center;
   font-size: 1.5rem;
-  color: #0a0a0a;
+  color: var(--sc-fnd-black, #0a0a0a);
   padding: 0.5rem;
   cursor: pointer;
 }
@@ -1257,14 +1257,14 @@ button.round, .button.round {
 }
 
 button.box, .button.box {
-  background-color: #ffffff;
+  background-color: var(--sc-surface, #ffffff);
   border: 1px solid #2a2e31;
   color: #2a2e31 !important;
 }
 
 button.box:hover, button.box:focus, .button.box:hover, .button.box:focus {
   background-color: #2a2e31;
-  color: #ffffff !important;
+  color: var(--sc-text-inverse, #ffffff) !important;
 }
 
 /* Links */
@@ -1276,8 +1276,8 @@ a.read-more {
 /* Callout */
 
 .callout.box {
-  background-color: #ffffff;
-  color: #0a0a0a;
+  background-color: var(--sc-surface, #ffffff);
+  color: var(--sc-fnd-black, #0a0a0a);
 }
 
 .callout.prototype {
@@ -1286,13 +1286,13 @@ a.read-more {
   background-position: center center;
   background-repeat: repeat;
   background-size: 16px;
-  color: #0a0a0a;
+  color: var(--sc-fnd-black, #0a0a0a);
 }
 
 .callout.header {
   background-color: #353535;
   border: none;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 
 .callout.no-box, table tbody.no-box, table tbody tr.no-box,
@@ -1305,14 +1305,14 @@ a.read-more {
 
 .label.success {
   background-color: #43AC6A;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 
 /* Cards */
 
 .admin.card {
   border: 1px solid #d8d8d8;
-  background-color: #ffffff;
+  background-color: var(--sc-surface, #ffffff);
   color: #15325d;
 }
 
@@ -1333,12 +1333,12 @@ a.read-more {
 
 .tabs {
   border: none;
-  border-bottom: 1px solid #e6e6e6;
+  border-bottom: 1px solid var(--sc-fnd-light-gray, #e6e6e6);
 }
 .tabs li a {
   font-size: 16px;
   color: #000000;
-  background: #e6e6e6;
+  background: var(--sc-fnd-light-gray, #e6e6e6);
   transition: all 0.35s ease-in-out;
   padding: 0.5rem 1rem;
 }
@@ -1352,8 +1352,8 @@ a.read-more {
 }
 .tabs .tabs-title>a:focus, .tabs .tabs-title>a[aria-selected=true],
 .tabs .tabs-title.is-active a {
-  color: #ffffff;
-  background: #1779ba;
+  color: var(--sc-text-inverse, #ffffff);
+  background: var(--sc-fnd-primary, #1779ba);
 }
 
 .full-container {
@@ -1391,7 +1391,7 @@ a.read-more {
 .platform-scrollable-view {
   height: 50vh;
   overflow-y: scroll;
-  background-color: #ffffff;
+  background-color: var(--sc-surface, #ffffff);
   margin-bottom: 20px;
   padding-left: 10px;
   padding-right: 5px;
@@ -1441,16 +1441,16 @@ a.read-more {
 }
 .platform-activity-content-date {
   font-size: 80%;
-  color: #8a8a8a;
+  color: var(--sc-fnd-dark-gray, #8a8a8a);
 }
 .platform-activity-content-other {
-  color: #8a8a8a;
+  color: var(--sc-fnd-dark-gray, #8a8a8a);
 }
 
 /* Controls */
 
 .switch-paddle .switch-active {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 .switch-paddle .switch-inactive {
   color: #333333;
@@ -1984,7 +1984,7 @@ div.item-image-large img {
   margin-bottom: 24px;
 }
 .platform-calendar-month-separator-label {
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
   background-color: #000000;
   padding: 2px 10px;
   margin: 0
@@ -2066,11 +2066,11 @@ div.item-image-large img {
    to match a brand accent color rather than one of Foundation's 5 built-in semantic button colors. */
 .button.brand {
   background-color: #ff8c00;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 .button.brand:hover, .button.brand:focus {
   background-color: #d97700;
-  color: #ffffff;
+  color: var(--sc-text-inverse, #ffffff);
 }
 /* Same brand-orange accent as .button.brand above, for inline text (e.g. a small eyebrow/kicker
    label) rather than a button background. Page content authors can only reach this via a class=
@@ -2140,6 +2140,25 @@ div.item-image-large img {
    would be a contrast defect on every site whose background differs from the
    one it was designed against.
    --------------------------------------------------------------------------- */
+
+/* Cards fill their cell so a row ends level and every Read More lands on one
+   baseline. Three rules are needed, not one: Foundation gives the cell no
+   height of its own, and gives every .card-section flex: 1 0 auto -- which
+   splits spare height four ways and opens a gap between each section instead of
+   collecting it above the footer. Omitting these was a real defect in the first
+   version of this view: with the summary set to flex: 1 1 auto the cards still
+   sized to content, and a row measured 710 / 824 / 761. */
+.platform-blog-showcase-container .grid-x > .cell {
+  display: flex;
+}
+
+.platform-blog-showcase-container .cell > .card {
+  height: 100%;
+}
+
+.platform-blog-showcase-container .card > .card-section {
+  flex: 0 0 auto;
+}
 
 .platform-blog-showcase-container .card {
   border: 0;

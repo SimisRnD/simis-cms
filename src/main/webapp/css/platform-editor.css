@@ -28,7 +28,7 @@
 }
 
 #sc-editor-toolbar a.button:hover {
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   border-color: #aaa;
 }
 
@@ -106,17 +106,17 @@ body.page-edit-mode [data-editor-widget]:hover {
 
 .sc-editor-handle-section {
   background: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 .sc-editor-handle-column {
   background: #28a745;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 .sc-editor-handle-widget {
   background: #dc3545;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 body.page-edit-mode [data-editor-section]:hover > .sc-editor-handle,
@@ -132,7 +132,7 @@ a.sc-editor-handle {
 
 a.sc-editor-handle:hover {
   opacity: 0.85;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 /* ── Inline content editor ── */
@@ -182,7 +182,7 @@ a.sc-editor-handle:hover {
 #sc-inline-toolbar button:hover,
 #sc-inline-toolbar button.sc-active {
   background: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 #sc-inline-toolbar .sc-inline-sep {
@@ -234,7 +234,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
   line-height: 1;
   z-index: 101;
   border-radius: 0 0 0 3px;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   font-family: sans-serif;
   user-select: none;
 }
@@ -291,7 +291,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255,255,255,0.3);
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   font-size: 11px;
   padding: 2px 5px;
   cursor: pointer;
@@ -343,7 +343,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-discard-draft-btn:hover {
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   border-color: #aaa;
 }
 
@@ -397,7 +397,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-ok {
   background: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 #sc-confirm-ok.sc-danger {
@@ -416,7 +416,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-cancel:hover {
   background: #4a4a5e;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 /* ── Structural mutation buttons (add / remove section, column, widget) ── */
@@ -442,7 +442,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-mutate-btns button {
   border: none;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   font-size: 10px;
   padding: 2px 6px;
   cursor: pointer;
@@ -504,14 +504,14 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn:hover {
   border-color: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   background: #2a2a4e;
 }
 
 .sc-width-preset-btn.sc-active {
   background: #0056b3;
   border-color: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 #sc-width-custom-row {
@@ -539,7 +539,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-apply {
   background: #0056b3;
   border: none;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   padding: 3px 8px;
   font-size: 11px;
   border-radius: 3px;
@@ -714,7 +714,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-close:hover {
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
 }
 
 #sc-prefs-textarea {
@@ -763,14 +763,14 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-reset:hover {
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   background: #4a4a5e;
 }
 
 #sc-prefs-apply {
   background: #0056b3;
   border: none;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   padding: 3px 10px;
   font-size: 11px;
   border-radius: 3px;
@@ -809,7 +809,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-link-prompt button {
   background: #0056b3;
   border: none;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   padding: 3px 8px;
   font-size: 12px;
   border-radius: 3px;
@@ -825,7 +825,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-picker {
   position: fixed;
   z-index: 10020;
-  background: #fff;
+  background: var(--sc-surface, #fff);
   border: 1px solid #ccc;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -896,7 +896,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-mutate-btn-add-widget {
   background: rgba(16, 141, 149, 0.75);
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   border: none;
   border-radius: 3px;
   padding: 2px 6px;
@@ -924,7 +924,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 /* Container Quill renders into */
 .sc-quill-editor-container {
   min-height: 80px;
-  background: #fff;
+  background: var(--sc-surface, #fff);
   border: none;
 }
 
@@ -959,7 +959,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-save-btn {
   background: #0056b3;
-  color: #fff;
+  color: var(--sc-text-inverse, #fff);
   border: none;
   border-radius: 3px;
   padding: 4px 14px;
