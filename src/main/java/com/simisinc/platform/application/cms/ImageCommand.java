@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -157,6 +158,51 @@ public class ImageCommand {
    * @return a ready-to-use srcset value, or "" (never null) if imageUrl isn't an internal image
    *         path or no variants exist yet
    */
+  /**
+   * The image's focal point as a CSS {@code object-position} value, or null when it sits at the
+   * default centre.
+   *
+   * The focal point is stored as a 0-100 percentage of width and height, which is exactly what
+   * object-position takes, so a cropped image can be told which part to keep. Returning null for an
+   * untouched image is deliberate: the caller then emits no style at all, so markup on a site where
+   * nobody has set a focal point is byte-identical to before and nothing can shift.
+   *
+   * Values are clamped to 0-100. The column is NOT NULL with a 50.00 default, but a null is treated
+   * as centre rather than trusted into a stylesheet.
+   */
+  public static String objectPositionFor(Image image) {
+    if (image == null) {
+      return null;
+    }
+    BigDecimal x = clampPercent(image.getFocalX());
+    BigDecimal y = clampPercent(image.getFocalY());
+    if (x.compareTo(FIFTY) == 0 && y.compareTo(FIFTY) == 0) {
+      return null;
+    }
+    return trimPercent(x) + "% " + trimPercent(y) + "%";
+  }
+
+  private static final BigDecimal FIFTY = new BigDecimal("50.00");
+  private static final BigDecimal HUNDRED = new BigDecimal("100");
+
+  private static BigDecimal clampPercent(BigDecimal value) {
+    if (value == null) {
+      return FIFTY;
+    }
+    if (value.compareTo(BigDecimal.ZERO) < 0) {
+      return BigDecimal.ZERO;
+    }
+    if (value.compareTo(HUNDRED) > 0) {
+      return HUNDRED;
+    }
+    return value;
+  }
+
+  /** 50.00 -> "50", 33.50 -> "33.5" -- shorter markup, identical rendering. */
+  private static String trimPercent(BigDecimal value) {
+    return value.stripTrailingZeros().toPlainString();
+  }
+
   public static String srcset(String imageUrl) {
     Long imageId = parseImageId(imageUrl);
     if (imageId == null) {

@@ -181,6 +181,30 @@ public class BlogPostListWidget extends GenericWidget {
     // reused across posts, and the title is what distinguishes the cards when the library has
     // nothing stored. Keyed by post id so the JSPs read one value and make no decision of their own.
     context.getRequest().setAttribute("blogPostImageAltText", resolveImageAltText(blogPostList, imagesByImageId));
+    // Focal point as a ready-to-use object-position value (issue #1436). The admin offers a focal
+    // point on every image, but until now only generateSquareVariant() ever read it -- the card
+    // views crop with CSS object-fit:cover, which centres at 50% 50% regardless, so setting one
+    // appeared to do nothing. Built from the image records already loaded above, so it costs no
+    // extra query.
+    //
+    // Keyed by post id, like the alt text above, so the JSP reads one value and makes no decision --
+    // there is no EL function for turning a post's imageUrl back into an image id.
+    //
+    // Only images whose focal point was actually moved get an entry. An image left at the 50/50
+    // default is omitted, so its markup is byte-identical to before and nothing shifts on a site
+    // where nobody has set one.
+    Map<Long, String> blogPostImageFocalPoint = new LinkedHashMap<>();
+    for (BlogPost blogPost : blogPostList) {
+      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      if (imageId == null) {
+        continue;
+      }
+      String objectPosition = ImageCommand.objectPositionFor(imagesByImageId.get(imageId));
+      if (objectPosition != null) {
+        blogPostImageFocalPoint.put(blogPost.getId(), objectPosition);
+      }
+    }
+    context.getRequest().setAttribute("blogPostImageFocalPoint", blogPostImageFocalPoint);
 
     // Governed publish workflow status per post (#407, phase 2), keyed by post id -- only shown to
     // admin/content-manager viewers (the same audience already shown unpublished posts here at all,

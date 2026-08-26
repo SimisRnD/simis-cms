@@ -98,7 +98,7 @@
             <div class="platform-blog-image">
               <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="<c:out value="${ctx}${blogPost.imageUrl}"/>"
                 <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="100vw"</c:if>
-                decoding="async" loading="lazy"/></a>
+                <c:set var="blogImageFocal" value="${blogPostImageFocalPoint[blogPost.id]}"/><c:if test="${not empty blogImageFocal}"> style="object-position: <c:out value="${blogImageFocal}"/>"</c:if> decoding="async" loading="lazy"/></a>
             </div>
           </c:if>
           <c:if test="${showAuthor eq 'true' || (showDate eq 'true' && !empty blogPost.startDate) || !empty blogPost.tagsList}">
