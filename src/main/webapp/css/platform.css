@@ -2141,6 +2141,25 @@ div.item-image-large img {
    one it was designed against.
    --------------------------------------------------------------------------- */
 
+/* Cards fill their cell so a row ends level and every Read More lands on one
+   baseline. Three rules are needed, not one: Foundation gives the cell no
+   height of its own, and gives every .card-section flex: 1 0 auto -- which
+   splits spare height four ways and opens a gap between each section instead of
+   collecting it above the footer. Omitting these was a real defect in the first
+   version of this view: with the summary set to flex: 1 1 auto the cards still
+   sized to content, and a row measured 710 / 824 / 761. */
+.platform-blog-showcase-container .grid-x > .cell {
+  display: flex;
+}
+
+.platform-blog-showcase-container .cell > .card {
+  height: 100%;
+}
+
+.platform-blog-showcase-container .card > .card-section {
+  flex: 0 0 auto;
+}
+
 .platform-blog-showcase-container .card {
   border: 0;
   border-radius: 12px;
