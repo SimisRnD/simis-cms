@@ -25,7 +25,11 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.Test;
+
+import com.simisinc.platform.domain.model.cms.Image;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.domain.model.cms.ImageVariant;
@@ -211,5 +215,50 @@ class ImageCommandTest {
       assertEquals("/assets/img/20180503171549-5/logo.png?variant=thumbnail 200w", result);
       mocked.verifyNoInteractions();
     }
+  }
+
+  private static Image imageWithFocalPoint(String x, String y) {
+    Image image = new Image();
+    image.setFocalX(new BigDecimal(x));
+    image.setFocalY(new BigDecimal(y));
+    return image;
+  }
+
+  @Test
+  void objectPositionIsNullForAnImageLeftAtTheDefaultCentre() {
+    // The whole point: an untouched image must emit no style at all, so markup on a site where
+    // nobody has set a focal point is byte-identical to before this existed.
+    assertNull(ImageCommand.objectPositionFor(imageWithFocalPoint("50.00", "50.00")));
+  }
+
+  @Test
+  void objectPositionIsRenderedWhenTheFocalPointWasMoved() {
+    assertEquals("25% 75%", ImageCommand.objectPositionFor(imageWithFocalPoint("25.00", "75.00")));
+  }
+
+  @Test
+  void objectPositionKeepsAFractionalPercentButTrimsTrailingZeros() {
+    assertEquals("33.5% 50%", ImageCommand.objectPositionFor(imageWithFocalPoint("33.50", "50.00")));
+  }
+
+  @Test
+  void objectPositionIsRenderedWhenOnlyOneAxisMoved() {
+    assertEquals("50% 10%", ImageCommand.objectPositionFor(imageWithFocalPoint("50.00", "10.00")));
+  }
+
+  @Test
+  void objectPositionClampsValuesOutsideZeroToOneHundred() {
+    // The column is NOT NULL with a 50.00 default, but a stored value is not trusted straight into
+    // a stylesheet.
+    assertEquals("0% 100%", ImageCommand.objectPositionFor(imageWithFocalPoint("-20.00", "180.00")));
+  }
+
+  @Test
+  void objectPositionTreatsNullsAsCentre() {
+    Image image = new Image();
+    image.setFocalX(null);
+    image.setFocalY(null);
+    assertNull(ImageCommand.objectPositionFor(image));
+    assertNull(ImageCommand.objectPositionFor(null));
   }
 }
