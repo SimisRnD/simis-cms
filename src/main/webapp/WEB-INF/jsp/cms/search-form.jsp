@@ -113,14 +113,14 @@
 </c:if>
 <form id="form${widgetContext.uniqueId}" method="get" action="${ctx}/search?widget=results1">
   <div id="group${widgetContext.uniqueId}" class="input-group no-gap">
-    <input id="input${widgetContext.uniqueId}" class="input-group-field" type="search"<c:if test="${expand ne 'true'}"> placeholder="<c:out value="${placeholder}" />"</c:if> name="query">
+    <input id="input${widgetContext.uniqueId}" class="input-group-field" type="search" aria-label="<c:out value="${!empty placeholder ? placeholder : 'Search this site'}" />"<c:if test="${expand ne 'true'}"> placeholder="<c:out value="${placeholder}" />"</c:if> name="query">
     <c:if test="${expand eq 'true'}">
     <div class="input-group-button close-group">
-      <button id="close${widgetContext.uniqueId}" type="button" class="button search-close" aria-label="Close search"><i class="fa fa-times"></i></button>
+      <button id="close${widgetContext.uniqueId}" type="button" class="button search-close" aria-label="Close search"><i class="fa fa-times" aria-hidden="true"></i></button>
     </div>
     </c:if>
     <div class="input-group-button">
-      <button id="button${widgetContext.uniqueId}" type="submit" class="button search"><i id="icon${widgetContext.uniqueId}" class="fa fa-search"></i><c:out value="${linkText}" /></button>
+      <button id="button${widgetContext.uniqueId}" type="submit" class="button search"<c:if test="${empty linkText}"> aria-label="Search"</c:if>><i id="icon${widgetContext.uniqueId}" class="fa fa-search" aria-hidden="true"></i><c:out value="${linkText}" /></button>
     </div>
   </div>
 </form>
