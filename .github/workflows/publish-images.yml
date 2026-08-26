@@ -461,3 +461,97 @@ jobs:
             --image-uri "${{ env.ACR_REGISTRY }}/simis-cms:${{ env.VERSION_TAG }}" \
             --health-check-timeout 300 \
             --drain-timeout 60
+
+  # ---------------------------------------------------------------------------
+  # Failure reporting.
+  #
+  # GitHub sends a workflow-failure notification only to the account that
+  # TRIGGERED the run. Every push to main is triggered by whoever merged the pull
+  # request, so the notification reaches that one person and nobody else. That is
+  # structural, not a settings mistake, and no per-user preference changes it.
+  #
+  # It cost fourteen hours on 2026-08-26: ten consecutive publish failures, no
+  # signal to anyone who was not the merging account, and every commit merged in
+  # that window silently stopped reaching the deployed environment.
+  #
+  # So the signal is attached to the repository rather than to an actor. An issue
+  # is the right artifact rather than a chat ping, because this pipeline's most
+  # common failure -- a newly published CVE tripping the image scan gate -- needs
+  # triage state that outlives a notification.
+  report-failure:
+    name: Report the failure
+    needs: publish
+    if: failure() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # A single issue is reused while the pipeline stays broken, so a bad week
+      # produces one issue with a comment per run instead of a week of issues --
+      # a queue of duplicates is noise, and noise is what trains people to ignore
+      # the signal this exists to give.
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: Publish pipeline is failing - merged work is not reaching deployment
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Comma-separated GitHub usernames to put on the issue. GitHub emails an
+          # assignee when an issue is opened or assigned, which is what makes this
+          # reach someone other than the merging account. Kept in a repository
+          # variable rather than hardcoded so the workflow does not name a person
+          # and so the list can change without a pull request. Unset is valid --
+          # the issue is still opened, it just relies on repo watchers.
+          ASSIGNEES: ${{ vars.DEPLOY_ALERT_ASSIGNEES }}
+        run: |
+          set -euo pipefail
+          existing="$(gh issue list --state open --label ci --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$TITLE\")] | .[0].number // empty")"
+          body="$(printf '%s\n' \
+            "\`Publish container images\` failed on \`main\` at commit \`${GITHUB_SHA:0:12}\`." \
+            "" \
+            "Run: $RUN_URL" \
+            "" \
+            "**Anything merged from here on does not reach the deployed environment until this is fixed.** The deploy step runs at the end of this same workflow, so a failure at any earlier step stops delivery without stopping merges." \
+            "" \
+            "Most often this is the image scan gate rather than a build break: a newly published CVE with no fix available yet, or a lapsed expiry in \`docker/db/.trivyignore\`. Read the failing step before assuming the code is at fault.")"
+          if [ -n "$existing" ]; then
+            # Comment rather than reopen-and-reassign: the assignee was already
+            # notified when it was opened, and re-notifying on every run is the
+            # kind of repetition that gets a filter written against it.
+            gh issue comment "$existing" --body "$body"
+          else
+            if [ -n "${ASSIGNEES:-}" ]; then
+              gh issue create --title "$TITLE" --label ci --body "$body" --assignee "$ASSIGNEES"
+            else
+              gh issue create --title "$TITLE" --label ci --body "$body"
+            fi
+          fi
+
+  # Closes the issue above once publishing works again, so its open/closed state
+  # is a truthful indicator of whether deployment is currently flowing. An alert
+  # that has to be closed by hand stops being trusted the first time it is stale.
+  clear-failure:
+    name: Clear the failure
+    needs: publish
+    if: success() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Close the tracking issue if one is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: Publish pipeline is failing - merged work is not reaching deployment
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          existing="$(gh issue list --state open --label ci --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$TITLE\")] | .[0].number // empty")"
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" \
+              --comment "Publishing succeeded again on \`${GITHUB_SHA:0:12}\`. Run: $RUN_URL"
+          fi
