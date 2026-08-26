@@ -27,7 +27,6 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.FileImageInputStream;
 import javax.imageio.stream.ImageInputStream;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.im4java.core.IMOperation;
@@ -39,7 +38,8 @@ import org.im4java.process.ArrayListOutputConsumer;
  *
  * <p>
  * Tries {@code javax.imageio.ImageIO} first -- an in-process, no-subprocess read that covers
- * jpeg/png/gif/bmp. The JDK ships no WebP (or AVIF) decoder, so a WebP file falls through to
+ * jpeg/png/gif/bmp, with the decoder chosen by sniffing the file's bytes rather than trusting its
+ * extension (#1445). The JDK ships no WebP (or AVIF) decoder, so a WebP file falls through to
  * ImageMagick's {@code identify} instead, via the {@code im4java} dependency this app already
  * uses for variant generation ({@link GenerateImageVariantsCommand}). This reuses the same
  * hardened, resource-bounded ImageMagick invocation path already in place (see
@@ -59,19 +59,33 @@ public class ImageDimensionCommand {
   }
 
   public static Dimension readDimension(File imageFile) throws IOException {
-    String suffix = FilenameUtils.getExtension(imageFile.getName());
-    Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(suffix);
-    while (readers.hasNext()) {
-      ImageReader reader = readers.next();
-      try (ImageInputStream stream = new FileImageInputStream(imageFile)) {
-        reader.setInput(stream);
-        return new Dimension(reader.getWidth(reader.getMinIndex()), reader.getHeight(reader.getMinIndex()));
-      } catch (IOException e) {
-        LOG.warn("Error reading image dimensions: " + imageFile.getAbsolutePath(), e);
-      } finally {
-        reader.dispose();
+    // Choose the decoder from the file's own bytes, not from its name. ImageIO.getImageReaders(Object)
+    // asks each candidate reader's canDecodeInput() to sniff the stream, so an upload whose extension
+    // misdescribes its contents (PNG data named .jpg, issue #1445) still gets the reader that can
+    // actually read it. Selecting by suffix instead handed such a file to the JPEG reader, which threw
+    // "Not a JPEG file: starts with 0x89 0x50" and logged a stack trace before the ImageMagick
+    // fallback below quietly recovered the correct dimensions -- a misleading error plus a subprocess
+    // on every read of that file.
+    try (ImageInputStream stream = new FileImageInputStream(imageFile)) {
+      Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
+      while (readers.hasNext()) {
+        ImageReader reader = readers.next();
+        try {
+          // A reader that failed part-way leaves the stream mid-file; rewind so the next candidate
+          // (and its canDecodeInput sniff) starts from the header again.
+          stream.seek(0);
+          reader.setInput(stream);
+          return new Dimension(reader.getWidth(reader.getMinIndex()), reader.getHeight(reader.getMinIndex()));
+        } catch (IOException e) {
+          LOG.warn("Error reading image dimensions: " + imageFile.getAbsolutePath(), e);
+        } finally {
+          reader.dispose();
+        }
       }
+    } catch (IOException e) {
+      LOG.warn("Error opening the image file: " + imageFile.getAbsolutePath(), e);
     }
+    // No reader claimed these bytes -- WebP lands here, since the JDK ships no WebP decoder (#931)
     return readDimensionViaImageMagick(imageFile);
   }
 
