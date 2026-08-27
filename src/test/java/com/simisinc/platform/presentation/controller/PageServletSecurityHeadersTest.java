@@ -132,10 +132,18 @@ class PageServletSecurityHeadersTest {
         "style-src must be present so a stylesheet cannot be loaded from a foreign origin: " + actualCsp);
     assertTrue(actualCsp.contains("font-src 'self'"),
         "font-src must be present so a webfont cannot be loaded from a foreign origin: " + actualCsp);
+    // The directive that closes the CSS-based exfiltration channel: without it, a background-image
+    // URL can carry a field value to any host. data: is permitted because it makes no request.
+    assertTrue(actualCsp.contains("img-src 'self' data:"),
+        "img-src must be present so an image cannot be fetched from a foreign origin: " + actualCsp);
     // Deliberately still absent: img-src cannot be set until published content stops referencing
     // external images, and default-src must come after it or the video/careers iframes break.
     assertTrue(!actualCsp.contains("default-src"),
-        "default-src must not be added before img-src and frame-src are settled: " + actualCsp);
+        "default-src must not be added before frame-src is settled: " + actualCsp);
+    // frame-src has to land before any backstop, or the third-party embeds inherit default-src
+    // and stop rendering. If a future change adds default-src, frame-src must come with it.
+    assertTrue(!actualCsp.contains("default-src") || actualCsp.contains("frame-src"),
+        "default-src must not be introduced without frame-src: " + actualCsp);
   }
 
   @Test
