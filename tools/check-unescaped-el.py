@@ -310,7 +310,7 @@ ALLOWLIST: dict[str, str] = {
 
     # Whitelist-constrained values (set to one of a small fixed set of literals).
     "${colorScheme}":
-        "<c:choose> in main.jsp / embedded-layout.jsp maps colorSchemeMode to exactly one of 'dark', 'auto', or 'light' -- no other value is possible.",
+        "<c:choose> in main.jsp maps colorSchemeMode to exactly one of 'dark', 'auto', or 'light' -- no other value is possible.",
     "${range eq '1h' ? 'primary' : 'secondary'}":
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
     "${range eq '24h' ? 'primary' : 'secondary'}":
