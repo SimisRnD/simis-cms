@@ -22,6 +22,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.ImageHtmlEmail;
@@ -34,8 +36,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.email.EmailCommand;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 import jakarta.servlet.ServletContext;
@@ -92,6 +96,65 @@ class EmailTaskTest {
 
       assertEquals(WorkStatus.COMPLETED, report.getStatus());
     }
+  }
+
+  @Test
+  void addressingACapabilityMailsEveryoneWhoHoldsIt() throws Exception {
+    // A role-addressed mail reaches only accounts sitting in that role; a capability-addressed one
+    // reaches everyone the permission model says is responsible -- a System Administrator holding
+    // community:manage included
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadUser.when(() -> LoadUserCommand.loadUsersHoldingCapability("community:manage"))
+          .thenReturn(Arrays.asList(user(1L, "manager@example.com"), user(2L, "admin@example.com")));
+      StubEmail email = new StubEmail(null);
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any())).thenReturn(email);
+
+      TaskContext taskContext = new TaskContext(new EmailTask());
+      taskContext.put(EmailTask.TEMPLATE, TEMPLATE);
+      taskContext.put(EmailTask.TO_CAPABILITY, "community:manage");
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContext);
+
+      assertEquals(WorkStatus.COMPLETED, report.getStatus());
+      assertEquals(2, email.getToAddresses().size());
+    }
+  }
+
+  @Test
+  void aCapabilityNobodyHoldsMailsNobodyRatherThanEveryone() throws Exception {
+    // An unrecognised or unheld capability must address nobody -- failing open here would mail an
+    // unknown set of people about an event they may have no business seeing
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadUser.when(() -> LoadUserCommand.loadUsersHoldingCapability(anyString()))
+          .thenReturn(Collections.emptyList());
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any()))
+          .thenReturn(new StubEmail(null));
+
+      TaskContext taskContext = new TaskContext(new EmailTask());
+      taskContext.put(EmailTask.TEMPLATE, TEMPLATE);
+      taskContext.put(EmailTask.TO_CAPABILITY, "no-such:capability");
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContext);
+
+      assertEquals(WorkStatus.FAILED, report.getStatus(), "no recipients means the task did not do its job");
+    }
+  }
+
+  private static User user(long id, String email) {
+    User user = new User();
+    user.setId(id);
+    user.setEmail(email);
+    return user;
   }
 
   private static TaskContext taskContext() {

@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.ResultSet;
+import org.apache.commons.lang3.StringUtils;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -84,6 +85,20 @@ public class CapabilityRepository {
       return (List<Capability>) result.getRecords();
     }
     return null;
+  }
+
+  /**
+   * Looks up a capability by its code, e.g. {@code community:manage}. Returns null when no such
+   * capability exists, which a caller must treat as "address nobody" rather than "address everybody".
+   */
+  public static Capability findByCode(String code) {
+    if (StringUtils.isBlank(code)) {
+      return null;
+    }
+    return (Capability) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils().add("code = ?", code.trim()),
+        CapabilityRepository::buildRecord);
   }
 
   public static List<Capability> findAll() {
