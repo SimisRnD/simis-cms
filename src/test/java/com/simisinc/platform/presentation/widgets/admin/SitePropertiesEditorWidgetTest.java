@@ -40,6 +40,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
+import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
@@ -267,13 +268,17 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
         MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<MfaEnrollmentPageCommand> enrollPage = mockStatic(MfaEnrollmentPageCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
       repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
           .thenReturn(true);
       loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(actingUser);
       stepUp.when(() -> StepUpAuthCommand.verify(any(), eq(actingUser), eq("correct-password"))).thenReturn(true);
       stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(false);
+      // This test is about the step-up gate; a usable enrollment page keeps the lockout guard
+      // (covered by its own tests below) from being what decides the outcome here
+      enrollPage.when(() -> MfaEnrollmentPageCommand.isUsableEnrollmentPage(anyString())).thenReturn(true);
 
       new SitePropertiesEditorWidget().post(widgetContext);
 
@@ -494,6 +499,102 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
 
       audit.verify(() -> AuditEventCommand.record(any(), any(), eq("secret.rotate"), any(), any(), any(), any(), any()),
           never());
+    }
+  }
+
+  @Test
+  void namingRequiredRolesIsRefusedWhenTheEnrollmentPageCannotEnrollAnyone() {
+    // The live incident: mfa.required.roles was set to "admin" while the default enrollment page
+    // /my-profile did not exist. Enforcement then redirected every request to a stub page whose
+    // only action links to /admin/web-page-designer -- which enforcement redirects back to the
+    // stub. Nothing could enroll and nothing could reach this screen to undo it. Refuse the save.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "", "text"));
+    stored.add(property("mfa.enrollment.url", "/my-profile", "web-page"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "admin");
+    addQueryParameter(widgetContext, "mfa.enrollment.url", "/my-profile");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<MfaEnrollmentPageCommand> enrollPage = mockStatic(MfaEnrollmentPageCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      enrollPage.when(() -> MfaEnrollmentPageCommand.isUsableEnrollmentPage("/my-profile")).thenReturn(false);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertTrue(widgetContext.getErrorMessage().contains("/my-profile"),
+          "the error must name the page the admin has to fix");
+    }
+  }
+
+  @Test
+  void clearingRequiredRolesIsAllowedEvenWhenTheEnrollmentPageIsBroken() {
+    // Turning enforcement off is the escape hatch -- it must never be blocked by the very
+    // condition it is being used to recover from
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "admin", "text"));
+    stored.add(property("mfa.enrollment.url", "/my-profile", "web-page"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "");
+    addQueryParameter(widgetContext, "mfa.enrollment.url", "/my-profile");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<MfaEnrollmentPageCommand> enrollPage = mockStatic(MfaEnrollmentPageCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
+          .thenReturn(true);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      enrollPage.when(() -> MfaEnrollmentPageCommand.isUsableEnrollmentPage(anyString())).thenReturn(false);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()));
+      assertNull(widgetContext.getErrorMessage());
+    }
+  }
+
+  @Test
+  void namingRequiredRolesIsSavedWhenTheEnrollmentPageCanEnroll() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "", "text"));
+    stored.add(property("mfa.enrollment.url", "/my-profile", "web-page"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "admin");
+    addQueryParameter(widgetContext, "mfa.enrollment.url", "/my-profile");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<MfaEnrollmentPageCommand> enrollPage = mockStatic(MfaEnrollmentPageCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
+          .thenReturn(true);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      enrollPage.when(() -> MfaEnrollmentPageCommand.isUsableEnrollmentPage("/my-profile")).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()));
+      assertNull(widgetContext.getErrorMessage());
+      assertEquals("Values were saved", widgetContext.getSuccessMessage());
     }
   }
 }
