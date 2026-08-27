@@ -210,7 +210,15 @@ public class FeedServlet extends HttpServlet {
     }
 
     String siteName = StringUtils.defaultIfBlank(sitePropertyMap.get("site.name"), "Site");
-    String feedTitle = blog != null ? siteName + " - " + blog.getName() : siteName;
+    // A blog may name its own feed. The composed "<site name> - <blog name>" is a reasonable
+    // default but a poor publication name: it puts the site's legal suffix in front of every feed,
+    // so a reader lists "SimIS, Inc. - Industry News" beside "Dark Reading" and "Ars Technica".
+    // Renaming the site is not the answer -- "SimIS, Inc." is right in a page title -- so the blog
+    // carries an optional override instead. Blank keeps the composed default.
+    String feedTitle = blog != null ? StringUtils.trimToNull(blog.getFeedTitle()) : null;
+    if (feedTitle == null) {
+      feedTitle = blog != null ? siteName + " - " + blog.getName() : siteName;
+    }
     String selfUrl = blog != null
         ? siteUrl + "/feed/" + blog.getUniqueId() + ".xml"
         : siteUrl + "/feed.xml";
