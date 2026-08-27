@@ -48,6 +48,11 @@ class DomainModelTest {
     complexClasses.add("com.simisinc.platform.domain.model.integrations.IntegrationDefinition");
     complexClasses.add("com.simisinc.platform.domain.model.integrations.CredentialField");
 
+    // Computed rather than persisted, and immutable for the same reason as the two above: a
+    // holiday's name and dates are derived together from the statute, so there is no state a
+    // setter could meaningfully change.
+    complexClasses.add("com.simisinc.platform.domain.model.FederalHoliday");
+
     // Test getters and setters for the domain model
     Class<?>[] beanClasses = ClassPathUtils.findClassesIn("com.simisinc.platform.domain.model");
     for (Class<?> k : beanClasses) {
