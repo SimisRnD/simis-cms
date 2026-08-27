@@ -79,7 +79,15 @@
     </c:if>
   </c:otherwise>
 </c:choose>
-  <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" type="image/png" id="apple-touch-icon-link" href="${ctx}/images/apple-touch-icon.png">
+  <%-- Same treatment as the favicon below, and for the same reason. This was left pointing
+       straight at system.www.context, whose default (/web-content) is not served by anything
+       in this codebase, so the request 404d on every page. It went unnoticed because only
+       iOS asks for this file -- a desktop browser never requests it, so nothing in ordinary
+       testing shows the failure. Default to the bundled asset and only upgrade to an
+       admin-uploaded one that actually loads, probed with an Image() because a <link>'s own
+       load/error events are not reliably dispatched. --%>
+  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
   <link rel="icon" type="image/png" id="favicon-link" href="${ctx}/images/favicon.png">
   <%-- Prefers an admin-uploaded favicon at system.www.context when one actually loads; otherwise
        stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s
