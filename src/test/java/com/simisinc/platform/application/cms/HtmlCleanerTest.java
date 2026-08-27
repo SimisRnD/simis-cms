@@ -17,10 +17,14 @@
 package com.simisinc.platform.application.cms;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Tests HTML functions
@@ -203,60 +207,84 @@ class HtmlCleanerTest {
     assertEquals(expected, value);
   }
 
-  @Test
-  void anIframeSrcCarryingAScriptSchemeIsStripped() {
-    // The tag is registered on a Safelist.relaxed(), which does not include iframe -- so until the
-    // matching addProtocols() call, its src had no protocol rule and jsoup protocol-checks only the
-    // attributes that have one. Each of these was stored verbatim and ran in the page's own origin.
-    assertFalse(HtmlCommand.cleanContent("<iframe src=\"javascript:alert(1)\"></iframe>").contains("javascript:"));
-    assertFalse(HtmlCommand.cleanContent("<iframe src=\"JaVaScRiPt:alert(1)\"></iframe>").contains("alert"));
-    assertFalse(HtmlCommand.cleanContent("<iframe src=\"vbscript:msgbox(1)\"></iframe>").contains("vbscript:"));
-    assertFalse(
-        HtmlCommand.cleanContent("<iframe src=\"data:text/html,<script>alert(1)</script>\"></iframe>").contains("data:"));
+  /** A site allowing one extra host, with Metabase off. */
+  private MockedStatic<LoadSitePropertyCommand> siteAllowing(String hosts) {
+    MockedStatic<LoadSitePropertyCommand> m = mockStatic(LoadSitePropertyCommand.class);
+    m.when(() -> LoadSitePropertyCommand.loadByName(AllowedIframeHostCommand.SITE_PROPERTY)).thenReturn(hosts);
+    m.when(() -> LoadSitePropertyCommand.loadByName("bi.metabase.enabled")).thenReturn("false");
+    return m;
   }
 
   @Test
-  void aStrippedIframeIsLeftInertRatherThanRemoved() {
-    // jsoup drops the offending attribute, not the element, so an empty <iframe> remains. That is
-    // inert -- with no src it loads about:blank -- and it is exactly what this sanitizer already
-    // does to <a href="javascript:...">, which comes out as a bare <a>. Matching that existing
-    // behavior is deliberate; removing the element here would make the two paths inconsistent.
-    String value = HtmlCommand.cleanContent("<iframe src=\"javascript:alert(1)\"></iframe>");
-    assertTrue(value.contains("<iframe"));
-    assertFalse(value.contains("src"));
+  void anIframeFromAnUnallowedHostIsStripped() {
+    String html = "<p>before</p><iframe src=\"https://evil.example.com/x\" width=\"560\" height=\"315\"></iframe><p>after</p>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("evil.example.com"));
+      // The surrounding content is untouched -- this removes an embed, not the paragraph around it
+      assertTrue(value.contains("before"));
+      assertTrue(value.contains("after"));
+    }
   }
 
   @Test
-  void strippingAnIframeSrcLeavesTheSurroundingContentAlone() {
-    String value = HtmlCommand.cleanContent("<p>before</p><iframe src=\"javascript:alert(1)\"></iframe><p>after</p>");
-    assertTrue(value.contains("before"));
-    assertTrue(value.contains("after"));
-    assertFalse(value.contains("javascript:"));
+  void anIframeFromAnAllowedHostSurvives() {
+    String html = "<iframe src=\"https://www.youtube-nocookie.com/embed/abc123\" width=\"560\" height=\"315\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertTrue(value.contains("www.youtube-nocookie.com/embed/abc123"));
+    }
   }
 
   @Test
-  void anHttpsIframeSurvivesAndIsStillWrapped() {
-    String value = HtmlCommand.cleanContent("<iframe src=\"https://player.vimeo.com/video/12345\"></iframe>");
-    assertTrue(value.contains("https://player.vimeo.com/video/12345"));
-    assertTrue(value.contains("responsive-embed widescreen"));
+  void aHostTheSiteAddedSurvives() {
+    String html = "<iframe src=\"https://app.vendor.example.com/embed/form\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("app.vendor.example.com")) {
+      assertTrue(HtmlCommand.cleanContent(html).contains("app.vendor.example.com"));
+    }
   }
 
   @Test
-  void aRelativeIframeSrcSurvives() {
-    // This is why the rule allows http as well as https. cleanContent parses against
-    // "http://localhost:8080", so a site-relative src resolves to http; an https-only rule -- what
-    // the markdown path uses, against an https base -- would silently drop these instead of
-    // stopping an attack.
-    assertTrue(HtmlCommand.cleanContent("<iframe src=\"/embed/local-page\"></iframe>").contains("/embed/local-page"));
-    assertTrue(HtmlCommand.cleanContent("<iframe src=\"embed/relative\"></iframe>").contains("embed/relative"));
+  void everyUnallowedIframeIsRemovedNotJustTheFirst() {
+    // Removing from the live Elements list while iterating it skips entries, which would leave
+    // every second embed in place.
+    String html = "<iframe src=\"https://a.example.com/1\"></iframe>"
+        + "<iframe src=\"https://b.example.com/2\"></iframe>"
+        + "<iframe src=\"https://c.example.com/3\"></iframe>"
+        + "<iframe src=\"https://d.example.com/4\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("a.example.com"));
+      assertFalse(value.contains("b.example.com"));
+      assertFalse(value.contains("c.example.com"));
+      assertFalse(value.contains("d.example.com"));
+    }
   }
 
   @Test
-  void httpAndProtocolRelativeIframeSourcesSurvive() {
-    // A site deployed without SSL, and an author pasting a protocol-relative embed, both stay working
-    assertTrue(HtmlCommand.cleanContent("<iframe src=\"http://intranet.local/embed\"></iframe>")
-        .contains("http://intranet.local/embed"));
-    assertTrue(HtmlCommand.cleanContent("<iframe src=\"//player.vimeo.com/video/9\"></iframe>")
-        .contains("//player.vimeo.com/video/9"));
+  void anIframeWithAScriptBearingSrcIsStripped() {
+    // cleanContent builds on Safelist.relaxed() and registers iframe/src without a protocol
+    // restriction, so jsoup alone does not refuse this one -- unlike the markdown path, which
+    // calls addProtocols("iframe", "src", "https"). The host check is what stops it here.
+    String html = "<iframe src=\"javascript:alert(1)\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      assertFalse(HtmlCommand.cleanContent(html).contains("javascript:"));
+    }
+  }
+
+  @Test
+  void aSurvivingEmbedIsStillWrappedAfterAnotherWasRemoved() {
+    // The removal pass leaves detached elements in the snapshot getElementsByTag returned. Reusing
+    // it made the wrapping pass dereference a null parent, and cleanContent catches and logs that
+    // rather than failing -- so the only visible symptom was every embed after the removed one
+    // silently losing its responsive-embed wrapper.
+    String html = "<iframe src=\"https://evil.example.com/x\"></iframe>"
+        + "<iframe src=\"https://player.vimeo.com/video/12345\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("evil.example.com"));
+      assertTrue(value.contains("player.vimeo.com/video/12345"));
+      assertTrue(value.contains("responsive-embed widescreen"));
+    }
   }
 }

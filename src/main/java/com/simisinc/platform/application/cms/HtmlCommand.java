@@ -418,6 +418,28 @@ public class HtmlCommand {
     if (e == null) {
       return;
     }
+    // Drop iframes from hosts the site has not allowed, before any of the wrapping below runs.
+    // jsoup's Safelist can restrict an iframe's protocol but not its host, so without this an
+    // author could embed a frame from anywhere and it would be stored, served, and only stopped
+    // at the browser by frame-src -- as a silent blank box with no indication of what happened or
+    // why. Refusing it here means the content never carries an embed the policy will not render.
+    boolean removedAny = false;
+    for (Element element : e) {
+      if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"))) {
+        LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
+            + ": " + element.attr("src"));
+        element.remove();
+        removedAny = true;
+      }
+    }
+    // getElementsByTag returns a snapshot, not a live view, so removed elements are still in "e"
+    // and now have no parent. Re-query rather than reuse it: the wrapping below dereferences
+    // parent(), and one detached element would throw partway through and leave every iframe after
+    // it unwrapped.
+    if (removedAny) {
+      e = document.getElementsByTag("iframe");
+    }
+
     for (Element element : e) {
       if (!element.hasAttr("src")) {
         continue;

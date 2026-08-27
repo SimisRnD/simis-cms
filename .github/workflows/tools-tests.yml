@@ -3,11 +3,18 @@
 # was a placebo for weeks before PR #243); this suite pins each tool's CLI
 # contract: discovery rules, findings, and exit codes, strict and non-strict.
 #
-# Coverage note (deliberate): check-war-completeness.py needs a built WAR and
-# generate-db-vex.py needs the GitHub API -- both are exercised for real by
-# their own workflows (war-completeness.yml on every PR; VEX regeneration at
-# triage time), so synthetic tests here would duplicate weaker versions of
-# what already runs. The five filesystem-pure tools are covered here, plus
+# Coverage note (deliberate): check-war-completeness.py needs a built WAR and is
+# exercised for real by war-completeness.yml on every PR, so a synthetic test here
+# would be a weaker version of what already runs.
+#
+# generate-db-vex.py was listed here for the same reason -- its input is the GitHub
+# API. That reasoning covered the wrong half. The API-dependent part is not where the
+# danger is: the tool's input can legitimately come back empty, an empty input yields a
+# structurally valid document asserting nothing, and it used to be redirected over the
+# real file, so the shell truncated it before the script ran. On 2026-08-26 that would
+# have replaced 54 suppressions with none and exited 0 (issue #1463). Its guards are
+# pure functions over a path and are covered here now; the alert-fetching half still
+# is not. The five filesystem-pure tools are covered here, plus
 # detect_unsafe_migrations.py (issue #399), which drives real git commits in a
 # synthetic tmp_path repo since its Java-removal detection reads `git diff`.
 name: Tools tests
