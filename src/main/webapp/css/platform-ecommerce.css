@@ -1,4 +1,29 @@
 
+/* Colour, both modes -- see issue 1484.
+   ----------------------------------------------------------------------------
+   This file was flagged for having no dark-mode rules. Measured against the
+   real cascade with the WCAG relative-luminance formula, it turns out not to
+   need any: nothing it declares fails in dark mode. What it does have is a
+   light-mode failure, in the default mode, with no theming involved:
+
+     LIGHT  .dim-text, the low-inventory note ................. 3.42:1  FAIL
+
+   That colour is fine on a dark page (5.09:1) and fails on a light one, which
+   is the opposite of the pattern this family of defects usually takes, and the
+   reason a dark-mode-only sweep would not have found it.
+
+   No single grey can fix both modes: clearing 4.5:1 on white needs a relative
+   luminance at or below 0.1833, and clearing 4.5:1 on the dark page needs
+   0.2227 or above. So this is routed to --sc-text-muted, which is exactly the
+   role -- 4.54:1 in light and 6.37:1 in dark, with the theme picking the
+   value rather than this file carrying two.
+
+   Two other colour-bearing rules in this file were measured and are NOT fixed
+   here, because no markup renders them; see the notes at each one.
+
+   Ratios were computed, not eyeballed, and the calculator was checked against
+   the published reference values. */
+
 /* Title */
 
 .platform-ecommerce #platform-menu .top-logo img {
@@ -9,6 +34,12 @@
 
 /* Add to Cart */
 
+/* Unreachable: "product-option-selection" appears nowhere in the product --
+   not in a JSP, not in JavaScript, not in Java -- only here. The four colours
+   in this block are measured for completeness (the checked option is 7.58:1 in
+   both modes, because it pairs a light fill with its own dark text, which is
+   the one shape that survives dark mode unaided) and are left alone rather
+   than restyled or deleted; removing dead rules is a separate change. */
 .product-option-selection input[type=radio] {
   display: none;
   margin: 10px;
@@ -33,13 +64,24 @@
   padding: 0.3rem;
 }
 
+/* Unreachable: every "in-stock" span in add-product-to-cart.jsp and
+   add-product-sku-to-cart.jsp sits inside a JSP comment, so this rule renders
+   nowhere. It measures 2.92:1 on a light page and 5.97:1 on a dark one, so it
+   would fail 1.4.3 in light mode if the markup were ever uncommented -- and it
+   cannot be fixed with one value, for the same reason .dim-text below could
+   not. Left alone rather than fixed blind against markup that does not exist;
+   noted so whoever uncomments it knows it needs a mode-aware pair. */
 .product-details-add-to-cart .in-stock {
   color: #1eac60;
   font-weight: 700;
 }
 
+/* Was a mid grey at 3.42:1 on a light page. This is muted secondary text, so
+   it takes the token for that role: 4.54:1 in light, 6.37:1 in dark, and the
+   value follows the theme instead of being fixed here. Kept at (0,2,0) so
+   platform-tokens.css's (0,3,x) rules still beat it. */
 .product-details-add-to-cart .dim-text {
-  color: #8a8a8a;
+  color: var(--sc-text-muted, #71767d);
 }
 
 .product-details-add-to-cart .price {
