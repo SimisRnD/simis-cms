@@ -58,6 +58,29 @@ body {
   }
 }
 
+/* Widget titles (#1511).
+
+   A widget's configured title is a section heading on the page it appears on, so it renders as
+   an h2 for document structure -- it used to be h4 in all 213 JSPs, which meant an h1 -> h4 jump
+   on every page that had one (WCAG 1.3.1).
+
+   Its appearance is pinned here rather than left to h2's default, and that is the point: an h2
+   renders at 2rem, so taking the default would have resized every widget title on every page.
+   That is a design change, not the accessibility fix this is. These values are h4's, carried
+   over unchanged, so the markup moves and nothing on screen does.
+
+   Styling widget titles by class rather than by tag also means the next level change does not
+   silently orphan a stylesheet -- which has now happened twice (see #1502). */
+.widget-title {
+  font-size:calc(1.275rem + .3vw);
+}
+
+@media (min-width: 1200px) {
+  .widget-title {
+    font-size:1.5rem;
+  }
+}
+
 .h5, h5 {
   font-size:1.25rem;
 }

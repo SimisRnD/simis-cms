@@ -17,7 +17,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="faqQuestionList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%--
   <details>/<summary> is natively accessible: the summary is a keyboard-operable disclosure

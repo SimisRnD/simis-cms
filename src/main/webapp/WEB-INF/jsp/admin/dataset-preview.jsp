@@ -27,7 +27,7 @@
 <script src="${ctx}/javascript/jsuites-5.0.29/jsuites.min.js"></script>
 <link rel="stylesheet" media="screen" href="${ctx}/javascript/jsuites-5.0.29/jsuites.css">
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text">Read-only preview of the parsed source data (spreadsheet view) -- confirms column headers and sample values look right before mapping fields on the Map Fields tab. The Text Preview tab shows the same source as raw text.</p>

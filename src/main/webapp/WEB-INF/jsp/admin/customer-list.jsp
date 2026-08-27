@@ -22,7 +22,7 @@
 <jsp:useBean id="customerList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <%--<button class="button small primary radius"><i class="fa fa-plus"></i> New Customer</button>--%>

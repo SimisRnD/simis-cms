@@ -31,7 +31,7 @@
 <script src="${ctx}/javascript/fullcalendar-6.1.10/moment-2.27.0.min.js"></script>
 <script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 

@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <p class="help-text">
   This page renames existing entries in the drop-down navigation menu across the top of your site, and changes

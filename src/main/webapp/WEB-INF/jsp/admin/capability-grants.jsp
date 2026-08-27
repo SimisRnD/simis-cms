@@ -23,7 +23,7 @@
 <jsp:useBean id="capabilityList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="grantList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <h4><c:out value="${targetUser.fullName}" /></h4>
 <p class="help-text">Direct grants give this specific user a capability without changing their role - useful for a

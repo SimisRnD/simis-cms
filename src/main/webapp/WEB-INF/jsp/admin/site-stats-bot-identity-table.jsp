@@ -22,7 +22,7 @@
 <jsp:useBean id="optionsList" class="java.util.LinkedHashMap" scope="request"/>
 <jsp:useBean id="currentValue" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty optionsList}">
