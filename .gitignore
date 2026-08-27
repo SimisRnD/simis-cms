@@ -9,6 +9,10 @@
 /exploded
 /node_modules
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Docker
 .env
 
@@ -44,3 +48,9 @@ cspell.json
 
 # Snyk
 .dccache
+
+# Python
+# pytest writes these on every local `python3 -m pytest tools/tests` run; they were
+# tracked until now, so a test run dirtied the tree with binary noise before each commit.
+__pycache__/
+*.pyc
