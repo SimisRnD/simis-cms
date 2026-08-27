@@ -395,13 +395,17 @@ PARITY_SETTLED = {
     "--sc-shadow-sm",
 }
 
-# Exempt pending a fix that is already in flight -- issue 1493 / PR 1492 converges
-# these onto the geometry light and dark already share. Once that lands they are
-# dead weight, so each is reported (never failed) as soon as its two blocks agree,
-# rather than sitting here protecting nothing.
-PARITY_PENDING = {
-    "--sc-shadow-md", "--sc-shadow-lg",
-}
+# Exempt pending a fix that is already in flight. Each entry is reported (never
+# failed) as soon as its two blocks agree, so an exemption that has stopped
+# protecting anything says so instead of sitting here silently.
+#
+# Empty as of PR 1492, which converged --sc-shadow-md and --sc-shadow-lg onto the
+# geometry light and dark already shared. They were listed here to decouple this
+# check's merge from that one's; that ordering resolved when 1492 landed, and the
+# check itself flagged them as retirable on the first run against the new main.
+# --sc-shadow-sm stays in PARITY_SETTLED above -- its divergence is alpha-only and
+# deliberate, not pending anything.
+PARITY_PENDING: set[str] = set()
 
 PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 

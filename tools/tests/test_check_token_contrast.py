@@ -218,15 +218,24 @@ def test_shadows_may_differ_between_the_dark_and_auto_blocks(tokens):
     assert r.returncode == 0, out(r)
 
 
-def test_a_pending_shadow_exemption_retires_itself_once_the_blocks_agree(tokens):
-    """PR #1492 normalises md and lg. When it lands the exemption protects nothing, so
-    the check says so -- without failing, which would couple the two changes' merge order."""
-    edit(tokens, "    --sc-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);",
-         "    --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);")
+def test_nothing_reports_as_retirable_while_no_exemption_is_pending(tokens):
+    """PARITY_PENDING is empty since PR #1492 converged md and lg, so a clean tree must
+    say nothing about retirement. This is the state the retirement path reports from when
+    it has no work to do; the path itself earned its keep by flagging md and lg on the
+    first run after #1492 landed, which is how this test came to be rewritten."""
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
-    assert "retired  --sc-shadow-lg" in r.stdout
-    assert "retired  --sc-shadow-md" not in r.stdout
+    assert "retired" not in r.stdout
+
+
+def test_a_dark_auto_divergence_outside_the_exempt_set_still_fails(tokens):
+    """The exemptions are narrow. A token that is not exempt must still fail on divergence,
+    or emptying PARITY_PENDING would have quietly widened what the check tolerates."""
+    edit(tokens, '    --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);',
+         '    --sc-shadow-lg: 0 9px 9px rgba(0, 0, 0, 0.5);', count=1)
+    r = run_tool(TOOL, tokens)
+    assert r.returncode != 0, out(r)
+    assert "PARITY" in out(r)
 
 
 def test_a_settled_shadow_exemption_never_reports_as_retirable(tokens):
