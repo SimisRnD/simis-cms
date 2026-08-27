@@ -4,8 +4,8 @@
 15 src/main/webapp/css/platform-calendar.css
 7 src/main/webapp/css/platform-ecommerce.css
 112 src/main/webapp/css/platform-editor.css
-8 src/main/webapp/css/platform-leaderboard.css
-8 src/main/webapp/css/platform-sitemap-editor.css
+10 src/main/webapp/css/platform-leaderboard.css
+7 src/main/webapp/css/platform-sitemap-editor.css
 3 src/main/webapp/css/platform-subnav.css
 3 src/main/webapp/css/platform-subnavheroheader.css
 10 src/main/webapp/css/platform-todo-list.css

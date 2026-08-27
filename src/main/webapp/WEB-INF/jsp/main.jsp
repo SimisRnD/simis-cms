@@ -79,7 +79,15 @@
     </c:if>
   </c:otherwise>
 </c:choose>
-  <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" type="image/png" id="apple-touch-icon-link" href="${ctx}/images/apple-touch-icon.png">
+  <%-- Same treatment as the favicon below, and for the same reason. This was left pointing
+       straight at system.www.context, whose default (/web-content) is not served by anything
+       in this codebase, so the request 404d on every page. It went unnoticed because only
+       iOS asks for this file -- a desktop browser never requests it, so nothing in ordinary
+       testing shows the failure. Default to the bundled asset and only upgrade to an
+       admin-uploaded one that actually loads, probed with an Image() because a <link>'s own
+       load/error events are not reliably dispatched. --%>
+  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
   <link rel="icon" type="image/png" id="favicon-link" href="${ctx}/images/favicon.png">
   <%-- Prefers an admin-uploaded favicon at system.www.context when one actually loads; otherwise
        stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s
@@ -595,6 +603,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-properties"><i class="${font:far()} fa-shield fa-fw"></i> <span>Security</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/csp-violations')}"> class="is-active"</c:if>><a href="${ctx}/admin/csp-violations"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>CSP Violations</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/feature-flags')}"> class="is-active"</c:if>><a href="${ctx}/admin/feature-flags"><i class="${font:far()} fa-flag fa-fw"></i> <span>Feature Flags</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
