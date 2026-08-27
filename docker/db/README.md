@@ -67,14 +67,27 @@ what was verified:
   malformed FlatGeobuf buffer) — this is PostGIS's native code, not the GDAL/OGR chain covered
   above, so it needed its own entry. The application never calls either function (a
   full-repository search finds zero references), so the vulnerable parser is never invoked.
+- **General-purpose OS utilities** (ncurses, gzip, util-linux, libldap, sysstat, libacl1) —
+  triaged one CVE at a time, because the reasoning is per-flaw rather than per-package: the
+  ncurses overflow is in the `infocmp` binary nothing here invokes; `gzip` runs only over the
+  image's own plain-text `init.sql`; sysstat's collectors need a cron daemon the image does not
+  have; the libldap path needs LDAP authentication, which is not configured. Two carry their own
+  justification rather than `vulnerable_code_not_in_execute_path` — **CVE-2026-14456** (libssl3,
+  openssl) is `vulnerable_code_not_present`, since the flaw is in OpenSSL's QUIC listener,
+  introduced in 3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-53613** (util-linux) is
+  `inline_mitigations_already_exist`, since the Dockerfile's `chmod u-s` on `mount`/`umount`
+  removes the setuid transition the TOCTOU needs.
 
-Everything else — a handful of general-purpose OS utilities (ncurses, gzip, util-linux,
-libldap, sysstat, libacl1) — is marked **`under_investigation`**, not `not_affected`. We make
-no exploitability claim we cannot support; uncertainty is never rendered as "safe".
+Because those reasons are about individual flaws, they are keyed by CVE in the generator and say
+nothing about the next CVE in the same package: a newly published ncurses or util-linux issue
+still arrives as **`under_investigation`**, not `not_affected`. That remains the default for
+anything not yet analysed. We make no exploitability claim we cannot support; uncertainty is
+never rendered as "safe".
 
 > **Scope.** These statements describe the image **as shipped and configured**. If an operator
-> installs PL/Perl, creates `postgis_raster`, or uses PostgreSQL's `xml` type, the corresponding
-> statements no longer hold and the VEX should be re-evaluated.
+> installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP
+> authentication, or adds compressed `*.sql.gz` init scripts from an untrusted source, the
+> corresponding statements no longer hold and the VEX should be re-evaluated.
 
 Regenerate after any rebuild changes the finding set (this keeps the document from going
 stale, and it only ever emits statements for findings with **no** available fix):
@@ -108,14 +121,28 @@ trivy image --scanners vuln --severity CRITICAL,HIGH --exit-code 1 \
   --ignorefile docker/db/.trivyignore simis-cms-db:check
 ```
 
-> **A regeneration cannot currently reproduce this document.** The generator's policy tables
-> have drifted behind the statements added by hand: as of 2026-08-26 a regeneration produces
-> 54 statements to the document's 60, leaving eight CVEs (`CVE-2023-2953`, `CVE-2023-33204`,
-> `CVE-2025-69720`, `CVE-2026-14456`, `CVE-2026-41992`, `CVE-2026-53613`, `CVE-2026-53615`,
-> `CVE-2026-54369`) at `under_investigation` — which suppresses nothing — and 28 findings
-> unsuppressed where the committed document leaves none. The `--allow-shrink` guard refuses
-> that write, so following the instructions above is safe; it does mean adding a statement by
-> hand, as recent commits have, until those CVEs are represented in the policy tables.
+**The policy tables and this document are kept in sync by a test.** They are two copies of
+the same triage decisions, and for a while nothing held them together: statements were added
+and enriched by hand while `CVE_POLICY`/`PACKAGE_POLICY` stood still, until a regeneration
+would have downgraded eight triaged CVEs to `under_investigation` — which suppresses nothing
+— and dropped the recorded evidence from six more, exiting 0 either way.
+`test_policy_reproduces_every_committed_statement` now regenerates from this document's own
+contents and requires the statements back byte-for-byte, so a hand-edit that skips the tables
+fails in CI rather than in somebody's scan. **If you add a statement by hand, add its
+reasoning to the tables in the same commit.**
+
+That test fixes the *decisions*, not the statement count, and the two are not the same thing.
+A scan of the current build reports 54 of the document's 60 CVEs, so a regeneration driven from
+one produces 54 statements and `--allow-shrink` will refuse the write until you say the
+reduction is intended. Usually it is not. Checked on 2026-08-26, only two of the six
+(`CVE-2026-55199`, `CVE-2026-55200`, libssh2) had actually gone away; the other four —
+`CVE-2026-8932` (libcurl), `CVE-2026-26197` (libhdf5), `CVE-2026-56131` and `CVE-2026-56407`
+(libexpat) — are **still present and still unfixed**, and merely re-rated LOW or MEDIUM, which
+puts them outside the `--severity CRITICAL,HIGH` window the gate scans in. Dropping those
+statements would un-suppress real findings for anyone scanning at a lower threshold, and a
+re-rating back up would un-suppress them here. Statements for CVEs outside the current window
+cost nothing, so keep them: before using `--allow-shrink`, scan at every severity and confirm
+each dropped CVE is genuinely gone rather than merely quieter.
 
 ### They clear over time on their own
 

@@ -171,7 +171,7 @@ class AllowedIframeHostCommandTest {
   void theCspSourceListStartsWithSelfAndNamesEveryHostAsHttps() {
     try (MockedStatic<LoadSitePropertyCommand> m = siteWith("app.vendor.example.com")) {
       assertEquals(
-          "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://app.vendor.example.com",
+          "'self' https://www.youtube-nocookie.com https://youtube-nocookie.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://app.vendor.example.com",
           AllowedIframeHostCommand.cspFrameSourceList());
     }
   }
@@ -180,7 +180,7 @@ class AllowedIframeHostCommandTest {
   void theCspSourceListHasNoDuplicatesWhenAPlatformHostIsAlsoConfigured() {
     // A duplicate would not break the header, but it is a sign the set logic stopped working.
     try (MockedStatic<LoadSitePropertyCommand> m = siteWith("player.vimeo.com")) {
-      assertEquals("'self' https://www.youtube-nocookie.com https://player.vimeo.com",
+      assertEquals("'self' https://www.youtube-nocookie.com https://youtube-nocookie.com https://www.youtube.com https://youtube.com https://player.vimeo.com",
           AllowedIframeHostCommand.cspFrameSourceList());
     }
   }
@@ -191,5 +191,39 @@ class AllowedIframeHostCommandTest {
       assertTrue(AllowedIframeHostCommand.isAllowed("https://app.vendor.example.com/x"));
       assertFalse(AllowedIframeHostCommand.cspFrameSourceList().contains(":::"));
     }
+  }
+
+  @Test
+  void youTubesOwnEmbedMarkupIsAllowed() {
+    // The regression this list was widened for. VideoWidget renders youtube-nocookie.com, but an
+    // author pasting YouTube's "Copy embed code" gets www.youtube.com/embed -- and three published
+    // news posts on the pilot carried exactly that, including the ?si= share parameter. Deriving the
+    // list from what the widget emits stripped real content on save and refused it at render.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand
+          .isAllowed("https://www.youtube.com/embed/LFx-b-njZs0?si=xSeHTMlObQxvqrP9"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://youtube.com/embed/8elFL8KThY0"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://www.youtube-nocookie.com/embed/qYIRapHuDvU"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://youtube-nocookie.com/embed/qYIRapHuDvU"));
+    }
+  }
+
+  @Test
+  void wideningForYouTubeDidNotWidenToAnythingElse() {
+    // The list gained a vendor's other domains, not a general relaxation
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://youtube.com.evil.test/embed/x"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://notyoutube.com/embed/x"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://evil.example.com/embed/x"));
+    }
+  }
+
+  @Test
+  void aCallerCanPassAListItAlreadyHas() {
+    // The overload HtmlCommand uses so a document with many embeds reads the property once
+    java.util.List<String> allowed = java.util.List.of("app.vendor.example.com");
+    assertTrue(AllowedIframeHostCommand.isAllowed("https://app.vendor.example.com/x", allowed));
+    assertFalse(AllowedIframeHostCommand.isAllowed("https://www.youtube.com/embed/x", allowed));
+    assertFalse(AllowedIframeHostCommand.isAllowed("https://a.example.com/x", null));
   }
 }
