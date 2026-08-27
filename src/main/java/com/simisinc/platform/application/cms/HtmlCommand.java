@@ -29,6 +29,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -423,13 +424,30 @@ public class HtmlCommand {
     // author could embed a frame from anywhere and it would be stored, served, and only stopped
     // at the browser by frame-src -- as a silent blank box with no indication of what happened or
     // why. Refusing it here means the content never carries an embed the policy will not render.
+    //
+    // Determining the list reads a site property, so it can fail where the database cannot be
+    // reached. When that happens nothing is removed. Removing content requires knowing that a host
+    // is disallowed, and a failed lookup is not that -- it is the absence of an answer. Guessing in
+    // the destructive direction would delete an author's embed because of an unrelated outage, and
+    // frame-src still refuses the frame at render either way, so nothing is exposed by waiting.
+    List<String> allowed;
+    try {
+      allowed = AllowedIframeHostCommand.allowedHosts();
+    } catch (Exception configException) {
+      LOG.warn("Could not read " + AllowedIframeHostCommand.SITE_PROPERTY
+          + "; leaving iframes in place rather than removing them on incomplete information",
+          configException);
+      allowed = null;
+    }
     boolean removedAny = false;
-    for (Element element : e) {
-      if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"))) {
-        LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
-            + ": " + element.attr("src"));
-        element.remove();
-        removedAny = true;
+    if (allowed != null) {
+      for (Element element : e) {
+        if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"), allowed)) {
+          LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
+              + ": " + element.attr("src"));
+          element.remove();
+          removedAny = true;
+        }
       }
     }
     // getElementsByTag returns a snapshot, not a live view, so removed elements are still in "e"
