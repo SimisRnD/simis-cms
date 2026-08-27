@@ -93,6 +93,29 @@ class SchemaInstallUpgradeParityTest {
             + String.join("\n  ", missing));
   }
 
+  /**
+   * The gate above is only as good as its comment handling: a CREATE TABLE that is commented out
+   * must never count as a definition, or a real omission passes unnoticed. Exercised on an inline
+   * snippet rather than the live scripts so it keeps testing the parser even as they change.
+   */
+  @Test
+  void commentedOutTablesAreNotCountedAsDefinitions() {
+    String sql = ""
+        + "CREATE TABLE real_one (id BIGSERIAL PRIMARY KEY);\n"
+        + "-- CREATE TABLE line_commented (id BIGINT);\n"
+        + "/* aspirational, not created yet\n"
+        + "CREATE TABLE block_commented (id BIGINT);\n"
+        + "*/\n";
+    Set<String> found = new TreeSet<>();
+    Matcher matcher = CREATE_TABLE.matcher(stripComments(sql));
+    while (matcher.find()) {
+      found.add(matcher.group(1).toLowerCase());
+    }
+    assertTrue(found.contains("real_one"), "the live CREATE TABLE should be found, got " + found);
+    assertTrue(!found.contains("line_commented") && !found.contains("block_commented"),
+        "commented-out tables must not count as definitions, got " + found);
+  }
+
   /** Collects the table names created by every .sql file under the directory tree. */
   private static Set<String> tablesCreatedIn(Path dir) throws IOException {
     Set<String> tables = new TreeSet<>();
@@ -113,9 +136,12 @@ class SchemaInstallUpgradeParityTest {
           .sorted()
           .toList();
       for (Path sqlFile : sqlFiles) {
-        // Comments are stripped first so a commented-out CREATE TABLE (several exist in the install
-        // scripts as future-work notes) never counts as a real definition on either side.
-        String sql = stripLineComments(Files.readString(sqlFile));
+        // Comments are stripped first so a commented-out CREATE TABLE never counts as a real
+        // definition on either side. BOTH forms matter: the install scripts carry several `--`
+        // future-work notes, and NEW_10010 has an entire CREATE TABLE email_templates sitting
+        // inside a /* ... */ block. Counting that block as a definition would let a future upgrade
+        // that really creates email_templates pass this gate while fresh installs lacked the table.
+        String sql = stripComments(Files.readString(sqlFile));
         Matcher matcher = CREATE_TABLE.matcher(sql);
         while (matcher.find()) {
           refs.add(new TableRef(matcher.group(1).toLowerCase(), dir.relativize(sqlFile).toString()));
@@ -128,8 +154,8 @@ class SchemaInstallUpgradeParityTest {
   private static final Pattern CREATE_TABLE = Pattern.compile(
       "CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?\"?(\\w+)\"?", Pattern.CASE_INSENSITIVE);
 
-  private static String stripLineComments(String sql) {
-    return sql.replaceAll("--[^\n]*", "");
+  private static String stripComments(String sql) {
+    return sql.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("--[^\n]*", "");
   }
 
   /** A single CREATE TABLE occurrence, kept with its file so a failure names where to look. */
