@@ -161,7 +161,7 @@
    directly on bare dark-mode page (no white card under it) only reaches
    2.4:1 there, short of the 3:1 non-text floor. The old default
    (Foundation's #1779ba) had the same shape of gap, just less severe
-   (3.76:1) -- this was never solved for every combination, only judged
+   (3.75:1) -- this was never solved for every combination, only judged
    good enough for the common case. Accents are left to the theme.
    ========================================================================== */
 
