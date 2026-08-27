@@ -308,11 +308,30 @@
 /* WCAG 2.2 SC 2.4.11 Focus Not Obscured / 2.4.13 Focus Appearance.
    Foundation's default focus treatment on buttons and links is a faint
    background shift that is easy to lose. :focus-visible keeps mouse users
-   from seeing a ring while giving keyboard users a real one. */
+   from seeing a ring while giving keyboard users a real one.
+
+   input[type] is listed separately and deliberately. Foundation zeroes the
+   outline on every text-entry type through an attribute selector --
+   [type=text]:focus and its thirteen siblings -- which is specificity
+   (0,2,0) and outranks a bare input:focus-visible at (0,1,1). Loading after
+   Foundation does not help, since order only breaks ties. The result was
+   that every text field in the product had no focus indicator at all (SC
+   2.4.7, Level A), while textarea and select kept theirs -- Foundation
+   reaches those two at only (0,1,1), so they won on load order.
+   input[type]:focus-visible is (0,2,1) and wins on specificity instead. The
+   bare input:focus-visible stays for <input> with no type attribute, which
+   Foundation's list also misses.
+
+   Intended side effect: text inputs always match :focus-visible even on
+   mouse click, per spec, and (0,2,1) also outranks Foundation's
+   [data-whatinput=mouse] :focus reset -- so mouse-clicked text fields show
+   the ring too, in both modes. That matches what Chrome, Firefox and Safari
+   do natively for text inputs. */
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible,
 input:focus-visible,
+input[type]:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
