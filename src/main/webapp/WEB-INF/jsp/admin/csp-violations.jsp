@@ -84,7 +84,7 @@
       <button type="submit" class="button small secondary radius"><i class="${font:fas()} fa-trash"></i> Clear collected reports</button>
     </form>
     <p class="help-text">Clear these once the policy has been updated from them, so the next round of testing starts
-      from a clean slate. At most ${maxDistinctViolations} distinct directive/host pairs are ever stored; past that,
+      from a clean slate. At most <c:out value="${maxDistinctViolations}"/> distinct directive/host pairs are ever stored; past that,
       counts keep rising but new hosts are refused.</p>
   </c:otherwise>
 </c:choose>
