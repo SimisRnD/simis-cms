@@ -69,7 +69,7 @@
                   </div>
                 </c:if>
                 <div class="card-section blog-title">
-                  <h3><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h3>
+                  <h2><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h2>
                 </div>
                 <c:if test="${showAuthor eq 'true'}">
                   <div class="card-section blog-author">

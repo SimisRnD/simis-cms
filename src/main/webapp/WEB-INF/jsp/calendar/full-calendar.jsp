@@ -302,18 +302,23 @@
       eventMouseLeave: function(info) {
         $('#tooltip').hide();
       },
+      <%-- Chip fills are Foundation's secondary grey rather than an arbitrary one:
+           white chip text on it is 4.54:1, where the lighter grey this used to pass
+           was 2.85:1 (issue 1514). FullCalendar writes "color" and "textColor" onto
+           the chip as an inline style, so platform-calendar.css cannot correct them
+           from CSS -- the value has to be right here. --%>
       eventSources: [
         <c:if test="${showEvents eq 'true'}">
         {
           url: '/json/calendar?showEvents=true<c:if test="${!empty calendarUniqueId}">&calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
-          color: '#999999',
+          color: '#767676',
           textColor: '#ffffff'
         },
         </c:if>
         <c:if test="${showHolidays eq 'true'}">
         {
           url: '/json/calendar?showHolidays=true',
-          color: '#999999',
+          color: '#767676',
           textColor: '#ffffff'
         },
         </c:if>
