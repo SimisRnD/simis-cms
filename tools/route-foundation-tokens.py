@@ -125,11 +125,21 @@ MARK_SELECTORS = (".menu-icon", ".button.dropdown")
 # light, and land light-on-light -- 1.70:1 on warning, 1.66:1 on success, down from ~10.7:1.
 # The mirror image of MARK_SELECTORS above: there a background was really an icon, here
 # `color:` is really text-on-a-fill.
+#
+# This is a list, so it fails by omission rather than by being wrong. The buttons were
+# added with the token; the labels and badges have the identical shape and were not, and
+# shipped at exactly the ratios predicted above until they were measured (issue 1515).
+# Anything added to Foundation that paints text on `success` or `warning` belongs here --
+# the test that goes with this list asserts on the generated pairings for that reason.
 LIGHT_ACCENT_TEXT_SELECTORS = (
     ".button.success",
     ".button.warning",
     ".button-group.success",
     ".button-group.warning",
+    ".label.success",
+    ".label.warning",
+    ".badge.success",
+    ".badge.warning",
 )
 
 

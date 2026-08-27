@@ -1,5 +1,62 @@
 /* Visual Page Editor Overlay */
 
+/* Colour, both modes -- see issue 1484.
+   ----------------------------------------------------------------------------
+   This file was flagged for having no dark-mode rules and light panels
+   surviving into dark. Measured against the real cascade -- with Quill actually
+   rendering, in the same themed shell main.jsp loads this file into -- the
+   dominant defect is neither of those. It is the opposite: 21 rules set text on
+   a FIXED accent fill using --sc-text-inverse, and that token deliberately
+   flips to near-black in dark mode. So in dark mode the editor drew near-black
+   captions on its own blue, red, green and purple controls.
+
+   --sc-text-inverse means "the inverse of page text": correct for text on a
+   page-coloured ground, wrong for text on a fill that does not change between
+   modes. platform-tokens.css already names the right token for that case,
+   --sc-fnd-on-accent, which stays light in both modes and exists because issue
+   1437 hit this exact confusion with Foundation's buttons. This file had the
+   same half-migration, applied 21 times.
+
+   Measured with the WCAG relative-luminance formula, before this change:
+
+     DARK   handle and drag-handle captions ................... 2.50:1  FAIL
+     DARK   every structural mutate button caption ...... 1.82-3.38:1  FAIL
+     DARK   keyboard move buttons ............................. 1.12:1  FAIL
+     DARK   confirm-modal danger button ...................... 3.23:1  FAIL
+     DARK   link-prompt cancel button ........................ 2.36:1  FAIL
+     DARK   widget-picker list items (dark ink on a dark panel) 1.39:1  FAIL
+     DARK   Quill discard button ............................. 3.06:1  FAIL
+     DARK   widget handle (token link colour beats the local) . 1.51:1  FAIL
+     LIGHT  every structural mutate button caption ...... 2.21-4.11:1  FAIL
+     LIGHT  column handle caption ............................. 3.13:1  FAIL
+     LIGHT  inline "Saved" message ........................... 3.11:1  FAIL
+     BOTH   preferences panel error text ..................... 3.77:1  FAIL
+
+   Three shapes, fixed three ways:
+
+     accent fills   take --sc-fnd-on-accent, and the four fills that could not
+                    carry light text at 4.5:1 even in light mode are darkened
+                    along their own hues so the colour coding survives;
+     ghosted fills  the mutate buttons composited their translucent fill against
+                    whatever was behind them, so a white page washed them out.
+                    A white page is the worst case for light text, so they are
+                    designed against it: alpha raised from 0.70/0.75 to 0.90 and
+                    three bases darkened. Four of the seven keep their original
+                    colour outright;
+     the picker     its panel already follows --sc-surface, but its header, list
+                    and close button still carried fixed light-mode ink, so in
+                    dark mode the panel went dark and the text stayed dark with
+                    it. Those follow the tokens now too.
+
+   Every pairing was computed, not eyeballed, and the calculator was checked
+   against the published reference values. Text meets 4.5:1 (1.4.3).
+
+   Not fixed here, and measured rather than assumed -- see the pull request:
+   this file's control BORDERS (the mid grey on the panel greys, the light
+   grey on white) sit
+   between 1.6:1 and 2.4:1 and fail 1.4.11, and two of the Quill rules below
+   never match the DOM Quill actually builds. Both are separate defects. */
+
 #sc-editor-toolbar {
   position: fixed;
   top: 0;
@@ -28,7 +85,7 @@
 }
 
 #sc-editor-toolbar a.button:hover {
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   border-color: #aaa;
 }
 
@@ -106,17 +163,17 @@ body.page-edit-mode [data-editor-widget]:hover {
 
 .sc-editor-handle-section {
   background: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 .sc-editor-handle-column {
-  background: #28a745;
-  color: var(--sc-text-inverse, #fff);
+  background: #1d7731;
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 .sc-editor-handle-widget {
-  background: #dc3545;
-  color: var(--sc-text-inverse, #fff);
+  background: #c0392b;
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 body.page-edit-mode [data-editor-section]:hover > .sc-editor-handle,
@@ -132,7 +189,7 @@ a.sc-editor-handle {
 
 a.sc-editor-handle:hover {
   opacity: 0.85;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 /* ── Inline content editor ── */
@@ -182,7 +239,7 @@ a.sc-editor-handle:hover {
 #sc-inline-toolbar button:hover,
 #sc-inline-toolbar button.sc-active {
   background: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 #sc-inline-toolbar .sc-inline-sep {
@@ -208,7 +265,7 @@ a.sc-editor-handle:hover {
 
 .sc-inline-save-msg {
   font-size: 0.75rem;
-  color: #28a745;
+  color: #1d7731;
   margin-left: 4px;
 }
 
@@ -234,7 +291,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
   line-height: 1;
   z-index: 101;
   border-radius: 0 0 0 3px;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   font-family: sans-serif;
   user-select: none;
 }
@@ -248,7 +305,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
 }
 
 .sc-drag-handle-widget {
-  background: #dc3545;
+  background: #c0392b;
 }
 
 body.page-edit-mode [data-editor-section]:hover > .sc-editor-drag-handle,
@@ -291,7 +348,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255,255,255,0.3);
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   font-size: 11px;
   padding: 2px 5px;
   cursor: pointer;
@@ -343,7 +400,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-discard-draft-btn:hover {
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   border-color: #aaa;
 }
 
@@ -397,7 +454,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-ok {
   background: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 #sc-confirm-ok.sc-danger {
@@ -416,7 +473,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-cancel:hover {
   background: #4a4a5e;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 /* ── Structural mutation buttons (add / remove section, column, widget) ── */
@@ -433,7 +490,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 /* An ancestor's toolbar defers to a nested descendant's own toolbar so the two
    never compete for the same click when a widget/column nearly fills its parent
-   (issue #783). */
+   (issue 783). */
 body.page-edit-mode [data-editor-section]:hover:not(:has([data-editor-column]:hover)) > .sc-mutate-btns,
 body.page-edit-mode [data-editor-column]:hover:not(:has([data-editor-widget]:hover)) > .sc-mutate-btns,
 body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
@@ -442,7 +499,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-mutate-btns button {
   border: none;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   font-size: 10px;
   padding: 2px 6px;
   cursor: pointer;
@@ -453,7 +510,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-add {
-  background: rgba(0, 86, 179, 0.75);
+  background: rgba(0, 86, 179, 0.9);
 }
 
 .sc-mutate-btn-add:hover {
@@ -461,7 +518,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-remove {
-  background: rgba(192, 57, 43, 0.75);
+  background: rgba(192, 57, 43, 0.9);
 }
 
 .sc-mutate-btn-remove:hover {
@@ -504,14 +561,14 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn:hover {
   border-color: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   background: #2a2a4e;
 }
 
 .sc-width-preset-btn.sc-active {
   background: #0056b3;
   border-color: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 #sc-width-custom-row {
@@ -566,7 +623,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-apply {
   background: #0056b3;
   border: none;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
   font-size: 11px;
   border-radius: 3px;
@@ -581,15 +638,15 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-width {
-  background: rgba(40, 167, 69, 0.7) !important;
+  background: rgba(29, 119, 49, 0.9) !important;
 }
 
 .sc-mutate-btn-width:hover {
-  background: #28a745 !important;
+  background: #1d7731 !important;
 }
 
 .sc-mutate-btn-style {
-  background: rgba(0, 86, 179, 0.7) !important;
+  background: rgba(0, 86, 179, 0.9) !important;
 }
 
 .sc-mutate-btn-style:hover {
@@ -597,22 +654,22 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-prefs {
-  background: rgba(108, 117, 125, 0.75);
+  background: rgba(96, 104, 111, 0.9);
 }
 
 .sc-mutate-btn-prefs:hover {
-  background: #6c757d;
+  background: #60686f;
 }
 
 .sc-mutate-btn-image {
-  background: rgba(111, 66, 193, 0.75);
+  background: rgba(111, 66, 193, 0.9);
 }
 
 .sc-mutate-btn-image:hover {
   background: #6f42c1;
 }
 
-/* Widget armed as the target for the next Media Library file click (issue #772) */
+/* Widget armed as the target for the next Media Library file click (issue 772) */
 body.page-edit-mode [data-editor-widget].sc-image-armed {
   outline: 2px dashed #6f42c1;
   outline-offset: -2px;
@@ -635,7 +692,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   gap: 6px;
 }
 
-/* Issue #1269: the labeled-field form that replaces the raw JSON textarea for schema-eligible
+/* Issue 1269: the labeled-field form that replaces the raw JSON textarea for schema-eligible
    widgets. #sc-prefs-body wraps whichever body renderPrefsBody() built (form fields, or the
    textarea from renderPrefsRawJson for the excluded/no-schema fallback). */
 #sc-prefs-body {
@@ -747,7 +804,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-close:hover {
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 #sc-prefs-textarea {
@@ -773,7 +830,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-error {
-  color: #dc3545;
+  color: #e35b68;
   font-size: 11px;
   min-height: 0;
   line-height: 1.3;
@@ -797,14 +854,14 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-reset:hover {
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   background: #4a4a5e;
 }
 
 #sc-prefs-apply {
   background: #0056b3;
   border: none;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 10px;
   font-size: 11px;
   border-radius: 3px;
@@ -843,7 +900,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-link-prompt button {
   background: #0056b3;
   border: none;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
   font-size: 12px;
   border-radius: 3px;
@@ -873,11 +930,11 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #ddd;
+  background: var(--sc-surface-sunken, #f5f5f5);
+  border-bottom: 1px solid var(--sc-border, #ddd);
   font-size: 11px;
   font-weight: 600;
-  color: #333;
+  color: var(--sc-text, #333);
   flex-shrink: 0;
 }
 
@@ -886,7 +943,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--sc-text, #666);
   padding: 0 2px;
   line-height: 1;
 }
@@ -923,7 +980,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-list li {
   padding: 5px 12px;
   font-size: 12px;
-  color: #333;
+  color: var(--sc-text, #333);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -931,13 +988,13 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-widget-list li:hover {
-  background: #e8f0fe;
-  color: #0056b3;
+  background: var(--sc-surface-sunken, #e8f0fe);
+  color: var(--sc-text, #0056b3);
 }
 
 .sc-mutate-btn-add-widget {
-  background: rgba(16, 141, 149, 0.75);
-  color: var(--sc-text-inverse, #fff);
+  background: rgba(13, 116, 122, 0.9);
+  color: var(--sc-fnd-on-accent, #fefefe);
   border: none;
   border-radius: 3px;
   padding: 2px 6px;
@@ -947,7 +1004,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-mutate-btn-add-widget:hover {
-  background: rgba(16, 141, 149, 1);
+  background: #0d747a;
 }
 
 /* ── P5 Slice 1: Quill inline rich text editor ─────────────────────────── */
@@ -1000,7 +1057,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-save-btn {
   background: #0056b3;
-  color: var(--sc-text-inverse, #fff);
+  color: var(--sc-fnd-on-accent, #fefefe);
   border: none;
   border-radius: 3px;
   padding: 4px 14px;
@@ -1019,7 +1076,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-discard-btn {
   background: transparent;
-  color: #666;
+  color: var(--sc-text-muted, #666);
   border: 1px solid #ccc;
   border-radius: 3px;
   padding: 4px 14px;
@@ -1028,6 +1085,57 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-discard-btn:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--sc-surface-sunken, #f5f5f5);
+  color: var(--sc-text, #333);
+}
+
+/* ==========================================================================
+   Dark mode
+   ==========================================================================
+   Almost nothing needs a dark rule: this overlay is its own dark chrome in both
+   modes, and the fixes above are mode-independent by construction. Two things
+   are not.
+
+   The inline "Saved" message sits on the PAGE, not on the chrome, so it has to
+   clear 4.5:1 against a white page and a dark one. No single green does --
+   clearing it on white needs a relative luminance at or below 0.1833 and
+   clearing it on the dark page needs 0.2227 or above -- so it takes a value per
+   mode. It is the one colour in this file that genuinely needs two.
+
+   The widget handle is an <a>, and platform-tokens.css paints links inside
+   .platform-body with --sc-link at (0,3,1), which beats .sc-editor-handle-widget
+   at (0,1,0) and put the caption at 1.51:1 on its red fill. The rules below
+   match that specificity exactly, at (0,3,1) and (0,4,1); this stylesheet is
+   linked after platform-tokens.css in main.jsp's head, so an equal-specificity
+   rule here wins on source order. That is why they do not need to escalate
+   further -- and why the light-mode rules above must stay below (0,3,x).
+
+   The two selector groups are kept in sync deliberately, matching
+   platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
+   Writing only the first would leave every site on theme.ui.mode=auto broken. */
+
+:root[data-theme="dark"] .sc-inline-save-msg {
+  color: #28a745;
+}
+
+:root[data-theme="dark"] a.sc-editor-handle {
+  color: var(--sc-fnd-on-accent, #fefefe);
+}
+
+:root[data-theme="dark"] a.sc-editor-handle:hover {
+  color: var(--sc-fnd-on-accent, #fefefe);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .sc-inline-save-msg {
+    color: #28a745;
+  }
+
+  :root[data-theme="auto"] a.sc-editor-handle {
+    color: var(--sc-fnd-on-accent, #fefefe);
+  }
+
+  :root[data-theme="auto"] a.sc-editor-handle:hover {
+    color: var(--sc-fnd-on-accent, #fefefe);
+  }
 }
