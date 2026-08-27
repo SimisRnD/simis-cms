@@ -1259,15 +1259,26 @@ button.round, .button.round {
   border-radius: 1000px;
 }
 
+/* An outlined button drawn in the page's own ink, so it follows the theme the way its
+   background already did. The ink and border used to be pinned at a fixed near-black
+   while the fill followed --sc-surface, which goes dark in dark mode -- near-black on
+   near-black, 1.284:1, with the border failing SC 1.4.11 at the same ratio and hover
+   inverting into the identical pair (issue 1528). Hover is now a true inversion of the
+   base, so both states hold up in either mode:
+     base  light 17.585:1   dark 16.120:1
+     hover light 17.585:1   dark 16.120:1
+   The !important is still needed to beat Foundation's own .button colour; it is no longer
+   load-bearing against the theme's button-text rule, which now excludes .box alongside
+   .clear and .hollow for the same reason -- see main.jsp. */
 button.box, .button.box {
   background-color: var(--sc-surface, #ffffff);
-  border: 1px solid #2a2e31;
-  color: #2a2e31 !important;
+  border: 1px solid var(--sc-text, #2a2e31);
+  color: var(--sc-text, #2a2e31) !important;
 }
 
 button.box:hover, button.box:focus, .button.box:hover, .button.box:focus {
-  background-color: #2a2e31;
-  color: var(--sc-text-inverse, #ffffff) !important;
+  background-color: var(--sc-text, #2a2e31);
+  color: var(--sc-surface, #ffffff) !important;
 }
 
 /* Links */
