@@ -468,6 +468,33 @@ class WebVitalsMigrationTest {
         "web_vitals_aggregates columns differ between the install and upgrade paths");
   }
 
+  @Test
+  void columnsNamedLikeConstraintKeywordsAreNotDroppedAsConstraints() {
+    // Regression guard: parseColumnNames used to test the constraint keywords with startsWith, so a
+    // column merely BEGINNING with one ("unique_ref", "check_digit", "constraint_name") was thrown
+    // away as if it were a table constraint. Both sides of the comparison above use this parser, so
+    // the effect was not a false failure but a silent blind spot -- a real install/upgrade
+    // difference in such a column would go unreported. No table under test has such a column today;
+    // this pins the behavior before one does.
+    Set<String> columns = parseColumnNames(""
+        + "  id BIGSERIAL PRIMARY KEY,\n"
+        + "  unique_ref VARCHAR(64),\n"
+        + "  check_digit SMALLINT,\n"
+        + "  constraint_name VARCHAR(100),\n"
+        + "  primary_contact VARCHAR(100),\n"
+        + "  value NUMERIC(10, 2),\n"
+        + "  CONSTRAINT sample_metric_check CHECK (check_digit > 0),\n"
+        + "  UNIQUE (unique_ref),\n"
+        + "  PRIMARY KEY (id)");
+
+    assertEquals(
+        new TreeSet<>(Set.of("id", "unique_ref", "check_digit", "constraint_name", "primary_contact",
+            "value")),
+        new TreeSet<>(columns),
+        "columns whose names begin with a constraint keyword must be kept, while real constraint"
+            + " clauses are dropped");
+  }
+
   /** Extracts column names from a {@code CREATE TABLE <name> ( ... )} block. */
   private static Set<String> createTableColumns(String sql, String tableName) {
     Pattern createTable = Pattern.compile(
@@ -511,6 +538,15 @@ class WebVitalsMigrationTest {
     throw new IllegalStateException("unbalanced parentheses in CREATE TABLE body");
   }
 
+  /**
+   * Table-constraint keywords, compared against a definition's FIRST TOKEN exactly. Deliberately not
+   * a startsWith() check: that silently drops any column whose NAME merely begins with one of these
+   * -- a unique_ref, a check_digit, a constraint_name -- from both sides of the comparison below, so
+   * a genuine install/upgrade difference in such a column would be masked rather than reported.
+   */
+  private static final Set<String> CONSTRAINT_KEYWORDS =
+      Set.of("CONSTRAINT", "UNIQUE", "CHECK", "PRIMARY", "FOREIGN", "EXCLUDE", "LIKE");
+
   /** Splits a CREATE TABLE body on top-level commas only (not ones inside e.g. NUMERIC(10, 2)). */
   private static Set<String> parseColumnNames(String body) {
     Set<String> names = new HashSet<>();
@@ -535,12 +571,11 @@ class WebVitalsMigrationTest {
       if (line.isEmpty()) {
         continue;
       }
-      String upper = line.toUpperCase();
-      if (upper.startsWith("CONSTRAINT") || upper.startsWith("UNIQUE") || upper.startsWith("CHECK")
-          || upper.startsWith("PRIMARY KEY") || upper.startsWith("FOREIGN KEY")) {
+      String first = line.split("\\s+")[0];
+      if (CONSTRAINT_KEYWORDS.contains(first.toUpperCase())) {
         continue;
       }
-      names.add(line.split("\\s+")[0]);
+      names.add(first);
     }
     return names;
   }
