@@ -636,6 +636,17 @@
     </section>
   </page>
 
+  <page name="/admin/csp-violations" role="admin" title="CSP Violations">
+    <section>
+      <column class="small-12 cell">
+        <widget name="cspViolations">
+          <icon>fa-shield-halved</icon>
+          <title>Content-Security-Policy Violations</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/security-properties" role="admin" title="Security Settings">
     <section>
       <column class="small-12 large-10 cell">
