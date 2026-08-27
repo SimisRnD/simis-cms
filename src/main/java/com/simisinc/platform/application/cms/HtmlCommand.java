@@ -271,7 +271,13 @@ public class HtmlCommand {
 
     safelist.addTags("hr");
     safelist.addTags("iframe");
-    safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder");
+    // title is what gives an embedded frame an accessible name -- without it a screen reader
+    // announces only "frame", with no way to know what it contains or whether to enter it
+    // (WCAG 4.1.2). cleanRenderedMarkdown() above already allows it on iframe; this path did not,
+    // so a title typed into the editor was silently dropped and there was no way for content to
+    // supply one. Bringing the two safelists into line rather than adding a new capability.
+    safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder",
+        "title");
     // <video width="640" height="360" poster="/assets/img/1545053117079-105/AIMS-Video-Poster.jpg" controls autoplay="autoplay">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.webm" type="video/webm; codecs=vp9,vorbis">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">
@@ -397,6 +403,28 @@ public class HtmlCommand {
     if (e == null) {
       return;
     }
+    // Drop iframes from hosts the site has not allowed, before any of the wrapping below runs.
+    // jsoup's Safelist can restrict an iframe's protocol but not its host, so without this an
+    // author could embed a frame from anywhere and it would be stored, served, and only stopped
+    // at the browser by frame-src -- as a silent blank box with no indication of what happened or
+    // why. Refusing it here means the content never carries an embed the policy will not render.
+    boolean removedAny = false;
+    for (Element element : e) {
+      if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"))) {
+        LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
+            + ": " + element.attr("src"));
+        element.remove();
+        removedAny = true;
+      }
+    }
+    // getElementsByTag returns a snapshot, not a live view, so removed elements are still in "e"
+    // and now have no parent. Re-query rather than reuse it: the wrapping below dereferences
+    // parent(), and one detached element would throw partway through and leave every iframe after
+    // it unwrapped.
+    if (removedAny) {
+      e = document.getElementsByTag("iframe");
+    }
+
     for (Element element : e) {
       if (!element.hasAttr("src")) {
         continue;
