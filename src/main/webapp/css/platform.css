@@ -1148,10 +1148,10 @@ ul.pagination li.pagination-next a:hover {
   justify-content: center;
   min-height: 120px;
   padding: 1.5rem;
-  background: var(--sc-surface-sunken, #f4f6f8);
-  border: 1px dashed var(--sc-border, #d7dce2);
-  border-radius: var(--sc-radius-md, 6px);
-  color: var(--sc-text-muted, #5b6470);
+  background: var(--sc-surface-sunken, #f4f5f7);
+  border: 1px dashed var(--sc-border, #d9dce1);
+  border-radius: var(--sc-radius-md, 4px);
+  color: var(--sc-text-muted, #71767d);
   font-size: 2rem;
 }
 

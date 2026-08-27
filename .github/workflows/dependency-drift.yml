@@ -46,3 +46,8 @@ jobs:
       # new rule is a chance to add another literal and the routing work only keeps level.
       - name: Fail on new hardcoded colours in first-party CSS
         run: python3 tools/check-css-token-adoption.py .
+      # Those fallbacks are only worth keeping if they are still correct. A repaint of
+      # platform-tokens.css leaves the literal beside each var() on the old value, and
+      # nothing renders it, so looking at the running product never finds it.
+      - name: Fail on var() fallbacks that no longer match their token
+        run: python3 tools/check-css-var-fallbacks.py .
