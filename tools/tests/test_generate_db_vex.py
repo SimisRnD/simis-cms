@@ -116,3 +116,83 @@ def test_output_is_valid_json_with_a_trailing_newline(tmp_path):
     raw = p.read_text()
     assert raw.endswith("\n")
     json.loads(raw)
+
+
+# --- Identifier form ------------------------------------------------------------------
+# Trivy matches VEX identifiers by PURL and skips a mismatch in silence. A statement with a
+# qualifier the scanned image does not carry suppresses nothing and warns about nothing, so
+# nothing but a test or a full scan can tell the two apart. See package_purl().
+
+def generated_ids(monkeypatch, tmp_path, alerts):
+    """Run the generator end-to-end over `alerts` and return (product ids, subcomponent ids)."""
+    import sys
+    monkeypatch.setattr(gen, "fetch_alerts", lambda: alerts)
+    out = tmp_path / "vex.json"
+    monkeypatch.setattr(sys, "argv", ["generate-db-vex.py", "--output", str(out)])
+    gen.main()
+    d = json.loads(out.read_text())
+    products = {p["@id"] for s in d["statements"] for p in s["products"]}
+    subs = [sc["@id"] for s in d["statements"] for p in s["products"] for sc in p["subcomponents"]]
+    return products, subs
+
+
+def alert(cve, pkg, version="1.2.3-4"):
+    return {
+        "rule": {"id": cve},
+        "tool": {"name": "Trivy"},
+        "most_recent_instance": {"message": {"text":
+            "Package: %s\nInstalled Version: %s\nFixed Version: \n" % (pkg, version)}},
+    }
+
+
+def test_package_purl_is_bare():
+    assert gen.package_purl("libssh2-1") == "pkg:deb/debian/libssh2-1"
+
+
+def test_product_purl_carries_no_qualifier():
+    """Stripped by hand in 4a2bde1e, the commit that first made the scan gate enforce."""
+    assert gen.PRODUCT_PURL == "pkg:oci/simis-cms-db"
+    assert "?" not in gen.PRODUCT_PURL
+
+
+def test_generated_identifiers_carry_no_version_and_no_qualifier(monkeypatch, tmp_path):
+    """The 52718205 case, at the source instead of one statement at a time.
+
+    The generator emitted `pkg:deb/debian/<pkg>@<version>?distro=debian-12`. The image is
+    Debian 12.15, so `distro=debian-12` never matched -- every generated statement was
+    skipped, and a regenerated document suppressed nothing at all.
+    """
+    products, subs = generated_ids(monkeypatch, tmp_path, [
+        alert("CVE-2026-58050", "libssh2-1", "1.10.0-3+b1"),
+        alert("CVE-2026-49014", "gdal-data", "3.13.2+dfsg-1.pgdg12+1"),
+    ])
+    assert subs == ["pkg:deb/debian/gdal-data", "pkg:deb/debian/libssh2-1"]
+    assert products == {"pkg:oci/simis-cms-db"}
+    for i in subs:
+        assert "?" not in i, "qualifier in %s -- Trivy will skip this statement" % i
+        assert "@" not in i.rsplit("/", 1)[-1], "version pin in %s" % i
+
+
+def test_a_package_with_several_affected_versions_yields_one_bare_identifier(monkeypatch, tmp_path):
+    """Bare identifiers are version-free, so the same package cannot appear twice."""
+    _, subs = generated_ids(monkeypatch, tmp_path, [
+        alert("CVE-2026-53613", "util-linux", "1:2.38.1-5+deb12u3"),
+        alert("CVE-2026-53613", "util-linux", "1:2.38.1-5+deb12u2"),
+    ])
+    assert subs == ["pkg:deb/debian/util-linux"]
+
+
+def test_impact_statement_does_not_depend_on_iteration_order(monkeypatch, tmp_path):
+    """Packages are grouped in a set now; unsorted iteration would reorder the reasons
+    joined into impact_statement and make every regeneration produce a spurious diff."""
+    import sys
+    alerts = [alert("CVE-2026-49014", p) for p in ("libgdal32", "gdal-data", "libaom3")]
+    seen = set()
+    for n in range(3):
+        monkeypatch.setattr(gen, "fetch_alerts", lambda: alerts)
+        out = tmp_path / ("vex%d.json" % n)
+        monkeypatch.setattr(sys, "argv", ["generate-db-vex.py", "--output", str(out)])
+        gen.main()
+        d = json.loads(out.read_text())
+        seen.add(json.dumps([s.get("impact_statement") for s in d["statements"]]))
+    assert len(seen) == 1
