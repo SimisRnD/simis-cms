@@ -489,6 +489,25 @@ public class UserRepository {
     return null;
   }
 
+  /**
+   * Marks (or unmarks) an account as break-glass. Set by the installer for the account it creates;
+   * see V71120__create_admin, MfaEnforcementCommand and BreakGlassAlertCommand for what the flag
+   * changes.
+   */
+  public static User updateBreakGlass(User record, boolean breakGlass) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("break_glass", breakGlass)
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      record.setBreakGlass(breakGlass);
+      return record;
+    }
+    LOG.error("updateBreakGlass failed!");
+    return null;
+  }
+
   public static User updatePassword(User record) {
     SqlUtils updateValues = new SqlUtils()
         .add("password", record.getPassword())
@@ -740,6 +759,7 @@ public class UserRepository {
     record.setLatitude(rs.getDouble("latitude"));
     record.setLongitude(rs.getDouble("longitude"));
     record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
+    record.setBreakGlass(rs.getBoolean("break_glass"));
     record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
     record.setLockedUntil(rs.getTimestamp("locked_until"));
     record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));

@@ -64,6 +64,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
@@ -513,6 +514,9 @@ public class WebRequestFilter implements Filter {
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
+          // A remember-me cookie establishes a session without anyone typing a password, so this
+          // path needs the break-glass alert just as much as the sign-in form does
+          BreakGlassAlertCommand.recordLogin(user, ipAddress, userSession.getSessionId(), "token");
           // Enforce org-level MFA before the user accesses any page (IA-2(1))
           if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
             String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();

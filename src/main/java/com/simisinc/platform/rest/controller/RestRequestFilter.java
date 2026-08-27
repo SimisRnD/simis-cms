@@ -46,6 +46,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hc.core5.net.InetAddressUtils;
 
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadAppCommand;
@@ -294,6 +295,9 @@ public class RestRequestFilter implements Filter {
             httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
         userSession.setAppId(thisApp.getId());
         userSession.login(user);
+        // API credentials are another way to act as this account, and the least likely to be
+        // watched interactively
+        BreakGlassAlertCommand.recordLogin(user, ipAddress, userSession.getSessionId(), "api");
         SaveSessionCommand.saveSession(userSession);
 
         // Track the login
