@@ -675,6 +675,9 @@ ul.pagination li.pagination-next a:hover {
   padding-top: 0;
 }
 
+/* This rule already named h2 while blog-post-list-cards.jsp emitted h3, so it matched nothing and
+   the card titles rendered at Foundation's default h3 size. Levelling the post-title heading to h2
+   (issue 1458) makes it apply for the first time, which is the intent the selector recorded. */
 .platform-blog-cards-container .blog-title h2 {
   font-size: 28px;
   padding-bottom: 0;
@@ -1303,9 +1306,15 @@ a.read-more {
 
 /* Labels */
 
+/* Dark text, not inverse text -- see issue 1515. This fill is light in BOTH modes, so
+   --sc-text-inverse is the wrong role for it: that token means "text on the inverse of
+   the page", and the page's inverse is only dark while the page itself is light. White
+   on this green is 2.86:1. --sc-fnd-ink-on-accent is the token for exactly this pairing
+   and is deliberately never redefined for dark, so one declaration clears the floor in
+   both modes -- and light and dark stop rendering this label differently for no reason. */
 .label.success {
   background-color: #43AC6A;
-  color: var(--sc-text-inverse, #ffffff);
+  color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 
 /* Cards */
@@ -2220,8 +2229,8 @@ div.item-image-large img {
   transform: scale(1.045);
 }
 
-.platform-blog-showcase-container .card-section.blog-title h3,
-.platform-blog-showcase-container .card-section.blog-title h3 a {
+.platform-blog-showcase-container .card-section.blog-title h2,
+.platform-blog-showcase-container .card-section.blog-title h2 a {
   font-weight: 800;
   font-size: 24px;
   line-height: 1.22;
