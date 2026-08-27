@@ -15,10 +15,26 @@ file gains hardcoded colours relative to a committed baseline.
 
 What counts
 -----------
-A hex literal **outside** a ``var()`` fallback. A routed declaration such as
-``color: var(--sc-text, #17191e)`` is not a hardcoded colour -- the literal is
-the documented degradation path if the token stylesheet fails to load, and
-penalising it would push authors to drop fallbacks, which is worse.
+A hex literal **outside** a ``var()`` fallback and **outside** a comment.
+
+A routed declaration such as ``color: var(--sc-text, #17191e)`` is not a
+hardcoded colour -- the literal is the documented degradation path if the token
+stylesheet fails to load, and penalising it would push authors to drop
+fallbacks, which is worse.
+
+Nothing inside ``/* ... */`` renders, so nothing inside it is a colour the
+theme fails to reach. Two kinds of text used to be counted as one anyway. An
+issue reference in prose is hex-shaped -- ``#1483`` is four hex digits -- so
+explaining a fix in a comment charged the file for it, and authors learned to
+write "issue 1483" to dodge a gate that should not have been looking. And a
+real colour value discussed in prose, or sitting in a commented-out rule, was
+counted as if it were live, which is the same error with a more convincing
+disguise. Counting either one inflates the baseline, and because the baseline
+is a floor, that inflation is permanent slack: a file credited with colours it
+does not have can absorb that many new literals and still pass.
+
+Comments are stripped before ``var()`` fallbacks, so a fallback mentioned in
+prose cannot swallow the code after it.
 
 ``platform-tokens.css`` is excluded: it is where colours are *supposed* to be
 literal. Vendored stylesheets are excluded too -- ``foundation.tokens.min.css``
@@ -45,6 +61,7 @@ BASELINE = "tools/css-colour-baseline.txt"
 CSS_DIR = "src/main/webapp/css"
 EXCLUDE = {"platform-tokens.css"}
 
+COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 VAR_FALLBACK = re.compile(r"var\(\s*--[a-z0-9-]+\s*,\s*[^)]*\)", re.IGNORECASE)
 HEX = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 
@@ -58,8 +75,8 @@ def tracked_files(root: Path) -> list[Path]:
 
 
 def hardcoded_count(text: str) -> int:
-    """Hex literals outside var() fallbacks."""
-    return len(HEX.findall(VAR_FALLBACK.sub("", text)))
+    """Hex literals outside comments and var() fallbacks."""
+    return len(HEX.findall(VAR_FALLBACK.sub("", COMMENT.sub("", text))))
 
 
 def current_counts(root: Path) -> dict[str, int]:
