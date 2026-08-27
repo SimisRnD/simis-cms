@@ -161,19 +161,31 @@
    directly on bare dark-mode page (no white card under it) only reaches
    2.4:1 there, short of the 3:1 non-text floor. The old default
    (Foundation's #1779ba) had the same shape of gap, just less severe
-   (3.76:1) -- this was never solved for every combination, only judged
+   (3.75:1) -- this was never solved for every combination, only judged
    good enough for the common case. Accents are left to the theme.
    ========================================================================== */
 
 :root[data-theme="dark"] {
   --sc-surface: #17191e;
-  --sc-surface-raised: #53575c;
+  /* Ink lifted a quarter of the way toward Anthracite (#53575c). Anthracite
+     itself is a brand ACCENT, not a surface -- --sc-text-muted, --sc-link and
+     --sc-link-hover all land under 4.5:1 on it (2.64 / 2.43 / 3.16), so every
+     .card, .reveal, table and input painted with it fails 1.4.3 for secondary
+     text and links. This is the lightest point on that line that keeps all
+     three past 4.9:1. Cards read as lifted by 1.19:1 plus their --sc-border,
+     which is how this file carries elevation anyway (see the shadow note). */
+  --sc-surface-raised: #26282e;
   --sc-surface-sunken: #101115;
-  --sc-surface-overlay: #53575c;
+  --sc-surface-overlay: #26282e;
 
-  /* contrast vs --sc-surface: text 16.12:1, muted 5.01:1 (vs raised), link
-     4.61:1 (vs raised) -- lightened from the raw palette the same way the
-     light-mode values were darkened, see the light-mode block's note. */
+  /* Contrast vs --sc-surface: text 16.12:1, muted 6.37:1, link 5.87:1,
+     link-hover 7.63:1. Vs --sc-surface-raised (the value --sc-surface-overlay
+     and --sc-field-bg also carry): text 13.51:1, muted 5.34:1, link 4.92:1,
+     link-hover 6.39:1. Lightened from the raw palette the same way the
+     light-mode values were darkened, see the light-mode block's note.
+     --sc-link is what caps how light a dark surface may be: at #609ace,
+     anything these tokens sit on has to stay at or under 0.0279 relative
+     luminance to clear 4.5:1. */
   --sc-text: #f4f5f7;
   --sc-text-muted: #979ca4;
   --sc-text-inverse: #17191e;
@@ -181,12 +193,12 @@
   --sc-link-hover: #7fb0d9;
 
   --sc-border: rgba(244, 245, 247, 0.12);
-  --sc-border-control: #d9dce1; /* true Platinum -- 10.05:1 on raised, no darkening needed here */
+  --sc-border-control: #d9dce1; /* true Platinum -- 10.72:1 on raised, no darkening needed here */
 
-  --sc-field-bg: #53575c;
+  --sc-field-bg: #26282e;
   --sc-field-text: #f4f5f7;
   --sc-field-placeholder: #979ca4;
-  --sc-field-disabled-bg: #53575c;
+  --sc-field-disabled-bg: #26282e;
 
   --sc-focus-ring: #609ace;
 
@@ -203,7 +215,7 @@
      rather than a mechanical inversion.
 
      Verified against how Foundation actually pairs these, not in isolation:
-       ink on surface .............. 6.67:1     on-accent on primary ... 4.65:1
+       ink on surface ............. 13.51:1     on-accent on primary ... 4.65:1
        ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
        on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
 
@@ -234,13 +246,17 @@
 }
 
 /* Follow the OS only when the site has opted into "auto". An absent
-   data-theme stays light, which is what every pre-existing site gets. */
+   data-theme stays light, which is what every pre-existing site gets.
+
+   Every value below is a duplicate of the [data-theme="dark"] block above and
+   must be changed with it. A token corrected in only one of the two blocks
+   leaves every site running theme.ui.mode=auto on the old, broken value. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
     --sc-surface: #17191e;
-    --sc-surface-raised: #53575c;
+    --sc-surface-raised: #26282e;
     --sc-surface-sunken: #101115;
-    --sc-surface-overlay: #53575c;
+    --sc-surface-overlay: #26282e;
 
     --sc-text: #f4f5f7;
     --sc-text-muted: #979ca4;
@@ -251,10 +267,10 @@
     --sc-border: rgba(244, 245, 247, 0.12);
     --sc-border-control: #d9dce1;
 
-    --sc-field-bg: #53575c;
+    --sc-field-bg: #26282e;
     --sc-field-text: #f4f5f7;
     --sc-field-placeholder: #979ca4;
-    --sc-field-disabled-bg: #53575c;
+    --sc-field-disabled-bg: #26282e;
 
     --sc-focus-ring: #609ace;
 
@@ -270,7 +286,7 @@
        rather than a mechanical inversion.
 
        Verified against how Foundation actually pairs these, not in isolation:
-         ink on surface .............. 6.67:1     on-accent on primary ... 4.65:1
+         ink on surface ............. 13.51:1     on-accent on primary ... 4.65:1
          ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
          on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
 
@@ -328,6 +344,46 @@ summary:focus-visible,
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: #2c79be;
+}
+
+/* Modal and callout close buttons. Foundation pins .close-button to #8a8a8a
+   at rest and #0a0a0a on hover/focus, neither of which knows what surface it
+   landed on. The x character is the control's only visible affordance, so it
+   is held to the 4.5:1 SC 1.4.3 asks of text -- and Foundation's own values
+   miss that in every one of the 49 places the button renders: 3.42:1 in a
+   light .reveal, 3.13:1 in a success callout, 3.45:1 on the newsletter
+   overlay. Dark mode is worse, and worse in an unusual way: the hover/focus
+   state moves TOWARD the background rather than away from it, so the reveal
+   button fails even the 3:1 of 1.4.11 in both states (2.11:1 at rest,
+   2.72:1 on hover).
+
+   No fixed color can be right here, because the surface underneath is chosen
+   variously -- by Foundation, by the dark token block, by a theme's callout
+   colors, or by a site's newsletter overlay properties. What is always paired
+   with that surface is the container's own text color, since whoever picked
+   the background picked that too. So the button follows it rather than naming
+   a color of its own, and needs no dark-mode counterpart.
+
+   The 0.8 preserves Foundation's muted rest state. Measured over http against
+   the real cascade, worst case across every surface a close button actually
+   renders on is 4.97:1 (the dark .reveal, at rest); every other case is
+   10.52:1 or better, in light, dark and auto alike. Lifting to full opacity on
+   interaction keeps a visible state change without introducing a second color
+   that can drift -- and because :focus is included, the Layer 3a focus ring is
+   never drawn through a faded opacity.
+
+   Note the limit: this guarantees contrast wherever the container sets a text
+   color to go with its background. A component that repaints a .card-divider
+   (or any other wrapper) without also setting color is still on its own. */
+.close-button {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: inherit;
+  opacity: 1;
 }
 
 /* Dashboard stat tiles (.callout). Dark mode already recolors the border via
