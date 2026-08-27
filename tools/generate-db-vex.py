@@ -21,19 +21,29 @@ HONESTY RULES (the whole point -- a VEX that overclaims is worse than no VEX)
    statements no longer hold -- this is stated in the document itself.
 
 Regenerate (keeps the document from rotting as the alert set changes):
-    python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json
+    python3 tools/generate-db-vex.py
+
+The script writes the document itself rather than being redirected into it. That is
+deliberate. `> the-file` truncates the target before this process even starts, so a
+refusal to write cannot protect a file the shell has already emptied -- and the one
+failure this tool must never have is quietly replacing 50-odd suppressions with none.
+Owning the write is what makes the guards in write_document() worth anything.
 """
 
+import argparse
 import datetime
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 from collections import OrderedDict
 
 REPO = "SimisRnD/simis-cms"
 PRODUCT_PURL = "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd"
 VEX_ID = "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db"
+DEFAULT_OUTPUT = "docker/db/vex/simis-cms-db.openvex.json"
 AUTHOR = "SimIS Inc. (SimIS CMS maintainers)"
 
 NOT_IN_PATH = "vulnerable_code_not_in_execute_path"
@@ -131,7 +141,77 @@ def field(msg, key):
     return m.group(1).strip() if m else ""
 
 
+def existing_statement_count(path):
+    """How many statements the document at `path` already has; None if unreadable."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return len(json.load(fh).get("statements", []))
+    except (OSError, ValueError):
+        return None
+
+
+def write_document(doc, path, allow_shrink=False):
+    """Write `doc` to `path`, refusing the two writes that destroy the suppression set.
+
+    This tool's failure mode is uniquely bad: its input is a remote alert list, and an
+    empty input produces a structurally valid document that asserts nothing. Committed,
+    that silently drops every not_affected statement the image scan gate depends on, and
+    the run reports success while doing it. Both guards exist because that is not
+    hypothetical -- it is what this tool did on 2026-08-26, once every code-scanning alert
+    had been dismissed and fetch_alerts() began returning an empty list (issue #1463).
+
+    Returns the number of statements written. Raises SystemExit on refusal.
+    """
+    new_count = len(doc.get("statements", []))
+    old_count = existing_statement_count(path)
+
+    if new_count == 0:
+        raise SystemExit(
+            "refusing to write an empty VEX document to %s.\n"
+            "No statements were generated, which almost always means the alert source is\n"
+            "empty rather than that nothing is vulnerable -- check that open Trivy alerts\n"
+            "exist in code scanning before trusting this result." % path
+        )
+
+    if old_count is not None and new_count < old_count and not allow_shrink:
+        raise SystemExit(
+            "refusing to shrink %s from %d statements to %d.\n"
+            "Dropping suppressions un-suppresses findings the image scan gate currently\n"
+            "clears, so this is a gate failure waiting to happen. If the reduction is\n"
+            "intended, re-run with --allow-shrink and say why in the commit message."
+            % (path, old_count, new_count)
+        )
+
+    # Temp file in the same directory, then rename: an interrupted or failed write leaves
+    # the previous document intact rather than a half-written one.
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=2)
+            fh.write("\n")
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+    return new_count
+
+
+def parse_args(argv=None):
+    ap = argparse.ArgumentParser(description="Generate the simis-cms-db OpenVEX document.")
+    ap.add_argument("--output", default=DEFAULT_OUTPUT,
+                    help="where to write the document (default: %(default)s)")
+    ap.add_argument("--allow-shrink", action="store_true",
+                    help="permit writing fewer statements than the existing document has. "
+                         "Losing suppressions un-suppresses findings the scan gate clears, "
+                         "so this needs a reason in the commit message.")
+    return ap.parse_args(argv)
+
+
 def main():
+    args = parse_args()
     alerts = fetch_alerts()
     # vulnerability -> {package: version}
     grouped = OrderedDict()
@@ -186,11 +266,11 @@ def main():
         ("tooling", "tools/generate-db-vex.py"),
         ("statements", statements),
     ])
-    print(json.dumps(doc, indent=2))
+    written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
 
     n_na = sum(1 for s in statements if s["status"] == "not_affected")
-    print("generated %d statements: %d not_affected, %d under_investigation"
-          % (len(statements), n_na, len(statements) - n_na), file=sys.stderr)
+    print("wrote %d statements to %s: %d not_affected, %d under_investigation"
+          % (written, args.output, n_na, written - n_na), file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -271,7 +271,13 @@ public class HtmlCommand {
 
     safelist.addTags("hr");
     safelist.addTags("iframe");
-    safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder");
+    // title is what gives an embedded frame an accessible name -- without it a screen reader
+    // announces only "frame", with no way to know what it contains or whether to enter it
+    // (WCAG 4.1.2). cleanRenderedMarkdown() above already allows it on iframe; this path did not,
+    // so a title typed into the editor was silently dropped and there was no way for content to
+    // supply one. Bringing the two safelists into line rather than adding a new capability.
+    safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder",
+        "title");
     // <video width="640" height="360" poster="/assets/img/1545053117079-105/AIMS-Video-Poster.jpg" controls autoplay="autoplay">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.webm" type="video/webm; codecs=vp9,vorbis">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">
