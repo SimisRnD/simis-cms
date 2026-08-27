@@ -41,7 +41,12 @@ import tempfile
 from collections import OrderedDict
 
 REPO = "SimisRnD/simis-cms"
-PRODUCT_PURL = "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd"
+# Bare, deliberately. Trivy matches VEX identifiers by PURL, and any qualifier present in
+# the statement must also match what it scanned -- a mismatch is skipped in silence, with
+# no warning, and the CVE simply stays unsuppressed. See package_purl() below for the
+# whole story; the product identifier carried `?repository_url=ghcr.io/simisrnd` and was
+# stripped by hand in 4a2bde1e, the commit that first made the gate enforce.
+PRODUCT_PURL = "pkg:oci/simis-cms-db"
 VEX_ID = "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db"
 DEFAULT_OUTPUT = "docker/db/vex/simis-cms-db.openvex.json"
 AUTHOR = "SimIS Inc. (SimIS CMS maintainers)"
@@ -141,6 +146,27 @@ def field(msg, key):
     return m.group(1).strip() if m else ""
 
 
+def package_purl(name):
+    """The identifier Trivy will actually match against a scanned Debian package.
+
+    Bare on purpose: no version, no `distro=` qualifier. Trivy matches VEX subcomponents by
+    PURL, and any qualifier present in the statement must also match the scanned package.
+    A mismatch is not an error and not a warning -- the statement is skipped in silence and
+    the CVE stays unsuppressed, so the failure looks exactly like a VEX that was never
+    passed at all.
+
+    This generator used to emit `pkg:deb/debian/<pkg>@<version>?distro=debian-12`. The image
+    is Debian 12.15, so `distro=debian-12` never matched, and pinning the version meant the
+    statement also expired the moment the package was rebuilt. Every statement in the
+    working document uses the bare form, because both qualifiers were already removed by
+    hand once the gate proved they did not match -- the subcomponent in 52718205 ("so Trivy
+    actually applies it") and the product identifier in 4a2bde1e. The generator was never
+    brought in line, so regenerating would have re-introduced both at once and produced a
+    document that suppresses nothing while looking entirely correct.
+    """
+    return "pkg:deb/debian/%s" % name
+
+
 def existing_statement_count(path):
     """How many statements the document at `path` already has; None if unreadable."""
     try:
@@ -213,15 +239,17 @@ def parse_args(argv=None):
 def main():
     args = parse_args()
     alerts = fetch_alerts()
-    # vulnerability -> {package: version}
+    # vulnerability -> {affected package names}. Versions are deliberately not carried:
+    # statements identify packages by bare PURL, so a version here would be collected and
+    # then dropped. See package_purl().
     grouped = OrderedDict()
     for a in alerts:
         msg = a.get("most_recent_instance", {}).get("message", {}).get("text", "")
-        pkg, ver, fixed = field(msg, "Package"), field(msg, "Installed Version"), field(msg, "Fixed Version")
+        pkg, fixed = field(msg, "Package"), field(msg, "Fixed Version")
         if fixed:
             continue  # a fix exists -> fix it, never VEX it
         cve = a["rule"]["id"]
-        grouped.setdefault(cve, {})[pkg] = ver
+        grouped.setdefault(cve, set()).add(pkg)
 
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
     statements = []
@@ -229,7 +257,10 @@ def main():
         # A statement's justification must hold for every affected package in it.
         decisions = set()
         reasons = []
-        for pkg in pkgs:
+        # sorted(), not raw iteration order: `reasons` is joined into the impact_statement,
+        # and set iteration order varies between processes, which would make every
+        # regeneration produce a spurious diff.
+        for pkg in sorted(pkgs):
             if cve in CVE_POLICY:
                 st, why = CVE_POLICY[cve]
             elif pkg in PACKAGE_POLICY:
@@ -240,9 +271,7 @@ def main():
             if why not in reasons:
                 reasons.append(why)
 
-        subcomponents = [
-            {"@id": "pkg:deb/debian/%s@%s?distro=debian-12" % (p, v)} for p, v in sorted(pkgs.items())
-        ]
+        subcomponents = [{"@id": package_purl(p)} for p in sorted(pkgs)]
         stmt = {
             "vulnerability": {"name": cve},
             "products": [{"@id": PRODUCT_PURL, "subcomponents": subcomponents}],
