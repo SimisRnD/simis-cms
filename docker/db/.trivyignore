@@ -8,7 +8,25 @@
 # its line here. A lapsed expiry re-fails the publish gate on the next run --
 # deliberately, so triage cannot be forgotten silently.
 #
-# Currently empty:
+# CVE-2026-66046 exp:2026-09-10
+#   libexpat1 (Expat DoS, no fixed version published by Debian). Entered 2026-08-27 to
+#   unblock the publish gate, which had stopped all delivery.
+#
+#   Not a new exploitability claim: libexpat1 is already in GDAL_CHAIN in
+#   tools/generate-db-vex.py, so the existing, reviewed policy resolves it to
+#   not_affected (vulnerable_code_not_in_execute_path) on the same basis as the rest of
+#   the GDAL stack -- vector PostGIS only, postgis_raster never created, so GDAL's XML
+#   readers are never loaded. The VEX document cannot say so yet only because
+#   generate-db-vex.py reads open Trivy alerts from code scanning, and this CVE has not
+#   been ingested there; the live scan in the publish workflow found it first. This line
+#   is the bridge until the alert lands and the document can be regenerated.
+#
+#   To resolve: once the alert appears in code scanning, regenerate
+#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json),
+#   confirm the statement reads not_affected, and delete this entry.
+CVE-2026-66046 exp:2026-09-10
+
+# Previously cleared:
 #   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
 #     (vulnerable_code_not_in_execute_path) with recorded evidence on 2026-07-24
 #   - CVE-2026-11822, CVE-2026-11824 and CVE-2026-52490, entered on 2026-08-26 to
