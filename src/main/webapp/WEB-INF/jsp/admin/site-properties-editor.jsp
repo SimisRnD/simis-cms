@@ -278,7 +278,10 @@
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'security.csp.reportOnly'}">
+            <p class="help-text" id="securityCspReportOnlyHelpText">A candidate Content-Security-Policy to <em>test</em>. Blank -- the default -- turns this off entirely. When set, the browser checks each page against this policy, <strong>blocks nothing</strong>, and posts a report for anything that would have been refused; those land under Security &gt; CSP Violations. This is how to find out what a stricter policy would break before enforcing it, which matters most for <code>connect-src</code>: third-party scripts call endpoints that appear nowhere in this site's code, so a wrong value there breaks checkout or a captcha silently. Write it exactly like a real policy, semicolons and all. Use <code>{nonce}</code> where a script nonce belongs and it will be filled in per request; <code>report-uri</code> and <code>report-to</code> are added automatically if you leave them out. A useful starting point is <code>default-src 'self'; connect-src 'self'</code> -- browse the site, place a test order, submit a subscribe form, then read the collected list. This policy cannot break the site, so it is safe to experiment with.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>

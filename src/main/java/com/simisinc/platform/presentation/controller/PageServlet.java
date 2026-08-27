@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.controller;
 import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CspPolicyCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
@@ -194,6 +195,24 @@ public class PageServlet extends HttpServlet {
         "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
             + "style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'nonce-"
             + cspNonce + "'");
+
+      // Optionally evaluate a stricter candidate policy against this same request without enforcing
+      // it. #1430's remaining directives -- connect-src, and default-src behind it -- cannot be
+      // written by reading the source: every third-party integration arrives as a <script src> and
+      // then calls endpoints of its own that appear nowhere in this repository, and that change
+      // when a vendor updates their SDK. Report-only is how those hosts are discovered from real
+      // traffic instead of guessed at, which matters because the way a wrong connect-src fails is
+      // a checkout that silently stops working.
+      //
+      // Off unless an administrator has set security.csp.reportOnly. Nothing about the enforced
+      // header above changes either way.
+      String reportOnlyPolicy = CspPolicyCommand.reportOnlyPolicy(cspNonce);
+      if (reportOnlyPolicy != null) {
+        // Reporting-Endpoints is what gives the policy's report-to directive a destination; without
+        // it a modern browser evaluates the policy and reports to nobody
+        response.setHeader("Reporting-Endpoints", CspPolicyCommand.reportingEndpointsHeader());
+        response.setHeader("Content-Security-Policy-Report-Only", reportOnlyPolicy);
+      }
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.

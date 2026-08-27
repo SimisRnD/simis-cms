@@ -314,6 +314,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum password length', 'security.password.minLength', '15', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require password complexity?', 'security.password.requireComplexity', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'CSP report-only policy', 'security.csp.reportOnly', '', 'text');
 
 CREATE TABLE lookup_role (
   role_id SERIAL PRIMARY KEY,
@@ -832,3 +833,19 @@ CREATE TABLE distributed_lock (
   lock_until TIMESTAMP(3) NOT NULL,
   uuid VARCHAR(255) NOT NULL
 );
+
+-- Aggregated Content-Security-Policy violation reports (see UPGRADE_20260827.1000). One row per
+-- (directive, host), not per event: /csp-report is necessarily unauthenticated, so aggregating
+-- means a flood inflates a counter instead of growing the table. Only the blocked URL's host is
+-- stored, never its path or query string.
+CREATE TABLE csp_violation (
+  violation_id BIGSERIAL PRIMARY KEY,
+  effective_directive VARCHAR(64) NOT NULL,
+  blocked_host VARCHAR(255) NOT NULL,
+  occurrences BIGINT NOT NULL DEFAULT 1,
+  sample_document_path VARCHAR(512),
+  first_seen TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT uq_csp_violation_directive_host UNIQUE (effective_directive, blocked_host)
+);
+CREATE INDEX idx_csp_violation_last_seen ON csp_violation(last_seen DESC);
