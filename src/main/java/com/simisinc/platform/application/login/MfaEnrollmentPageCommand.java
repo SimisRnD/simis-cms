@@ -30,8 +30,9 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
  * URL is the only page it exempts. If that page does not exist, or exists but does not carry the
  * {@code myMfaSettings} widget, there is no way to enroll and no way to reach the admin screen that
  * would turn enforcement back off -- the only remaining recovery is a direct database update. This
- * is not hypothetical: the shipped default {@code /my-profile} is a site property, but no installer
- * ever created that page, so on a fresh install the default itself was the broken case.
+ * is not hypothetical: the shipped default named a page no installer ever created, so on a fresh
+ * install the default itself was the broken case. The default is now {@code /my-page}, which is
+ * seeded, and this check is what keeps a hand-edited value from recreating the problem.
  *
  * <p>Callers use this to refuse the enforcement setting rather than to soften enforcement at request
  * time. Failing the save keeps the door open; failing open at request time would defeat the control.
