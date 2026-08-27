@@ -531,9 +531,36 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   min-width: 0;
 }
 
-#sc-width-custom-input:focus {
-  outline: none;
-  border-color: #0056b3;
+/* Focus indicator. The product-wide ring is platform-tokens.css Layer 3a --
+   input:focus-visible and its siblings, at (0,1,1). This file loads after
+   platform-tokens.css (main.jsp), but every focus rule in it outranks Layer 3a
+   on specificity, so order never gets a chance to apply the ring: each rule has
+   to carry it. They are declared with the same three tokens Layer 3a uses, so
+   the editor cannot drift away from the rest of the product.
+
+   What stood here before was "outline: none" plus border-color #0056b3, which
+   cancelled the ring and put a border tint in its place, measured against the
+   field fill: 1.99:1 in light mode (fill #2a2a3e) and 1.03:1 in dark, where
+   platform-tokens gives these fields a #53575c fill. Both are under the 3:1 SC
+   1.4.11 asks of a focus indicator, and in dark mode the tint was well below the
+   field's own resting border (5.29:1), so focusing a field actively erased its
+   outline. The border-color override is dropped rather than re-coloured -- the
+   resting border is a separate concern, tracked in issue 1518.
+
+   The pseudo-class moves from :focus to :focus-visible so these rules are Layer
+   3a's rule at a higher specificity rather than a parallel mechanism. Per spec
+   text fields and textareas match :focus-visible on mouse click too, so the only
+   behaviour that changes is that a mouse-clicked select no longer rings -- which
+   is what every other select in the product already does.
+
+   Same family as issue 1501 / PR 1504, where Foundation's [type=text]:focus at
+   (0,2,0) outranked Layer 3a. Fixed the same way: keep Layer 3a's ring, win the
+   cascade. Controls this file does NOT opt out -- the preset buttons, the
+   checkbox and colour prefs, the close buttons -- are left to Layer 3a and to
+   PR 1504, which is what reaches Foundation's own attribute-selector resets. */
+#sc-width-custom-input:focus-visible {
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 #sc-width-custom-apply {
@@ -617,6 +644,11 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   gap: 8px;
   max-height: 320px;
   overflow-y: auto;
+  /* overflow-y: auto computes overflow-x to auto as well, and the fields inside
+     are width: 100%, so without this the focus ring's left and right segments are
+     clipped away and only the top and bottom bars survive. 4px is the ring's
+     reach: outline-offset 2px plus outline-width 2px. */
+  padding: 4px;
 }
 
 .sc-pref-field {
@@ -645,12 +677,13 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   width: 100%;
 }
 
-.sc-pref-field input[type="text"]:focus,
-.sc-pref-field input[type="number"]:focus,
-.sc-pref-field select:focus,
-.sc-pref-field textarea:focus {
-  outline: none;
-  border-color: #0056b3;
+/* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. */
+.sc-pref-field input[type="text"]:focus-visible,
+.sc-pref-field input[type="number"]:focus-visible,
+.sc-pref-field select:focus-visible,
+.sc-pref-field textarea:focus-visible {
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 .sc-pref-field input[type="color"] {
@@ -733,9 +766,10 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   line-height: 1.5;
 }
 
-#sc-prefs-textarea:focus {
-  outline: none;
-  border-color: #0056b3;
+/* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. */
+#sc-prefs-textarea:focus-visible {
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 #sc-prefs-error {
@@ -863,12 +897,19 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid #ccc;
   border-radius: 3px;
   font-size: 12px;
-  outline: none;
   flex-shrink: 0;
 }
 
-#sc-widget-search:focus {
-  border-color: #0056b3;
+/* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. The
+   "outline: none" dropped from the resting rule above sat at (1,0,0), so it
+   suppressed the ring in every state rather than only while focused. This field
+   sits on the themed picker surface rather than the editor's own dark chrome, so
+   its numbers differ from the note above: the border tint it loses measured
+   6.98:1 against the light fill but only 1.03:1 in dark mode, where
+   platform-tokens gives the field the same dark fill named in that note. */
+#sc-widget-search:focus-visible {
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 #sc-widget-list {
