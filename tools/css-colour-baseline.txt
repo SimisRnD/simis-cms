@@ -9,4 +9,4 @@
 3 src/main/webapp/css/platform-subnav.css
 3 src/main/webapp/css/platform-subnavheroheader.css
 8 src/main/webapp/css/platform-todo-list.css
-77 src/main/webapp/css/platform.css
+74 src/main/webapp/css/platform.css

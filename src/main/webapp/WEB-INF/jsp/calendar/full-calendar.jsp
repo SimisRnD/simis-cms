@@ -38,9 +38,70 @@
 <script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
 <style>
+  <%-- The wash marks the cell the cursor is over, and marks it as selectable: this
+       whole block renders only for admins and content managers, who can drag a date
+       range across these cells to create an event. It is a deliberately fixed light
+       tint in both modes -- the same call issue 1514 made for today's highlight,
+       which FullCalendar also paints a fixed colour in both. So, exactly as
+       platform-tokens.css says of a fill that keeps its light value, the text on it
+       has to be a fixed dark colour rather than --sc-text.
+
+       That the text has to move at all is forced, not preferred (issue 1538).
+       FullCalendar's day numbers and day-of-week labels are anchors, so they take
+       Foundation's link colour, which reaches only 4.69:1 on pure white; ANY visible
+       tint behind one drops it under 4.5:1. Fixing this on the wash side instead
+       needs a backdrop of relative luminance 0.958 or higher, where white is 1.0 --
+       a tint too faint to see, leaving no wash to fix. --%>
   .fc-day:hover{
     background: #DDECF7;
     cursor: cell;
+  }
+  <%-- Six pairings failed WCAG 2.2 SC 1.4.3 on that wash, in BOTH modes, which is
+       what marks this as predating dark mode rather than caused by it. Measured
+       against the real cascade, served over http, with FullCalendar 6.1.10 actually
+       rendering and each cell actually hovered -- not derived from source:
+
+         day number,     cell hovered, light .. #1779ba on #DDECF7 .. 3.89:1  FAIL
+         day number,     number hovered, light. #1468a0 on #DDECF7 .. 4.95:1  pass
+         day number,     cell hovered, dark ... #609ace on #DDECF7 .. 2.48:1  FAIL
+         day number,     number hovered, dark . #7fb0d9 on #DDECF7 .. 1.91:1  FAIL
+         weekday header, cell hovered, light .. #1779ba on #DDECF7 .. 3.89:1  FAIL
+         weekday header, label hovered, light . #1468a0 on #DDECF7 .. 4.95:1  pass
+         weekday header, cell hovered, dark ... #609ace on #DDECF7 .. 2.48:1  FAIL
+         weekday header, label hovered, dark .. #7fb0d9 on #DDECF7 .. 1.91:1  FAIL
+
+       The anchor's own :hover is the WORSE state in dark, so a rule that caught only
+       the cell-hover state would leave the worse half of the defect in place. One
+       fixed colour covers both states and both modes: all six become 16.42:1.
+
+       The weekday headers are in scope because FullCalendar puts fc-day on
+       th.fc-col-header-cell too, so hovering the header row washes it the same way.
+       They deliberately carry no fc-day-today exclusion: FullCalendar's today
+       backgrounds are ".fc .fc-daygrid-day.fc-day-today" and
+       ".fc .fc-timegrid-col.fc-day-today", both td, so in the week and day views the
+       today COLUMN header does take this wash.
+
+       Today's date cell is excluded, because it never takes the wash -- FullCalendar's
+       own rule at (0,3,0) outranks .fc-day:hover at (0,1,1), so today keeps its yellow
+       while hovered. Confirmed by hovering it and asserting matches(':hover') is true,
+       not by reading specificity off the page. Today's number belongs to issue 1514;
+       forcing this colour onto that yellow would read 1.99:1 in dark today, or 1.63:1
+       once 1484's calendar surfaces land.
+
+       --sc-fnd-ink-on-accent is the one token in the system whose stated contract is
+       "deliberately never redefined for dark" (platform-tokens.css, Layer 1b), which
+       is exactly what a fill that keeps its light value needs. --sc-fnd-ink is NOT
+       that token despite the similar name: it resolves to var(--sc-text) in dark and
+       would land near-white on this tint.
+
+       The selectors sit at (0,6,0) and (0,5,0) so they clear platform-tokens.css's
+       dark link rules at (0,3,1) and (0,4,1), which are what paint these anchors
+       --sc-link and --sc-link-hover in dark mode. They name the two cushions rather
+       than "a" on purpose: an event chip is an anchor inside the same cell and
+       carries its own fill, which this must not repaint. --%>
+  :root .fc .fc-day:not(.fc-day-today):hover .fc-daygrid-day-number,
+  :root .fc .fc-day:hover .fc-col-header-cell-cushion{
+    color: var(--sc-fnd-ink-on-accent, #0a0a0a);
   }
   <%-- Allow pointer-events through --%>
   .fc-slats, /*horizontals*/
@@ -241,18 +302,23 @@
       eventMouseLeave: function(info) {
         $('#tooltip').hide();
       },
+      <%-- Chip fills are Foundation's secondary grey rather than an arbitrary one:
+           white chip text on it is 4.54:1, where the lighter grey this used to pass
+           was 2.85:1 (issue 1514). FullCalendar writes "color" and "textColor" onto
+           the chip as an inline style, so platform-calendar.css cannot correct them
+           from CSS -- the value has to be right here. --%>
       eventSources: [
         <c:if test="${showEvents eq 'true'}">
         {
           url: '/json/calendar?showEvents=true<c:if test="${!empty calendarUniqueId}">&calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
-          color: '#999999',
+          color: '#767676',
           textColor: '#ffffff'
         },
         </c:if>
         <c:if test="${showHolidays eq 'true'}">
         {
           url: '/json/calendar?showHolidays=true',
-          color: '#999999',
+          color: '#767676',
           textColor: '#ffffff'
         },
         </c:if>

@@ -14,6 +14,12 @@
 # Also verifies every vendored jar byte-for-byte against lib/PROVENANCE.sha256 --
 # the version checks above compare names, not bytes, so a tampered or swapped jar
 # would pass them and ship in the WAR. See tools/check-vendored-provenance.py.
+#
+# The three CSS steps ride along here rather than in their own workflow: they are
+# the same shape of check (a pure-python guard over a committed file, no build
+# needed) and sharing one checkout keeps them a single job. The contrast gate is
+# the only one of the three that looks at a colour *value* -- the other two count
+# literals and byte-diff a generated file, which is why #1489 shipped past both.
 name: Dependency drift
 
 on:
@@ -46,8 +52,9 @@ jobs:
       # new rule is a chance to add another literal and the routing work only keeps level.
       - name: Fail on new hardcoded colours in first-party CSS
         run: python3 tools/check-css-token-adoption.py .
-      # Those fallbacks are only worth keeping if they are still correct. A repaint of
-      # platform-tokens.css leaves the literal beside each var() on the old value, and
-      # nothing renders it, so looking at the running product never finds it.
-      - name: Fail on var() fallbacks that no longer match their token
-        run: python3 tools/check-css-var-fallbacks.py .
+      # Evaluates the token values themselves: declared pairings against their WCAG
+      # floors, dark-vs-auto parity, and every contrast ratio quoted in a comment
+      # re-derived from the declaration it describes. See issue #1489 -- the value
+      # drifted, the comment did not, and nothing in CI could tell.
+      - name: Fail on design tokens below their WCAG contrast floor
+        run: python3 tools/check-token-contrast.py .

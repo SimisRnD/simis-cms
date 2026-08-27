@@ -108,12 +108,72 @@
   font-size: 1.5em;
   margin: 0;
 }
+
+/* Event chips and today's date, both modes -- see issue 1514.
+   ----------------------------------------------------------------------------
+   Three pairings were still under 4.5:1 after the change above. Measured the
+   same way: getComputedStyle over the real cascade, served over http, with
+   FullCalendar actually rendering, each mode loaded fresh rather than toggled.
+
+     event chip text, editorial calendar ........ 3.70:1  FAIL  both modes
+     event chip text, public calendars .......... 2.85:1  FAIL  both modes
+     day number on today's cell ................. 4.45:1  FAIL  light
+     day number on today's cell ................. 4.05:1  FAIL  dark
+
+   The two chip figures differ because the two calendars set a chip's colour in
+   different places. admin/editorial-calendar.jsp passes none, so a chip takes
+   FullCalendar's own --fc-event-bg-color, which this file can reach. The public
+   calendars pass "color" per event source, and FullCalendar writes that onto the
+   chip as an INLINE style -- which no stylesheet rule outranks. That half is
+   fixed where it is set, in calendar/full-calendar.jsp and
+   calendar/small-calendar.jsp; only the vendored default is fixed here.
+
+   Chips: routing the fill to the product's own primary accent puts
+   FullCalendar's white chip text at 4.69:1. The pairing is not new --
+   platform-tokens.css already documents Foundation's on-accent-on-primary at
+   4.65:1 and ships it on every primary button -- so this also stops the calendar
+   being the one surface still rendering in FullCalendar's factory blue.
+   Foundation's five accent colours deliberately keep their light values in dark
+   mode, so the one declaration covers both.
+
+   They go on .fc rather than :root on purpose. FullCalendar declares them on
+   :root from a <style> element it injects itself, and where that lands in <head>
+   relative to this file is the bundle's business, not something to depend on.
+   Everything that reads them is inside .fc, so declaring them there wins by
+   inheritance proximity whatever the source order turns out to be.
+
+   Today: the highlight stays and the day number moves. That is forced, not
+   preferred. An ORDINARY day number -- Foundation's link colour on the page --
+   is already only 4.69:1 in light mode, and today's cell adds FullCalendar's
+   translucent yellow on top of it. Solving that on the highlight side needs a
+   backdrop of relative luminance 0.958 or higher, where white is 1.0: a tint too
+   faint to see, which would leave no highlight to keep. So the number takes
+   --sc-text -- 16.71:1 in light, 11.12:1 in dark -- plus a heavier weight, so
+   today still reads as emphasis rather than as a link that lost its colour. One
+   token expression covers both modes, so this needs no dark block.
+
+   The today rule sits at (0,4,0) so it clears platform-tokens.css's dark link
+   rule at (0,3,1), which is what paints this number --sc-link in dark mode. Same
+   shape as the exception at .ec-status-expiring below: a rule that has to
+   out-specify whichever rule is actually setting the colour. */
+
+.fc {
+  --fc-event-bg-color: var(--sc-fnd-primary, #1779ba);
+  --fc-event-border-color: var(--sc-fnd-primary, #1779ba);
+}
+
+:root .fc .fc-day-today .fc-daygrid-day-number {
+  color: var(--sc-text, #17191e);
+  font-weight: 600;
+}
+
 /* DEAD -- FullCalendar 3/4 selectors. This product ships FullCalendar 6.1.10
    (javascript/fullcalendar-6.1.10/index.global.min.js), which emits neither
    "fc-unthemed", "fc-day-top", "fc-past" nor "fc-future"; verified by searching
    the shipped bundle. Today's cell is styled by FullCalendar's own
    .fc-day-today instead. Left in place rather than deleted, but do not treat
-   these values as describing what renders. */
+   these values as describing what renders. Today's day number is styled by the
+   rule above. */
 .fc-unthemed td.fc-today {
   background: #fefeac;
 }
