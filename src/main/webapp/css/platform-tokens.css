@@ -477,16 +477,20 @@ input[type="radio"] {
   color: var(--sc-text-muted);
 }
 
-/* Links. Scoped away from menus and buttons, which the theme colors. */
-:root[data-theme="dark"] .platform-body a,
-:root[data-theme="dark"] .platform-content a,
-:root[data-theme="dark"] .platform-blog-body a {
+/* Links. The wrapper scoping is what keeps the site menus out -- they live in
+   #platform-menu, outside these containers. Buttons need excluding explicitly:
+   an anchor styled as a button sits on an accent fill, and Foundation's own
+   ink-on-fill rules are only (0,2,0), which this selector would outrank.
+   Issue 1525. Keep :not(.button) on the auto mirror below in step. */
+:root[data-theme="dark"] .platform-body a:not(.button),
+:root[data-theme="dark"] .platform-content a:not(.button),
+:root[data-theme="dark"] .platform-blog-body a:not(.button) {
   color: var(--sc-link);
 }
 
-:root[data-theme="dark"] .platform-body a:hover,
-:root[data-theme="dark"] .platform-content a:hover,
-:root[data-theme="dark"] .platform-blog-body a:hover {
+:root[data-theme="dark"] .platform-body a:not(.button):hover,
+:root[data-theme="dark"] .platform-content a:not(.button):hover,
+:root[data-theme="dark"] .platform-blog-body a:not(.button):hover {
   color: var(--sc-link-hover);
 }
 
@@ -828,15 +832,15 @@ input[type="radio"] {
     color: var(--sc-text-muted);
   }
 
-  :root[data-theme="auto"] .platform-body a,
-  :root[data-theme="auto"] .platform-content a,
-  :root[data-theme="auto"] .platform-blog-body a {
+  :root[data-theme="auto"] .platform-body a:not(.button),
+  :root[data-theme="auto"] .platform-content a:not(.button),
+  :root[data-theme="auto"] .platform-blog-body a:not(.button) {
     color: var(--sc-link);
   }
 
-  :root[data-theme="auto"] .platform-body a:hover,
-  :root[data-theme="auto"] .platform-content a:hover,
-  :root[data-theme="auto"] .platform-blog-body a:hover {
+  :root[data-theme="auto"] .platform-body a:not(.button):hover,
+  :root[data-theme="auto"] .platform-content a:not(.button):hover,
+  :root[data-theme="auto"] .platform-blog-body a:not(.button):hover {
     color: var(--sc-link-hover);
   }
 
