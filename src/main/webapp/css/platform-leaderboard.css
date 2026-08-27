@@ -1,21 +1,86 @@
+/* Leaderboard */
+
+/* Colour, both modes -- see issue 1484.
+   ----------------------------------------------------------------------------
+   This file declared only light values and no dark ones, so its white header
+   band survived onto a dark page while platform-tokens.css repainted the text
+   inside it. That is the visible symptom, but it is not the whole defect: the
+   authored colours never met WCAG 2.2 SC 1.4.3 on their own backgrounds
+   either, and light mode -- the default, involving no theming at all -- failed
+   on every single one of them. Measured with the WCAG relative-luminance
+   formula, before this change:
+
+     LIGHT  header labels, pale green on the white band ....... 1.81:1  FAIL
+     LIGHT  rank cell, white on the pale green fill ........... 1.81:1  FAIL
+     LIGHT  player name, white on the pale teal fill .......... 2.06:1  FAIL
+     LIGHT  points, white on the pale teal fill ............... 2.06:1  FAIL
+     DARK   header labels (text token on the surviving band) .. 1.09:1  FAIL
+     DARK   rank cell (text token on the pale green fill) ..... 1.66:1  FAIL
+     DARK   player name (text token on the pale teal fill) .... 1.89:1  FAIL
+     DARK   points (text token on the pale teal fill) ......... 1.89:1  FAIL
+
+   So the fix is NOT to raise specificity so the local colours win in dark mode.
+   Restoring white-on-pale-teal would reinstate 2.06:1, and the header labels
+   would go back to 1.81:1 -- it would look like a fix while making four of the
+   eight pairings worse. Instead:
+
+     the fills  are darkened along their own hues until white text clears
+                4.5:1 on them, which also clears 4.5:1 for the near-white text
+                token dark mode substitutes -- so one value serves both modes
+                and no local text rule is needed in dark at all;
+     the whites are the page showing through, not a colour this component
+                chose, so they are routed to --sc-surface and simply follow the
+                theme;
+     dark mode  additionally repaints the two boundaries where a generic
+                platform-tokens.css table rule outranks a local one.
+
+   The fills cannot be lightened for dark mode even though that would mirror
+   light mode's relationship to the page: dark mode's --sc-text is near-white
+   and lands on these cells by inheritance, so the fill has to stay dark enough
+   to carry light text. Keeping one fill per role in both modes is a
+   consequence of that, not a shortcut.
+
+   Every pairing was computed, not eyeballed. Text meets 4.5:1 (1.4.3). The
+   header rule and the row gutters are decorative separation, exempt under
+   1.4.11, and are handled for visibility rather than for a ratio.
+
+   The local light-mode rules are deliberately left at specificity (0,1,x) and
+   (0,2,x) so platform-tokens.css's (0,3,x) dark rules still beat them -- that
+   inversion is what lets dark mode need no text rules here. Note this file is
+   linked from the widget body, so it loads after platform-tokens.css and would
+   win any specificity tie. */
+
 .leaderboard { 
   border: none; 
 }
+/* Was a pale green at 1.81:1 on the band below. Darkened along its own hue to
+   4.95:1. In dark mode platform-tokens.css's table thead th rule sets the cell
+   text instead, which is why the band has to become a dark ground. */
 .leaderboard thead {
-  color: #98cda6;
-  background-color: #ffffff;
+  color: #3d7d4e;
+  background-color: var(--sc-surface, #ffffff);
   border: none;
   font-weight: bold;
 }
+/* The header band is the page showing through -- it exists to knock out
+   Foundation's grey thead, not to be a colour of its own. Routing it to
+   --sc-surface is the whole dark-mode fix for the 1.09:1 pairing above: the
+   near-white text platform-tokens.css applies then lands on the dark page at
+   16.12:1. platform-tokens.css also paints thead itself --sc-surface-sunken in
+   dark at (0,2,2), which outranks the rule above at (0,1,1); this row paints
+   over it either way, so no dark override is added for something invisible. */
 .leaderboard thead tr {
-  background-color: #ffffff;
+  background-color: var(--sc-surface, #ffffff);
 }
 .leaderboard thead tr th {
-  border-bottom: 2px solid #98cda6;
+  border-bottom: 2px solid #3d7d4e;
 }
+/* These are gutters, not borders -- 10px of page colour knocking rows apart.
+   Following --sc-surface keeps them reading as page in both modes instead of
+   drawing white bars across a dark one. */
 .leaderboard tbody tr {
-  border-top: 10px solid #ffffff;
-  border-bottom: 10px solid #ffffff;
+  border-top: 10px solid var(--sc-surface, #ffffff);
+  border-bottom: 10px solid var(--sc-surface, #ffffff);
 }
 /* .leaderboard th, .leaderboard td {     */
   /* white-space: nowrap; */
@@ -24,8 +89,11 @@
   font-size: 18px;
   font-weight: bold;
   color: white;
-  background-color: #98cda6;
-  border-right: 10px solid white;
+  /* Was the same pale green as the header, carrying white text at 1.81:1.
+     Darkened along its own hue: white on it is 4.95:1, and dark mode's
+     near-white text token is 4.54:1. */
+  background-color: #3d7d4e;
+  border-right: 10px solid var(--sc-surface, #ffffff);
 }
 /* .leaderboard .leaderboard-photo { */
   /* background-color: #56C4CE; */
@@ -35,17 +103,20 @@
 .leaderboard-photo {
   width: 80px;
 }
+/* Was a pale teal carrying white text at 2.06:1. Darkened along its own hue to
+   4.95:1 for white and 4.54:1 for dark mode's text token, keeping the teal that
+   distinguishes a player row from the green rank badge. */
 .leaderboard-name {
   font-size: 18px;
   font-weight: bold;
   color: white;
-  background-color: #56C4CE;
+  background-color: #267b83;
 }
 .leaderboard-points {
   font-size: 24px;
   font-weight: bold;
   color: white;
-  background-color: #56C4CE;
+  background-color: #267b83;
   text-align: right;
 }
 
@@ -55,5 +126,48 @@
 @media screen and (max-width: 39.9375em) {
   .leaderboard-photo {
     margin-right: 80px;
+  }
+}
+
+/* ==========================================================================
+   Dark mode
+   ==========================================================================
+   Only two declarations need repainting here. Everything else is already
+   correct in dark mode: the fills above carry the near-white text token at
+   4.54:1, and the whites above are --sc-surface and follow the page on their
+   own. What is left are the two places where a generic platform-tokens.css
+   table rule outranks a local one and paints over this component's intent:
+
+     table thead th  sets border-color: var(--sc-border) at (0,2,2), which
+                     beats .leaderboard thead tr th at (0,1,3) and erases the
+                     green header rule -- it measures 1.01:1 against the band,
+                     i.e. gone. It is restored to the file's original pale
+                     green, which was never wrong as an accent: on the dark
+                     page it reads at 9.73:1. It only ever failed as text on
+                     white, which is what the light-mode value above fixes.
+     table tbody td  sets border-color: var(--sc-border) at (0,2,3), which
+                     beats .leaderboard-rank at (0,1,0) and turns the rank
+                     cell's gutter into a faint translucent line instead of
+                     the page showing through.
+
+   The two selector groups are kept in sync deliberately, matching
+   platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
+   Writing only the first would leave every site on theme.ui.mode=auto broken. */
+
+:root[data-theme="dark"] .leaderboard thead tr th {
+  border-bottom-color: #98cda6;
+}
+
+:root[data-theme="dark"] .leaderboard-rank {
+  border-right-color: var(--sc-surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .leaderboard thead tr th {
+    border-bottom-color: #98cda6;
+  }
+
+  :root[data-theme="auto"] .leaderboard-rank {
+    border-right-color: var(--sc-surface);
   }
 }

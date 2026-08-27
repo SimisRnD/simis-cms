@@ -2,14 +2,74 @@
  * Platform Requirements
  */
 
+/* Colour, both modes -- see issue 1484.
+   ----------------------------------------------------------------------------
+   This file declared only light values and no dark ones, so its three calendar
+   containers stayed white on a dark page while platform-tokens.css repainted
+   the text on them. That is the visible symptom, and here it is only half the
+   story: the containers are white, but the grid inside them is NOT, because
+   FullCalendar builds its month view out of plain <table> elements and both
+   Foundation and platform-tokens.css style tables globally. So the calendar
+   arrives in dark mode as a white toolbar strip above a grey striped grid,
+   with the month title invisible on the strip.
+
+   Measured against the real cascade -- with FullCalendar actually rendering,
+   not against hand-written markup -- using the WCAG relative-luminance
+   formula, before this change:
+
+     DARK   month title, on the surviving white strip ......... 1.09:1  FAIL
+     DARK   "Select a date range" hint and its icon ........... 1.09:1  FAIL
+     DARK   day numbers and day-of-week headers ............... 2.43:1  FAIL
+     DARK   day number on today's cell ........................ 1.81:1  FAIL
+     DARK   an expiring entry in the "no dates" list, hovered .. 2.11:1  FAIL
+     LIGHT  day numbers, on Foundation's zebra striping ....... 4.15:1  FAIL
+     LIGHT  day-of-week headers, on Foundation's thead band ... 4.41:1  FAIL
+     LIGHT  an expiring entry in the calendar grid ............ 1.18:1  FAIL
+
+   The last one is worth calling out: .fc-event.ec-status-expiring replaces
+   FullCalendar's solid event chip with an 8% tint but does not replace the
+   white text FullCalendar draws on that chip, so an expiring entry has always
+   been white-on-near-white -- in LIGHT mode, since the day it was added, with
+   no theming involved.
+
+   The fix is surfaces, not specificity:
+
+     containers  route to --sc-surface, so they follow the theme instead of
+                 being white in both;
+     the grid    stops inheriting table chrome at all. This file already tried
+                 that with ".fc table { background-color: transparent }", but
+                 that selector is (0,1,1) and loses to Foundation's zebra rule
+                 at (0,1,2) on source order and to platform-tokens.css's dark
+                 table rules at (0,2,2). It is widened to the elements that
+                 actually carry a background, with a dark block specific enough
+                 to clear the token rules;
+     the tint    keeps its 8% wash and accent border and takes a real text
+                 colour, which one token expression satisfies in both modes.
+
+   Every pairing was computed, not eyeballed. Text meets 4.5:1 (1.4.3); the
+   accent border and the row separators are decorative and exempt under 1.4.11.
+
+   The local light rules stay at (0,1,x)/(0,2,x) so platform-tokens.css's
+   (0,3,x) rules still beat them. The one exception is noted at
+   .ec-status-expiring, where the rule has to out-specify a FullCalendar
+   selector rather than a platform one.
+
+   Note on the dead rules below: this product ships FullCalendar 6.1.10, and
+   several selectors in this file are FullCalendar 3/4 names that version never
+   emits. They are marked rather than removed; deleting dead CSS is a separate
+   change from a contrast fix. */
+
 /* Calendar */
+/* The container is the page showing through, not a colour this widget chose --
+   it is white on a white page today. Following --sc-surface keeps that true in
+   both modes; on its own it takes the month title from 1.09:1 to 16.12:1. */
 #calendar {
   margin-bottom: 15px;
-  background-color: #fff;
+  background-color: var(--sc-surface, #fff);
 }
 #calendar-small {
   margin-bottom: 15px;
-  background-color: #fff;
+  background-color: var(--sc-surface, #fff);
 }
 .tooltip {
   border-radius: 12px;
@@ -18,14 +78,42 @@
   z-index: 1004 !important;
 }
 
-.fc table {
+/* FullCalendar draws its month view with plain <table> markup, so every global
+   table rule in Foundation and platform-tokens.css lands inside the calendar
+   grid: Foundation's thead band and zebra striping in light mode, and the
+   surface tokens in dark. That is what put the day numbers at 4.15:1 in light
+   and 2.43:1 in dark -- link-coloured text on a band nobody chose. Only "table"
+   was neutralised here before, which does not cover the elements that actually
+   paint (thead/tbody/tr/td/th). FullCalendar draws its own grid lines and
+   today-highlight on top, so clearing these costs nothing visually.
+
+   Deliberately NOT td/th: nothing paints a background on those -- Foundation
+   and platform-tokens.css only reach thead/tbody/tfoot and the even-row stripe
+   -- and clearing them would out-specify FullCalendar's own
+   ".fc .fc-day-today" in dark mode and delete the today highlight there while
+   leaving it in light. Verified by searching every rule in the cascade that
+   sets a background on a table element. */
+.fc table,
+.fc thead,
+.fc tbody,
+.fc tfoot,
+.fc tr,
+.fc tr:nth-child(even) {
   background-color: transparent;
+}
+.fc table {
   margin-bottom: 0;
 }
 .fc-toolbar h2 {
   font-size: 1.5em;
   margin: 0;
 }
+/* DEAD -- FullCalendar 3/4 selectors. This product ships FullCalendar 6.1.10
+   (javascript/fullcalendar-6.1.10/index.global.min.js), which emits neither
+   "fc-unthemed", "fc-day-top", "fc-past" nor "fc-future"; verified by searching
+   the shipped bundle. Today's cell is styled by FullCalendar's own
+   .fc-day-today instead. Left in place rather than deleted, but do not treat
+   these values as describing what renders. */
 .fc-unthemed td.fc-today {
   background: #fefeac;
 }
@@ -35,6 +123,8 @@
 .fc-day-top.fc-past, .fc-day-top.fc-future {
   border-bottom: 1px solid #fff !important
 }
+/* DEAD -- same FullCalendar 3/4 vintage as the block above; version 6.1.10
+   emits no "fc-content-skeleton" or "fc-highlight-skeleton". */
 .fc-unthemed .fc-content-skeleton tbody,
 .fc-unthemed .fc-content-skeleton td,
 .fc-unthemed .fc-content-skeleton th,
@@ -52,7 +142,7 @@
 /* Editorial Calendar (issue #426) -- /admin/editorial-calendar's entry rendering */
 #editorialCalendar {
   margin-bottom: 15px;
-  background-color: #fff;
+  background-color: var(--sc-surface, #fff);
 }
 .ec-event {
   display: flex;
@@ -83,6 +173,19 @@
   border-left: 3px solid #cc4b37;
   background-color: rgba(204, 75, 55, 0.08);
 }
+/* The rule above replaces FullCalendar's solid event chip with an 8% wash but
+   not the white text FullCalendar draws on that chip, so an expiring entry has
+   been white on near-white since it was added -- 1.18:1, in light mode. An 8%
+   tint cannot carry white text in any theme, so the text is what changes.
+   --sc-text is correct in both modes here: near-black on the pale wash in
+   light, near-white on it over the dark page in dark, so no dark rule is
+   needed. This has to sit at (0,3,0) to beat FullCalendar's own
+   ".fc-h-event .fc-event-main" at (0,2,0), which is where the white is set --
+   the exception to this file's keep-it-below-(0,3,x) rule, and it is aimed at
+   a FullCalendar selector, not a platform-tokens.css one. */
+.fc-event.ec-status-expiring .fc-event-main {
+  color: var(--sc-text, #17191e);
+}
 
 /* Issue #426 Bug B: an entry the current viewer has no edit access to (a community-manager-only
    viewer looking at a Page/Post -- see editorial-calendar.jsp's isInteractive()) is rendered
@@ -112,7 +215,7 @@
   overflow-y: auto;
 }
 .ec-undated-item {
-  border-bottom: 1px solid #e6e6e6;
+  border-bottom: 1px solid var(--sc-border, #e6e6e6);
 }
 .ec-undated-item:last-child {
   border-bottom: 0;
@@ -123,9 +226,14 @@
   color: inherit;
   text-decoration: none;
 }
+/* A near-white hover wash survived into dark mode and put the hovered entry's
+   own link text at 2.11:1 on it. --sc-surface-sunken is the same barely-there
+   step away from the page in light (no visible change there) and a dark one in
+   dark. Not --sc-surface-raised: that token carries links at 2.43:1 in dark,
+   which is the pairing this rule already fails at. */
 .ec-undated-link:hover,
 .ec-undated-link:focus {
-  background-color: #f5f5f5;
+  background-color: var(--sc-surface-sunken, #f5f5f5);
 }
 .ec-undated-link .ec-event,
 .ec-undated-static .ec-event {
@@ -147,6 +255,46 @@
 }
 .ec-undated-empty {
   padding: 6px 4px;
-  color: #767676;
+  color: var(--sc-text-muted, #767676);
   font-style: italic;
+}
+
+/* ==========================================================================
+   Dark mode
+   ==========================================================================
+   Only one thing needs a dark rule. The containers and the undated list follow
+   their tokens on their own, and the expiring entry's text token resolves
+   correctly in both modes. What does not carry over is the grid neutralisation
+   above: platform-tokens.css paints table, thead, tbody, tfoot and the even-row
+   stripe in dark at (0,2,1) to (0,3,3), all of which outrank the (0,1,x)
+   selectors that are enough to beat Foundation in light mode. Repeating them
+   with the dark prefix puts them at (0,3,x) and (0,4,1), which clears every one
+   of those rules including the :nth-child stripe.
+
+   With the grid transparent, FullCalendar's own day numbers and headers sit on
+   --sc-surface and read at 5.35:1 rather than 2.43:1, and today's cell keeps
+   FullCalendar's own highlight instead of a token surface.
+
+   The two selector groups are kept in sync deliberately, matching
+   platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
+   Writing only the first would leave every site on theme.ui.mode=auto broken. */
+
+:root[data-theme="dark"] .fc table,
+:root[data-theme="dark"] .fc thead,
+:root[data-theme="dark"] .fc tbody,
+:root[data-theme="dark"] .fc tfoot,
+:root[data-theme="dark"] .fc tr,
+:root[data-theme="dark"] .fc tr:nth-child(even) {
+  background-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .fc table,
+  :root[data-theme="auto"] .fc thead,
+  :root[data-theme="auto"] .fc tbody,
+  :root[data-theme="auto"] .fc tfoot,
+  :root[data-theme="auto"] .fc tr,
+  :root[data-theme="auto"] .fc tr:nth-child(even) {
+    background-color: transparent;
+  }
 }
