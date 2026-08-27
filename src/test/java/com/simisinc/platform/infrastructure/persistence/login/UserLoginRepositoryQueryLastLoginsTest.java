@@ -17,6 +17,8 @@
 package com.simisinc.platform.infrastructure.persistence.login;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -119,6 +121,47 @@ class UserLoginRepositoryQueryLastLoginsTest {
   }
 
   @Test
+  void previousActivityIgnoresTheViewersOwnCurrentSession() throws SQLException {
+    // The point of the method. user_logins also collects a row on the first request of each new
+    // calendar day for an already-signed-in session, so the newest row is almost always the
+    // viewer's own visit -- reporting it would tell them they were last here seconds ago.
+    Instant now = Instant.now();
+    long user = insertUser("returning-user");
+    insertLogin(user, Timestamp.from(now.minusSeconds(86400)), "1.1.1.1", "session-yesterday");
+    insertLogin(user, Timestamp.from(now), "9.9.9.9", "session-now");
+
+    UserLogin previous = UserLoginRepository.queryPreviousActivity(user, "session-now");
+
+    assertNotNull(previous);
+    assertEquals("1.1.1.1", previous.getIpAddress(),
+        "the row from the current session must not be reported back as the previous visit");
+  }
+
+  @Test
+  void previousActivityIsNullOnAFirstEverVisit() throws SQLException {
+    Instant now = Instant.now();
+    long user = insertUser("brand-new-user");
+    insertLogin(user, Timestamp.from(now), "9.9.9.9", "session-now");
+
+    assertNull(UserLoginRepository.queryPreviousActivity(user, "session-now"),
+        "a first visit has no previous one, and must not fall back to showing this one");
+  }
+
+  @Test
+  void previousActivityKeepsRowsWithNoSessionId() throws SQLException {
+    // Older rows may predate session tracking; they cannot be this session, so they still count
+    Instant now = Instant.now();
+    long user = insertUser("legacy-rows-user");
+    insertLogin(user, Timestamp.from(now.minusSeconds(7200)), "1.1.1.1", null);
+    insertLogin(user, Timestamp.from(now), "9.9.9.9", "session-now");
+
+    UserLogin previous = UserLoginRepository.queryPreviousActivity(user, "session-now");
+
+    assertNotNull(previous);
+    assertEquals("1.1.1.1", previous.getIpAddress());
+  }
+
+  @Test
   void queryLastLoginsReturnsOnlyTheMostRecentLoginPerUser() throws SQLException {
     long user1 = insertUser("user-one");
     long user2 = insertUser("user-two");
@@ -166,6 +209,20 @@ class UserLoginRepositoryQueryLastLoginsTest {
         rs.next();
         return rs.getLong(1);
       }
+    }
+  }
+
+  private static void insertLogin(long userId, Timestamp created, String ipAddress, String sessionId)
+      throws SQLException {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO user_logins (user_id, ip_address, user_agent, session_id, created) VALUES (?, ?, ?, ?, ?)")) {
+      pst.setLong(1, userId);
+      pst.setString(2, ipAddress);
+      pst.setString(3, "test-agent");
+      pst.setString(4, sessionId);
+      pst.setTimestamp(5, created);
+      pst.executeUpdate();
     }
   }
 
