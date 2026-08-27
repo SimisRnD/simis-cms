@@ -8,5 +8,5 @@
 8 src/main/webapp/css/platform-sitemap-editor.css
 3 src/main/webapp/css/platform-subnav.css
 3 src/main/webapp/css/platform-subnavheroheader.css
-10 src/main/webapp/css/platform-todo-list.css
+8 src/main/webapp/css/platform-todo-list.css
 77 src/main/webapp/css/platform.css
