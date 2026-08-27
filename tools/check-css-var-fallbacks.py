@@ -89,7 +89,6 @@ DARK_BLOCK = ':root[data-theme="dark"]'
 
 SITE_THEME_JSPS = (
     "src/main/webapp/WEB-INF/jsp/main.jsp",
-    "src/main/webapp/WEB-INF/jsp/embedded-layout.jsp",
 )
 
 # (token, fallback) pairs that are deliberate approximations, not stale copies.

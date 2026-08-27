@@ -239,7 +239,7 @@
 <%-- The version stamp matters as much here as on any other page. Without it a browser keeps
      serving whatever copy of platform.css it already has, so a CSS fix can be deployed and
      still not reach this picker -- which is how #1364 stayed visibly broken here after it
-     was fixed. Same expression main.jsp and embedded-layout.jsp already use. --%>
+     was fixed. Same expression main.jsp already uses. --%>
 <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <div class="grid-container">
   <c:if test="${empty imageList}">
