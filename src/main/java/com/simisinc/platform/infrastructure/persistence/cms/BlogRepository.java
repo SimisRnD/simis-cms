@@ -162,6 +162,7 @@ public class BlogRepository {
       record.setUniqueId(rs.getString("blog_unique_id"));
       record.setName(rs.getString("name"));
       record.setDescription(rs.getString("description"));
+      record.setFeedTitle(rs.getString("feed_title"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));
