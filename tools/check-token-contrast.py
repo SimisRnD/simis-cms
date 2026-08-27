@@ -551,6 +551,34 @@ EXEMPT_RATIOS = [
     (r"short of the (3):1 non-text floor", "SC 1.4.11 floor, not a measurement"),
     (r"all land under (4\.5):1 on it", "SC 1.4.3 floor, not a measurement"),
     (r"luminance to clear (4\.5):1", "SC 1.4.3 floor, not a measurement"),
+    (r"held to the (4\.5):1 SC 1\.4\.3 asks", "SC 1.4.3 floor, not a measurement"),
+    (r"even the (3):1 of 1\.4\.11", "SC 1.4.11 floor, not a measurement"),
+]
+
+# Ratios measured against the rendered cascade rather than derived from a token
+# pairing. CLAIMS cannot hold these -- the surfaces involved are chosen by
+# Foundation, by a theme's callout colours, or by a site's own properties, so
+# there is no pair of tokens for the tool to re-derive them from. EXEMPT_RATIOS
+# cannot either: these are measurements, which is exactly what that list is not
+# for.
+#
+# Registering them here does not verify the number. It records that someone
+# measured it, against what, and that the reader should not expect CI to have
+# re-checked it. That is weaker than a CLAIM and deliberately so -- the
+# alternative is leaving them unregistered, which the gate would reject, or
+# filing them as floors, which would be a lie about their provenance.
+#
+# If a rendered measurement ever becomes expressible as a token pairing, move it
+# to CLAIMS. Entries here are held to the same staleness check as the others: an
+# entry matching no comment is reported and must be dropped.
+RENDERED_RATIOS = [
+    (r"(3\.42):1 in a\s+light \.reveal", "close button on Foundation's light .reveal, PR 1500"),
+    (r"(3\.13):1 in a success callout", "close button on a themed success callout, PR 1500"),
+    (r"(3\.45):1 on the newsletter", "close button on the newsletter overlay, PR 1500"),
+    (r"\((2\.11):1 at rest", "dark .reveal close button at rest, PR 1500"),
+    (r"(2\.72):1 on hover\)", "dark .reveal close button on hover, PR 1500"),
+    (r"is (4\.97):1 \(the dark \.reveal", "worst case across every close-button surface, PR 1500"),
+    (r"(10\.52):1 or better", "every other close-button surface, PR 1500"),
 ]
 
 RATIO_IN_COMMENT = re.compile(r"\d+(?:\.\d+)?:1")
@@ -739,15 +767,16 @@ def check_claims(text, blocks, tokens, errors, notes, verbose):
 
 def check_registration(text, comment_spans, covered, errors):
     """Every N:1 inside a comment must be a verified claim or a declared exemption."""
-    for pattern, reason in EXEMPT_RATIOS:
-        matches = list(re.finditer(pattern, text))
-        if not matches:
-            # Held to the same standard as CLAIMS: an exemption nobody can see the
-            # subject of is dead config, and dead config is how tables stop being read.
-            errors.append(f"STALE    no comment in {TOKENS_CSS} matches the exemption "
-                          f"{pattern!r} ({reason}) -- drop it from EXEMPT_RATIOS")
-        for m in matches:
-            covered.append(m.span(1))
+    for table, label in ((EXEMPT_RATIOS, "EXEMPT_RATIOS"), (RENDERED_RATIOS, "RENDERED_RATIOS")):
+        for pattern, reason in table:
+            matches = list(re.finditer(pattern, text))
+            if not matches:
+                # Held to the same standard as CLAIMS: an exemption nobody can see the
+                # subject of is dead config, and dead config is how tables stop being read.
+                errors.append(f"STALE    no comment in {TOKENS_CSS} matches the entry "
+                              f"{pattern!r} ({reason}) -- drop it from {label}")
+            for m in matches:
+                covered.append(m.span(1))
 
     for cstart, cend in comment_spans:
         for m in RATIO_IN_COMMENT.finditer(text, cstart, cend):
@@ -758,7 +787,9 @@ def check_registration(text, comment_spans, covered, errors):
             errors.append(
                 f"UNCLAIMED {TOKENS_CSS}:{line_of(text, m.start())}: {m.group(0)} is not tied to "
                 f"a token pairing\n           ...{snippet}...\n"
-                f"           Register it in CLAIMS (so it is verified) or in EXEMPT_RATIOS (if "
+                f"           Register it in CLAIMS (so it is verified), in RENDERED_RATIOS (if it "
+                f"was measured against the real cascade and no token pairing can express it), "
+                f"or in EXEMPT_RATIOS (if "
                 f"it is a WCAG floor rather than a measurement).")
 
 

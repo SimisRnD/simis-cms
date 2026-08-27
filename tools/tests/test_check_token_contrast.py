@@ -335,3 +335,23 @@ def test_a_missing_theme_block_fails(tokens):
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "PARSE" in out(r) and "auto" in out(r)
+
+def test_a_rendered_measurement_must_be_registered_like_any_other_ratio(tokens):
+    """A ratio measured against the real cascade is still a promise in a comment. It cannot
+    be re-derived, but it must be declared -- otherwise the strictness that makes this gate
+    worth having has a hole shaped like "I measured it in a browser"."""
+    edit(tokens, "10.52:1 or better", "10.53:1 or better")
+    r = run_tool(TOOL, tokens)
+    assert r.returncode != 0, out(r)
+    assert "UNCLAIMED" in out(r)
+
+
+def test_a_rendered_entry_matching_nothing_is_reported_as_stale(tokens):
+    """RENDERED_RATIOS is held to the same staleness rule as EXEMPT_RATIOS: an entry whose
+    comment has been deleted or reworded is dead config, and dead config is how these tables
+    stop being read."""
+    edit(tokens, "is 4.97:1 (the dark .reveal", "is 4.97 to 1 (the dark .reveal")
+    r = run_tool(TOOL, tokens)
+    assert r.returncode != 0, out(r)
+    assert "STALE" in out(r)
+    assert "RENDERED_RATIOS" in out(r)
