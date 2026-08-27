@@ -215,7 +215,7 @@
   overflow-y: auto;
 }
 .ec-undated-item {
-  border-bottom: 1px solid var(--sc-border, #e6e6e6);
+  border-bottom: 1px solid var(--sc-border, #d9dce1);
 }
 .ec-undated-item:last-child {
   border-bottom: 0;
@@ -233,7 +233,7 @@
    which is the pairing this rule already fails at. */
 .ec-undated-link:hover,
 .ec-undated-link:focus {
-  background-color: var(--sc-surface-sunken, #f5f5f5);
+  background-color: var(--sc-surface-sunken, #f4f5f7);
 }
 .ec-undated-link .ec-event,
 .ec-undated-static .ec-event {
@@ -255,7 +255,7 @@
 }
 .ec-undated-empty {
   padding: 6px 4px;
-  color: var(--sc-text-muted, #767676);
+  color: var(--sc-text-muted, #71767d);
   font-style: italic;
 }
 

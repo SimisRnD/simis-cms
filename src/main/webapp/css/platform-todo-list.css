@@ -105,7 +105,7 @@
    on, so the outline takes the muted-text token instead: 3.80:1 against the
    default row in light and 6.83:1 in dark. */
 .todo-list-card ul input[type="checkbox"] ~ label::after {
-  background: var(--sc-field-bg, #fefefe);
+  background: var(--sc-field-bg, #ffffff);
   border: 1px solid var(--sc-text-muted, #71767d);
   content: '';
   display: block;
@@ -126,8 +126,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "\f00c";
-  color: var(--sc-link, #1779ba);
-  border: 1px solid var(--sc-link, #1779ba);
+  color: var(--sc-link, #2c79be);
+  border: 1px solid var(--sc-link, #2c79be);
 }
 
 /* ==========================================================================
