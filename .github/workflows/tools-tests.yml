@@ -17,6 +17,14 @@
 # is not. The five filesystem-pure tools are covered here, plus
 # detect_unsafe_migrations.py (issue #399), which drives real git commits in a
 # synthetic tmp_path repo since its Java-removal detection reads `git diff`.
+#
+# check-token-contrast.py is covered here too, and its fixture is the real
+# platform-tokens.css rather than a synthetic stylesheet: that tool's tables quote
+# the real file's comments by design, so a made-up stylesheet would exercise a
+# contract nothing depends on. Its own contrast calculator is pinned to the
+# published reference points (black on white 21.00:1, #767676 on white 4.54:1,
+# #777777 on white 4.48:1) -- the last of those is what proves it resolves the
+# pass/fail boundary instead of rounding past it.
 name: Tools tests
 
 on:
