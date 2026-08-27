@@ -143,7 +143,28 @@
   --sc-fnd-secondary: #767676;
   --sc-fnd-success: #3adb76;
   --sc-fnd-warning: #ffae00;
-  --sc-fnd-alert: #cc4b37;
+  /* Darkened from Foundation's own #cc4b37, which pairs with --sc-fnd-on-accent at
+     4.498:1 -- under the 4.5:1 floor of SC 1.4.3 by 0.002, in both modes and for every
+     element type (issue 1527). The fill moves rather than the ink because this token
+     plays two roles on a light ground and the shortfall is identical in both: a fill
+     beneath light ink (.button.alert, .button-group.alert, .label.alert, .badge.alert)
+     and ink or a border on that ground (.form-error, .is-invalid-label,
+     .is-invalid-input, and the hollow/clear alert variants). Lightening the ink to
+     #ffffff would have fixed only the four filled surfaces and left the rest at 4.498:1.
+       ink #fefefe on the fill ..... 4.611:1     the colour as text on #fefefe ... 4.611:1
+       the colour as text on #ffffff .............................. 4.650:1
+     .callout.alert does not share the pair -- it is a tinted #f7e4e1 fill under
+     --sc-fnd-ink -- so it is unaffected.
+
+     Deliberately a modest step, not the largest that clears the floor. On the DARK page
+     this same token also paints .form-error, where a darker red reads worse: 3.876:1
+     before, 3.781:1 after -- failing either way, and a pre-existing gap rather than one
+     this creates. The two directions are strictly opposed for a single token: a red that
+     clears 4.5:1 on #17191e is at most ~3.3:1 on white. Closing the dark side needs the
+     fill and the ink split into separate roles, the way --sc-fnd-on-accent and
+     --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
+     clear the floor on the light ground and costs the dark case as little as possible. */
+  --sc-fnd-alert: #cb4834;
   --sc-fnd-light-gray: #e6e6e6;
   --sc-fnd-medium-gray: #cacaca;
   --sc-fnd-dark-gray: #8a8a8a;
