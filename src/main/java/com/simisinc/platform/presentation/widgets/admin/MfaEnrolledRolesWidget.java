@@ -17,6 +17,11 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import java.util.List;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -60,7 +65,39 @@ public class MfaEnrolledRolesWidget extends GenericWidget {
       return context;
     }
 
-    context.getRequest().setAttribute("roleList", RoleRepository.findAllWithMfaEnrolledMember());
+    // Every role, each carrying both halves of its MFA status. Listing only the enrolled ones
+    // answered "who has it" but never "who is missing it", which is the question an administrator
+    // turning enforcement on is actually asking -- and the two states are independent: a role can
+    // be required with nobody enrolled, or enrolled without being required.
+    List<Role> enrolled = RoleRepository.findAllWithMfaEnrolledMember();
+    Set<Integer> enrolledIds = new HashSet<>();
+    if (enrolled != null) {
+      for (Role role : enrolled) {
+        enrolledIds.add(role.getId());
+      }
+    }
+    // Matched on code, comma-separated, exactly as MfaEnforcementCommand.isEnforcedForUser reads it
+    Set<String> requiredCodes = new HashSet<>();
+    String required = LoadSitePropertyCommand.loadByName(MfaEnforcementCommand.PROPERTY_REQUIRED_ROLES);
+    if (StringUtils.isNotBlank(required)) {
+      for (String code : required.split(",")) {
+        String trimmed = code.trim();
+        if (!trimmed.isEmpty()) {
+          requiredCodes.add(trimmed);
+        }
+      }
+    }
+    List<RoleMfaStatus> statusList = new ArrayList<>();
+    List<Role> allRoles = RoleRepository.findAll();
+    if (allRoles != null) {
+      for (Role role : allRoles) {
+        statusList.add(new RoleMfaStatus(role, requiredCodes.contains(role.getCode()),
+            enrolledIds.contains(role.getId())));
+      }
+    }
+    context.getRequest().setAttribute("statusList", statusList);
+    // Kept for the Remove MFA dialogs, which only apply where someone is actually enrolled
+    context.getRequest().setAttribute("roleList", enrolled);
 
     context.setJsp(JSP);
     return context;
@@ -157,6 +194,32 @@ public class MfaEnrolledRolesWidget extends GenericWidget {
       context.setWarningMessage(sb.toString());
     } else {
       context.setSuccessMessage(sb.toString());
+    }
+  }
+
+  /** One role and its two independent MFA states, for the admin table. */
+  public static class RoleMfaStatus {
+
+    private final Role role;
+    private final boolean required;
+    private final boolean enrolled;
+
+    public RoleMfaStatus(Role role, boolean required, boolean enrolled) {
+      this.role = role;
+      this.required = required;
+      this.enrolled = enrolled;
+    }
+
+    public Role getRole() {
+      return role;
+    }
+
+    public boolean getRequired() {
+      return required;
+    }
+
+    public boolean getEnrolled() {
+      return enrolled;
     }
   }
 }
