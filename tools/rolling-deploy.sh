@@ -47,6 +47,13 @@ set -euo pipefail
 #     (a slot created that way has virtualNetworkSubnetId = null), so the slot
 #     cannot reach PostgreSQL or Key Vault through their private endpoints and
 #     will never pass warm-up. Step 1b below adds it explicitly.
+#
+# The staging slot is created once and then reused; step 6 deliberately does not
+# delete it. Slot creation is the most failure-prone step in this script, and not
+# doing it on every run is what keeps this path reliable -- see the comment on
+# step 6 for the Azure CLI failure it avoids. A slot holding the previous build
+# is also a rollback artifact rather than litter, and step 2 overwrites it, so
+# reusing it costs nothing in cleanliness.
 # ---------------------------------------------------------------------------
 #
 # Usage:
@@ -247,13 +254,9 @@ if ! az webapp deployment slot swap \
   # production untouched, so this fails safe -- the old build is still serving.
   log "❌ Swap FAILED -- the new build did not pass App Service warm-up"
   log "Production was not modified and is still serving the previous build."
-  log "Deleting the staging slot so the next run starts clean..."
-
-  az webapp deployment slot delete \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_SERVICE_NAME" \
-    --slot staging \
-    --yes || log "  Warning: failed to delete staging slot (see the Azure error above)"
+    log "  The staging slot is left in place, holding the build that failed warm-up."
+    log "  Inspect it before the next run overwrites it:"
+    log "    az webapp log tail -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --slot staging"
 
   die "Swap failed warm-up; production untouched"
 fi
@@ -271,24 +274,38 @@ sleep "$DRAIN_TIMEOUT"
 log "  ✓ Drain window complete"
 
 # ============================================================================
-# Step 6: Clean up old slot
+# Step 6: Retain the old slot
 # ============================================================================
 
 # After a successful swap, staging unconditionally holds the pre-swap
 # (now old) build -- Azure swap semantics move content between slot
 # objects, not hostnames, so this is never in doubt and never needs
-# detection. Delete it so the next run starts from a clean, idempotent
-# Step 1 (recreate staging, deploy, health-check, swap).
-log "Step 6: Deleting staging slot (now holds the pre-swap build; cleanup)..."
-
-az webapp deployment slot delete \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "$APP_SERVICE_NAME" \
-  --slot staging \
-  --yes \
-  || log "  Warning: failed to delete staging slot (see the Azure error above; manual cleanup may be needed -- the next run reuses and overwrites it either way)"
-
-log "  ✓ Old slot deleted"
+# detection.
+#
+# The slot is kept rather than deleted. Deleting it would mean recreating it on
+# the next run, and creation is by far the most fragile step here: with
+# --configuration-source, the Azure CLI notices production's Azure Files mount,
+# tries to copy its access key, and resolves the storage account's resource
+# group by listing storage accounts across the whole subscription
+# (_resolve_storage_account_resource_group in the CLI's appservice/custom.py).
+# The CI service principal holds no storage role, so that list comes back empty,
+# the function returns None implicitly, and list_keys(None, ...) dies with a bare
+# "ValueError: No value for given attribute" -- see issue #1178.
+#
+# Reusing the slot avoids that path entirely. Step 2 deploys the new image over
+# whatever the slot holds, so "clean" is already guaranteed without deleting it,
+# and what it holds in the meantime is the previous build -- which is a useful
+# thing to have when a deploy goes wrong, not garbage to be swept up.
+#
+# The delete this replaces had never once succeeded: it passed --yes, which
+# `az webapp deployment slot delete` does not accept (it does not prompt, so
+# there is no confirmation flag), and every run logged the CLI's
+# "unrecognized arguments: --yes" and then printed a success line anyway.
+# The slot has therefore always survived, which is the only reason the creation
+# path above has not been re-entered and the storage-key crash has stayed
+# dormant.
+log "Step 6: Retaining the staging slot (it now holds the previous build)..."
+log "  ✓ Staging slot retained for rollback; the next run redeploys over it"
 
 # ============================================================================
 # Success
