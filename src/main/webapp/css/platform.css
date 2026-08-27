@@ -675,6 +675,9 @@ ul.pagination li.pagination-next a:hover {
   padding-top: 0;
 }
 
+/* This rule already named h2 while blog-post-list-cards.jsp emitted h3, so it matched nothing and
+   the card titles rendered at Foundation's default h3 size. Levelling the post-title heading to h2
+   (issue 1458) makes it apply for the first time, which is the intent the selector recorded. */
 .platform-blog-cards-container .blog-title h2 {
   font-size: 28px;
   padding-bottom: 0;
@@ -2220,8 +2223,8 @@ div.item-image-large img {
   transform: scale(1.045);
 }
 
-.platform-blog-showcase-container .card-section.blog-title h3,
-.platform-blog-showcase-container .card-section.blog-title h3 a {
+.platform-blog-showcase-container .card-section.blog-title h2,
+.platform-blog-showcase-container .card-section.blog-title h2 a {
   font-weight: 800;
   font-size: 24px;
   line-height: 1.22;
