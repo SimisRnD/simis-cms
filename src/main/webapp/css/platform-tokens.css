@@ -402,16 +402,26 @@ input[type="radio"] {
   color: var(--sc-text-muted);
 }
 
-/* Links. Scoped away from menus and buttons, which the theme colors. */
+/* Links. Scoped away from menus and buttons, which the theme colors.
+   .container-body is the fourth body wrapper: layout-body-renderer.jspf emits
+   whichever class the layout set, and container-layout.jsp sets container-body
+   for xViewMode=container requests. It is styled nowhere else, so without it
+   here a link in that layout keeps Foundation's #1779ba -- 3.75:1 on
+   --sc-surface, under the 4.5:1 AA floor. The class is listed rather than given
+   to the JSP because .platform-body also carries margin-top and a
+   header/footer-sized min-height in platform.css, which the container layout
+   (no header, no footer) must not inherit. Keep the auto mirror below in step. */
 :root[data-theme="dark"] .platform-body a,
 :root[data-theme="dark"] .platform-content a,
-:root[data-theme="dark"] .platform-blog-body a {
+:root[data-theme="dark"] .platform-blog-body a,
+:root[data-theme="dark"] .container-body a {
   color: var(--sc-link);
 }
 
 :root[data-theme="dark"] .platform-body a:hover,
 :root[data-theme="dark"] .platform-content a:hover,
-:root[data-theme="dark"] .platform-blog-body a:hover {
+:root[data-theme="dark"] .platform-blog-body a:hover,
+:root[data-theme="dark"] .container-body a:hover {
   color: var(--sc-link-hover);
 }
 
@@ -672,13 +682,15 @@ input[type="radio"] {
 
   :root[data-theme="auto"] .platform-body a,
   :root[data-theme="auto"] .platform-content a,
-  :root[data-theme="auto"] .platform-blog-body a {
+  :root[data-theme="auto"] .platform-blog-body a,
+  :root[data-theme="auto"] .container-body a {
     color: var(--sc-link);
   }
 
   :root[data-theme="auto"] .platform-body a:hover,
   :root[data-theme="auto"] .platform-content a:hover,
-  :root[data-theme="auto"] .platform-blog-body a:hover {
+  :root[data-theme="auto"] .platform-blog-body a:hover,
+  :root[data-theme="auto"] .container-body a:hover {
     color: var(--sc-link-hover);
   }
 
