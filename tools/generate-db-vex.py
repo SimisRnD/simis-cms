@@ -19,6 +19,13 @@ HONESTY RULES (the whole point -- a VEX that overclaims is worse than no VEX)
 3. Claims are scoped to the image AS SHIPPED AND CONFIGURED. If an operator enables
    PL/Perl, creates postgis_raster, or uses PostgreSQL's xml type, the corresponding
    statements no longer hold -- this is stated in the document itself.
+4. The policy tables below and the committed document are two copies of the same triage
+   decisions. ADDING A STATEMENT BY HAND WITHOUT ADDING ITS REASONING HERE IS THE ONE
+   EDIT THAT BREAKS THIS TOOL: the statement keeps working, so nothing complains, and the
+   next regeneration quietly downgrades it to under_investigation -- which suppresses
+   nothing. That is what happened by 2026-08-26, to eight CVEs at once. Both directions
+   are now held together by test_policy_reproduces_every_committed_statement, which
+   regenerates from the document's own contents and demands the statements back exactly.
 
 Regenerate (keeps the document from rotting as the alert set changes):
     python3 tools/generate-db-vex.py
@@ -53,6 +60,9 @@ AUTHOR = "SimIS Inc. (SimIS CMS maintainers)"
 
 NOT_IN_PATH = "vulnerable_code_not_in_execute_path"
 NOT_PRESENT = "vulnerable_code_not_present"
+# Used where the flaw is real and reachable in principle, but the image removes the
+# precondition it needs -- a mitigation baked into the build, not an absence.
+INLINE_MITIGATIONS = "inline_mitigations_already_exist"
 
 # --- Justification policy -----------------------------------------------------------
 # Each entry: reason string shown as the statement's impact_statement.
@@ -89,7 +99,37 @@ LIBXML2_REASON = (
 )
 
 # CVE-specific overrides take precedence over package rules.
+#
+# The split between this table and PACKAGE_POLICY is the honesty rule in structural form.
+# A PACKAGE_POLICY entry generalises: it claims the reason holds for every CVE in that
+# package, including ones not yet published, so it is only honest where the package as a
+# whole is unreachable (the GDAL stack is never loaded, Perl never executes, the libxml2
+# parser is never entered). The entries below are each about one specific function, binary
+# or API inside an otherwise-live package -- infocmp, libblkid's DOS prober, mount's setuid
+# transition, OpenSSL's QUIC listener, sar/sadc, pathname-based ACL calls, gzip decompressing
+# init scripts, libldap's client path. Those reasons say nothing about the next CVE in the
+# same package, so they are keyed by CVE and a new CVE in ncurses or util-linux still falls
+# through to under_investigation, which is the correct default.
+#
+# Each impact_statement below is the triage that was recorded for that CVE by hand in
+# docker/db/vex/simis-cms-db.openvex.json. They are transcribed, not re-derived: this table
+# exists so a regeneration reproduces those decisions instead of silently downgrading them
+# to under_investigation. test_policy_reproduces_every_committed_statement() holds the two
+# in sync.
 CVE_POLICY = {
+    "CVE-2023-2953": (
+        NOT_IN_PATH,
+        "The server binary links libldap, but the vulnerable code runs only during LDAP client "
+        "operations, and LDAP authentication is not configured in this image (SCRAM password "
+        "authentication; no ldap method in the active auth configuration). Configuring LDAP "
+        "authentication would void this claim.",
+    ),
+    "CVE-2023-33204": (
+        NOT_IN_PATH,
+        "sysstat's collectors (sar/sadc) are launched only by cron, and the image contains no "
+        "cron daemon, so they never execute; the read-only root filesystem additionally prevents "
+        "staging the crafted data files the flaw requires.",
+    ),
     "CVE-2023-45853": (
         NOT_PRESENT,
         "This vulnerability is in zlib's MiniZip contrib component "
@@ -97,17 +137,122 @@ CVE_POLICY = {
         "shipped in this image - which is why Debian classifies it will-not-fix. The "
         "vulnerable code is not present in the delivered library.",
     ),
+    "CVE-2025-69720": (
+        NOT_IN_PATH,
+        "The overflow is in the infocmp diagnostic binary (progs/infocmp.c), which no service in "
+        "the image ever invokes; database operation processes no terminfo input. Debian rates the "
+        "issue minor (no-DSA).",
+    ),
+    "CVE-2026-14456": (
+        NOT_PRESENT,
+        "This vulnerability is in OpenSSL's built-in QUIC server listener/channel API, which "
+        "allocates a new channel object for every QUIC Initial packet bearing an unrecognized "
+        "connection ID with no cap on the pending queue. That API was introduced in OpenSSL 3.5.0 "
+        "and affects only the 3.5.x/3.6.x/4.0.x lines per OpenSSL's own advisory; Debian "
+        "bookworm's libssl3 package (3.0.20-1~deb12u2) is built from the OpenSSL 3.0.x line, "
+        "which predates the QUIC server code entirely. Independently, even if the affected code "
+        "were present, nothing in this image would invoke it: the only network-facing process is "
+        "the postgres server binary, whose wire protocol is TCP-only and whose libssl usage is "
+        "the classic TLS-over-TCP SSL_accept() path, not OpenSSL's QUIC listener API; no other "
+        "component (gosu, postgis/GDAL, the stock entrypoint) opens a UDP listener or calls into "
+        "OpenSSL's QUIC surface.",
+    ),
+    "CVE-2026-41992": (
+        NOT_IN_PATH,
+        "gzip executes only to decompress *.sql.gz initialization scripts on first boot; this "
+        "image ships a single plain-text init.sql, and initialization content is operator-baked "
+        "image content, not adversary-supplied input. Adding compressed init scripts from "
+        "untrusted sources would void this claim.",
+    ),
+    "CVE-2026-53613": (
+        INLINE_MITIGATIONS,
+        "TOCTOU in util-linux's mount program. Debian bookworm has no fixed version, so the "
+        "package cannot be upgraded out of the image; all nine entries are binary packages built "
+        "from the one util-linux source, so this is a single defect counted nine times. "
+        "Exploitation requires an unprivileged local user to invoke mount across its setuid-root "
+        "privilege transition. docker/db/Dockerfile removes that transition: the build runs "
+        "`chmod u-s` on /usr/bin/mount, /usr/bin/umount, /bin/mount and /bin/umount, so no "
+        "privilege boundary is crossed when they execute and the race has no privilege to win. "
+        "Verified on the built image -- mount and umount are mode 0755 root:root, and neither "
+        "appears in the image's remaining setuid set. The binaries stay functional for a caller "
+        "that is already root, which is the only caller this image has: PostgreSQL never mounts a "
+        "filesystem, and the base entrypoint never invokes mount (it appears only in comments and "
+        "one diagnostic message). Confirmed the mitigation is behaviour-preserving by building "
+        "the image and starting it -- pg_isready accepted connections and CREATE EXTENSION "
+        "postgis reported 3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1.",
+    ),
+    "CVE-2026-53615": (
+        NOT_IN_PATH,
+        "The flaw is in libblkid's DOS partition-table prober; nothing in the container probes or "
+        "mounts block devices, and with all Linux capabilities dropped (CapEff 0000000000000000, "
+        "PR #230) the container cannot perform mount or device-probe operations at all.",
+    ),
+    "CVE-2026-54369": (
+        NOT_IN_PATH,
+        "Exploitation requires a privileged process performing pathname-based ACL operations on "
+        "attacker-influenced paths; no process in this single-user container manipulates POSIX "
+        "ACLs, and the root filesystem is read-only.",
+    ),
+    "CVE-2026-57433": (
+        NOT_IN_PATH,
+        "Perl is present only as package-management dependency; no runtime component invokes it, "
+        "the image contains no plperl library (so PL/Perl cannot be enabled), and nothing "
+        "deserializes Storable blobs. The flaw is a deserialization panic (denial of service) "
+        "even where reachable. Consistent with the six existing perl statements.",
+    ),
     "CVE-2026-73515": (
         NOT_IN_PATH,
         "This vulnerability is in PostGIS's native ST_FromFlatGeobuf()/ST_AsFlatGeobuf() "
-        "functions (memory disclosure and DoS via a malformed FlatGeobuf buffer passed to "
-        "them), not the GDAL/OGR FlatGeobuf driver - it affects the postgis and "
-        "postgresql-*-postgis-3(-scripts) packages directly. The application never calls "
-        "either function: a full-repository search for FlatGeobuf/ST_FromFlatGeobuf/"
-        "ST_AsFlatGeobuf finds zero references in src/. The schema does use PostGIS "
-        "geometry/geography columns (world_cities, item locations), but nothing in the "
-        "codebase serializes or parses FlatGeobuf, so the vulnerable code path is never "
+        "functions (memory disclosure and DoS via a malformed FlatGeobuf buffer passed to them), "
+        "not the GDAL/OGR FlatGeobuf driver -- it affects the postgis and "
+        "postgresql-*-postgis-3(-scripts) packages directly, not the GDAL dependency chain "
+        "covered above. The application never calls either function: a full-repository search for "
+        "FlatGeobuf/ST_FromFlatGeobuf/ST_AsFlatGeobuf finds zero references in src/. The schema "
+        "does use PostGIS geometry/geography columns (world_cities, item locations), but nothing "
+        "in the codebase serializes or parses FlatGeobuf, so the vulnerable code path is never "
         "reached by anything this application does.",
+    ),
+}
+
+# CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
+#
+# These are the statements where the recorded triage is the package rationale plus a
+# sentence or two naming what the individual flaw needs and why that is still unreachable.
+# They are kept here rather than in CVE_POLICY on purpose: a CVE_POLICY entry answers for
+# every package attached to the CVE, which would bypass the per-package check below, so a
+# newly affected package outside GDAL_CHAIN would silently inherit a GDAL rationale. Via
+# this table the package rule is still consulted for each package, and an uncovered one
+# still forces the whole statement to under_investigation.
+CVE_ADDENDUM = {
+    "CVE-2026-11822": (
+        "Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- "
+        "crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the "
+        "same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: "
+        "libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through "
+        "postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code "
+        "and does not use SQLite, so enabling it does not change this analysis. Consistent with "
+        "the existing CVE-2025-7458 statement for this same package."
+    ),
+    "CVE-2026-11824": (
+        "Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- "
+        "crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the "
+        "same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: "
+        "libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through "
+        "postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code "
+        "and does not use SQLite, so enabling it does not change this analysis. Consistent with "
+        "the existing CVE-2025-7458 statement for this same package."
+    ),
+    "CVE-2026-26197": (
+        "The CVE's out-of-bounds read requires opening a corrupted HDF5 file through libhdf5's "
+        "own reader, which is only reachable via GDAL's HDF5 driver -- never loaded here, "
+        "consistent with the existing CVE-2018-11205 statement for these same two packages."
+    ),
+    "CVE-2026-52490": (
+        "The CVE is attributed to process_command_opts(), an option-handling routine belonging to "
+        "libtiff's command-line utilities; this image installs the libtiff6 shared library as a "
+        "GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is "
+        "likewise reachable only through postgis_raster. Consistent with the existing "
+        "CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
     ),
 }
 
@@ -265,6 +410,8 @@ def main():
                 st, why = CVE_POLICY[cve]
             elif pkg in PACKAGE_POLICY:
                 st, why = PACKAGE_POLICY[pkg]
+                if cve in CVE_ADDENDUM:
+                    why = "%s %s" % (why, CVE_ADDENDUM[cve])
             else:
                 st, why = None, UNDER_INVESTIGATION_NOTE
             decisions.add(st)

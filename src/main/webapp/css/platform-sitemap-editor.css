@@ -1,8 +1,62 @@
 /* Site Map */
+
+/* Colour, both modes -- see issue 1483.
+   ----------------------------------------------------------------------------
+   This file used to declare only light values and no dark ones, so its panels
+   stayed light-coloured on a dark page while platform-tokens.css repainted the
+   text inside them. That is the visible symptom, but it is not the whole
+   defect: the authored colours never met WCAG 2.2 SC 1.4.3 on their own
+   backgrounds in the first place, and light mode -- the default, involving no
+   theming at all -- was the worst of the set. Measured with the WCAG
+   relative-luminance formula, nine pairings failed before this change:
+
+     LIGHT  tab .subheader on the pale-blue panel .............. 2.07:1  FAIL
+     LIGHT  tab path link (Foundation's link blue) ............. 3.87:1  FAIL
+     LIGHT  item .subheader on the white panel ................. 2.46:1  FAIL
+     DARK   tab .subheader (muted token on the light panel) .... 2.28:1  FAIL
+     DARK   tab path link (link token on the light panel) ...... 2.47:1  FAIL
+     DARK   tab name and help text (text token, inherited) ..... 1.11:1  FAIL
+     DARK   item .subheader (muted token on the white panel) ... 2.76:1  FAIL
+     DARK   item path link (link token on the white panel) ..... 3.00:1  FAIL
+     DARK   item name (text token, inherited) .................. 1.09:1  FAIL
+
+   So the fix is NOT to raise specificity so the local colour wins in dark mode.
+   That would restore the tab subheader's original blue on the original panel --
+   2.07:1, the worst ratio of the whole set -- and would look like a fix while
+   making things worse. Instead:
+
+     light mode  keeps its surfaces and re-picks the text on them, staying in
+                 each colour's own hue so the tab/item distinction survives;
+     dark mode   repaints the surfaces themselves onto the semantic tokens, so
+                 the text platform-tokens.css already applies lands on a ground
+                 it was designed for and no local text rule is needed at all.
+
+   Every pairing was computed, not eyeballed. Text meets 4.5:1 (1.4.3); icons
+   and control boundaries meet 3:1 (1.4.11). The local light-mode rules are
+   deliberately left at specificity (0,2,x) so platform-tokens.css's (0,3,x)
+   dark rules still beat them -- that inversion is what lets dark mode need no
+   text rules here at all.
+
+   This file DEPENDS ON PR 1490 and must not merge before it. .site-map-menu-tab
+   below is painted --sc-surface-raised in dark mode. That token was Anthracite
+   (hex 53575c, written without the leading hash on purpose -- the colour ratchet
+   in tools/check-css-token-adoption.py counts hexes inside comments), a brand
+   accent used as a surface, carrying --sc-text-muted at 2.64:1, --sc-link at
+   2.43:1 and --sc-focus-ring at 2.43:1, all failing. Issue 1489 / PR 1490 moves
+   it to hex 26282e, where the same pairings measure
+   5.34:1, 4.92:1 and 4.92:1. Merged in the wrong order this file reintroduces
+   the exact defect it exists to fix, which is why it carries the
+   "stacked: merge base PR first" label.
+
+   Re-compute before relying on any ratio quoted here: issue 1489 existed
+   because a hand-computed number in a comment silently stopped matching the
+   value it described, and nothing in CI evaluates colour, so the same drift can
+   happen to these. */
+
 .site-map-container {
-  background-color: #fefefe;
+  background-color: var(--sc-surface-raised, #fefefe);
   padding: 5px;
-  border: 1px solid #dcdedf;
+  border: 1px solid var(--sc-border, #dcdedf);
   border-radius: 4px;
   overflow: auto;
   white-space: nowrap;
@@ -35,8 +89,29 @@
   vertical-align:top;
   position: relative;
 }
+/* Was a mid-tone blue at 2.07:1 on the panel above. Darkened along its own hue to 5.03:1.
+   This colour also carries the drag-handle icon, which needs 3:1 as a non-text control. */
 .site-map-menu-tab .subheader {
-  color: #82a8c5;
+  color: #3e6685;
+}
+
+/* Foundation's global link colour is 4.69:1 on white but only 3.87:1 on the tab's pale-blue
+   panel, so the tab's own path link failed 1.4.3 wherever that panel is the ground. Darkened
+   to 4.99:1 there; on the white submenu panel the same colour is 6.05:1. The delete control is
+   an <a> wrapping an icon, so it takes this colour too and clears the 3:1 that 1.4.11 asks of
+   it. Kept at specificity (0,2,1) so platform-tokens.css's dark link rule,
+   :root[data-theme="dark"] .platform-body a at (0,3,1), still wins in dark mode. */
+.site-map-menu-tab a,
+.site-map-submenu-tab a {
+  color: #14679f;
+}
+/* Foundation's own a:hover is a near-identical darkening of its link colour, indistinguishable
+   from the value above -- without this the links inside the panels lose their hover feedback. */
+.site-map-menu-tab a:hover,
+.site-map-menu-tab a:focus,
+.site-map-submenu-tab a:hover,
+.site-map-submenu-tab a:focus {
+  color: #0f4f7a;
 }
 
 /* .site-map-container sets white-space:nowrap so the top-level tabs stay on one horizontal row.
@@ -54,13 +129,15 @@
 .site-map-submenu-tab {
   border: 1px solid #bcd8e8;
   border-radius: 5px;
-  background-color: #fff;
+  background-color: var(--sc-surface-raised, #ffffff);
   margin: 4px;
   padding: 2px;
   position: relative;
 }
+/* Was a mid-tone green at 2.46:1 on the white panel. Darkened along its own hue to 5.08:1,
+   keeping the green that distinguishes a submenu item's path from a tab's. */
 .site-map-submenu-tab .subheader {
-  color: #95ae66;
+  color: #62753e;
 }
 
 .site-map-menu-tab-drag-handle, .site-map-submenu-tab-drag-handle {
@@ -68,4 +145,74 @@
   cursor: grab;
   cursor: -moz-grab;
   cursor: -webkit-grab;
+}
+
+/* ==========================================================================
+   Dark mode
+   ==========================================================================
+   Repainting the three surfaces is the whole dark-mode fix: platform-tokens.css
+   already applies --sc-text, --sc-text-muted and --sc-link to everything inside
+   them, and on these grounds those land between 4.9:1 and 16.1:1. No text
+   colour is set here, which is why the light-mode rules above must stay below
+   (0,3,x) -- see the note at the top of this file.
+
+   The surface roles mirror light mode's relationship rather than inverting it:
+   there the container is page-coloured and delineated only by its border, the
+   tab is the one tinted/distinct surface, and items return to the base colour.
+   Dark keeps that shape -- container --sc-surface, tab --sc-surface-raised,
+   items back to --sc-surface -- with --sc-border carrying the boundaries, the
+   same decorative separator every other dark panel in the product uses. The
+   blue/green tint is a light-mode identity only; in dark the tab is distinct by
+   elevation instead, which is what --sc-surface-raised is for.
+
+   The fills separate by 1.19:1, matching light mode's 1.21:1 almost exactly, so
+   the two modes now read with the same depth. The cost is margin: on the tab,
+   --sc-link goes from 6.30:1 on --sc-surface-sunken to 4.92:1 on
+   --sc-surface-raised, and --sc-text-muted from 6.83:1 to 5.34:1. Both still
+   clear 4.5:1, but 4.92:1 is a 9% margin rather than a 40% one -- so any future
+   darkening of --sc-link, or lightening of --sc-surface-raised, has to be
+   re-measured against THIS panel and not just against the page. The separation
+   itself is decorative -- 1.4.11 exempts it, and every text and control pairing
+   inside these panels is measured above the threshold.
+
+   Focus indicators were checked on these grounds too, not just text:
+   --sc-focus-ring lands at 3.78:1 and 4.58:1 on the light panels and 5.87:1 and
+   4.92:1 on the dark ones, all above the 3:1 that 1.4.11 asks of a focus
+   indicator. Any future repaint of these surfaces needs to re-check that as
+   well -- it is easy to verify the text and miss the ring.
+
+   The two selector groups are kept in sync deliberately, matching
+   platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
+   Writing only the first would leave every site on theme.ui.mode=auto broken. */
+
+:root[data-theme="dark"] .site-map-container {
+  background-color: var(--sc-surface);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .site-map-menu-tab {
+  background-color: var(--sc-surface-raised);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .site-map-submenu-tab {
+  background-color: var(--sc-surface);
+  border-color: var(--sc-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .site-map-container {
+    background-color: var(--sc-surface);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .site-map-menu-tab {
+    background-color: var(--sc-surface-raised);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .site-map-submenu-tab {
+    background-color: var(--sc-surface);
+    border-color: var(--sc-border);
+  }
 }
