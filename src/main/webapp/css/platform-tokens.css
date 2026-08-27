@@ -134,6 +134,20 @@
      --sc-fnd-on-accent, which stays light because its fills stay dark. */
   --sc-fnd-ink-on-accent: #0a0a0a;
 
+  /* Status accents used as INK on a light ground -- Foundation's hollow and clear
+     success/warning buttons draw the accent as text on the page rather than as a fill.
+     $success and $warning are chosen to sit UNDER dark ink, so read as text on white they
+     are 1.799:1 and 1.842:1 (issue 1529). These are hue-preserving darkenings that clear
+     the SC 1.4.3 floor, and they double as the border colour, which lifts SC 1.4.11 from
+     the same failing ratio to the same passing one:
+       --sc-fnd-success-ink on the light surface .... 4.715:1
+       --sc-fnd-warning-ink on the light surface .... 4.717:1
+     The mirror of --sc-fnd-ink-on-accent above: that one is dark ink for a light fill,
+     these are dark accents for a light page. Redefined for dark below, where the accent
+     itself is legible and Layer 3b already repaints these variants. */
+  --sc-fnd-success-ink: #188441;
+  --sc-fnd-warning-ink: #9b6900;
+
   /* Deprecated aliases, kept so first-party stylesheets routed before the split keep
      working. Prefer the role-specific names above; these cannot be themed for dark. */
   --sc-fnd-white: var(--sc-fnd-surface);
@@ -247,6 +261,14 @@
   --sc-fnd-on-accent: #fefefe;
   --sc-fnd-ink: var(--sc-text);
 
+  /* On a dark page the status accents are legible as text, and the Layer 3b
+     hollow/clear rule already repaints those variants to --sc-link. Pointing the ink
+     tokens at the same value keeps the two in agreement, so the ink is right whichever
+     of the two rules wins the cascade rather than only while Layer 3b outranks
+     Layer 3a. No pixel change here -- this is the colour dark already draws. */
+  --sc-fnd-success-ink: var(--sc-link);
+  --sc-fnd-warning-ink: var(--sc-link);
+
   /* Stays dark, deliberately. Foundation pairs it with on-accent:
      `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
      light chip while on-accent correctly stays light would put white text on a
@@ -317,6 +339,14 @@
     --sc-fnd-surface: var(--sc-surface-raised);
     --sc-fnd-on-accent: #fefefe;
     --sc-fnd-ink: var(--sc-text);
+
+    /* On a dark page the status accents are legible as text, and the Layer 3b
+       hollow/clear rule already repaints those variants to --sc-link. Pointing the ink
+       tokens at the same value keeps the two in agreement, so the ink is right whichever
+       of the two rules wins the cascade rather than only while Layer 3b outranks
+       Layer 3a. No pixel change here -- this is the colour dark already draws. */
+    --sc-fnd-success-ink: var(--sc-link);
+    --sc-fnd-warning-ink: var(--sc-link);
 
     /* Stays dark, deliberately. Foundation pairs it with on-accent:
        `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
@@ -441,6 +471,30 @@ input[type="radio"] {
    intentional color in both modes. */
 .callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
   background-color: var(--sc-surface-raised);
+}
+
+/* Hollow and clear status buttons. Foundation draws the status colour as text on
+   the page, and its $success/$warning are light accents meant to sit under dark ink,
+   so in light mode the caption and border land at 1.799:1 and 1.842:1 (issue 1529).
+   Dark mode has been repainting these since Layer 3b; light mode had no rule at all.
+
+   The hue is kept rather than flattened to link blue as dark does -- a green success
+   button that turns blue loses the signal the variant exists to carry. These tie
+   Foundation's own .button.hollow.success at (0,3,0) and win on source order; the
+   dark and auto rules in Layer 3b are (0,4,0) and still outrank them, and the ink
+   tokens resolve to the same colour those rules paint, so dark is unchanged either
+   way. .hollow.alert / .clear.alert are not listed: they carry the --sc-fnd-alert
+   shortfall tracked in issue 1527 and are fixed there. */
+.button.hollow.success,
+.button.clear.success {
+  color: var(--sc-fnd-success-ink);
+  border-color: var(--sc-fnd-success-ink);
+}
+
+.button.hollow.warning,
+.button.clear.warning {
+  color: var(--sc-fnd-warning-ink);
+  border-color: var(--sc-fnd-warning-ink);
 }
 
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and

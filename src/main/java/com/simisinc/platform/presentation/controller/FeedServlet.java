@@ -225,8 +225,20 @@ public class FeedServlet extends HttpServlet {
     // Atom requires <updated>; derive it from the newest entry rather than "now" so a feed whose
     // content has not changed keeps a stable value that conditional-GET tooling can rely on
     xml.append("  <updated>").append(formatDate(mostRecent(entries))).append("</updated>\n");
-    if (StringUtils.isNotBlank(sitePropertyMap.get("site.description"))) {
-      xml.append("  <subtitle>").append(escapeXml(sitePropertyMap.get("site.description"))).append("</subtitle>\n");
+    // Prefer the blog's own description. site.description is the company's elevator pitch --
+    // "CMMI Level 3 certified, Veteran-Owned Small Business..." -- which is right on a home page and
+    // wrong here: a reader prints the subtitle directly under the feed title, so every feed a site
+    // publishes introduced itself with the same marketing copy instead of saying what it carries.
+    // Two feeds from one site were indistinguishable below the title.
+    //
+    // Falls back to site.description when a blog has none of its own, so nothing regresses for a
+    // site that has not filled one in.
+    String feedSubtitle = blog != null ? StringUtils.trimToNull(blog.getDescription()) : null;
+    if (feedSubtitle == null) {
+      feedSubtitle = StringUtils.trimToNull(sitePropertyMap.get("site.description"));
+    }
+    if (feedSubtitle != null) {
+      xml.append("  <subtitle>").append(escapeXml(feedSubtitle)).append("</subtitle>\n");
     }
 
     for (FeedEntry entry : entries) {
