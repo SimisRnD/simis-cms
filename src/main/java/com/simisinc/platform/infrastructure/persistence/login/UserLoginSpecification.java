@@ -25,6 +25,8 @@ package com.simisinc.platform.infrastructure.persistence.login;
 public class UserLoginSpecification {
 
   private long userId = -1L;
+  /** Excludes rows belonging to this session, so a viewer's own current visit is not reported back to them */
+  private String excludeSessionId = null;
 
   public UserLoginSpecification() {
   }
@@ -35,5 +37,13 @@ public class UserLoginSpecification {
 
   public void setUserId(long userId) {
     this.userId = userId;
+  }
+
+  public String getExcludeSessionId() {
+    return excludeSessionId;
+  }
+
+  public void setExcludeSessionId(String excludeSessionId) {
+    this.excludeSessionId = excludeSessionId;
   }
 }

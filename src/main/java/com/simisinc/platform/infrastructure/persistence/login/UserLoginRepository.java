@@ -51,6 +51,11 @@ public class UserLoginRepository {
     SqlUtils orderBy = new SqlUtils();
     if (specification != null) {
       where.addIfExists("user_id = ?", specification.getUserId(), -1);
+      if (StringUtils.isNotBlank(specification.getExcludeSessionId())) {
+        // NULL session ids are kept: they cannot be this session, so excluding them would hide
+        // genuinely older activity
+        where.add("(session_id IS NULL OR session_id <> ?)", specification.getExcludeSessionId());
+      }
     }
     return DB.selectAllFrom(
         TABLE_NAME, select, where, orderBy, constraints, UserLoginRepository::buildRecord);
@@ -63,6 +68,36 @@ public class UserLoginRepository {
     constraints.setDefaultColumnToSortBy("login_id desc");
     DataResult result = query(specification, constraints);
     return (List<UserLogin>) result.getRecords();
+  }
+
+  /**
+   * The most recent activity row for this user that did not come from {@code currentSessionId} --
+   * in other words, the last time they were here before the visit they are on right now.
+   *
+   * <p>Deliberately not "last login". {@code user_logins} is an activity table, not a sign-in
+   * table: {@link com.simisinc.platform.presentation.controller.WebRequestFilter#trackDailyLogin}
+   * writes a row on the first request of each new calendar day for an already-signed-in session,
+   * carrying the session's original source, so a sign-in and a day's activity are indistinguishable
+   * here. Reporting the newest row would therefore tell a signed-in viewer that they last logged in
+   * moments ago, which is true and useless. Excluding their current session is what makes the
+   * answer mean something.
+   *
+   * @param userId the user to look up
+   * @param currentSessionId the viewer's session, whose rows are excluded
+   * @return the previous visit, or null when this is their first
+   */
+  public static UserLogin queryPreviousActivity(long userId, String currentSessionId) {
+    UserLoginSpecification specification = new UserLoginSpecification();
+    specification.setUserId(userId);
+    specification.setExcludeSessionId(currentSessionId);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("created desc");
+    constraints.setPageSize(1);
+    DataResult result = query(specification, constraints);
+    if (result.hasRecords()) {
+      return (UserLogin) result.getRecords().get(0);
+    }
+    return null;
   }
 
   public static UserLogin queryLastLogin(long userId) {
