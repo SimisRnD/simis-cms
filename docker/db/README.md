@@ -80,8 +80,42 @@ Regenerate after any rebuild changes the finding set (this keeps the document fr
 stale, and it only ever emits statements for findings with **no** available fix):
 
 ```sh
-python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json
+python3 tools/generate-db-vex.py
 ```
+
+The script writes the document itself rather than being redirected into it. `>` truncates
+the target before the script starts, so a refusal to write could not protect a file the
+shell had already emptied. It refuses to write an empty document, and refuses to reduce the
+statement count without `--allow-shrink` -- losing suppressions un-suppresses findings the
+image scan gate currently clears.
+
+Statements identify the image and its packages by **bare** PURL — `pkg:oci/simis-cms-db` and
+`pkg:deb/debian/<pkg>`, with no version and no `distro=` qualifier. Trivy matches VEX
+identifiers by PURL, and a qualifier in the statement must also match what it scanned; a
+mismatch is skipped in silence, so a statement that does not match looks exactly like a VEX
+that was never passed. Both qualifiers were removed by hand once the gate proved they did
+not match — the subcomponent in `52718205`, the product in `4a2bde1e` — and the generator
+now emits the bare form to match.
+
+**Verify a regeneration actually suppresses something.** A VEX that matches nothing fails
+silently, so scan with it before committing it; the run below must report *fewer* findings
+than the same scan with no `--vex` at all:
+
+```sh
+docker build --pull -f docker/db/Dockerfile -t simis-cms-db:check .
+trivy image --scanners vuln --severity CRITICAL,HIGH --exit-code 1 \
+  --vex docker/db/vex/simis-cms-db.openvex.json \
+  --ignorefile docker/db/.trivyignore simis-cms-db:check
+```
+
+> **A regeneration cannot currently reproduce this document.** The generator's policy tables
+> have drifted behind the statements added by hand: as of 2026-08-26 a regeneration produces
+> 54 statements to the document's 60, leaving eight CVEs (`CVE-2023-2953`, `CVE-2023-33204`,
+> `CVE-2025-69720`, `CVE-2026-14456`, `CVE-2026-41992`, `CVE-2026-53613`, `CVE-2026-53615`,
+> `CVE-2026-54369`) at `under_investigation` — which suppresses nothing — and 28 findings
+> unsuppressed where the committed document leaves none. The `--allow-shrink` guard refuses
+> that write, so following the instructions above is safe; it does mean adding a statement by
+> hand, as recent commits have, until those CVEs are represented in the policy tables.
 
 ### They clear over time on their own
 

@@ -278,7 +278,10 @@
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
+            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>
