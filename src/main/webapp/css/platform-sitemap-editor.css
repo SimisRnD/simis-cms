@@ -54,9 +54,9 @@
    happen to these. */
 
 .site-map-container {
-  background-color: var(--sc-surface-raised, #fefefe);
+  background-color: var(--sc-surface-raised, #ffffff);
   padding: 5px;
-  border: 1px solid var(--sc-border, #dcdedf);
+  border: 1px solid var(--sc-border, #d9dce1);
   border-radius: 4px;
   overflow: auto;
   white-space: nowrap;
