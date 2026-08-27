@@ -143,7 +143,28 @@
   --sc-fnd-secondary: #767676;
   --sc-fnd-success: #3adb76;
   --sc-fnd-warning: #ffae00;
-  --sc-fnd-alert: #cc4b37;
+  /* Darkened from Foundation's own #cc4b37, which pairs with --sc-fnd-on-accent at
+     4.498:1 -- under the 4.5:1 floor of SC 1.4.3 by 0.002, in both modes and for every
+     element type (issue 1527). The fill moves rather than the ink because this token
+     plays two roles on a light ground and the shortfall is identical in both: a fill
+     beneath light ink (.button.alert, .button-group.alert, .label.alert, .badge.alert)
+     and ink or a border on that ground (.form-error, .is-invalid-label,
+     .is-invalid-input, and the hollow/clear alert variants). Lightening the ink to
+     #ffffff would have fixed only the four filled surfaces and left the rest at 4.498:1.
+       ink #fefefe on the fill ..... 4.611:1     the colour as text on #fefefe ... 4.611:1
+       the colour as text on #ffffff .............................. 4.650:1
+     .callout.alert does not share the pair -- it is a tinted #f7e4e1 fill under
+     --sc-fnd-ink -- so it is unaffected.
+
+     Deliberately a modest step, not the largest that clears the floor. On the DARK page
+     this same token also paints .form-error, where a darker red reads worse: 3.876:1
+     before, 3.781:1 after -- failing either way, and a pre-existing gap rather than one
+     this creates. The two directions are strictly opposed for a single token: a red that
+     clears 4.5:1 on #17191e is at most ~3.3:1 on white. Closing the dark side needs the
+     fill and the ink split into separate roles, the way --sc-fnd-on-accent and
+     --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
+     clear the floor on the light ground and costs the dark case as little as possible. */
+  --sc-fnd-alert: #cb4834;
   --sc-fnd-light-gray: #e6e6e6;
   --sc-fnd-medium-gray: #cacaca;
   --sc-fnd-dark-gray: #8a8a8a;
@@ -274,7 +295,7 @@
 
     --sc-focus-ring: #609ace;
 
-    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
     --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
     --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
 
@@ -324,11 +345,30 @@
 /* WCAG 2.2 SC 2.4.11 Focus Not Obscured / 2.4.13 Focus Appearance.
    Foundation's default focus treatment on buttons and links is a faint
    background shift that is easy to lose. :focus-visible keeps mouse users
-   from seeing a ring while giving keyboard users a real one. */
+   from seeing a ring while giving keyboard users a real one.
+
+   input[type] is listed separately and deliberately. Foundation zeroes the
+   outline on every text-entry type through an attribute selector --
+   [type=text]:focus and its thirteen siblings -- which is specificity
+   (0,2,0) and outranks a bare input:focus-visible at (0,1,1). Loading after
+   Foundation does not help, since order only breaks ties. The result was
+   that every text field in the product had no focus indicator at all (SC
+   2.4.7, Level A), while textarea and select kept theirs -- Foundation
+   reaches those two at only (0,1,1), so they won on load order.
+   input[type]:focus-visible is (0,2,1) and wins on specificity instead. The
+   bare input:focus-visible stays for <input> with no type attribute, which
+   Foundation's list also misses.
+
+   Intended side effect: text inputs always match :focus-visible even on
+   mouse click, per spec, and (0,2,1) also outranks Foundation's
+   [data-whatinput=mouse] :focus reset -- so mouse-clicked text fields show
+   the ring too, in both modes. That matches what Chrome, Firefox and Safari
+   do natively for text inputs. */
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible,
 input:focus-visible,
+input[type]:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
@@ -344,6 +384,46 @@ summary:focus-visible,
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: #2c79be;
+}
+
+/* Modal and callout close buttons. Foundation pins .close-button to #8a8a8a
+   at rest and #0a0a0a on hover/focus, neither of which knows what surface it
+   landed on. The x character is the control's only visible affordance, so it
+   is held to the 4.5:1 SC 1.4.3 asks of text -- and Foundation's own values
+   miss that in every one of the 49 places the button renders: 3.42:1 in a
+   light .reveal, 3.13:1 in a success callout, 3.45:1 on the newsletter
+   overlay. Dark mode is worse, and worse in an unusual way: the hover/focus
+   state moves TOWARD the background rather than away from it, so the reveal
+   button fails even the 3:1 of 1.4.11 in both states (2.11:1 at rest,
+   2.72:1 on hover).
+
+   No fixed color can be right here, because the surface underneath is chosen
+   variously -- by Foundation, by the dark token block, by a theme's callout
+   colors, or by a site's newsletter overlay properties. What is always paired
+   with that surface is the container's own text color, since whoever picked
+   the background picked that too. So the button follows it rather than naming
+   a color of its own, and needs no dark-mode counterpart.
+
+   The 0.8 preserves Foundation's muted rest state. Measured over http against
+   the real cascade, worst case across every surface a close button actually
+   renders on is 4.97:1 (the dark .reveal, at rest); every other case is
+   10.52:1 or better, in light, dark and auto alike. Lifting to full opacity on
+   interaction keeps a visible state change without introducing a second color
+   that can drift -- and because :focus is included, the Layer 3a focus ring is
+   never drawn through a faded opacity.
+
+   Note the limit: this guarantees contrast wherever the container sets a text
+   color to go with its background. A component that repaints a .card-divider
+   (or any other wrapper) without also setting color is still on its own. */
+.close-button {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: inherit;
+  opacity: 1;
 }
 
 /* Dashboard stat tiles (.callout). Dark mode already recolors the border via
@@ -418,16 +498,20 @@ input[type="radio"] {
   color: var(--sc-text-muted);
 }
 
-/* Links. Scoped away from menus and buttons, which the theme colors. */
-:root[data-theme="dark"] .platform-body a,
-:root[data-theme="dark"] .platform-content a,
-:root[data-theme="dark"] .platform-blog-body a {
+/* Links. The wrapper scoping is what keeps the site menus out -- they live in
+   #platform-menu, outside these containers. Buttons need excluding explicitly:
+   an anchor styled as a button sits on an accent fill, and Foundation's own
+   ink-on-fill rules are only (0,2,0), which this selector would outrank.
+   Issue 1525. Keep :not(.button) on the auto mirror below in step. */
+:root[data-theme="dark"] .platform-body a:not(.button),
+:root[data-theme="dark"] .platform-content a:not(.button),
+:root[data-theme="dark"] .platform-blog-body a:not(.button) {
   color: var(--sc-link);
 }
 
-:root[data-theme="dark"] .platform-body a:hover,
-:root[data-theme="dark"] .platform-content a:hover,
-:root[data-theme="dark"] .platform-blog-body a:hover {
+:root[data-theme="dark"] .platform-body a:not(.button):hover,
+:root[data-theme="dark"] .platform-content a:not(.button):hover,
+:root[data-theme="dark"] .platform-blog-body a:not(.button):hover {
   color: var(--sc-link-hover);
 }
 
@@ -466,6 +550,89 @@ input[type="radio"] {
 :root[data-theme="dark"] .callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
   background-color: var(--sc-surface-raised);
   color: var(--sc-text);
+}
+
+/* ...but only the callout BOX was excluded, not its contents. The text rules
+   near the top of this layer match on the element, so they reach straight
+   past that exclusion into a themed callout: p/li/dt/dd/blockquote/legend and
+   h1-h6 get --sc-text, .help-text/.subheader get --sc-text-muted, and links
+   get --sc-link -- all of them dark-mode values, painted onto a fill that is
+   still deliberately light. Foundation's own ink token flips light here too
+   (--sc-fnd-ink: var(--sc-text) in Layer 2), so even the box's own color went
+   light on any site that has not set theme.callout.*.text.color.
+
+   Measured on the install defaults, a success flash message rendered
+   --sc-text (#f4f5f7) on the success fill (#e1faea): 1.01:1. Invisible.
+   page_messages.jspf renders <p> inside .callout.alert/.warning/.success and
+   is included by essentially every page, so this hit every flash message on
+   every dark-mode page. See issue 1508.
+
+   The fix reads the fill for what it is: inside a themed callout the ground is
+   light, so the text tokens point back at their light-mode values for that
+   subtree -- the same call Layer 1b already made for --sc-fnd-ink-on-accent,
+   which is why the ink here can just borrow it. Nothing here sets `color`, so a
+   site's own theme.callout.*.text.color still wins the cascade -- its <style>
+   block loads after this file. .header is left out on purpose: its fill is the
+   dark top-bar color, so dark-mode text values are already the right ones there.
+
+   Links and muted text take one extra step darker than their plain light-mode
+   values, because those were tuned against pure white and these fills are
+   tinted. --sc-link #2c79be is 4.58:1 on white but only 3.74:1 on the alert
+   fill; --sc-text-muted #71767d is 4.58:1 on white but 3.73:1 there. So --sc-link
+   here is the light ramp's hover value with the hover one step darker again,
+   and the muted grey is darkened the same way Layer 1's own "pewter-strong"
+   was, far enough to clear the fills while staying a clear step off the ink
+   (3.42:1 against it, close to the 3.84:1 separation light mode uses).
+
+   Worst case of each group, measured over the install-default fills:
+     text (--sc-text) .......... 16.16:1    muted (--sc-text-muted) ... 4.72:1
+     links (--sc-link) ......... 5.36:1     hover (--sc-link-hover) ... 7.52:1 */
+:root[data-theme="dark"] .callout.primary,
+:root[data-theme="dark"] .callout.secondary,
+:root[data-theme="dark"] .callout.success,
+:root[data-theme="dark"] .callout.warning,
+:root[data-theme="dark"] .callout.alert {
+  --sc-text: #17191e;
+  --sc-text-muted: #61666d;
+  --sc-link: #236098;
+  --sc-link-hover: #1a4a75;
+  --sc-fnd-ink: var(--sc-fnd-ink-on-accent);
+}
+
+/* Re-pointing the tokens fixes the color, but the block-level text rules still
+   pin these elements to --sc-text, which would ignore a theme's configured
+   callout text color. Inheriting instead lets whatever the box resolved to --
+   the theme's color where set, Foundation's ink otherwise -- reach the text.
+   Kept in step with the --sc-text element list at the top of this layer.
+   Applies to every callout: the neutral one sets --sc-text on the box itself
+   just above, so inheriting there lands on the same value it already had. */
+:root[data-theme="dark"] .callout h1,
+:root[data-theme="dark"] .callout h2,
+:root[data-theme="dark"] .callout h3,
+:root[data-theme="dark"] .callout h4,
+:root[data-theme="dark"] .callout h5,
+:root[data-theme="dark"] .callout h6,
+:root[data-theme="dark"] .callout p,
+:root[data-theme="dark"] .callout li,
+:root[data-theme="dark"] .callout dt,
+:root[data-theme="dark"] .callout dd,
+:root[data-theme="dark"] .callout blockquote,
+:root[data-theme="dark"] .callout label,
+:root[data-theme="dark"] .callout legend,
+:root[data-theme="dark"] .callout .platform-blog-body {
+  color: inherit;
+}
+
+/* Muted text is a <p> in 275 of its uses, so the rule above would have caught
+   it and flattened it to full ink. Put it back on the muted token -- which the
+   re-point above has already moved to its light-mode value, so it is muted
+   against the fill rather than against a dark page. Kept in step with the
+   --sc-text-muted element list at the top of this layer. */
+:root[data-theme="dark"] .callout .help-text,
+:root[data-theme="dark"] .callout .subheader,
+:root[data-theme="dark"] .callout .platform-activity-date,
+:root[data-theme="dark"] .callout .platform-activity-content-date {
+  color: var(--sc-text-muted);
 }
 
 /* Tables */
@@ -686,15 +853,15 @@ input[type="radio"] {
     color: var(--sc-text-muted);
   }
 
-  :root[data-theme="auto"] .platform-body a,
-  :root[data-theme="auto"] .platform-content a,
-  :root[data-theme="auto"] .platform-blog-body a {
+  :root[data-theme="auto"] .platform-body a:not(.button),
+  :root[data-theme="auto"] .platform-content a:not(.button),
+  :root[data-theme="auto"] .platform-blog-body a:not(.button) {
     color: var(--sc-link);
   }
 
-  :root[data-theme="auto"] .platform-body a:hover,
-  :root[data-theme="auto"] .platform-content a:hover,
-  :root[data-theme="auto"] .platform-blog-body a:hover {
+  :root[data-theme="auto"] .platform-body a:not(.button):hover,
+  :root[data-theme="auto"] .platform-content a:not(.button):hover,
+  :root[data-theme="auto"] .platform-blog-body a:not(.button):hover {
     color: var(--sc-link-hover);
   }
 
@@ -728,6 +895,44 @@ input[type="radio"] {
   :root[data-theme="auto"] .callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
     background-color: var(--sc-surface-raised);
     color: var(--sc-text);
+  }
+
+  /* Mirror of the themed-callout text fix in the dark block; see the comment
+     there. Issue 1508. */
+  :root[data-theme="auto"] .callout.primary,
+  :root[data-theme="auto"] .callout.secondary,
+  :root[data-theme="auto"] .callout.success,
+  :root[data-theme="auto"] .callout.warning,
+  :root[data-theme="auto"] .callout.alert {
+    --sc-text: #17191e;
+    --sc-text-muted: #61666d;
+    --sc-link: #236098;
+    --sc-link-hover: #1a4a75;
+    --sc-fnd-ink: var(--sc-fnd-ink-on-accent);
+  }
+
+  :root[data-theme="auto"] .callout h1,
+  :root[data-theme="auto"] .callout h2,
+  :root[data-theme="auto"] .callout h3,
+  :root[data-theme="auto"] .callout h4,
+  :root[data-theme="auto"] .callout h5,
+  :root[data-theme="auto"] .callout h6,
+  :root[data-theme="auto"] .callout p,
+  :root[data-theme="auto"] .callout li,
+  :root[data-theme="auto"] .callout dt,
+  :root[data-theme="auto"] .callout dd,
+  :root[data-theme="auto"] .callout blockquote,
+  :root[data-theme="auto"] .callout label,
+  :root[data-theme="auto"] .callout legend,
+  :root[data-theme="auto"] .callout .platform-blog-body {
+    color: inherit;
+  }
+
+  :root[data-theme="auto"] .callout .help-text,
+  :root[data-theme="auto"] .callout .subheader,
+  :root[data-theme="auto"] .callout .platform-activity-date,
+  :root[data-theme="auto"] .callout .platform-activity-content-date {
+    color: var(--sc-text-muted);
   }
 
   :root[data-theme="auto"] table,

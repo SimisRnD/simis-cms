@@ -39,7 +39,12 @@
 <div class="platform-blog-container">
   <c:if test="${showTitle eq 'true'}">
   <div class="platform-blog-title">
-    <h2>${html:toHtml(blogPost.title)}</h2>
+    <%-- The post title is this page's subject, so it is the page's h1. blog-post-name.jsp has
+         always rendered the same value as an h1; this template rendered it as an h2, which left
+         every post detail page with no h1 at all -- 90 of them on the pilot. A post page whose
+         only heading starts at h2 gives a screen reader nothing to jump to and gives a search
+         engine no topic signal. --%>
+    <h1>${html:toHtml(blogPost.title)}</h1>
   </div>
   </c:if>
   <c:if test="${showAuthor eq 'true' || (showDate eq 'true' && !empty blogPost.startDate) || !empty blogPost.tagsList || date:isAfterNow(blogPost.startDate)}">
