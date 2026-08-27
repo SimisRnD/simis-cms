@@ -90,6 +90,7 @@
   <widget name="metabase" class="com.simisinc.platform.presentation.widgets.dashboard.MetabaseWidget" />
   <!-- User Profile and Management -->
   <widget name="emailSubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.EmailSubscribeWidget" />
+  <widget name="upcomingFederalHolidays" class="com.simisinc.platform.presentation.widgets.cms.UpcomingFederalHolidaysWidget" />
   <widget name="myInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyInfoWidget" />
   <widget name="mySiteInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MySiteInfoWidget" />
   <widget name="mySettings" class="com.simisinc.platform.presentation.widgets.userProfile.MySettingsWidget" />
