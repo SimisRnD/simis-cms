@@ -120,6 +120,56 @@ class BlogRepositoryTest {
   }
 
   @Test
+  void feedTitleSurvivesARoundTripThroughTheDatabase() {
+    // The column was written on insert and update but never read back, so getFeedTitle() was always
+    // null: FeedServlet always composed the title, and the admin field always rendered blank. Every
+    // piece existed except the one that reads, which is why it looked complete.
+    Blog blog = new Blog();
+    blog.setUniqueId("news-" + System.nanoTime());
+    blog.setName("News");
+    blog.setFeedTitle("SimIS News");
+    blog.setCreatedBy(1);
+    blog.setModifiedBy(1);
+    blog.setEnabled(true);
+    Blog savedBlog = BlogRepository.add(blog);
+
+    assertEquals("SimIS News", BlogRepository.findById(savedBlog.getId()).getFeedTitle(),
+        "a feed title that cannot be read back is the same as one that was never saved");
+  }
+
+  @Test
+  void anUpdatedFeedTitleIsReadBack() {
+    Blog blog = new Blog();
+    blog.setUniqueId("news-" + System.nanoTime());
+    blog.setName("News");
+    blog.setCreatedBy(1);
+    blog.setModifiedBy(1);
+    blog.setEnabled(true);
+    Blog savedBlog = BlogRepository.add(blog);
+    assertNull(savedBlog.getFeedTitle(), "unset means unset, not empty string");
+
+    savedBlog.setFeedTitle("SimIS Industry News");
+    BlogRepository.update(savedBlog);
+
+    assertEquals("SimIS Industry News", BlogRepository.findById(savedBlog.getId()).getFeedTitle());
+  }
+
+  @Test
+  void aBlankFeedTitleReadsBackAsNullSoTheComposedTitleIsUsed() {
+    // FeedServlet falls back on null, so clearing the field must not leave an empty string behind
+    Blog blog = new Blog();
+    blog.setUniqueId("news-" + System.nanoTime());
+    blog.setName("News");
+    blog.setFeedTitle("   ");
+    blog.setCreatedBy(1);
+    blog.setModifiedBy(1);
+    blog.setEnabled(true);
+    Blog savedBlog = BlogRepository.add(blog);
+
+    assertNull(BlogRepository.findById(savedBlog.getId()).getFeedTitle());
+  }
+
+  @Test
   void removeDeletesTheBlogItsPostsItsTagVocabularyAndTheirJoinRowsWithoutAForeignKeyViolation() {
     Blog blog = new Blog();
     blog.setUniqueId("news-" + System.nanoTime());
