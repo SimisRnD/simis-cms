@@ -136,6 +136,13 @@ class PageServletSecurityHeadersTest {
     // URL can carry a field value to any host. data: is permitted because it makes no request.
     assertTrue(actualCsp.contains("img-src 'self' data:"),
         "img-src must be present so an image cannot be fetched from a foreign origin: " + actualCsp);
+    // VideoWidget paints a YouTube poster as a CSS background-image from img.youtube.com, and
+    // video.jsp sets the Vimeo one from oEmbed, which serves from i.vimeocdn.com. Neither shows
+    // up in a crawl of a site that does not use the widget, so assert them here instead.
+    assertTrue(actualCsp.contains("https://img.youtube.com"),
+        "img-src must allow the YouTube poster host or the video widget loses its thumbnail: " + actualCsp);
+    assertTrue(actualCsp.contains("https://i.vimeocdn.com"),
+        "img-src must allow the Vimeo thumbnail host set by video.jsp's oEmbed call: " + actualCsp);
     // Deliberately still absent: img-src cannot be set until published content stops referencing
     // external images, and default-src must come after it or the video/careers iframes break.
     assertTrue(!actualCsp.contains("default-src"),

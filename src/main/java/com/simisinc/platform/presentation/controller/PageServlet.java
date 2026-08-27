@@ -201,13 +201,20 @@ public class PageServlet extends HttpServlet {
     // its own bytes and makes no request. Omitting it would buy no safety and would break a
     // paste that looks perfectly reasonable to an author.
     //
+    // The two video hosts are not optional. VideoWidget renders a YouTube poster as a CSS
+    // background-image from img.youtube.com, and video.jsp sets the Vimeo equivalent from the
+    // oEmbed response, which serves thumbnails off i.vimeocdn.com. A site-wide crawl does not
+    // reveal either, because this pilot happens not to use the widget -- the requirement is in
+    // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
+    //
     // Still deliberately absent, in this order (see #1430): frame-src, which has to come
     // before any backstop or the third-party embeds fall through to it, and then default-src
     // last. connect-src has had no inventory taken and must not be inherited from a backstop
     // before it does.
     response.setHeader("Content-Security-Policy",
         "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-            + "style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; "
+            + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+            + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
             + "script-src 'self' 'nonce-" + cspNonce + "'");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
