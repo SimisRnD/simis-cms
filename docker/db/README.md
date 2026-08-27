@@ -80,8 +80,14 @@ Regenerate after any rebuild changes the finding set (this keeps the document fr
 stale, and it only ever emits statements for findings with **no** available fix):
 
 ```sh
-python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json
+python3 tools/generate-db-vex.py
 ```
+
+The script writes the document itself rather than being redirected into it. `>` truncates
+the target before the script starts, so a refusal to write could not protect a file the
+shell had already emptied. It refuses to write an empty document, and refuses to reduce the
+statement count without `--allow-shrink` -- losing suppressions un-suppresses findings the
+image scan gate currently clears.
 
 ### They clear over time on their own
 
