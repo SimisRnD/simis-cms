@@ -49,6 +49,56 @@
   background-color: transparent;
 }
 
+/* Out-of-month day numbers, both modes -- see issue 1544.
+   ----------------------------------------------------------------------------
+   FullCalendar dims the leading and trailing days of a month view itself, with
+   ".fc .fc-day-other .fc-daygrid-day-top { opacity: .3 }" in the stylesheet its
+   bundle injects. Opacity is not a colour, so getComputedStyle(a).color still
+   reports the undimmed link colour on those numbers, and a contrast checker
+   that reads "color" alone scores them as passing. They are not: the product of
+   every ancestor's opacity has to be folded into the text alpha and composited
+   over the backdrop first. Measured that way -- served over http with
+   FullCalendar actually rendering, not derived from source -- unhovered:
+
+     LIGHT  week rows Foundation does not stripe ...... 1.50:1  FAIL
+     LIGHT  week rows it does ........................ 1.47:1  FAIL
+     DARK   both ..................................... 1.62:1  FAIL
+
+   These are in scope for 1.4.3 rather than exempt as an "inactive user
+   interface component". FullCalendar puts data-date on an out-of-month cell
+   like any other, so applyRovingTabindex in admin/editorial-calendar.jsp makes
+   it keyboard-focusable and Enter-activatable; and calendar/full-calendar.jsp
+   sets selectable for admins and content managers, who drag a range across
+   these very cells to create an event. Focus targets and drag targets, not
+   disabled controls.
+
+   The dimming cannot just be eased. The number is an anchor, so in light mode
+   it wears Foundation's link colour, which reaches only 4.69:1 on white -- at
+   any alpha below 1 that is already under 4.5:1, so no amount of dimming
+   survives. The secondary reading has to come from hue instead of alpha, which
+   is what --sc-text-muted is for: the token whose stated contract is secondary
+   text that still meets AA in both modes. Grey against the link blue the
+   in-month numbers keep still reads as the lesser of the two.
+
+   Clearing the opacity dims nothing else: .fc-daygrid-day-top holds only the
+   number, since events render in its sibling .fc-daygrid-day-events.
+
+   Both selectors sit at (0,4,0), to clear FullCalendar's own rule at (0,3,0)
+   -- injected into the head at script-eval time -- and platform-tokens.css's
+   dark link rules at (0,3,1), which otherwise repaint these anchors in dark.
+
+   Afterwards: 5.34:1 to 6.83:1 in dark, and 4.58:1 in light on every week row
+   once the grid stops inheriting Foundation's table chrome (issue 1484, open).
+   Until that lands the striped light rows read 4.05:1 here. That stripe is a
+   backdrop this calendar never chose, and it is the same one leaving the
+   IN-month numbers at 4.15:1 today; neither is reachable from the text side. */
+:root .fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+:root .fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--sc-text-muted, #71767d);
+}
+
 /* Editorial Calendar (issue #426) -- /admin/editorial-calendar's entry rendering */
 #editorialCalendar {
   margin-bottom: 15px;
