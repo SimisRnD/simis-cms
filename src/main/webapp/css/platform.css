@@ -1306,9 +1306,15 @@ a.read-more {
 
 /* Labels */
 
+/* Dark text, not inverse text -- see issue 1515. This fill is light in BOTH modes, so
+   --sc-text-inverse is the wrong role for it: that token means "text on the inverse of
+   the page", and the page's inverse is only dark while the page itself is light. White
+   on this green is 2.86:1. --sc-fnd-ink-on-accent is the token for exactly this pairing
+   and is deliberately never redefined for dark, so one declaration clears the floor in
+   both modes -- and light and dark stop rendering this label differently for no reason. */
 .label.success {
   background-color: #43AC6A;
-  color: var(--sc-text-inverse, #ffffff);
+  color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 
 /* Cards */

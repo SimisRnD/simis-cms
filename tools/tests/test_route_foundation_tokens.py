@@ -1,8 +1,11 @@
 """route-foundation-tokens.py: routes Foundation's palette without changing how it renders."""
 
 import re
+from pathlib import Path
 
 from conftest import run_tool, write
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 TOOL = "route-foundation-tokens.py"
 
@@ -141,3 +144,51 @@ def test_accent_and_status_colours_are_not_split(repo):
     run_tool(TOOL, repo)
     out = (repo / GENERATED).read_text()
     assert out.count("var(--sc-fnd-alert,#cc4b37)") == 3
+
+
+def test_text_on_a_light_accent_fill_keeps_a_token_that_never_darkens(repo):
+    """$black is text in both rules, but only one of them is text on the PAGE.
+
+    Foundation's success and warning fills keep their light values in dark mode, so text
+    drawn on them has to stay dark while text on the page follows the theme. Routing both
+    to --sc-fnd-ink is what put labels and badges at 1.66:1 and 1.70:1 (issue 1515).
+    """
+    seed(repo, ".label.success{background:#3adb76;color:#0a0a0a}.help-text{color:#0a0a0a}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert ".label.success{background:var(--sc-fnd-success,#3adb76);color:var(--sc-fnd-ink-on-accent,#0a0a0a)}" in out
+    assert ".help-text{color:var(--sc-fnd-ink,#0a0a0a)}" in out
+
+
+def test_the_light_accent_list_covers_every_such_rule_in_the_vendored_stylesheet():
+    """The guard that fails by omission, against the REAL file rather than a sample.
+
+    LIGHT_ACCENT_TEXT_SELECTORS is a hand-maintained list, so it cannot be wrong -- only
+    incomplete, silently, until someone measures. Every rule in the vendored stylesheet
+    that draws dark text on a light accent fill must come out of the generator carrying
+    --sc-fnd-ink-on-accent. Re-vendoring Foundation, or adding a component, fails here
+    rather than in a dark-mode screenshot nobody takes.
+    """
+    # $success and $warning, plus the darker shades Foundation derives for their
+    # hover/focus states -- all of them keep their light values in dark mode.
+    light_accent_fills = ("#3adb76", "#ffae00", "#22bb5b", "#cc8b00")
+    source = (REPO_ROOT / SOURCE).read_text(encoding="utf-8")
+    generated = (REPO_ROOT / GENERATED).read_text(encoding="utf-8")
+
+    checked = 0
+    for rule in re.finditer(r"([^{}]+)\{([^{}]*)\}", source):
+        selector, body = rule.group(1).strip(), rule.group(2)
+        fills = " ".join(re.findall(r"background(?:-color)?\s*:\s*([^;]*)", body, re.I)).lower()
+        if not any(f in fills for f in light_accent_fills):
+            continue
+        if not re.search(r"(^|;)\s*color\s*:\s*#0a0a0a", body, re.I):
+            continue
+        checked += 1
+        routed = re.search(re.escape(selector) + r"\{[^{}]*\}", generated)
+        assert routed, f"{selector} is missing from the generated stylesheet"
+        assert "color:var(--sc-fnd-ink-on-accent,#0a0a0a)" in routed.group(0), (
+            f"{selector} draws dark text on a light accent fill but is not in "
+            f"LIGHT_ACCENT_TEXT_SELECTORS -- it will turn light-on-light in dark mode"
+        )
+
+    assert checked >= 8, f"expected the buttons, labels and badges; matched {checked} rules"
