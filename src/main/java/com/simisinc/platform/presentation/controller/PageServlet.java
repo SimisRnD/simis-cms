@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.controller;
 import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.AllowedIframeHostCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
@@ -190,32 +191,43 @@ public class PageServlet extends HttpServlet {
     // that would close the CSS-based exfiltration channel, but published content still references
     // images on an external origin, so setting it now would break real pages. default-src has to
     // come last, after img-src and frame-src, or the video and careers iframes fall through to it.
-    // img-src is the directive that actually closes the exfiltration channel #1430 describes:
-    // with it absent and no default-src, a CSS attribute selector can encode a field value
-    // into a background-image URL and send it to any host. Setting it was blocked until now
-    // by published content referencing images elsewhere; those references are gone (#1449),
-    // and a crawl of all 135 sitemap pages finds 4,565 image sources, every one same-origin.
-    //
-    // data: is allowed rather than needed -- nothing emits an inline image today, but the
-    // editor can produce one on paste, and a data: URI cannot exfiltrate anything: it carries
-    // its own bytes and makes no request. Omitting it would buy no safety and would break a
-    // paste that looks perfectly reasonable to an author.
-    //
-    // The two video hosts are not optional. VideoWidget renders a YouTube poster as a CSS
-    // background-image from img.youtube.com, and video.jsp sets the Vimeo equivalent from the
-    // oEmbed response, which serves thumbnails off i.vimeocdn.com. A site-wide crawl does not
-    // reveal either, because this pilot happens not to use the widget -- the requirement is in
-    // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
-    //
-    // Still deliberately absent, in this order (see #1430): frame-src, which has to come
-    // before any backstop or the third-party embeds fall through to it, and then default-src
-    // last. connect-src has had no inventory taken and must not be inherited from a backstop
-    // before it does.
-    response.setHeader("Content-Security-Policy",
-        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-            + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-            + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
-            + "script-src 'self' 'nonce-" + cspNonce + "'");
+      // img-src is the directive that actually closes the exfiltration channel #1430 describes:
+      // with it absent and no default-src, a CSS attribute selector can encode a field value
+      // into a background-image URL and send it to any host. Setting it was blocked until now
+      // by published content referencing images elsewhere; those references are gone (#1449),
+      // and a crawl of all 135 sitemap pages finds 4,565 image sources, every one same-origin.
+      //
+      // data: is allowed rather than needed -- nothing emits an inline image today, but the
+      // editor can produce one on paste, and a data: URI cannot exfiltrate anything: it carries
+      // its own bytes and makes no request. Omitting it would buy no safety and would break a
+      // paste that looks perfectly reasonable to an author.
+      //
+      // The two video hosts are not optional. VideoWidget renders a YouTube poster as a CSS
+      // background-image from img.youtube.com, and video.jsp sets the Vimeo equivalent from the
+      // oEmbed response, which serves thumbnails off i.vimeocdn.com. A site-wide crawl does not
+      // reveal either, because this pilot happens not to use the widget -- the requirement is in
+      // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
+      //
+      // frame-src is emitted from AllowedIframeHostCommand, the same list HtmlCommand enforces
+      // when content is saved. Two layers on one list: the sanitizer stops a disallowed embed
+      // becoming stored content and tells the author while they can still fix it, and this stops
+      // anything that got stored another way -- content predating a host's removal, a direct
+      // database write, a sanitizer bug -- from loading. Either alone leaves a real gap. It is a
+      // list rather than a constant because this is a product: sites embed different vendors, and
+      // hardcoding one site's would mean a platform release every time another needed an embed.
+      // The hosts the platform's own widgets require are always included and cannot be removed by
+      // clearing the setting.
+      //
+      // default-src remains deliberately absent and has to stay last (see #1430): every directive
+      // it would back-stop must be set first, or the content it governs falls through to it.
+      // connect-src has had no inventory taken -- video.jsp alone calls Vimeo's oEmbed endpoint
+      // from the browser -- and must not be inherited from a backstop before it does.
+      response.setHeader("Content-Security-Policy",
+          "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
+              + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
+              + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
+              + "script-src 'self' 'nonce-" + cspNonce + "'");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.

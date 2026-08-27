@@ -29,6 +29,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -217,8 +218,11 @@ public class HtmlCommand {
   /**
    * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks
    *
-   * @param contentHtml
-   * @return
+   * @param contentHtml the content to clean
+   * @return the cleaned content, or the input unchanged when it is blank
+   * @throws IllegalStateException if the document could not be fully processed; the partially
+   *         processed content is never returned, because callers store and serve this result as
+   *         though it were clean
    */
   public static String cleanContent(String contentHtml) {
     // Validate the input
@@ -278,6 +282,21 @@ public class HtmlCommand {
     // supply one. Bringing the two safelists into line rather than adding a new capability.
     safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder",
         "title");
+    // Restrict the protocol. Safelist.relaxed() does not include iframe at all, so registering the
+    // tag above left its src with no protocol rule -- and jsoup only protocol-checks attributes that
+    // have one. An <iframe src="javascript:alert(1)"> therefore passed this sanitizer untouched and
+    // was stored, to run in the page's own origin when the content was later served. The sibling
+    // cleanRenderedMarkdown() has always called addProtocols("iframe", "src", "https"); this path
+    // simply never got the same treatment.
+    //
+    // http as well as https, which is where this differs from that method. jsoup validates the
+    // RESOLVED url, and the two methods parse against different bases: cleanRenderedMarkdown() uses
+    // "https://localhost/" -- chosen, per the comment there, precisely so its https-only rule still
+    // passes site-relative values -- while this one uses "http://localhost:8080". Under that base a
+    // relative src="/embed/x" resolves to http, so an https-only rule here would silently drop every
+    // relative iframe rather than stop an attack. Allowing http costs nothing a browser does not
+    // already enforce: it refuses an http iframe inside an https page as mixed content regardless.
+    safelist.addProtocols("iframe", "src", "http", "https");
     // <video width="640" height="360" poster="/assets/img/1545053117079-105/AIMS-Video-Poster.jpg" controls autoplay="autoplay">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.webm" type="video/webm; codecs=vp9,vorbis">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">
@@ -329,7 +348,17 @@ public class HtmlCommand {
       handleVideoTags(clean);
       handleVideoEmbeds(clean);
     } catch (Exception e) {
-      LOG.error("manipulate the clean document exception should not be here", e);
+      // Do not fall through with a half-processed document. Everything in the try block runs after
+      // the Cleaner and is order-dependent, so an exception in an early mutator silently skips
+      // every later one -- and what comes back is neither the input nor a fully-processed
+      // document, yet the save callers store it and the render callers serve it as if it were
+      // clean. Logging and continuing hid exactly that: a NullPointerException in
+      // handleVideoEmbeds surfaced only as legitimate embeds losing their responsive-embed
+      // wrapper, with every unit test still green. Refusing to return the document is the lesser
+      // harm -- a refused save beats a stored half-clean one -- and it makes any future failure
+      // here fail a test instead of being absorbed by a log line.
+      LOG.error("The clean document could not be fully processed; refusing to return it", e);
+      throw new IllegalStateException("Content sanitization did not complete", e);
     }
 
     String cleanedContent = clean.html();
@@ -367,7 +396,16 @@ public class HtmlCommand {
       String[] styles = element.attr("style").split(";");
       ArrayList<String> filteredItems = new ArrayList<>();
       for (String item : styles) {
-        String key = (item.split(":"))[0].trim().toLowerCase();
+        // Read the property name with indexOf rather than split(":")[0]. Java's split drops
+        // trailing empty strings, so while "color: red".split(":") is ["color", " red"],
+        // ":".split(":") is a ZERO-length array and indexing [0] throws
+        // ArrayIndexOutOfBoundsException. A style value of ":" is preserved by the Cleaner (jsoup
+        // does not parse CSS), reaches here, and used to abort the whole manipulation phase --
+        // one character of authored content was enough to skip every remaining mutator. A
+        // declaration with no property name matches nothing on the list above and is kept, which
+        // is how any other unrecognized declaration is already treated.
+        int colon = item.indexOf(':');
+        String key = (colon < 0 ? item : item.substring(0, colon)).trim().toLowerCase();
         if (!unAllowedItems.contains(key)) {
           filteredItems.add(item);
         }
@@ -403,6 +441,45 @@ public class HtmlCommand {
     if (e == null) {
       return;
     }
+    // Drop iframes from hosts the site has not allowed, before any of the wrapping below runs.
+    // jsoup's Safelist can restrict an iframe's protocol but not its host, so without this an
+    // author could embed a frame from anywhere and it would be stored, served, and only stopped
+    // at the browser by frame-src -- as a silent blank box with no indication of what happened or
+    // why. Refusing it here means the content never carries an embed the policy will not render.
+    //
+    // Determining the list reads a site property, so it can fail where the database cannot be
+    // reached. When that happens nothing is removed. Removing content requires knowing that a host
+    // is disallowed, and a failed lookup is not that -- it is the absence of an answer. Guessing in
+    // the destructive direction would delete an author's embed because of an unrelated outage, and
+    // frame-src still refuses the frame at render either way, so nothing is exposed by waiting.
+    List<String> allowed;
+    try {
+      allowed = AllowedIframeHostCommand.allowedHosts();
+    } catch (Exception configException) {
+      LOG.warn("Could not read " + AllowedIframeHostCommand.SITE_PROPERTY
+          + "; leaving iframes in place rather than removing them on incomplete information",
+          configException);
+      allowed = null;
+    }
+    boolean removedAny = false;
+    if (allowed != null) {
+      for (Element element : e) {
+        if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"), allowed)) {
+          LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
+              + ": " + element.attr("src"));
+          element.remove();
+          removedAny = true;
+        }
+      }
+    }
+    // getElementsByTag returns a snapshot, not a live view, so removed elements are still in "e"
+    // and now have no parent. Re-query rather than reuse it: the wrapping below dereferences
+    // parent(), and one detached element would throw partway through and leave every iframe after
+    // it unwrapped.
+    if (removedAny) {
+      e = document.getElementsByTag("iframe");
+    }
+
     for (Element element : e) {
       if (!element.hasAttr("src")) {
         continue;
