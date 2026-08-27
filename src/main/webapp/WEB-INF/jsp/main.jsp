@@ -19,6 +19,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="color" uri="/WEB-INF/tlds/color-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
@@ -301,32 +302,61 @@
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
-        <%-- Scoped away from .clear/.hollow on purpose. Those variants are transparent, so Foundation
-             gives them a color that contrasts with the PAGE, not the solid-button text color; applying
-             this with !important made every clear button take the solid color and vanish on a light
-             background -- including the WCAG 2.2.2 pause control in content-card-slider.jsp. --%>
-        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow){color:var(--sc-button-text-color) !important}</c:if>
+        <%-- Scoped away from .clear/.hollow/.box on purpose. Those variants draw on the PAGE surface
+             rather than the theme's button fill, so Foundation gives them a color that contrasts with
+             the page, not the solid-button text color; applying this with !important made every clear
+             button take the solid color and vanish on a light background -- including the WCAG 2.2.2
+             pause control in content-card-slider.jsp. .box was the one missed: its background follows
+             --sc-surface, so on a stock install (theme.button.text.color seeds to #FFFFFF) this rule
+             painted white captions on the white light-mode surface, 1.000:1 -- issue 1528. It outranks
+             platform.css's own .button.box at (0,3,0) against (0,2,0), so the !important there could
+             not defend it. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow):not(.box){color:var(--sc-button-text-color) !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
-        <%-- The fills are scoped away from .clear/.hollow for the same reason the text rule above is:
-             those variants are transparent, and Foundation only keeps them that way by a tie it loses
-             here. Its .button.hollow rule is (0,2,0) and .button.hollow:hover is (0,3,0); each themed
-             variant rule below matched at exactly the same weight and, being emitted after every
-             stylesheet, won on source order -- so a stock install painted hollow and clear buttons
-             solid and left their captions drawn on their own accent, three of them at 1.00:1
-             (issue 1542). The unscoped .button rules above do not need this: at (0,1,0) and (0,2,0)
-             they lose to Foundation outright. Button groups do not either -- .button-group.hollow
-             .button is (0,3,0) and its :hover (0,4,0), both of which outrank these. --%>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary:not(.clear):not(.hollow){background-color:var(--sc-button-primary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover:not(.clear):not(.hollow), .button.primary:focus:not(.clear):not(.hollow), #platform-menu ul.menu li a.button.primary:hover:not(.clear):not(.hollow){background-color:var(--sc-button-primary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary:not(.clear):not(.hollow){background-color:var(--sc-button-secondary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover:not(.clear):not(.hollow), .button.secondary:focus:not(.clear):not(.hollow), #platform-menu ul.menu li a.button.secondary:hover:not(.clear):not(.hollow){background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success:not(.clear):not(.hollow){background-color:var(--sc-button-success-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover:not(.clear):not(.hollow), .button.success:focus:not(.clear):not(.hollow){background-color:var(--sc-button-success-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning:not(.clear):not(.hollow){background-color:var(--sc-button-warning-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover:not(.clear):not(.hollow), .button.warning:focus:not(.clear):not(.hollow){background-color:var(--sc-button-warning-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert:not(.clear):not(.hollow){background-color:var(--sc-button-alert-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover:not(.clear):not(.hollow), .button.alert:focus:not(.clear):not(.hollow){background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover, .button.primary:focus, #platform-menu ul.menu li a.button.primary:hover{background-color:var(--sc-button-primary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary{background-color:var(--sc-button-secondary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover, .button.secondary:focus, #platform-menu ul.menu li a.button.secondary:hover{background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success{background-color:var(--sc-button-success-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover, .button.success:focus{background-color:var(--sc-button-success-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning{background-color:var(--sc-button-warning-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover, .button.warning:focus{background-color:var(--sc-button-warning-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert{background-color:var(--sc-button-alert-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover, .button.alert:focus{background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <%-- Each themed fill gets the caption color it can actually carry. theme.button.text.color
+             is one color applied to buttons whose fills are deliberately not one color, so on the
+             stock palette it lands at 2.86:1 on the success green and 1.86:1 on the warning amber
+             (issue 1537). These emit nothing when the configured color is already legible on the
+             fill, so a site keeps its own choice wherever it works; where it does not, the caption
+             falls back to a platform ink that does. Derived from whatever color the site actually
+             configured, which is why a fixed exclusion list could not do this job. Scoped like the
+             rule above so they outrank it, and ordered fill-then-hover so the more specific fill
+             always wins its own ink. --%>
+        <c:set var="inkDefault" value="${color:contrastingInk(themePropertyMap['theme.button.default.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkDefault}">.button:not(.clear):not(.hollow){color:<c:out value="${inkDefault}" /> !important}</c:if>
+        <c:set var="inkDefaultHover" value="${color:contrastingInk(themePropertyMap['theme.button.default.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkDefaultHover}">.button:hover:not(.clear):not(.hollow),.button:focus:not(.clear):not(.hollow){color:<c:out value="${inkDefaultHover}" /> !important}</c:if>
+        <c:set var="inkPrimary" value="${color:contrastingInk(themePropertyMap['theme.button.primary.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkPrimary}">.button.primary:not(.clear):not(.hollow){color:<c:out value="${inkPrimary}" /> !important}</c:if>
+        <c:set var="inkPrimaryHover" value="${color:contrastingInk(themePropertyMap['theme.button.primary.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkPrimaryHover}">.button.primary:hover:not(.clear):not(.hollow),.button.primary:focus:not(.clear):not(.hollow){color:<c:out value="${inkPrimaryHover}" /> !important}</c:if>
+        <c:set var="inkSecondary" value="${color:contrastingInk(themePropertyMap['theme.button.secondary.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSecondary}">.button.secondary:not(.clear):not(.hollow){color:<c:out value="${inkSecondary}" /> !important}</c:if>
+        <c:set var="inkSecondaryHover" value="${color:contrastingInk(themePropertyMap['theme.button.secondary.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSecondaryHover}">.button.secondary:hover:not(.clear):not(.hollow),.button.secondary:focus:not(.clear):not(.hollow){color:<c:out value="${inkSecondaryHover}" /> !important}</c:if>
+        <c:set var="inkSuccess" value="${color:contrastingInk(themePropertyMap['theme.button.success.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSuccess}">.button.success:not(.clear):not(.hollow){color:<c:out value="${inkSuccess}" /> !important}</c:if>
+        <c:set var="inkSuccessHover" value="${color:contrastingInk(themePropertyMap['theme.button.success.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSuccessHover}">.button.success:hover:not(.clear):not(.hollow),.button.success:focus:not(.clear):not(.hollow){color:<c:out value="${inkSuccessHover}" /> !important}</c:if>
+        <c:set var="inkWarning" value="${color:contrastingInk(themePropertyMap['theme.button.warning.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkWarning}">.button.warning:not(.clear):not(.hollow){color:<c:out value="${inkWarning}" /> !important}</c:if>
+        <c:set var="inkWarningHover" value="${color:contrastingInk(themePropertyMap['theme.button.warning.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkWarningHover}">.button.warning:hover:not(.clear):not(.hollow),.button.warning:focus:not(.clear):not(.hollow){color:<c:out value="${inkWarningHover}" /> !important}</c:if>
+        <c:set var="inkAlert" value="${color:contrastingInk(themePropertyMap['theme.button.alert.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkAlert}">.button.alert:not(.clear):not(.hollow){color:<c:out value="${inkAlert}" /> !important}</c:if>
+        <c:set var="inkAlertHover" value="${color:contrastingInk(themePropertyMap['theme.button.alert.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkAlertHover}">.button.alert:hover:not(.clear):not(.hollow),.button.alert:focus:not(.clear):not(.hollow){color:<c:out value="${inkAlertHover}" /> !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.backgroundColor']}">.callout{background-color:var(--sc-callout-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.text.color']}">.callout,.callout label{color:var(--sc-callout-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.primary.backgroundColor']}">.callout.primary{background-color:var(--sc-callout-primary-background-color)}</c:if>
