@@ -82,6 +82,12 @@ public class V71120__create_admin extends BaseJavaMigration {
     // Set as validated
     UserRepository.updateValidated(user);
 
+    // Mark as the break-glass account: its sign-ins alert every other administrator, and org-level
+    // MFA enforcement never redirects it to the enrollment page. This account is the documented way
+    // back in when a configuration change strands everyone else, so it must not be strandable by
+    // the same change -- see MfaEnforcementCommand and BreakGlassAlertCommand.
+    UserRepository.updateBreakGlass(user, true);
+
     // Set as Admin role
     Role role = RoleRepository.findByCode("admin");
     UserRole userRole = new UserRole(user, role);

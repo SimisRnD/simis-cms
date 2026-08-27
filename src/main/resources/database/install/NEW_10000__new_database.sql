@@ -449,7 +449,11 @@ CREATE TABLE users (
   failed_attempt_count INTEGER DEFAULT 0,
   locked_until TIMESTAMP(3),
   last_password_changed_at TIMESTAMP(3),
-  suspension_reason VARCHAR(255)
+  suspension_reason VARCHAR(255),
+  -- A break-glass account: its sign-ins alert every other administrator, and org-level MFA
+  -- enforcement never redirects it to the enrollment page (see MfaEnforcementCommand). The seeded
+  -- system-administrator is marked in V71120__create_admin.
+  break_glass BOOLEAN DEFAULT false
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));

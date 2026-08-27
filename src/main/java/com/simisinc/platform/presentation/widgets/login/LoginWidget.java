@@ -23,6 +23,7 @@ import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.TotpCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
@@ -139,6 +140,8 @@ public class LoginWidget extends GenericWidget {
         if (StringUtils.isNotBlank(ipAddress)) {
           RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
         }
+        BreakGlassAlertCommand.recordFailedLogin(user, ipAddress, httpSession.getId(),
+            "invalid second factor");
         context.setErrorMessage("That code was invalid. Enter a code from your authenticator app, or one of your recovery codes.");
         context.getRequest().setAttribute("mfaRequired", "true");
         return context;
@@ -159,9 +162,15 @@ public class LoginWidget extends GenericWidget {
       }
       user = AuthenticateLoginCommand.getAuthenticatedUser(email.trim().toLowerCase(), password, context.getRequest().getRemoteAddr());
     } catch (DataException | LoginException e) {
+      String attemptedEmail = (email != null ? email.trim().toLowerCase() : null);
       SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", -1L,
-          (email != null ? email.trim().toLowerCase() : null), context.getRequest().getRemoteAddr(),
-          httpSession.getId(), e.getMessage());
+          attemptedEmail, context.getRequest().getRemoteAddr(), httpSession.getId(), e.getMessage());
+      // Someone guessing at the break-glass credentials is at least as worth knowing about as a
+      // legitimate use. Looked up by the attempted address, since authentication did not resolve a
+      // user; a non-break-glass or unknown address alerts nobody. RateLimitCommand already
+      // throttles repeated attempts on an account, so a burst of guesses is not a burst of mail.
+      BreakGlassAlertCommand.recordFailedLogin(attemptedEmail,
+          context.getRequest().getRemoteAddr(), httpSession.getId(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       return context;
     }
@@ -201,6 +210,11 @@ public class LoginWidget extends GenericWidget {
     // by whichever identity was logged in before must not carry over to the new identity.
     context.getRequest().getSession().removeAttribute(SessionConstants.PAGE_EDIT_MODE);
     userSession.login(user);
+
+    // Announce a break-glass sign-in to every other administrator. Best-effort by construction --
+    // it must never be able to fail the login it is reporting on.
+    BreakGlassAlertCommand.recordLogin(user, context.getRequest().getRemoteAddr(),
+        userSession.getSessionId(), "form");
 
     // Track the login
     UserLogin userLogin = new UserLogin();

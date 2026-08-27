@@ -71,11 +71,26 @@ public class MfaEnforcementCommand {
   }
 
   /**
-   * Returns {@code true} if the user is in a required-MFA role but has not yet enrolled.
-   * The caller should redirect to {@link #getEnrollmentUrl()} when this returns {@code true}.
+   * Returns {@code true} if the user is in a required-MFA role but has not yet enrolled, and is
+   * not a break-glass account. The caller should redirect to {@link #getEnrollmentUrl()} when this
+   * returns {@code true}.
    */
   public static boolean requiresEnrollment(UserSession session, User user) {
-    return user != null && isEnforcedForUser(session) && !user.getMfaEnabled();
+    if (user == null) {
+      return false;
+    }
+    // A break-glass account is never redirected to the enrollment page. Enforcement exempts only
+    // that page, so a policy naming a role this account holds would strand it exactly like any
+    // other admin -- and an account that is stranded by the same misconfiguration everyone else is
+    // stranded by is not a recovery path. Its sign-ins alert every other administrator instead
+    // (BreakGlassAlertCommand), so the exemption is loud rather than silent.
+    //
+    // This is not an exemption from MFA itself: if the account has MFA enrolled, LoginWidget still
+    // demands a code before establishing the session.
+    if (user.getBreakGlass()) {
+      return false;
+    }
+    return isEnforcedForUser(session) && !user.getMfaEnabled();
   }
 
   /**
