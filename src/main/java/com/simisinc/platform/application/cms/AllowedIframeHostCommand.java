@@ -57,11 +57,31 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
  */
 public class AllowedIframeHostCommand {
 
-  /** Hosts the platform's own widgets embed. Always permitted; a site cannot remove these. */
+  /**
+   * Hosts a video embed can legitimately come from. Always permitted; a site cannot remove these.
+   *
+   * <p>
+   * This list was first written from what VideoWidget emits, which was the wrong question and shipped
+   * a regression: the widget renders youtube-nocookie.com, but an author pasting YouTube's own share
+   * markup gets www.youtube.com/embed, and three published news posts on the pilot carried exactly
+   * that. Those embeds were stripped on save and refused by frame-src on render. The requirement
+   * lives in authored content, not only in the platform.
+   * </p>
+   *
+   * <p>
+   * The point of the allowlist is to refuse frames from arbitrary third parties, not to enforce which
+   * of a video vendor's own domains an author used. Both YouTube forms are therefore permitted, with
+   * and without the www prefix, since content carries both.
+   * </p>
+   */
   private static final List<String> PLATFORM_HOSTS = List.of(
-      // VideoWidget's YouTube player -- the nocookie domain, which is what that widget emits
+      // VideoWidget renders the nocookie domain
       "www.youtube-nocookie.com",
-      // VideoWidget's Vimeo player
+      "youtube-nocookie.com",
+      // What YouTube's own "Copy embed code" produces, and what authored content actually contains
+      "www.youtube.com",
+      "youtube.com",
+      // VideoWidget's Vimeo player, and what Vimeo's own embed code produces
       "player.vimeo.com");
 
   public static final String SITE_PROPERTY = "security.iframe.allowedHosts";
@@ -113,7 +133,23 @@ public class AllowedIframeHostCommand {
    * @return true when the iframe may be kept
    */
   public static boolean isAllowed(String src) {
-    if (StringUtils.isBlank(src)) {
+    return isAllowed(src, allowedHosts());
+  }
+
+  /**
+   * Whether an iframe {@code src} may load, against a list the caller already has.
+   *
+   * <p>
+   * Callers checking several iframes should read {@link #allowedHosts()} once and pass it here, so a
+   * document with many embeds does not repeat the site-property lookup per element.
+   * </p>
+   *
+   * @param src the raw src attribute
+   * @param allowed the hosts to check against
+   * @return true when the iframe may be kept
+   */
+  public static boolean isAllowed(String src, List<String> allowed) {
+    if (StringUtils.isBlank(src) || allowed == null) {
       return false;
     }
     String value = src.trim();
@@ -136,7 +172,7 @@ public class AllowedIframeHostCommand {
       }
     }
     String host = hostOf(value);
-    return host != null && allowedHosts().contains(host);
+    return host != null && allowed.contains(host);
   }
 
   /** The CSP frame-src source list: 'self' plus every allowed host as an https origin. */
