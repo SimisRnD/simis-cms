@@ -278,6 +278,21 @@ public class HtmlCommand {
     // supply one. Bringing the two safelists into line rather than adding a new capability.
     safelist.addAttributes("iframe", "src", "width", "height", "allowfullscreen", "frameborder",
         "title");
+    // Restrict the protocol. Safelist.relaxed() does not include iframe at all, so registering the
+    // tag above left its src with no protocol rule -- and jsoup only protocol-checks attributes that
+    // have one. An <iframe src="javascript:alert(1)"> therefore passed this sanitizer untouched and
+    // was stored, to run in the page's own origin when the content was later served. The sibling
+    // cleanRenderedMarkdown() has always called addProtocols("iframe", "src", "https"); this path
+    // simply never got the same treatment.
+    //
+    // http as well as https, which is where this differs from that method. jsoup validates the
+    // RESOLVED url, and the two methods parse against different bases: cleanRenderedMarkdown() uses
+    // "https://localhost/" -- chosen, per the comment there, precisely so its https-only rule still
+    // passes site-relative values -- while this one uses "http://localhost:8080". Under that base a
+    // relative src="/embed/x" resolves to http, so an https-only rule here would silently drop every
+    // relative iframe rather than stop an attack. Allowing http costs nothing a browser does not
+    // already enforce: it refuses an http iframe inside an https page as mixed content regardless.
+    safelist.addProtocols("iframe", "src", "http", "https");
     // <video width="640" height="360" poster="/assets/img/1545053117079-105/AIMS-Video-Poster.jpg" controls autoplay="autoplay">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.webm" type="video/webm; codecs=vp9,vorbis">
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">

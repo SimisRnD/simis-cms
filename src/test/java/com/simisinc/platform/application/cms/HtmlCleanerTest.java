@@ -19,6 +19,7 @@ package com.simisinc.platform.application.cms;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -200,5 +201,62 @@ class HtmlCleanerTest {
 
     String value = HtmlCommand.cleanContent(html);
     assertEquals(expected, value);
+  }
+
+  @Test
+  void anIframeSrcCarryingAScriptSchemeIsStripped() {
+    // The tag is registered on a Safelist.relaxed(), which does not include iframe -- so until the
+    // matching addProtocols() call, its src had no protocol rule and jsoup protocol-checks only the
+    // attributes that have one. Each of these was stored verbatim and ran in the page's own origin.
+    assertFalse(HtmlCommand.cleanContent("<iframe src=\"javascript:alert(1)\"></iframe>").contains("javascript:"));
+    assertFalse(HtmlCommand.cleanContent("<iframe src=\"JaVaScRiPt:alert(1)\"></iframe>").contains("alert"));
+    assertFalse(HtmlCommand.cleanContent("<iframe src=\"vbscript:msgbox(1)\"></iframe>").contains("vbscript:"));
+    assertFalse(
+        HtmlCommand.cleanContent("<iframe src=\"data:text/html,<script>alert(1)</script>\"></iframe>").contains("data:"));
+  }
+
+  @Test
+  void aStrippedIframeIsLeftInertRatherThanRemoved() {
+    // jsoup drops the offending attribute, not the element, so an empty <iframe> remains. That is
+    // inert -- with no src it loads about:blank -- and it is exactly what this sanitizer already
+    // does to <a href="javascript:...">, which comes out as a bare <a>. Matching that existing
+    // behavior is deliberate; removing the element here would make the two paths inconsistent.
+    String value = HtmlCommand.cleanContent("<iframe src=\"javascript:alert(1)\"></iframe>");
+    assertTrue(value.contains("<iframe"));
+    assertFalse(value.contains("src"));
+  }
+
+  @Test
+  void strippingAnIframeSrcLeavesTheSurroundingContentAlone() {
+    String value = HtmlCommand.cleanContent("<p>before</p><iframe src=\"javascript:alert(1)\"></iframe><p>after</p>");
+    assertTrue(value.contains("before"));
+    assertTrue(value.contains("after"));
+    assertFalse(value.contains("javascript:"));
+  }
+
+  @Test
+  void anHttpsIframeSurvivesAndIsStillWrapped() {
+    String value = HtmlCommand.cleanContent("<iframe src=\"https://player.vimeo.com/video/12345\"></iframe>");
+    assertTrue(value.contains("https://player.vimeo.com/video/12345"));
+    assertTrue(value.contains("responsive-embed widescreen"));
+  }
+
+  @Test
+  void aRelativeIframeSrcSurvives() {
+    // This is why the rule allows http as well as https. cleanContent parses against
+    // "http://localhost:8080", so a site-relative src resolves to http; an https-only rule -- what
+    // the markdown path uses, against an https base -- would silently drop these instead of
+    // stopping an attack.
+    assertTrue(HtmlCommand.cleanContent("<iframe src=\"/embed/local-page\"></iframe>").contains("/embed/local-page"));
+    assertTrue(HtmlCommand.cleanContent("<iframe src=\"embed/relative\"></iframe>").contains("embed/relative"));
+  }
+
+  @Test
+  void httpAndProtocolRelativeIframeSourcesSurvive() {
+    // A site deployed without SSL, and an author pasting a protocol-relative embed, both stay working
+    assertTrue(HtmlCommand.cleanContent("<iframe src=\"http://intranet.local/embed\"></iframe>")
+        .contains("http://intranet.local/embed"));
+    assertTrue(HtmlCommand.cleanContent("<iframe src=\"//player.vimeo.com/video/9\"></iframe>")
+        .contains("//player.vimeo.com/video/9"));
   }
 }
