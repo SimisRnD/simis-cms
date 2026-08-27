@@ -258,7 +258,7 @@
 
     --sc-focus-ring: #609ace;
 
-    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
     --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
     --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
 
