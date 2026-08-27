@@ -1,0 +1,17 @@
+-- Lets a blog name its own feed, instead of every feed being called
+-- "<site name> - <blog name>".
+--
+-- FeedServlet composed the title from site.name and the blog's name, so a site
+-- whose name carries a legal suffix published feeds titled "Acme, Inc. - News"
+-- and "Acme, Inc. - Industry News". In a reader those sit beside titles like
+-- "Dark Reading" and "Ars Technica", where a composed database-shaped string
+-- reads as what it is. There was no way to say otherwise short of renaming the
+-- whole site, which is wrong -- "Acme, Inc." is correct in a page title.
+--
+-- Null keeps the composed default, so every existing feed is unchanged until a
+-- blog is given a title of its own.
+--
+-- Added to install/NEW_10010__new_cms.sql as well: a column that exists only here
+-- is missing on every fresh install, because installs baseline the upgrade
+-- history rather than replaying it (see DatabaseCommand.installDatabase).
+ALTER TABLE blogs ADD COLUMN IF NOT EXISTS feed_title VARCHAR(255);

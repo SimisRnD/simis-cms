@@ -33,6 +33,8 @@ public class Blog extends Entity {
   private String uniqueId = null;
   private String name = null;
   private String description = null;
+  /** Overrides the composed feed title. Null means fall back to "<site name> - <blog name>". */
+  private String feedTitle = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -73,6 +75,14 @@ public class Blog extends Entity {
 
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  public String getFeedTitle() {
+    return feedTitle;
+  }
+
+  public void setFeedTitle(String feedTitle) {
+    this.feedTitle = feedTitle;
   }
 
   public long getCreatedBy() {

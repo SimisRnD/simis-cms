@@ -82,6 +82,7 @@ public class SaveBlogCommand {
     blog.setUniqueId(generateUniqueId(blog, blogBean));
     blog.setName(blogBean.getName());
     blog.setDescription(blogBean.getDescription());
+    blog.setFeedTitle(blogBean.getFeedTitle());
     blog.setCreatedBy(blogBean.getCreatedBy());
     blog.setModifiedBy(blogBean.getModifiedBy());
     blog.setEnabled(blogBean.getEnabled());

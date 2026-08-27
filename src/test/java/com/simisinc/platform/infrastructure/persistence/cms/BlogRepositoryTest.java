@@ -209,6 +209,7 @@ class BlogRepositoryTest {
           + "blog_unique_id VARCHAR(255) UNIQUE NOT NULL, "
           + "name VARCHAR(255) NOT NULL, "
           + "description TEXT, "
+          + "feed_title VARCHAR(255), "
           + "created_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "

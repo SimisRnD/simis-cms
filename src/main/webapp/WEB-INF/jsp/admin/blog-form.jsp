@@ -60,6 +60,10 @@
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
   </label>
+  <label>Feed title
+    <input type="text" placeholder="Leave blank to use the site name and this blog's name" name="feedTitle" aria-describedby="blogFeedTitleHelpText" value="<c:out value="${blog.feedTitle}"/>">
+    <p class="help-text" id="blogFeedTitleHelpText">What this blog's RSS/Atom feed calls itself in a reader, where it appears beside titles like "Dark Reading" and "Ars Technica". Leave blank and the feed is titled "<c:out value="${sitePropertyMap['site.name']}"/> - <c:out value="${blog.name}"/>". Set it to name the feed like a publication instead.</p>
+  </label>
   <label>Mailing List
     <select name="mailingListId">
       <option value="-1">None</option>
