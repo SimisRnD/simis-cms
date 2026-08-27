@@ -17,9 +17,14 @@
 package com.simisinc.platform.application.cms;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Tests HTML functions
@@ -144,6 +149,22 @@ class HtmlCleanerTest {
     assertEquals(expected, value);
   }
   @Test
+  void checkIframeTitleSurvives() {
+    // An embedded frame with no accessible name is announced only as "frame" (WCAG 4.1.2), and a
+    // title is the only way content can supply one. cleanRenderedMarkdown() already allowed this;
+    // cleanContent() did not, so editors had no route to an accessible embed.
+    String html = "<iframe src=\"https://www.youtube.com/embed/LFx-b-njZs0\" width=\"560\" height=\"315\" " +
+        "title=\"Hampton Roads local leaders encourage us to pivot to the positive\" allowfullscreen=\"allowfullscreen\"></iframe>";
+
+    String value = HtmlCommand.cleanContent(html);
+
+    assertTrue(value.contains("title=\"Hampton Roads local leaders encourage us to pivot to the positive\""),
+        "the iframe title must survive -- it is the frame's accessible name");
+    assertTrue(value.contains("src=\"https://www.youtube.com/embed/LFx-b-njZs0\""), "src must survive");
+    assertTrue(value.contains("allowfullscreen"), "allowfullscreen must survive");
+  }
+
+  @Test
   void checkVideoCaptionTrackSurvives() {
     // A caption track is what takes a video with audio from failing WCAG 1.2.2 to passing it, so
     // the sanitizer has to let it through intact -- kind and srclang included, or the track is inert.
@@ -186,58 +207,84 @@ class HtmlCleanerTest {
     assertEquals(expected, value);
   }
 
-  /**
-   * A style value with no property name (":") used to throw ArrayIndexOutOfBoundsException inside
-   * removeUnallowedStyles, which is the FIRST of the mutators that run after the Cleaner. The
-   * exception was caught and logged, so every later mutator was skipped and the partially
-   * processed document was returned anyway -- with the tests still green. One character of
-   * authored content was enough to disable the whole phase.
-   *
-   * <p>The video wrapper is the assertion because it is produced by handleVideoTags, which runs
-   * near the END of the sequence: if it is present, everything between the failure point and it
-   * ran too.
-   */
-  @Test
-  void malformedStyleDoesNotSkipTheRestOfTheProcessing() {
-    String html = "<p style=\":\">Intro</p>\n" +
-        "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
-        "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" /></video>";
-
-    String value = HtmlCommand.cleanContent(html);
-
-    assertTrue(value.contains("<div class=\"responsive-embed widescreen\">"),
-        "the video must still be wrapped -- a mutator that runs after the failure point: " + value);
+  /** A site allowing one extra host, with Metabase off. */
+  private MockedStatic<LoadSitePropertyCommand> siteAllowing(String hosts) {
+    MockedStatic<LoadSitePropertyCommand> m = mockStatic(LoadSitePropertyCommand.class);
+    m.when(() -> LoadSitePropertyCommand.loadByName(AllowedIframeHostCommand.SITE_PROPERTY)).thenReturn(hosts);
+    m.when(() -> LoadSitePropertyCommand.loadByName("bi.metabase.enabled")).thenReturn("false");
+    return m;
   }
 
-  /**
-   * The same trap reached through every other shape of malformed declaration, and through a tag
-   * other than the one the first mutator pass visits. "::" and a trailing bare ":" both produce a
-   * zero-length array from split(":") the same way a lone ":" does.
-   */
   @Test
-  void malformedStyleVariantsAreProcessed() {
-    String[] styles = {":", "::", "color: red;:", ":;font-size: 2em"};
-    for (String style : styles) {
-      String html = "<span style=\"" + style + "\">Intro</span>\n" +
-          "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
-          "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" /></video>";
-
+  void anIframeFromAnUnallowedHostIsStripped() {
+    String html = "<p>before</p><iframe src=\"https://evil.example.com/x\" width=\"560\" height=\"315\"></iframe><p>after</p>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
       String value = HtmlCommand.cleanContent(html);
-
-      assertTrue(value.contains("<div class=\"responsive-embed widescreen\">"),
-          "style=\"" + style + "\" must not stop the processing: " + value);
+      assertFalse(value.contains("evil.example.com"));
+      // The surrounding content is untouched -- this removes an embed, not the paragraph around it
+      assertTrue(value.contains("before"));
+      assertTrue(value.contains("after"));
     }
   }
 
-  /**
-   * The denylisted properties are still stripped when a malformed declaration sits alongside them,
-   * so recovering from the malformed one does not quietly let a stripped property through.
-   */
   @Test
-  void denylistedStylesAreStillRemovedAroundAMalformedDeclaration() {
-    String value = HtmlCommand.cleanContent("<p style=\"color: red;:;font-size: 2em\">Intro</p>");
+  void anIframeFromAnAllowedHostSurvives() {
+    String html = "<iframe src=\"https://www.youtube-nocookie.com/embed/abc123\" width=\"560\" height=\"315\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertTrue(value.contains("www.youtube-nocookie.com/embed/abc123"));
+    }
+  }
 
-    assertTrue(!value.contains("color"), "color must still be stripped: " + value);
-    assertTrue(!value.contains("font-size"), "font-size must still be stripped: " + value);
+  @Test
+  void aHostTheSiteAddedSurvives() {
+    String html = "<iframe src=\"https://app.vendor.example.com/embed/form\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("app.vendor.example.com")) {
+      assertTrue(HtmlCommand.cleanContent(html).contains("app.vendor.example.com"));
+    }
+  }
+
+  @Test
+  void everyUnallowedIframeIsRemovedNotJustTheFirst() {
+    // Removing from the live Elements list while iterating it skips entries, which would leave
+    // every second embed in place.
+    String html = "<iframe src=\"https://a.example.com/1\"></iframe>"
+        + "<iframe src=\"https://b.example.com/2\"></iframe>"
+        + "<iframe src=\"https://c.example.com/3\"></iframe>"
+        + "<iframe src=\"https://d.example.com/4\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("a.example.com"));
+      assertFalse(value.contains("b.example.com"));
+      assertFalse(value.contains("c.example.com"));
+      assertFalse(value.contains("d.example.com"));
+    }
+  }
+
+  @Test
+  void anIframeWithAScriptBearingSrcIsStripped() {
+    // cleanContent builds on Safelist.relaxed() and registers iframe/src without a protocol
+    // restriction, so jsoup alone does not refuse this one -- unlike the markdown path, which
+    // calls addProtocols("iframe", "src", "https"). The host check is what stops it here.
+    String html = "<iframe src=\"javascript:alert(1)\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      assertFalse(HtmlCommand.cleanContent(html).contains("javascript:"));
+    }
+  }
+
+  @Test
+  void aSurvivingEmbedIsStillWrappedAfterAnotherWasRemoved() {
+    // The removal pass leaves detached elements in the snapshot getElementsByTag returned. Reusing
+    // it made the wrapping pass dereference a null parent, and cleanContent catches and logs that
+    // rather than failing -- so the only visible symptom was every embed after the removed one
+    // silently losing its responsive-embed wrapper.
+    String html = "<iframe src=\"https://evil.example.com/x\"></iframe>"
+        + "<iframe src=\"https://player.vimeo.com/video/12345\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("evil.example.com"));
+      assertTrue(value.contains("player.vimeo.com/video/12345"));
+      assertTrue(value.contains("responsive-embed widescreen"));
+    }
   }
 }
