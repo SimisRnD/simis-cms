@@ -388,12 +388,17 @@ WAIVED = {
 
 # Exempt because the divergence is settled and intended. Never reported as
 # retirable: a future reader should not re-open a decision someone already made.
-PARITY_SETTLED = {
-    # All three blocks are already at 1px 2px here; only the alpha differs
-    # (0.4 dark vs 0.45 auto). PR 1492's geometry argument does not reach it, and
-    # it was deliberately dropped from that PR's scope.
-    "--sc-shadow-sm",
-}
+#
+# Empty as of PR 1503. --sc-shadow-sm was the last entry -- its dark and auto
+# blocks differed only in alpha (0.4 vs 0.45), which PR 1492's geometry argument
+# did not reach and which was deliberately left out of that PR's scope. PR 1503
+# then restored the dark alpha ramp on auto, so the two agree and the exemption
+# stopped protecting anything.
+#
+# With this and PARITY_PENDING both empty, the parity check is total: every token
+# declared in either block must match in the other. Keep it that way unless a
+# divergence is genuinely intended, and write down why here if one ever is.
+PARITY_SETTLED: set[str] = set()
 
 # Exempt pending a fix that is already in flight. Each entry is reported (never
 # failed) as soon as its two blocks agree, so an exemption that has stopped

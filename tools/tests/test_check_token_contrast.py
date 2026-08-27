@@ -7,6 +7,7 @@ the tables would not recognise.
 """
 
 import importlib.util
+import re
 
 import pytest
 from conftest import TOOLS_DIR, run_tool, write
@@ -238,14 +239,21 @@ def test_a_dark_auto_divergence_outside_the_exempt_set_still_fails(tokens):
     assert "PARITY" in out(r)
 
 
-def test_a_settled_shadow_exemption_never_reports_as_retirable(tokens):
-    """--sc-shadow-sm is divergent on purpose (alpha only, deliberately out of PR #1492's
-    scope). Converging it must not nag a future reader to re-open a settled decision."""
-    edit(tokens, "    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45);",
-         "    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);")
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 0, out(r)
-    assert "retired" not in r.stdout
+def test_the_parity_check_is_total_with_no_exemptions_left(tokens):
+    """PR #1492 converged md and lg, PR #1503 converged sm, so both exemption sets are empty
+    and every token declared in one block must match the other. Diverging any of the three
+    shadows must now fail -- previously each was excused by name."""
+    original = (tokens / CSS).read_text(encoding="utf-8")
+    for token in ("--sc-shadow-sm", "--sc-shadow-md", "--sc-shadow-lg"):
+        hits = list(re.finditer(rf"{re.escape(token)}:\s*[^;]+;", original))
+        assert len(hits) >= 3, f"expected light, dark and auto declarations of {token}"
+        last = hits[-1]  # the auto block's copy
+        broken = original[:last.start()] + f"{token}: 0 9px 9px rgba(0, 0, 0, 0.5);" + original[last.end():]
+        (tokens / CSS).write_text(broken, encoding="utf-8")
+        r = run_tool(TOOL, tokens)
+        assert r.returncode != 0, f"{token} divergence was tolerated: {out(r)}"
+        assert "PARITY" in out(r), out(r)
+    (tokens / CSS).write_text(original, encoding="utf-8")
 
 
 # -- 3. comment claims -----------------------------------------------------
