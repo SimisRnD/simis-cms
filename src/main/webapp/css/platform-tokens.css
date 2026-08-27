@@ -134,6 +134,20 @@
      --sc-fnd-on-accent, which stays light because its fills stay dark. */
   --sc-fnd-ink-on-accent: #0a0a0a;
 
+  /* Status accents used as INK on a light ground -- Foundation's hollow and clear
+     success/warning buttons draw the accent as text on the page rather than as a fill.
+     $success and $warning are chosen to sit UNDER dark ink, so read as text on white they
+     are 1.799:1 and 1.842:1 (issue 1529). These are hue-preserving darkenings that clear
+     the SC 1.4.3 floor, and they double as the border colour, which lifts SC 1.4.11 from
+     the same failing ratio to the same passing one:
+       --sc-fnd-success-ink on the light surface .... 4.715:1
+       --sc-fnd-warning-ink on the light surface .... 4.717:1
+     The mirror of --sc-fnd-ink-on-accent above: that one is dark ink for a light fill,
+     these are dark accents for a light page. Redefined for dark below, where the accent
+     itself is legible and Layer 3b already repaints these variants. */
+  --sc-fnd-success-ink: #188441;
+  --sc-fnd-warning-ink: #9b6900;
+
   /* Deprecated aliases, kept so first-party stylesheets routed before the split keep
      working. Prefer the role-specific names above; these cannot be themed for dark. */
   --sc-fnd-white: var(--sc-fnd-surface);
@@ -143,7 +157,28 @@
   --sc-fnd-secondary: #767676;
   --sc-fnd-success: #3adb76;
   --sc-fnd-warning: #ffae00;
-  --sc-fnd-alert: #cc4b37;
+  /* Darkened from Foundation's own #cc4b37, which pairs with --sc-fnd-on-accent at
+     4.498:1 -- under the 4.5:1 floor of SC 1.4.3 by 0.002, in both modes and for every
+     element type (issue 1527). The fill moves rather than the ink because this token
+     plays two roles on a light ground and the shortfall is identical in both: a fill
+     beneath light ink (.button.alert, .button-group.alert, .label.alert, .badge.alert)
+     and ink or a border on that ground (.form-error, .is-invalid-label,
+     .is-invalid-input, and the hollow/clear alert variants). Lightening the ink to
+     #ffffff would have fixed only the four filled surfaces and left the rest at 4.498:1.
+       ink #fefefe on the fill ..... 4.611:1     the colour as text on #fefefe ... 4.611:1
+       the colour as text on #ffffff .............................. 4.650:1
+     .callout.alert does not share the pair -- it is a tinted #f7e4e1 fill under
+     --sc-fnd-ink -- so it is unaffected.
+
+     Deliberately a modest step, not the largest that clears the floor. On the DARK page
+     this same token also paints .form-error, where a darker red reads worse: 3.876:1
+     before, 3.781:1 after -- failing either way, and a pre-existing gap rather than one
+     this creates. The two directions are strictly opposed for a single token: a red that
+     clears 4.5:1 on #17191e is at most ~3.3:1 on white. Closing the dark side needs the
+     fill and the ink split into separate roles, the way --sc-fnd-on-accent and
+     --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
+     clear the floor on the light ground and costs the dark case as little as possible. */
+  --sc-fnd-alert: #cb4834;
   --sc-fnd-light-gray: #e6e6e6;
   --sc-fnd-medium-gray: #cacaca;
   --sc-fnd-dark-gray: #8a8a8a;
@@ -226,6 +261,14 @@
   --sc-fnd-on-accent: #fefefe;
   --sc-fnd-ink: var(--sc-text);
 
+  /* On a dark page the status accents are legible as text, and the Layer 3b
+     hollow/clear rule already repaints those variants to --sc-link. Pointing the ink
+     tokens at the same value keeps the two in agreement, so the ink is right whichever
+     of the two rules wins the cascade rather than only while Layer 3b outranks
+     Layer 3a. No pixel change here -- this is the colour dark already draws. */
+  --sc-fnd-success-ink: var(--sc-link);
+  --sc-fnd-warning-ink: var(--sc-link);
+
   /* Stays dark, deliberately. Foundation pairs it with on-accent:
      `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
      light chip while on-accent correctly stays light would put white text on a
@@ -296,6 +339,14 @@
     --sc-fnd-surface: var(--sc-surface-raised);
     --sc-fnd-on-accent: #fefefe;
     --sc-fnd-ink: var(--sc-text);
+
+    /* On a dark page the status accents are legible as text, and the Layer 3b
+       hollow/clear rule already repaints those variants to --sc-link. Pointing the ink
+       tokens at the same value keeps the two in agreement, so the ink is right whichever
+       of the two rules wins the cascade rather than only while Layer 3b outranks
+       Layer 3a. No pixel change here -- this is the colour dark already draws. */
+    --sc-fnd-success-ink: var(--sc-link);
+    --sc-fnd-warning-ink: var(--sc-link);
 
     /* Stays dark, deliberately. Foundation pairs it with on-accent:
        `.tooltip { background: ink-surface; color: on-accent }`. Inverting it to a
@@ -422,6 +473,30 @@ input[type="radio"] {
   background-color: var(--sc-surface-raised);
 }
 
+/* Hollow and clear status buttons. Foundation draws the status colour as text on
+   the page, and its $success/$warning are light accents meant to sit under dark ink,
+   so in light mode the caption and border land at 1.799:1 and 1.842:1 (issue 1529).
+   Dark mode has been repainting these since Layer 3b; light mode had no rule at all.
+
+   The hue is kept rather than flattened to link blue as dark does -- a green success
+   button that turns blue loses the signal the variant exists to carry. These tie
+   Foundation's own .button.hollow.success at (0,3,0) and win on source order; the
+   dark and auto rules in Layer 3b are (0,4,0) and still outrank them, and the ink
+   tokens resolve to the same colour those rules paint, so dark is unchanged either
+   way. .hollow.alert / .clear.alert are not listed: they carry the --sc-fnd-alert
+   shortfall tracked in issue 1527 and are fixed there. */
+.button.hollow.success,
+.button.clear.success {
+  color: var(--sc-fnd-success-ink);
+  border-color: var(--sc-fnd-success-ink);
+}
+
+.button.hollow.warning,
+.button.clear.warning {
+  color: var(--sc-fnd-warning-ink);
+  border-color: var(--sc-fnd-warning-ink);
+}
+
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
    animate.css all animate by default; honour the OS setting. */
 @media (prefers-reduced-motion: reduce) {
@@ -477,16 +552,20 @@ input[type="radio"] {
   color: var(--sc-text-muted);
 }
 
-/* Links. Scoped away from menus and buttons, which the theme colors. */
-:root[data-theme="dark"] .platform-body a,
-:root[data-theme="dark"] .platform-content a,
-:root[data-theme="dark"] .platform-blog-body a {
+/* Links. The wrapper scoping is what keeps the site menus out -- they live in
+   #platform-menu, outside these containers. Buttons need excluding explicitly:
+   an anchor styled as a button sits on an accent fill, and Foundation's own
+   ink-on-fill rules are only (0,2,0), which this selector would outrank.
+   Issue 1525. Keep :not(.button) on the auto mirror below in step. */
+:root[data-theme="dark"] .platform-body a:not(.button),
+:root[data-theme="dark"] .platform-content a:not(.button),
+:root[data-theme="dark"] .platform-blog-body a:not(.button) {
   color: var(--sc-link);
 }
 
-:root[data-theme="dark"] .platform-body a:hover,
-:root[data-theme="dark"] .platform-content a:hover,
-:root[data-theme="dark"] .platform-blog-body a:hover {
+:root[data-theme="dark"] .platform-body a:not(.button):hover,
+:root[data-theme="dark"] .platform-content a:not(.button):hover,
+:root[data-theme="dark"] .platform-blog-body a:not(.button):hover {
   color: var(--sc-link-hover);
 }
 
@@ -828,15 +907,15 @@ input[type="radio"] {
     color: var(--sc-text-muted);
   }
 
-  :root[data-theme="auto"] .platform-body a,
-  :root[data-theme="auto"] .platform-content a,
-  :root[data-theme="auto"] .platform-blog-body a {
+  :root[data-theme="auto"] .platform-body a:not(.button),
+  :root[data-theme="auto"] .platform-content a:not(.button),
+  :root[data-theme="auto"] .platform-blog-body a:not(.button) {
     color: var(--sc-link);
   }
 
-  :root[data-theme="auto"] .platform-body a:hover,
-  :root[data-theme="auto"] .platform-content a:hover,
-  :root[data-theme="auto"] .platform-blog-body a:hover {
+  :root[data-theme="auto"] .platform-body a:not(.button):hover,
+  :root[data-theme="auto"] .platform-content a:not(.button):hover,
+  :root[data-theme="auto"] .platform-blog-body a:not(.button):hover {
     color: var(--sc-link-hover);
   }
 
