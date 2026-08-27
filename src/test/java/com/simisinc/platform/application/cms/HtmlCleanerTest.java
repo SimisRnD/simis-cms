@@ -17,9 +17,14 @@
 package com.simisinc.platform.application.cms;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Tests HTML functions
@@ -200,5 +205,86 @@ class HtmlCleanerTest {
 
     String value = HtmlCommand.cleanContent(html);
     assertEquals(expected, value);
+  }
+
+  /** A site allowing one extra host, with Metabase off. */
+  private MockedStatic<LoadSitePropertyCommand> siteAllowing(String hosts) {
+    MockedStatic<LoadSitePropertyCommand> m = mockStatic(LoadSitePropertyCommand.class);
+    m.when(() -> LoadSitePropertyCommand.loadByName(AllowedIframeHostCommand.SITE_PROPERTY)).thenReturn(hosts);
+    m.when(() -> LoadSitePropertyCommand.loadByName("bi.metabase.enabled")).thenReturn("false");
+    return m;
+  }
+
+  @Test
+  void anIframeFromAnUnallowedHostIsStripped() {
+    String html = "<p>before</p><iframe src=\"https://evil.example.com/x\" width=\"560\" height=\"315\"></iframe><p>after</p>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("evil.example.com"));
+      // The surrounding content is untouched -- this removes an embed, not the paragraph around it
+      assertTrue(value.contains("before"));
+      assertTrue(value.contains("after"));
+    }
+  }
+
+  @Test
+  void anIframeFromAnAllowedHostSurvives() {
+    String html = "<iframe src=\"https://www.youtube-nocookie.com/embed/abc123\" width=\"560\" height=\"315\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertTrue(value.contains("www.youtube-nocookie.com/embed/abc123"));
+    }
+  }
+
+  @Test
+  void aHostTheSiteAddedSurvives() {
+    String html = "<iframe src=\"https://app.vendor.example.com/embed/form\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("app.vendor.example.com")) {
+      assertTrue(HtmlCommand.cleanContent(html).contains("app.vendor.example.com"));
+    }
+  }
+
+  @Test
+  void everyUnallowedIframeIsRemovedNotJustTheFirst() {
+    // Removing from the live Elements list while iterating it skips entries, which would leave
+    // every second embed in place.
+    String html = "<iframe src=\"https://a.example.com/1\"></iframe>"
+        + "<iframe src=\"https://b.example.com/2\"></iframe>"
+        + "<iframe src=\"https://c.example.com/3\"></iframe>"
+        + "<iframe src=\"https://d.example.com/4\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("a.example.com"));
+      assertFalse(value.contains("b.example.com"));
+      assertFalse(value.contains("c.example.com"));
+      assertFalse(value.contains("d.example.com"));
+    }
+  }
+
+  @Test
+  void anIframeWithAScriptBearingSrcIsStripped() {
+    // cleanContent builds on Safelist.relaxed() and registers iframe/src without a protocol
+    // restriction, so jsoup alone does not refuse this one -- unlike the markdown path, which
+    // calls addProtocols("iframe", "src", "https"). The host check is what stops it here.
+    String html = "<iframe src=\"javascript:alert(1)\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      assertFalse(HtmlCommand.cleanContent(html).contains("javascript:"));
+    }
+  }
+
+  @Test
+  void aSurvivingEmbedIsStillWrappedAfterAnotherWasRemoved() {
+    // The removal pass leaves detached elements in the snapshot getElementsByTag returned. Reusing
+    // it made the wrapping pass dereference a null parent, and cleanContent catches and logs that
+    // rather than failing -- so the only visible symptom was every embed after the removed one
+    // silently losing its responsive-embed wrapper.
+    String html = "<iframe src=\"https://evil.example.com/x\"></iframe>"
+        + "<iframe src=\"https://player.vimeo.com/video/12345\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String value = HtmlCommand.cleanContent(html);
+      assertFalse(value.contains("evil.example.com"));
+      assertTrue(value.contains("player.vimeo.com/video/12345"));
+      assertTrue(value.contains("responsive-embed widescreen"));
+    }
   }
 }
