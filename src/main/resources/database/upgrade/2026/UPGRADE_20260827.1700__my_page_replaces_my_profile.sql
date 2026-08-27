@@ -44,16 +44,29 @@ SELECT '/my-page', 'My Page', 'Your profile and account security settings.', fal
 'wp-' || gen_random_uuid()
 WHERE NOT EXISTS (SELECT 1 FROM web_pages WHERE link = '/my-page');
 
--- 3. Repoint the MFA enrollment URL, but only where it is still the old untouched default. A site
---    that deliberately set its own enrollment page keeps it.
+-- 3. Repoint the MFA enrollment URL, but only where it is still the old untouched default AND the
+--    page it would now name actually carries the enrollment widget.
+--
+--    That second condition is not theoretical. A site may already have its own /my-page -- the
+--    pilot's is a built-out employee portal with no myMfaSettings widget on it. Step 1 correctly
+--    declines to touch such a page, but repointing enforcement at it anyway would aim the redirect
+--    at a page nobody can enroll from, which is precisely the lockout this whole line of work
+--    exists to prevent. MfaEnrollmentPageCommand refuses exactly this value when an admin types it
+--    into the settings form; a migration must not do quietly what the form refuses.
 UPDATE site_properties
 SET property_value = '/my-page'
 WHERE property_name = 'mfa.enrollment.url'
-  AND property_value = '/my-profile';
+  AND property_value = '/my-profile'
+  AND EXISTS (
+    SELECT 1 FROM web_pages
+    WHERE link = '/my-page'
+      AND page_xml LIKE '%myMfaSettings%');
 
 -- 4. Keep any existing /my-profile link working -- a bookmark, or the value someone copied out of
---    the settings field while it still said /my-profile. Skipped if the site kept a real page there
---    (step 1 declined to move), since a redirect must not shadow a live page.
+--    the settings field while it still said /my-profile. Skipped when a real page still lives at
+--    /my-profile (step 1 declined to move it because the site has its own /my-page), since a
+--    redirect must never shadow a live page, and on such a site /my-profile is still the page that
+--    can enroll someone.
 INSERT INTO web_redirects (from_path, to_url, status_code, enabled)
 SELECT '/my-profile', '/my-page', 301, true
 WHERE NOT EXISTS (SELECT 1 FROM web_pages WHERE link = '/my-profile')
