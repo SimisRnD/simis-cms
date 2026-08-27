@@ -538,6 +538,16 @@ CLAIMS = [
      None,
      [("exact", [("--sc-fnd-on-accent", "--sc-fnd-ink-surface")]),
       ("exact", [("--sc-fnd-dark-gray", "--sc-surface")])]),
+    # -- Layer 1b, status accents used as ink on a light ground (issue 1529) --
+    (r"--sc-fnd-success-ink on the light surface \.+ ([\d.]+):1",
+     "light", [("exact", [("--sc-fnd-success-ink", "--sc-fnd-surface")])]),
+    (r"--sc-fnd-warning-ink on the light surface \.+ ([\d.]+):1",
+     "light", [("exact", [("--sc-fnd-warning-ink", "--sc-fnd-surface")])]),
+    # -- Layer 3b, light-mode facts quoted inside the dark callout note --
+    (r"--sc-link #2c79be is ([\d.]+):1 on white",
+     "light", [("exact", [("--sc-link", "--sc-surface")])]),
+    (r"--sc-text-muted #71767d is ([\d.]+):1 on white",
+     "light", [("exact", [("--sc-text-muted", "--sc-surface")])]),
 ]
 
 # --------------------------------------------------------------------------
@@ -558,6 +568,8 @@ EXEMPT_RATIOS = [
     (r"luminance to clear (4\.5):1", "SC 1.4.3 floor, not a measurement"),
     (r"held to the (4\.5):1 SC 1\.4\.3 asks", "SC 1.4.3 floor, not a measurement"),
     (r"even the (3):1 of 1\.4\.11", "SC 1.4.11 floor, not a measurement"),
+    (r"under the (4\.5):1 floor of SC 1\.4\.3", "SC 1.4.3 floor, not a measurement"),
+    (r"clears (4\.5):1 on #17191e", "SC 1.4.3 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
@@ -577,6 +589,27 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
+    (r"are (1\.799):1 and 1\.842:1", "Foundation $success as text on white, issue 1529"),
+    (r"are 1\.799:1 and (1\.842):1", "Foundation $warning as text on white, issue 1529"),
+    (r"land at (1\.799):1 and 1\.842:1", "same pair restated at the hollow/clear button rule"),
+    (r"land at 1\.799:1 and (1\.842):1", "same pair restated at the hollow/clear button rule"),
+    (r"--sc-fnd-on-accent at\s+(4\.498):1", "Foundation's original #cc4b37 with on-accent, the value that prompted issue 1527"),
+    (r"at most ~(3\.3):1 on white", "the best a red clearing 4.5:1 on the dark page can do on white -- the opposition this note describes"),
+    (r"left the rest at (4\.498):1", "same historical pair, for the variants a lighter ink would not have fixed"),
+    (r"ink #fefefe on the fill \.+ ([\d.]+):1", "the darkened alert fill under #fefefe ink, measured"),
+    (r"the colour as text on #fefefe \.+ ([\d.]+):1", "the same red as text on #fefefe, measured"),
+    (r"the colour as text on #ffffff \.+ ([\d.]+):1", "the same red as text on pure white, measured"),
+    (r"reads worse: ([\d.]+):1\s*\n?\s*before", "form-error red on the dark page before issue 1527's change"),
+    (r"before, ([\d.]+):1 after", "form-error red on the dark page after it, still failing"),
+    (r"success fill \(#e1faea\): ([\d.]+):1", "dark --sc-text on the light success callout fill, before Layer 3b repainted it"),
+    (r"only ([\d.]+):1 on the alert", "--sc-link against the tinted alert callout fill"),
+    (r"is 4\.58:1 on white but ([\d.]+):1 there", "--sc-text-muted against the same tinted fill"),
+    (r"\((3\.42):1 against it", "darkened muted grey against the callout ink, a separation not a floor"),
+    (r"close to the (3\.84):1 separation", "the light ramp's own ink/muted separation, quoted for comparison"),
+    (r"text \(--sc-text\) \.+ ([\d.]+):1", "worst case across every install-default callout fill"),
+    (r"muted \(--sc-text-muted\) \.+ ([\d.]+):1", "worst case across every install-default callout fill"),
+    (r"links \(--sc-link\) \.+ ([\d.]+):1", "worst case across every install-default callout fill"),
+    (r"hover \(--sc-link-hover\) \.+ ([\d.]+):1", "worst case across every install-default callout fill"),
     (r"(3\.42):1 in a\s+light \.reveal", "close button on Foundation's light .reveal, PR 1500"),
     (r"(3\.13):1 in a success callout", "close button on a themed success callout, PR 1500"),
     (r"(3\.45):1 on the newsletter", "close button on the newsletter overlay, PR 1500"),
