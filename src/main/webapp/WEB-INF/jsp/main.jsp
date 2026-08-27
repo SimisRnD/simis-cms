@@ -302,11 +302,16 @@
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
-        <%-- Scoped away from .clear/.hollow on purpose. Those variants are transparent, so Foundation
-             gives them a color that contrasts with the PAGE, not the solid-button text color; applying
-             this with !important made every clear button take the solid color and vanish on a light
-             background -- including the WCAG 2.2.2 pause control in content-card-slider.jsp. --%>
-        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow){color:var(--sc-button-text-color) !important}</c:if>
+        <%-- Scoped away from .clear/.hollow/.box on purpose. Those variants draw on the PAGE surface
+             rather than the theme's button fill, so Foundation gives them a color that contrasts with
+             the page, not the solid-button text color; applying this with !important made every clear
+             button take the solid color and vanish on a light background -- including the WCAG 2.2.2
+             pause control in content-card-slider.jsp. .box was the one missed: its background follows
+             --sc-surface, so on a stock install (theme.button.text.color seeds to #FFFFFF) this rule
+             painted white captions on the white light-mode surface, 1.000:1 -- issue 1528. It outranks
+             platform.css's own .button.box at (0,3,0) against (0,2,0), so the !important there could
+             not defend it. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow):not(.box){color:var(--sc-button-text-color) !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>

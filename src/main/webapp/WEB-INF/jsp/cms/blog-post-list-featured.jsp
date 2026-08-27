@@ -63,7 +63,7 @@
           </c:if>
           <div class="small-12 medium-auto cell">
             <div class="featured-blog-title">
-              <h4><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h4>
+              <h2><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h2>
             </div>
             <c:if test="${showSummary eq 'true'}">
               <div class="featured-blog-intro">
