@@ -21,6 +21,8 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
+import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
@@ -231,6 +233,15 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       }
     }
 
+    // Refuse an MFA enforcement policy that would lock everyone out. Enforcement redirects every
+    // non-exempt request to the enrollment page and exempts only that page, so naming roles while
+    // the enrollment page cannot actually enroll anyone leaves no way back in -- not even to this
+    // screen to undo it. Validated against the values being submitted, so it also catches changing
+    // the enrollment URL to a broken page while enforcement is already on.
+    if (context.getErrorMessage() == null) {
+      validateMfaEnforcement(context, siteProperties);
+    }
+
     // If there's an error, pass the form values back
     if (context.getErrorMessage() != null) {
       context.setRequestObject(siteProperties);
@@ -305,6 +316,34 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
     context.setJsp(JSP);
     return context;
+  }
+
+  /** Rejects a submitted {@code mfa.required.roles} value when the submitted
+   * {@code mfa.enrollment.url} does not resolve to a page carrying the enrollment widget. Only a
+   * non-blank role list is checked -- clearing the roles is how enforcement is turned off, and must
+   * always be allowed through even when the enrollment page is broken. */
+  private void validateMfaEnforcement(WidgetContext context, List<SiteProperty> siteProperties) {
+    String requiredRoles = null;
+    String enrollmentUrl = null;
+    for (SiteProperty siteProperty : siteProperties) {
+      if (MfaEnforcementCommand.PROPERTY_REQUIRED_ROLES.equals(siteProperty.getName())) {
+        requiredRoles = siteProperty.getValue();
+      } else if (MfaEnforcementCommand.PROPERTY_ENROLLMENT_URL.equals(siteProperty.getName())) {
+        enrollmentUrl = siteProperty.getValue();
+      }
+    }
+    if (StringUtils.isBlank(requiredRoles)) {
+      return;
+    }
+    if (StringUtils.isBlank(enrollmentUrl)) {
+      enrollmentUrl = MfaEnforcementCommand.DEFAULT_ENROLLMENT_URL;
+    }
+    if (!MfaEnrollmentPageCommand.isUsableEnrollmentPage(enrollmentUrl)) {
+      context.setErrorMessage("MFA enforcement was not enabled: the enrollment page " + enrollmentUrl
+          + " does not exist or does not contain the two-factor authentication widget, so anyone "
+          + "required to enroll would be locked out with no way to reach it. Create that page with "
+          + "the \"Two-Factor Authentication\" widget first, then set the roles.");
+    }
   }
 
   /** Re-loads the current (saved, not submitted) properties and re-renders the editor -- used when
