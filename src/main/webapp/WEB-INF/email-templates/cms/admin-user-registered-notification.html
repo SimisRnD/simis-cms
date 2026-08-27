@@ -151,12 +151,36 @@
                             <span th:text="${user.email}">email@example.com</span><br>
                             ip: <span th:text="${ipAddress}">address</span> (<span th:text="${location}">location</span>)
                           </p>
+                          <p style="color: #868e96; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 15px; line-height: 1.5; margin: 20px 0 0;">
+                            Registered on <a href="https://example.com" th:href="${site.url}" style="color: #868e96;" target="_blank">[[${site.name}]]</a>
+                          </p>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" height="100%" valign="top" width="100%" bgcolor="#f8f9fa" style="padding: 25px 15px 50px 15px;" class="mobile-padding">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="80%" class="mobile-wrapper">
+          <tr>
+            <td align="center" valign="top" style="padding: 0 0 5px 0; font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #868e96;">
+              <p style="font-size: 14px; line-height: 20px; color: #868e96;">
+                [[${site.name}]]<th:block th:if="${site.state != null}"><br></th:block>
+                <th:block th:if="${site.addressLine1 != null}">[[${site.addressLine1}]],</th:block>
+                <th:block th:if="${site.city != null}">[[${site.city}]],</th:block>
+                <th:block th:if="${site.state != null}">[[${site.state}]]</th:block>
+                <th:block th:if="${site.postalCode != null}">[[${site.postalCode}]]</th:block>
+                <th:block th:if="${site.country != null}">[[${site.country}]]</th:block>
+              </p>
+              <p style="font-size: 14px; line-height: 20px; color: #868e96;">
+                <a href="https://example.com/contact" th:href="${site.contactUsUrl}" style="color: #adb5bd;" target="_blank">Contact Us</a>
+              </p>
             </td>
           </tr>
         </table>
