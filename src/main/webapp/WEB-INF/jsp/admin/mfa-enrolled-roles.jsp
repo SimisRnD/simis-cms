@@ -17,24 +17,59 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<h4>Roles already MFA-enrolled</h4>
+<%-- Sits directly under the settings form's Save/Cancel buttons, so it needs its own breathing
+     room rather than butting up against them. --%>
+<div style="margin-top: 2.5rem;">
+<h4>MFA status by role</h4>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">Roles with at least one member who has already enrolled MFA -- a role with some but not all members enrolled still appears here, since enabling enforcement is per-role, not per-user.</p>
+<p class="help-text">Every role in the system and where it stands. <strong>Required</strong> means the role is listed above in
+  &ldquo;Roles that must enroll in MFA&rdquo;. <strong>Enrolled</strong> means at least one member has actually set up a second
+  factor &mdash; a role with some but not all members enrolled still counts, since enforcement is per-role, not per-user.
+  The two are independent, so a role can be required with nobody enrolled yet, or enrolled without being required.</p>
 <c:choose>
-  <c:when test="${empty roleList}">
-    <p><em>None</em></p>
+  <c:when test="${empty statusList}">
+    <p><em>No roles found</em></p>
   </c:when>
   <c:otherwise>
-    <ul>
-      <c:forEach var="role" items="${roleList}">
-        <li>
-          <c:out value="${role.title}" /> <code><c:out value="${role.code}" /></code>
-          <a href="#" data-open="removeMfaRoleReveal${role.id}">Remove MFA</a>
-        </li>
+    <table class="unstriped">
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Code</th>
+          <th>Required</th>
+          <th>Enrolled</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      <c:forEach var="status" items="${statusList}">
+        <tr>
+          <td><c:out value="${status.role.title}" /></td>
+          <td><code><c:out value="${status.role.code}" /></code></td>
+          <td>
+            <c:choose>
+              <c:when test="${status.required}"><span class="label success">Required</span></c:when>
+              <c:otherwise><span class="label secondary">Not required</span></c:otherwise>
+            </c:choose>
+          </td>
+          <td>
+            <c:choose>
+              <c:when test="${status.enrolled}"><span class="label success">Enrolled</span></c:when>
+              <c:otherwise><span class="label secondary">None enrolled</span></c:otherwise>
+            </c:choose>
+          </td>
+          <td>
+            <c:if test="${status.enrolled}">
+              <a href="#" data-open="removeMfaRoleReveal${status.role.id}">Remove MFA</a>
+            </c:if>
+          </td>
+        </tr>
       </c:forEach>
-    </ul>
+      </tbody>
+    </table>
   </c:otherwise>
 </c:choose>
+</div>
 <c:forEach var="role" items="${roleList}">
   <div class="reveal" id="removeMfaRoleReveal${role.id}" role="dialog" aria-modal="true"
        aria-labelledby="removeMfaRoleRevealTitle${role.id}" data-reveal data-close-on-click="true">

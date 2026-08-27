@@ -20,6 +20,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,6 +73,54 @@ public class RoleCapabilityRepository {
    */
   public static long countDistinctUsersHoldingCapability(long capabilityId) {
     return countDistinctUsersHoldingCapability(capabilityId, NO_EXCLUSION, NO_EXCLUSION);
+  }
+
+  /**
+   * The user ids that currently effectively hold this capability -- the same population
+   * {@link #countDistinctUsersHoldingCapability(long)} counts, returned rather than tallied.
+   *
+   * <p>Deliberately the same two branches and the same gates: a role that grants it (through
+   * user_roles), or the user's own direct grant that is neither revoked nor expired, and in both
+   * cases only accounts that are enabled and validated. A notification addressed at a capability
+   * should reach exactly the people the lockout guards consider to hold it -- if the two ever
+   * disagreed, one of them would be wrong about who is responsible for the system.
+   *
+   * <p>Returns an empty list on a query failure. Every caller treats that as "tell nobody", which
+   * is the safe direction here: a missed notification is recoverable, whereas failing open would
+   * mean mailing an unknown set of people about an event they may have no business seeing.
+   */
+  public static List<Long> findUserIdsHoldingCapability(long capabilityId) {
+    List<Long> userIds = new ArrayList<>();
+    String sql = "SELECT DISTINCT effective_holders.user_id FROM ("
+        + "SELECT user_roles.user_id AS user_id "
+        + "FROM user_roles "
+        + "JOIN role_capabilities ON role_capabilities.role_id = user_roles.role_id "
+        + "JOIN users ON users.user_id = user_roles.user_id "
+        + "WHERE role_capabilities.capability_id = ? "
+        + "AND users.enabled = true AND users.validated IS NOT NULL "
+        + "UNION "
+        + "SELECT capability_grants.user_id AS user_id "
+        + "FROM capability_grants "
+        + "JOIN users ON users.user_id = capability_grants.user_id "
+        + "WHERE capability_grants.capability_id = ? "
+        + "AND capability_grants.revoked_at IS NULL "
+        + "AND (capability_grants.expires_at IS NULL OR capability_grants.expires_at > NOW()) "
+        + "AND users.enabled = true AND users.validated IS NOT NULL "
+        + ") AS effective_holders";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setLong(1, capabilityId);
+      pst.setLong(2, capabilityId);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          userIds.add(rs.getLong(1));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("findUserIdsHoldingCapability SQLException: " + se.getMessage());
+      return new ArrayList<>();
+    }
+    return userIds;
   }
 
   /**
