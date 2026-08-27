@@ -185,4 +185,59 @@ class HtmlCleanerTest {
     String value = HtmlCommand.cleanContent(html);
     assertEquals(expected, value);
   }
+
+  /**
+   * A style value with no property name (":") used to throw ArrayIndexOutOfBoundsException inside
+   * removeUnallowedStyles, which is the FIRST of the mutators that run after the Cleaner. The
+   * exception was caught and logged, so every later mutator was skipped and the partially
+   * processed document was returned anyway -- with the tests still green. One character of
+   * authored content was enough to disable the whole phase.
+   *
+   * <p>The video wrapper is the assertion because it is produced by handleVideoTags, which runs
+   * near the END of the sequence: if it is present, everything between the failure point and it
+   * ran too.
+   */
+  @Test
+  void malformedStyleDoesNotSkipTheRestOfTheProcessing() {
+    String html = "<p style=\":\">Intro</p>\n" +
+        "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
+        "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" /></video>";
+
+    String value = HtmlCommand.cleanContent(html);
+
+    assertTrue(value.contains("<div class=\"responsive-embed widescreen\">"),
+        "the video must still be wrapped -- a mutator that runs after the failure point: " + value);
+  }
+
+  /**
+   * The same trap reached through every other shape of malformed declaration, and through a tag
+   * other than the one the first mutator pass visits. "::" and a trailing bare ":" both produce a
+   * zero-length array from split(":") the same way a lone ":" does.
+   */
+  @Test
+  void malformedStyleVariantsAreProcessed() {
+    String[] styles = {":", "::", "color: red;:", ":;font-size: 2em"};
+    for (String style : styles) {
+      String html = "<span style=\"" + style + "\">Intro</span>\n" +
+          "<video controls=\"controls\" width=\"300\" height=\"150\">\n" +
+          "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" /></video>";
+
+      String value = HtmlCommand.cleanContent(html);
+
+      assertTrue(value.contains("<div class=\"responsive-embed widescreen\">"),
+          "style=\"" + style + "\" must not stop the processing: " + value);
+    }
+  }
+
+  /**
+   * The denylisted properties are still stripped when a malformed declaration sits alongside them,
+   * so recovering from the malformed one does not quietly let a stripped property through.
+   */
+  @Test
+  void denylistedStylesAreStillRemovedAroundAMalformedDeclaration() {
+    String value = HtmlCommand.cleanContent("<p style=\"color: red;:;font-size: 2em\">Intro</p>");
+
+    assertTrue(!value.contains("color"), "color must still be stripped: " + value);
+    assertTrue(!value.contains("font-size"), "font-size must still be stripped: " + value);
+  }
 }
