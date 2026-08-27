@@ -38,11 +38,21 @@
    text rules here at all.
 
    Note for anyone extending this file: the dark surfaces below are --sc-surface
-   and --sc-surface-sunken, NOT --sc-surface-raised. In dark mode
+   and --sc-surface-sunken, NOT --sc-surface-raised. At the time of this change
    --sc-surface-raised carries --sc-text-muted at only 2.64:1 and --sc-link at
-   2.43:1, so it cannot hold muted text or links. That is a platform-tokens.css
-   issue affecting every raised dark surface (cards, callouts, modals), tracked
-   separately; this file simply avoids that token. */
+   2.43:1 in dark mode, so it cannot hold muted text or links -- a
+   platform-tokens.css defect affecting every raised dark surface (cards,
+   callouts, modals), tracked as issue 1489.
+
+   THAT CONSTRAINT IS EXPECTED TO EXPIRE, so do not read the paragraph above as
+   a standing rule. PR 1490 darkens the token, which takes muted to 5.34:1 and
+   link to 4.92:1 and makes --sc-surface-raised the right choice for a lifted
+   dark panel. Once it merges, re-measure and move .site-map-menu-tab onto
+   --sc-surface-raised rather than leaving this workaround in place permanently.
+   Re-compute before relying on any ratio quoted here: issue 1489 existed
+   because a hand-computed number in a comment silently stopped matching the
+   value it described, and nothing in CI evaluates colour, so the same drift can
+   happen to these. */
 
 .site-map-container {
   background-color: var(--sc-surface-raised, #fefefe);
@@ -158,10 +168,17 @@
    The fills separate by just 1.07:1 here, softer than light mode's 1.21:1. That
    is the --sc-surface-raised limitation noted at the top of this file: the token
    meant for a lifted card cannot hold muted text or links in dark mode, so the
-   only two surfaces that can carry this panel's text sit close together. If that
-   token is fixed, the tab can move onto it and gain a proper card lift. The
-   separation is decorative either way -- 1.4.11 exempts it, and every text and
-   control pairing inside these panels is measured above the threshold.
+   only two surfaces that can carry this panel's text sit close together. PR 1490
+   fixes that token; when it lands, .site-map-menu-tab should move onto
+   --sc-surface-raised and gain a proper card lift. The separation is decorative
+   either way -- 1.4.11 exempts it, and every text and control pairing inside
+   these panels is measured above the threshold.
+
+   Focus indicators were checked on these grounds too, not just text:
+   --sc-focus-ring lands at 3.78:1 and 4.58:1 on the light panels and 5.87:1 and
+   6.30:1 on the dark ones, all above the 3:1 that 1.4.11 asks of a focus
+   indicator. Any future repaint of these surfaces needs to re-check that as
+   well -- it is easy to verify the text and miss the ring.
 
    The two selector groups are kept in sync deliberately, matching
    platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
