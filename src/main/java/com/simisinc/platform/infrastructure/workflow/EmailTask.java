@@ -56,6 +56,7 @@ public class EmailTask implements Work {
   // Task Context
   public static final String TO_USER_ID = "to-user";
   public static final String TO_ROLE_LIST = "to-role";
+  public static final String TO_CAPABILITY = "to-capability";
   public static final String TO_EMAIL = "to-email";
   public static final String SUBJECT = "subject";
   public static final String TEMPLATE = "template";
@@ -66,6 +67,7 @@ public class EmailTask implements Work {
     // Expressions decoded from the work context objects
     long toUserId = WorkflowCommand.getValueAsLong(workContext, taskContext, taskContext.get(TO_USER_ID));
     String toRoleList = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TO_ROLE_LIST));
+    String toCapability = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TO_CAPABILITY));
     String toEmail = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TO_EMAIL));
     String subject = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(SUBJECT));
     String template = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TEMPLATE));
@@ -75,8 +77,9 @@ public class EmailTask implements Work {
       LOG.error("Message or Template is required");
       return new DefaultWorkReport(WorkStatus.FAILED, workContext);
     }
-    if (toUserId == -1 && StringUtils.isBlank(toRoleList) && StringUtils.isBlank(toEmail)) {
-      LOG.error("User Id, Role List, or Email Address is required");
+    if (toUserId == -1 && StringUtils.isBlank(toRoleList) && StringUtils.isBlank(toCapability)
+        && StringUtils.isBlank(toEmail)) {
+      LOG.error("User Id, Role List, Capability, or Email Address is required");
       return new DefaultWorkReport(WorkStatus.FAILED, workContext);
     }
 
@@ -149,6 +152,30 @@ public class EmailTask implements Work {
         List<User> roleUserList = SendCommunityManagerEmailCommand.getUserList(toRoleList);
         if (roleUserList != null && !roleUserList.isEmpty()) {
           toUserList.addAll(roleUserList);
+        }
+      }
+
+      if (StringUtils.isNotBlank(toCapability)) {
+        // Determine the users by what they are permitted to do, rather than which role they sit in.
+        // Role membership and capability are different questions: System Administrator holds
+        // community:manage, yet a mail addressed to the community-manager role only ever reached an
+        // admin through an empty-role fallback. Addressing the capability asks what the permission
+        // model actually expresses, and picks up a time-limited direct grant for exactly as long as
+        // it is valid.
+        //
+        // Added to the list rather than replacing it, and de-duplicated by id, so a workflow may
+        // name both a role and a capability without mailing anyone in both twice.
+        for (User capabilityUser : LoadUserCommand.loadUsersHoldingCapability(toCapability)) {
+          boolean alreadyListed = false;
+          for (User existing : toUserList) {
+            if (existing.getId() == capabilityUser.getId()) {
+              alreadyListed = true;
+              break;
+            }
+          }
+          if (!alreadyListed) {
+            toUserList.add(capabilityUser);
+          }
         }
       }
 
