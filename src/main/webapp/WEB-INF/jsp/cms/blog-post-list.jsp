@@ -72,7 +72,7 @@
       <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
         <div class="platform-blog-list-item">
           <div class="platform-blog-title">
-            <h3>
+            <h2>
               <c:choose>
                 <c:when test="${blogPost.hasSourceUrl}"><%--
                   #1420: a curated post points at someone else's article, so the headline goes
@@ -91,7 +91,7 @@
               </c:if>
               <c:if test="${empty blogPost.published}"><span class="label warning">not published</span></c:if>
               <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}" /></span></c:if>
-            </h3>
+            </h2>
           </div>
           <c:if test="${!empty blogPost.imageUrl}">
             <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>

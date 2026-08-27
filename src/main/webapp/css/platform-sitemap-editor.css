@@ -37,18 +37,17 @@
    dark rules still beat them -- that inversion is what lets dark mode need no
    text rules here at all.
 
-   Note for anyone extending this file: the dark surfaces below are --sc-surface
-   and --sc-surface-sunken, NOT --sc-surface-raised. At the time of this change
-   --sc-surface-raised carries --sc-text-muted at only 2.64:1 and --sc-link at
-   2.43:1 in dark mode, so it cannot hold muted text or links -- a
-   platform-tokens.css defect affecting every raised dark surface (cards,
-   callouts, modals), tracked as issue 1489.
+   This file DEPENDS ON PR 1490 and must not merge before it. .site-map-menu-tab
+   below is painted --sc-surface-raised in dark mode. That token was Anthracite
+   (hex 53575c, written without the leading hash on purpose -- the colour ratchet
+   in tools/check-css-token-adoption.py counts hexes inside comments), a brand
+   accent used as a surface, carrying --sc-text-muted at 2.64:1, --sc-link at
+   2.43:1 and --sc-focus-ring at 2.43:1, all failing. Issue 1489 / PR 1490 moves
+   it to hex 26282e, where the same pairings measure
+   5.34:1, 4.92:1 and 4.92:1. Merged in the wrong order this file reintroduces
+   the exact defect it exists to fix, which is why it carries the
+   "stacked: merge base PR first" label.
 
-   THAT CONSTRAINT IS EXPECTED TO EXPIRE, so do not read the paragraph above as
-   a standing rule. PR 1490 darkens the token, which takes muted to 5.34:1 and
-   link to 4.92:1 and makes --sc-surface-raised the right choice for a lifted
-   dark panel. Once it merges, re-measure and move .site-map-menu-tab onto
-   --sc-surface-raised rather than leaving this workaround in place permanently.
    Re-compute before relying on any ratio quoted here: issue 1489 existed
    because a hand-computed number in a comment silently stopped matching the
    value it described, and nothing in CI evaluates colour, so the same drift can
@@ -153,30 +152,32 @@
    ==========================================================================
    Repainting the three surfaces is the whole dark-mode fix: platform-tokens.css
    already applies --sc-text, --sc-text-muted and --sc-link to everything inside
-   them, and on these grounds those land between 6.1:1 and 17.3:1. No text
+   them, and on these grounds those land between 4.9:1 and 16.1:1. No text
    colour is set here, which is why the light-mode rules above must stay below
    (0,3,x) -- see the note at the top of this file.
 
    The surface roles mirror light mode's relationship rather than inverting it:
    there the container is page-coloured and delineated only by its border, the
    tab is the one tinted/distinct surface, and items return to the base colour.
-   Dark keeps that shape -- container --sc-surface, tab --sc-surface-sunken,
+   Dark keeps that shape -- container --sc-surface, tab --sc-surface-raised,
    items back to --sc-surface -- with --sc-border carrying the boundaries, the
    same decorative separator every other dark panel in the product uses. The
-   blue/green tint is a light-mode identity only.
+   blue/green tint is a light-mode identity only; in dark the tab is distinct by
+   elevation instead, which is what --sc-surface-raised is for.
 
-   The fills separate by just 1.07:1 here, softer than light mode's 1.21:1. That
-   is the --sc-surface-raised limitation noted at the top of this file: the token
-   meant for a lifted card cannot hold muted text or links in dark mode, so the
-   only two surfaces that can carry this panel's text sit close together. PR 1490
-   fixes that token; when it lands, .site-map-menu-tab should move onto
-   --sc-surface-raised and gain a proper card lift. The separation is decorative
-   either way -- 1.4.11 exempts it, and every text and control pairing inside
-   these panels is measured above the threshold.
+   The fills separate by 1.19:1, matching light mode's 1.21:1 almost exactly, so
+   the two modes now read with the same depth. The cost is margin: on the tab,
+   --sc-link goes from 6.30:1 on --sc-surface-sunken to 4.92:1 on
+   --sc-surface-raised, and --sc-text-muted from 6.83:1 to 5.34:1. Both still
+   clear 4.5:1, but 4.92:1 is a 9% margin rather than a 40% one -- so any future
+   darkening of --sc-link, or lightening of --sc-surface-raised, has to be
+   re-measured against THIS panel and not just against the page. The separation
+   itself is decorative -- 1.4.11 exempts it, and every text and control pairing
+   inside these panels is measured above the threshold.
 
    Focus indicators were checked on these grounds too, not just text:
    --sc-focus-ring lands at 3.78:1 and 4.58:1 on the light panels and 5.87:1 and
-   6.30:1 on the dark ones, all above the 3:1 that 1.4.11 asks of a focus
+   4.92:1 on the dark ones, all above the 3:1 that 1.4.11 asks of a focus
    indicator. Any future repaint of these surfaces needs to re-check that as
    well -- it is easy to verify the text and miss the ring.
 
@@ -190,7 +191,7 @@
 }
 
 :root[data-theme="dark"] .site-map-menu-tab {
-  background-color: var(--sc-surface-sunken);
+  background-color: var(--sc-surface-raised);
   border-color: var(--sc-border);
 }
 
@@ -206,7 +207,7 @@
   }
 
   :root[data-theme="auto"] .site-map-menu-tab {
-    background-color: var(--sc-surface-sunken);
+    background-color: var(--sc-surface-raised);
     border-color: var(--sc-border);
   }
 

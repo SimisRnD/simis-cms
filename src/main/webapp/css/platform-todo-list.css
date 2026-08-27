@@ -1,5 +1,45 @@
 /* To do list card */
 
+/* Colour, both modes -- see issue 1484.
+   ----------------------------------------------------------------------------
+   This file declared only light values and no dark ones, so its rows kept light
+   backgrounds on a dark page while platform-tokens.css repainted the text
+   inside them. Measured against the real cascade with the WCAG
+   relative-luminance formula, before this change:
+
+     DARK   completed item text on the pale green row ......... 1.01:1  FAIL
+     DARK   completed item's checkbox on the pale green row ... 1.01:1  FAIL
+     DARK   open item text on the pale grey row .............. 1.10:1  FAIL
+     LIGHT  the checkbox's own outline against the row ....... 1.19:1  FAIL
+     DARK   the checkbox's own outline against the row ....... 1.19:1  FAIL
+
+   Read the row colours here with care: they are NOT what this file declares.
+   todo-list.jsp emits its own inline <style> AFTER this stylesheet, filling the
+   row backgrounds and the hover ring from theme properties, at the same
+   specificity and later in source order. So the literals below for the row
+   fills are only a fallback for a site that has blanked those properties, and
+   the ratios above are against the fresh-install theme values, not against
+   them. That also means dark mode cannot be fixed by editing those
+   declarations -- a dark rule has to out-specify the JSP's inline block, which
+   the (0,3,x) rules at the bottom of this file do.
+
+   The checkbox is a pseudo-element, not the <input> -- the real input is moved
+   off-screen and label::after draws the box. Nothing platform-tokens.css does
+   to input[type="checkbox"] reaches it, which is why its outline was 1.19:1 in
+   both modes and stayed that way when dark mode arrived: a white-on-near-white
+   box with a near-invisible edge. It is routed to the field tokens here so it
+   follows the same treatment every other control gets.
+
+   Every pairing was computed, not eyeballed. Text meets 4.5:1 (1.4.3); the
+   checkbox outline is a user interface component boundary and meets 3:1
+   (1.4.11) against the row it sits on.
+
+   The local light rules are deliberately left at (0,1,x)/(0,2,x) so
+   platform-tokens.css's (0,3,x) dark rules still beat them; the dark block
+   below sits above the JSP's inline rules instead, which is a different fight
+   and the reason it is written at (0,3,x) rather than by raising the light
+   rules. */
+
 .todo-list-card {
   border-radius: 0;
 }
@@ -29,6 +69,10 @@
   margin: 0;
 }
 
+/* Fallback only -- todo-list.jsp's inline <style> normally supplies these three
+   from theme.callout.secondary.backgroundColor,
+   theme.callout.success.backgroundColor and
+   theme.button.primary.backgroundColor. */
 .todo-list-card ul li {
   background-color: #e6e6e6;
   margin: 10px 0;
@@ -53,9 +97,16 @@
   margin-right: 0;
 }
 
+/* The visible checkbox. The fill follows --sc-field-bg so it matches every
+   other control in both modes. The outline was a near-white line on a
+   near-white box (1.19:1 against the row, i.e. no visible control at all);
+   --sc-border-control is not usable here because it is calibrated against a
+   white page and only reaches 2.70:1 on the tinted row this box actually sits
+   on, so the outline takes the muted-text token instead: 3.80:1 against the
+   default row in light and 6.83:1 in dark. */
 .todo-list-card ul input[type="checkbox"] ~ label::after {
-  background: #fefefe;
-  border: 1px solid #e6e6e6;
+  background: var(--sc-field-bg, #fefefe);
+  border: 1px solid var(--sc-text-muted, #71767d);
   content: '';
   display: block;
   height: 20px;
@@ -75,6 +126,73 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "\f00c";
-  color: #1779ba;
-  border: 1px solid #1779ba;
+  color: var(--sc-link, #1779ba);
+  border: 1px solid var(--sc-link, #1779ba);
+}
+
+/* ==========================================================================
+   Dark mode
+   ==========================================================================
+   These rules are at (0,3,x) to clear todo-list.jsp's inline <style>, not to
+   out-specify platform-tokens.css. The inline block sets the row fills from
+   theme properties at (0,1,2) and (0,2,2) and comes later in source order, so
+   nothing written at this file's own specificity can reach them.
+
+   The theme's callout colours are light by construction and the theme has no
+   dark counterpart for them -- platform-tokens.css states outright that
+   configured accent colours are left alone in dark mode rather than being
+   auto-relit. That works for a fill carrying its own text; it does not work
+   here, because these rows carry inherited page text, which dark mode makes
+   near-white. So the rows move onto dark grounds and the site's configured
+   callout colours do not reach dark mode. The completed row keeps a green
+   tint so the done/open distinction survives at a glance, as it does in light
+   mode; the checkbox glyph carries that state independently of colour either
+   way, so 1.4.1 does not depend on this.
+
+   The completed tint separates from the open row by 1.33:1, more than light
+   mode's own 1.06:1 separation between the two theme colours, and carries the
+   text token at 12.99:1.
+
+   The checked glyph needs its own value here: it is drawn on --sc-field-bg,
+   where --sc-link is only 2.43:1 -- the same --sc-surface-raised limitation
+   noted in the sitemap editor. The text token is 6.67:1 on that fill. The
+   checked box's outline keeps --sc-link, which is measured against the row
+   outside it rather than the fill inside it.
+
+   The two selector groups are kept in sync deliberately, matching
+   platform-tokens.css: "dark" is the forced setting and "auto" follows the OS.
+   Writing only the first would leave every site on theme.ui.mode=auto broken. */
+
+:root[data-theme="dark"] .todo-list-card ul li {
+  background-color: var(--sc-surface-sunken);
+}
+
+:root[data-theme="dark"] .todo-list-card ul li.selected {
+  background-color: #173022;
+}
+
+:root[data-theme="dark"] .todo-list-card ul li:hover {
+  box-shadow: inset 0 0 0 3px var(--sc-link);
+}
+
+:root[data-theme="dark"] .todo-list-card ul input[type="checkbox"]:checked ~ label:after {
+  color: var(--sc-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .todo-list-card ul li {
+    background-color: var(--sc-surface-sunken);
+  }
+
+  :root[data-theme="auto"] .todo-list-card ul li.selected {
+    background-color: #173022;
+  }
+
+  :root[data-theme="auto"] .todo-list-card ul li:hover {
+    box-shadow: inset 0 0 0 3px var(--sc-link);
+  }
+
+  :root[data-theme="auto"] .todo-list-card ul input[type="checkbox"]:checked ~ label:after {
+    color: var(--sc-text);
+  }
 }
