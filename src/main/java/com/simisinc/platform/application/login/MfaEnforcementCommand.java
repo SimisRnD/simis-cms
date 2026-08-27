@@ -44,7 +44,7 @@ public class MfaEnforcementCommand {
 
   public static final String PROPERTY_REQUIRED_ROLES = "mfa.required.roles";
   public static final String PROPERTY_ENROLLMENT_URL = "mfa.enrollment.url";
-  public static final String DEFAULT_ENROLLMENT_URL = "/my-profile";
+  public static final String DEFAULT_ENROLLMENT_URL = "/my-page";
 
   private MfaEnforcementCommand() {
   }
@@ -95,7 +95,9 @@ public class MfaEnforcementCommand {
 
   /**
    * The configured MFA enrollment page URL (where non-enrolled users are redirected), or the
-   * default {@value #DEFAULT_ENROLLMENT_URL} when the property is not set.
+   * default {@value #DEFAULT_ENROLLMENT_URL} when the property is not set. That page is seeded by
+   * the installer and is where the header's "My Account" link goes, so it is reachable by
+   * someone who has been redirected there.
    */
   public static String getEnrollmentUrl() {
     return LoadSitePropertyCommand.loadByName(PROPERTY_ENROLLMENT_URL, DEFAULT_ENROLLMENT_URL);
