@@ -144,6 +144,22 @@ class HtmlCleanerTest {
     assertEquals(expected, value);
   }
   @Test
+  void checkIframeTitleSurvives() {
+    // An embedded frame with no accessible name is announced only as "frame" (WCAG 4.1.2), and a
+    // title is the only way content can supply one. cleanRenderedMarkdown() already allowed this;
+    // cleanContent() did not, so editors had no route to an accessible embed.
+    String html = "<iframe src=\"https://www.youtube.com/embed/LFx-b-njZs0\" width=\"560\" height=\"315\" " +
+        "title=\"Hampton Roads local leaders encourage us to pivot to the positive\" allowfullscreen=\"allowfullscreen\"></iframe>";
+
+    String value = HtmlCommand.cleanContent(html);
+
+    assertTrue(value.contains("title=\"Hampton Roads local leaders encourage us to pivot to the positive\""),
+        "the iframe title must survive -- it is the frame's accessible name");
+    assertTrue(value.contains("src=\"https://www.youtube.com/embed/LFx-b-njZs0\""), "src must survive");
+    assertTrue(value.contains("allowfullscreen"), "allowfullscreen must survive");
+  }
+
+  @Test
   void checkVideoCaptionTrackSurvives() {
     // A caption track is what takes a video with audio from failing WCAG 1.2.2 to passing it, so
     // the sanitizer has to let it through intact -- kind and srclang included, or the track is inert.
