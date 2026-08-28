@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CspPolicyCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
@@ -151,6 +153,76 @@ class PageServletSecurityHeadersTest {
     // and stop rendering. If a future change adds default-src, frame-src must come with it.
     assertTrue(!actualCsp.contains("default-src") || actualCsp.contains("frame-src"),
         "default-src must not be introduced without frame-src: " + actualCsp);
+  }
+
+  @Test
+  void serviceSendsTheReportOnlyHeaderWhenACandidatePolicyIsConfigured() throws Exception {
+    // The gap this covers: CspPolicyCommand and its tests existed, the report receiver existed,
+    // the admin view existed -- and nothing called reportOnlyPolicy() from the request path, so
+    // setting the property changed nothing. Testing the builder in isolation could not see that.
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(CspPolicyCommand.REPORT_ONLY_PROPERTY))
+          .thenReturn("default-src 'self'; connect-src 'self'; script-src 'self' 'nonce-{nonce}'");
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    ArgumentCaptor<String> reportOnly = ArgumentCaptor.forClass(String.class);
+    verify(response, times(1)).setHeader(eq("Content-Security-Policy-Report-Only"), reportOnly.capture());
+    String policy = reportOnly.getValue();
+    assertTrue(policy.contains("connect-src 'self'"), "the configured candidate must reach the browser: " + policy);
+    assertTrue(policy.contains("'nonce-") && !policy.contains("{nonce}"),
+        "the nonce placeholder must be substituted, or a candidate carrying script-src reports on itself: " + policy);
+    // Without a destination the browser evaluates the policy and reports to nobody, which looks
+    // exactly like a policy that found nothing wrong
+    assertTrue(policy.contains("report-uri") && policy.contains("report-to"), "both reporting directives: " + policy);
+    verify(response, times(1)).setHeader(eq("Reporting-Endpoints"), anyString());
+  }
+
+  @Test
+  void serviceSendsNoReportOnlyHeaderWhenNoCandidateIsConfigured() throws Exception {
+    // Blank is how it ships, and blank must mean no header at all rather than an empty one
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    verify(response, never()).setHeader(eq("Content-Security-Policy-Report-Only"), anyString());
+    verify(response, never()).setHeader(eq("Reporting-Endpoints"), anyString());
   }
 
   @Test
