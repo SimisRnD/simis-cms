@@ -37,7 +37,7 @@
   --sc-surface-sunken: #f4f5f7;
   --sc-surface-overlay: #ffffff;
 
-  /* Text - contrast vs --sc-surface: text 17.58:1, muted 4.58:1, link 4.58:1.
+  /* Text - contrast vs --sc-surface: text 17.58:1, muted 4.92:1, link 4.92:1.
      Pewter (#979CA4, 2.76:1 on white / 2.53:1 on frost as text) and
      Platinum (#D9DCE1, 1.37:1 as a control border) both fail AA as given --
      --sc-text-muted uses a darkened "pewter-strong" and --sc-border-control
@@ -50,7 +50,14 @@
      is none of those, and #1490 already acted on that reading in dark mode. So
      --sc-field-placeholder is a text token and carries a text ratio. */
   --sc-text: #17191e;
-  --sc-text-muted: #71767d;
+  /* Darkened so it clears the sunken frost surface as well as the white page, not
+     only the page: muted on sunken 4.51:1, muted on surface 4.92:1. The previous
+     value was derived against white alone and fell short on frost. There is no
+     surface-side fix here -- frost is the lighter of the pair, so it would have to
+     become white to rescue the old ink, at which point it is not a surface. Light
+     tokens never sit on a dark ground, so darkening costs nothing elsewhere.
+     Issue 1498. */
+  --sc-text-muted: #6c7178;
   /* Sidebar chrome on the dark admin rail (#17191e): 6.37:1. Its own token because
      platform.css was reading --sc-field-placeholder for this, which tied unrelated
      things together -- raising the placeholder to clear SC 1.4.3 on a white field
@@ -58,13 +65,17 @@
      and broken them silently. */
   --sc-text-subtle: #979ca4;
   --sc-text-inverse: #ffffff;
-  --sc-link: #2c79be;
+  /* Same reasoning as --sc-text-muted above, hue preserved: link on sunken
+     4.51:1, link on surface 4.92:1. Issue 1498. */
+  --sc-link: #2a74b6;
   --sc-link-hover: #236098;
 
   /* Lines. --sc-border is decorative (1.4.11 exempt), true Platinum.
-     --sc-border-control outlines real controls: 3.24:1 on white (platinum-strong). */
+     --sc-border-control outlines real controls: 3.28:1 on white (platinum-strong). */
   --sc-border: #d9dce1;
-  --sc-border-control: #8d8f92;
+  /* Clears SC 1.4.11 on the sunken surface, which the previous value missed:
+     border on sunken 3.01:1, border on surface 3.28:1. Issue 1498. */
+  --sc-border-control: #8c8e91;
 
   /* Form fields */
   --sc-field-bg: #ffffff;
@@ -650,8 +661,8 @@ input[type="radio"] {
 
    Links and muted text take one extra step darker than their plain light-mode
    values, because those were tuned against pure white and these fills are
-   tinted. --sc-link #2c79be is 4.58:1 on white but only 3.74:1 on the alert
-   fill; --sc-text-muted #71767d is 4.58:1 on white but 3.73:1 there. So --sc-link
+   tinted. --sc-link #2a74b6 is 4.92:1 on white but only 4.01:1 on the alert
+   fill; --sc-text-muted #6c7178 is 4.92:1 on white but 4.01:1 there. So --sc-link
    here is the light ramp's hover value with the hover one step darker again,
    and the muted grey is darkened the same way Layer 1's own "pewter-strong"
    was, far enough to clear the fills while staying a clear step off the ink

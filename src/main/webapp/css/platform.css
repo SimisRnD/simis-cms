@@ -1177,7 +1177,7 @@ ul.pagination li.pagination-next a:hover {
   background: var(--sc-surface-sunken, #f4f5f7);
   border: 1px dashed var(--sc-border, #d9dce1);
   border-radius: var(--sc-radius-md, 4px);
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
   font-size: 2rem;
 }
 
@@ -2308,7 +2308,7 @@ div.item-image-large img {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
 }
 
 /* Shape only. The colours stay whatever the site's theme gives .button, so this
