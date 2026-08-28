@@ -23,7 +23,7 @@
 <jsp:useBean id="botUserAgentList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <p class="help-text">This list only classifies incoming sessions as bot vs. human for <strong>analytics purposes</strong> -- it does not block, throttle, or gate any traffic, and it's completely separate from crawler-permission controls (see <a href="${ctx}/admin/robots-properties">Robots &amp; Crawlers</a> for those). An entry here has zero effect on what a bot is allowed to do; it only changes how that bot's sessions are counted.</p>
 <p class="help-text">A session is counted as a bot when its User-Agent header contains any of the partial strings below -- a plain substring match against the raw header, not a regular expression (see <code>SessionCommand.checkForBot()</code>) -- and matching is <strong>case-sensitive</strong>. Enter the signature in the exact case a real crawler actually sends it, copied from an actual server log rather than guessed, and prefer something specific over something short: even a fragment that clears the minimum length can still be too generic and end up matching real browsers. Bot sessions are excluded from "Real Sessions"/"Return Visitor Rate" and most other visitor-facing analytics on the Site Analytics pages, but are still counted separately in the Bot Sessions/Bot Traffic tiles.</p>

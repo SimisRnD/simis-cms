@@ -22,7 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collectionList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text">A collection is a structured data container built into the CMS -- custom fields, categories, access controls, and a set of widgets (item lists, search, add/edit forms) for displaying and managing its records on the public site. Think of it as a small database with a web UI, useful for things like staff directories, resource libraries, or catalogs that don't fit the page/content-block model. A collection has no bulk-import feature of its own -- to load many records at once, create a Dataset (a separate admin area, see the Datasets page) and point it at this collection; the Dataset is what reads a CSV/TSV/JSON/GeoJSON/RSS file (no Excel/.xlsx support) and populates the collection's items.</p>

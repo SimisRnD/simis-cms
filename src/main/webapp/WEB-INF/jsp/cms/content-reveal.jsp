@@ -23,7 +23,7 @@
 <jsp:useBean id="card1" class="java.lang.String" scope="request"/>
 <jsp:useBean id="card2" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <div class="platform-content-container"<c:if test="${showEditor eq 'true' && !empty uniqueId}"> data-simis-content-id="${uniqueId}"</c:if>>
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">

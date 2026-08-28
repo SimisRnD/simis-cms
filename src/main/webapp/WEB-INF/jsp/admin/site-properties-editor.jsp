@@ -104,7 +104,7 @@
   });
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%-- issue #1268: this JSP is shared by 18 different settings pages via the prefix preference --
      gate on the exact branding-related prefixes so this callout only appears on the 4 pages it's

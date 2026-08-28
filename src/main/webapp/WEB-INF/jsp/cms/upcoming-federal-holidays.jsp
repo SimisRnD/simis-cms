@@ -18,7 +18,7 @@
 <jsp:useBean id="holidayList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="showObservedNote" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <ul class="federal-holiday-list no-bullet">
   <c:forEach items="${holidayList}" var="holiday">

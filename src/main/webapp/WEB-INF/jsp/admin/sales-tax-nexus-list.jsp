@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="salesTaxNexusAddressList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/sales-tax-nexus-address?returnPage=/admin/sales-tax-nexus">Add an Address <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>

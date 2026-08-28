@@ -26,7 +26,7 @@
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="currentClientIp" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through, for every page on the site (aside from a couple of hardcoded exemptions, like the <code>/healthz</code> health check), not just specific ones. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
 <div class="callout radius">

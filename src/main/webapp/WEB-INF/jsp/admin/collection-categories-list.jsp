@@ -24,7 +24,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text">Categories are a structured alternative to a free-text custom field -- a fixed list of choices (e.g. departments, regions) that items in this collection can be sorted into, rather than a value someone types differently every time. Use them when you want reliable grouping, filtering, or reporting by that value.</p>

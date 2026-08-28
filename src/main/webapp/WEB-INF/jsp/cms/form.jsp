@@ -226,7 +226,7 @@
   </div>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <c:if test="${!empty subtitle}">
     <p class="subheader"><c:out value="${subtitle}" /></p>

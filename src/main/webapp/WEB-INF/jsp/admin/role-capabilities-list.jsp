@@ -19,7 +19,7 @@
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="capabilitiesByRoleId" class="java.util.LinkedHashMap" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <p class="help-text">Each role is a bundle of capabilities checked throughout the platform. This page grants or revokes capabilities directly - it doesn't manage which users have which role (see <a href="${ctx}/admin/users">Users</a> for that).</p>
 <p class="help-text">A capability is additive, layered on top of roles rather than a replacement for them: a user's effective capabilities are the union of what their role(s) grant here plus any active direct grants made to them individually (see a user's Capability Grants page from their user details). A direct grant can only add access beyond a role - it can never subtract from or override what a role already provides. Use role edits here to give a capability to everyone in a job function; use direct grants for one person's scoped, possibly-temporary exception.</p>
