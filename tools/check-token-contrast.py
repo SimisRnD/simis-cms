@@ -431,6 +431,12 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # Light placeholder, issue 1506. A real token pairing, so the tool re-derives it
+    # rather than taking the comment's word for it.
+    (r"Placeholder on the white field below: ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-field-placeholder", "--sc-field-bg")])]),
+
     # -- Layer 1, light -----------------------------------------------------
     (r"Text - contrast vs --sc-surface: text ([\d.]+):1, muted ([\d.]+):1, link ([\d.]+):1",
      "light",
@@ -589,6 +595,9 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
+    (r"declaration standing, and ships ([\d.]+):1 on a white field", "Foundation's factory placeholder again, at the light-mode rule that overrides it"),
+    (r"Foundation's own #cacaca at\s+([\d.]+):1 on white", "Foundation's factory placeholder, the value light mode shipped before issue 1506"),
+    (r"the dark admin rail \(#17191e\): ([\d.]+):1", "--sc-text-subtle on the rail's hardcoded background, which is not a token"),
     (r"are (1\.799):1 and 1\.842:1", "Foundation $success as text on white, issue 1529"),
     (r"are 1\.799:1 and (1\.842):1", "Foundation $warning as text on white, issue 1529"),
     (r"land at (1\.799):1 and 1\.842:1", "same pair restated at the hollow/clear button rule"),

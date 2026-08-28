@@ -41,10 +41,22 @@
      Pewter (#979CA4, 2.76:1 on white / 2.53:1 on frost as text) and
      Platinum (#D9DCE1, 1.37:1 as a control border) both fail AA as given --
      --sc-text-muted uses a darkened "pewter-strong" and --sc-border-control
-     a darkened "platinum-strong". True Pewter/Platinum are kept for
-     placeholder text (not AA-required) and decorative borders. */
+     a darkened "platinum-strong". True Platinum is kept for decorative borders.
+
+     Placeholder text is NOT exempt from SC 1.4.3, contrary to what this note
+     used to say. The criterion's exceptions are incidental text -- inactive
+     controls, pure decoration, invisible text, text in a picture carrying other
+     significant content -- plus logotypes. Placeholder text in an active input
+     is none of those, and #1490 already acted on that reading in dark mode. So
+     --sc-field-placeholder is a text token and carries a text ratio. */
   --sc-text: #17191e;
   --sc-text-muted: #71767d;
+  /* Sidebar chrome on the dark admin rail (#17191e): 6.37:1. Its own token because
+     platform.css was reading --sc-field-placeholder for this, which tied unrelated
+     things together -- raising the placeholder to clear SC 1.4.3 on a white field
+     would have dragged this token's own consumers below that floor on the rail,
+     and broken them silently. */
+  --sc-text-subtle: #979ca4;
   --sc-text-inverse: #ffffff;
   --sc-link: #2c79be;
   --sc-link-hover: #236098;
@@ -57,7 +69,14 @@
   /* Form fields */
   --sc-field-bg: #ffffff;
   --sc-field-text: #17191e;
-  --sc-field-placeholder: #979ca4;
+  /* Placeholder on the white field below: 4.58:1. The previous value was true
+     Pewter, which fails as text on white (see the palette note above), and never
+     reached a placeholder in light mode anyway -- Foundation's own #cacaca at
+     1.64:1 on white was the declaration actually standing. Same value as
+     --sc-text-muted:
+     placeholder text is muted text, and holding them together means one
+     re-derivation if the light palette ever moves. */
+  --sc-field-placeholder: #71767d;
   --sc-field-disabled-bg: #f4f5f7;
 
   /* Focus ring - Fixed link blue, 4.58:1 on white, well past the 3:1 that
@@ -742,6 +761,17 @@ input[type="radio"] {
   color: var(--sc-field-text);
   border-color: var(--sc-border-control);
   box-shadow: none;
+}
+
+/* Light mode needs this rule at all: without it Foundation's own
+   `::placeholder { color: var(--sc-fnd-medium-gray, #cacaca) }` is the only
+   declaration standing, and ships 1.64:1 on a white field. Layer 3 otherwise
+   repaints only under [data-theme="dark"], on the principle that light mode is
+   already correct -- which held everywhere except here. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--sc-field-placeholder);
+  opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio */
 }
 
 :root[data-theme="dark"] input::placeholder,
