@@ -1013,7 +1013,7 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 11px;
-  color: var(--sc-field-placeholder, #979ca4);
+  color: var(--sc-text-subtle, #979ca4);
 }
 .admin-menu .app-user {
   margin-bottom: 10px;
@@ -1025,7 +1025,7 @@ ul.pagination li.pagination-next a:hover {
   color: var(--sc-text-inverse, #ffffff);
 }
 .admin-menu .app-user i {
-  color: var(--sc-field-placeholder, #979ca4);
+  color: var(--sc-text-subtle, #979ca4);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1034,7 +1034,7 @@ ul.pagination li.pagination-next a:hover {
   font-size: 11px;
   letter-spacing: 0.05em;
   padding-left: 20px;
-  color: var(--sc-field-placeholder, #979ca4);
+  color: var(--sc-text-subtle, #979ca4);
 }
 .admin-menu a {
   padding-left: 20px;
@@ -1044,7 +1044,7 @@ ul.pagination li.pagination-next a:hover {
 /* Icons read one step quieter than their label -- pewter at rest, white
    only once the item is active (see .is-active > a i below). */
 .admin-menu a i {
-  color: var(--sc-field-placeholder, #979ca4);
+  color: var(--sc-text-subtle, #979ca4);
 }
 .admin-menu ul {
   padding-left: 0;
