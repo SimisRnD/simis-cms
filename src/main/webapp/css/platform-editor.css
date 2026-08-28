@@ -1076,7 +1076,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-discard-btn {
   background: transparent;
-  color: var(--sc-text-muted, #666);
+  color: var(--sc-text-muted, #6c7178);
   border: 1px solid #ccc;
   border-radius: 3px;
   padding: 4px 14px;
