@@ -115,6 +115,11 @@ def test_an_unreachable_bound_says_so_rather_than_naming_a_colour():
 def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens):
     """Default output stays readable: a waived pairing's analysis lives in its ticket, a
     failing one needs the bounds in front of whoever just broke it."""
+    # The committed file holds no live waiver any more -- every pairing that was once
+    # held open has since been fixed outright -- so the waived-but-passing half of this
+    # test makes its own, rather than borrowing a production colour and going red the
+    # next time one of those gets repaired.
+    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
     assert "to clear it:" not in r.stdout
@@ -185,11 +190,15 @@ def test_var_indirection_is_followed_through_two_levels(tokens):
 
 
 def test_a_waived_pairing_reports_but_does_not_fail(tokens):
-    """The light-mode gaps this check found on its first run are held open with a reason,
-    not dropped from the table -- a waiver that prints every run cannot go stale."""
+    """A waiver holds a known gap open with a reason instead of dropping it from the
+    table -- it reports on every run, so it cannot go stale unnoticed, and it never
+    turns a red build green by silence. Driven from a pairing this test breaks itself:
+    asserting on whichever gap production happens to be carrying today would make the
+    test fail as a reward for fixing one."""
+    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
-    assert "WAIVED" in r.stdout and "--sc-surface-sunken" in r.stdout
+    assert "WAIVED" in r.stdout and "--sc-fnd-alert" in r.stdout
 
 
 # -- 2. dark/auto parity ---------------------------------------------------

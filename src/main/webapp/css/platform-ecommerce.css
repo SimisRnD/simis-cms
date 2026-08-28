@@ -81,7 +81,7 @@
    value follows the theme instead of being fixed here. Kept at (0,2,0) so
    platform-tokens.css's (0,3,x) rules still beat it. */
 .product-details-add-to-cart .dim-text {
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
 }
 
 .product-details-add-to-cart .price {
