@@ -2015,7 +2015,8 @@ div.item-image-large img {
   margin-left: 30px;
   margin-bottom:30px;
 }
-.platform-calendar-event-block h4, .platform-calendar-event-block p {
+.platform-calendar-event-block h3, .platform-calendar-event-block h4,
+.platform-calendar-event-block p {
   margin: 0;
   padding: 0;
 }
