@@ -352,21 +352,32 @@ for _block in BLOCKS:
 # to below. Clearing a waived pairing means deleting its entry here in the same
 # change.
 WAIVED = {
-    # Issue 1498. --sc-surface-sunken is hex f4f5f7 in light, only 1.09:1 off the
-    # white page. --sc-text-muted and --sc-link were both picked for 4.58:1 on
-    # white and never re-derived against frost. No live failure today -- the one
-    # light-mode consumer that pairs text with it renders a decorative icon, not
-    # text -- so the trap is the next author who puts .help-text on a sunken panel.
-    # Unlike issue 1489 there is no surface-side fix: in light mode the surface is
-    # the lighter of the pair, so it would have to reach L 0.9827 (about hex
-    # fefefe) to rescue muted, which is no longer a surface.
-    ("light", "--sc-text-muted", "--sc-surface-sunken"): "4.19:1 -- muted text on frost, issue 1498",
-    ("light", "--sc-link", "--sc-surface-sunken"): "4.20:1 -- links on frost, issue 1498",
-    ("light", "--sc-border-control", "--sc-surface-sunken"):
-        "2.97:1 -- a control border against a frost ground, just under 1.4.11, issue 1498",
-    ("light", "--sc-text-muted", "--sc-field-disabled-bg"):
-        "4.19:1 -- the same frost value as the sunken surface above, issue 1498. No "
-        "light-mode consumer today; both Layer 3b rules that paint it are dark-scoped.",
+    # Issue 1498's four waivers are gone: the three light tokens were darkened so
+    # they clear frost outright, rather than being held here. The note that made
+    # this look unfixable was right about the surface and wrong about the cost --
+    # frost is the lighter of the pair, so no surface-side fix exists, but the ink
+    # only had to move a few points and every one of those moves also improved the
+    # ratio on white. Light-mode tokens never sit on a dark ground, so darkening
+    # them cannot cost anything elsewhere.
+    # Issue 1506, and read the reason before trusting the number. 2.76:1 is what
+    # THIS PAIRING computes, but it is not what ships: no light-mode rule applies
+    # --sc-field-placeholder at all (the only ::placeholder rules in first-party CSS
+    # are the two dark-scoped ones), so Foundation's own
+    # `::placeholder{color:var(--sc-fnd-medium-gray,#cacaca)}` wins and the rendered
+    # light placeholder is 1.64:1. This gate cannot see that: the failing declaration
+    # lives in vendored Foundation, not here. See "What this cannot check" above.
+    # The trap for whoever fixes 1506: adding the missing light rule without also
+    # changing the value swaps 1.64:1 for 2.76:1 and looks resolved.
+    ("light", "--sc-field-placeholder", "--sc-field-bg"):
+        "2.76:1 as declared -- but nothing applies this token in light mode; what "
+        "renders is Foundation's #cacaca at 1.64:1. Issue 1506. The light-mode note "
+        "calls placeholder text 'not AA-required', which SC 1.4.3 does not exempt.",
+    # None means every theme: Foundation's five accent fills are deliberately
+    # not redefined for dark, so this one misses in all three blocks.
+    (None, "--sc-fnd-on-accent", "--sc-fnd-alert"):
+        "4.4981:1 -- Foundation's own $white on its own $alert, marginally under. "
+        "Vendored palette, shipped unmodified on purpose (see the Layer 1b note); "
+        "repainting it is a brand decision, not a CI one.",
 }
 
 # --------------------------------------------------------------------------
@@ -423,6 +434,19 @@ CLAIMS = [
     (r"Placeholder on the white field below: ([\d.]+):1",
      "light",
      [("exact", [("--sc-field-placeholder", "--sc-field-bg")])]),
+    # Issue 1498: the darkened light tokens, stated against both grounds they meet.
+    (r"muted on sunken ([\d.]+):1, muted on surface\s+([\d.]+):1",
+     "light",
+     [("exact", [("--sc-text-muted", "--sc-surface-sunken")]),
+      ("exact", [("--sc-text-muted", "--sc-surface")])]),
+    (r"link on sunken\s+([\d.]+):1, link on surface ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-link", "--sc-surface-sunken")]),
+      ("exact", [("--sc-link", "--sc-surface")])]),
+    (r"border on sunken ([\d.]+):1, border on surface ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-border-control", "--sc-surface-sunken")]),
+      ("exact", [("--sc-border-control", "--sc-surface")])]),
 
     # -- Layer 1, light -----------------------------------------------------
     (r"Text - contrast vs --sc-surface: text ([\d.]+):1, muted ([\d.]+):1, link ([\d.]+):1",
@@ -537,9 +561,9 @@ CLAIMS = [
     (r"--sc-fnd-warning-ink on the light surface \.+ ([\d.]+):1",
      "light", [("exact", [("--sc-fnd-warning-ink", "--sc-fnd-surface")])]),
     # -- Layer 3b, light-mode facts quoted inside the dark callout note --
-    (r"--sc-link #2c79be is ([\d.]+):1 on white",
+    (r"--sc-link #2a74b6 is ([\d.]+):1 on white",
      "light", [("exact", [("--sc-link", "--sc-surface")])]),
-    (r"--sc-text-muted #71767d is ([\d.]+):1 on white",
+    (r"--sc-text-muted #6c7178 is ([\d.]+):1 on white",
      "light", [("exact", [("--sc-text-muted", "--sc-surface")])]),
 ]
 
@@ -585,6 +609,8 @@ RENDERED_RATIOS = [
     (r"declaration standing, and ships ([\d.]+):1 on a white field", "Foundation's factory placeholder again, at the light-mode rule that overrides it"),
     (r"Foundation's own #cacaca at\s+([\d.]+):1 on white", "Foundation's factory placeholder, the value light mode shipped before issue 1506"),
     (r"the dark admin rail \(#17191e\): ([\d.]+):1", "--sc-text-subtle on the rail's hardcoded background, which is not a token"),
+    (r"on white but only ([\d.]+):1 on the alert", "light --sc-link on the .callout.alert fill #f7e4e1, which is a Foundation fill rather than a token"),
+    (r"on white but ([\d.]+):1 there", "light --sc-text-muted on that same alert fill"),
     (r"are (1\.799):1 and 1\.842:1", "Foundation $success as text on white, issue 1529"),
     (r"are 1\.799:1 and (1\.842):1", "Foundation $warning as text on white, issue 1529"),
     (r"land at (1\.799):1 and 1\.842:1", "same pair restated at the hollow/clear button rule"),
@@ -599,7 +625,6 @@ RENDERED_RATIOS = [
     (r"before, ([\d.]+):1 after", "form-error red on the dark page after it, still failing"),
     (r"success fill \(#e1faea\): ([\d.]+):1", "dark --sc-text on the light success callout fill, before Layer 3b repainted it"),
     (r"only ([\d.]+):1 on the alert", "--sc-link against the tinted alert callout fill"),
-    (r"is 4\.58:1 on white but ([\d.]+):1 there", "--sc-text-muted against the same tinted fill"),
     (r"\((3\.42):1 against it", "darkened muted grey against the callout ink, a separation not a floor"),
     (r"close to the (3\.84):1 separation", "the light ramp's own ink/muted separation, quoted for comparison"),
     (r"text \(--sc-text\) \.+ ([\d.]+):1", "worst case across every install-default callout fill"),
