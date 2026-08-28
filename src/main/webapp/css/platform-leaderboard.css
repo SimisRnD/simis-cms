@@ -60,7 +60,7 @@
   color: #3d7d4e;
   background-color: var(--sc-surface, #ffffff);
   border: none;
-  font-weight: bold;
+  font-weight: var(--sc-weight-bold, 700);
 }
 /* The header band is the page showing through -- it exists to knock out
    Foundation's grey thead, not to be a colour of its own. Routing it to
@@ -86,8 +86,8 @@
   /* white-space: nowrap; */
 /* } */
 .leaderboard-rank {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--sc-font-lg, 1.125rem);
+  font-weight: var(--sc-weight-bold, 700);
   color: white;
   /* Was the same pale green as the header, carrying white text at 1.81:1.
      Darkened along its own hue: white on it is 4.95:1, and dark mode's
@@ -107,14 +107,14 @@
    4.95:1 for white and 4.54:1 for dark mode's text token, keeping the teal that
    distinguishes a player row from the green rank badge. */
 .leaderboard-name {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--sc-font-lg, 1.125rem);
+  font-weight: var(--sc-weight-bold, 700);
   color: white;
   background-color: #267b83;
 }
 .leaderboard-points {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: var(--sc-font-xl, 1.5rem);
+  font-weight: var(--sc-weight-bold, 700);
   color: white;
   background-color: #267b83;
   text-align: right;

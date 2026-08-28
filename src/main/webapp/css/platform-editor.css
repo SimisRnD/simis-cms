@@ -76,7 +76,7 @@
 
 #sc-editor-toolbar .button {
   margin-bottom: 0;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
 }
 
 /* Control boundaries in the editor chrome, issue 1518.
@@ -119,8 +119,8 @@
 
 #sc-editor-toolbar-title {
   color: #aaa;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--sc-font-xs, 0.75rem);
+  font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-right: 0.5rem;
@@ -128,7 +128,7 @@
 
 #sc-editor-status {
   color: #aaa;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   margin-left: auto;
   white-space: nowrap;
 }
@@ -177,12 +177,12 @@ body.page-edit-mode [data-editor-widget]:hover {
   position: absolute;
   top: 0;
   left: 0;
-  font-size: 10px;
+  font-size: var(--sc-font-3xs, 0.625rem);
   padding: 2px 6px;
   line-height: 16px;
   z-index: 100;
   font-family: sans-serif;
-  font-weight: 600;
+  font-weight: var(--sc-weight-semibold, 600);
   cursor: pointer;
   white-space: nowrap;
   display: none;
@@ -247,7 +247,7 @@ a.sc-editor-handle:hover {
   z-index: 10000;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   font-family: sans-serif;
-  font-size: 13px;
+  font-size: var(--sc-font-sm, 0.8125rem);
   white-space: nowrap;
 }
 
@@ -258,7 +258,7 @@ a.sc-editor-handle:hover {
   padding: 3px 7px;
   cursor: pointer;
   border-radius: 3px;
-  font-size: 13px;
+  font-size: var(--sc-font-sm, 0.8125rem);
   line-height: 1.4;
   min-width: 26px;
   font-family: sans-serif;
@@ -288,11 +288,11 @@ a.sc-editor-handle:hover {
 
 .sc-inline-actions .button {
   margin-bottom: 0;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
 }
 
 .sc-inline-save-msg {
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   color: #1d7731;
   margin-left: 4px;
 }
@@ -315,7 +315,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
   align-items: center;
   justify-content: center;
   cursor: grab;
-  font-size: 14px;
+  font-size: var(--sc-font-md, 0.875rem);
   line-height: 1;
   z-index: 101;
   border-radius: 0 0 0 3px;
@@ -377,7 +377,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: var(--sc-fnd-on-accent, #fefefe);
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   padding: 2px 5px;
   cursor: pointer;
   border-radius: 2px;
@@ -393,7 +393,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 /* Save Layout button in toolbar */
 #sc-save-layout-btn {
   margin-bottom: 0;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
 }
 
 /* Unsaved layout change indicator */
@@ -417,12 +417,12 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-publish-btn {
   margin-bottom: 0;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
 }
 
 #sc-discard-draft-btn {
   margin-bottom: 0;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   color: #ccc;
   border-color: var(--sc-border-control, #8c8e91);
 }
@@ -460,7 +460,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-modal-msg {
   color: #eee;
-  font-size: 0.9rem;
+  font-size: var(--sc-font-md, 0.875rem);
   margin-bottom: 1rem;
   line-height: 1.5;
 }
@@ -472,7 +472,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-actions button {
-  font-size: 0.8rem;
+  font-size: var(--sc-font-sm, 0.8125rem);
   padding: 6px 16px;
   border-radius: 4px;
   border: none;
@@ -528,7 +528,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 .sc-mutate-btns button {
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
-  font-size: 10px;
+  font-size: var(--sc-font-3xs, 0.625rem);
   padding: 2px 6px;
   cursor: pointer;
   border-radius: 2px;
@@ -581,7 +581,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   padding: 5px 4px;
   cursor: pointer;
   border-radius: 3px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   text-align: center;
   font-family: sans-serif;
   line-height: 1.2;
@@ -610,7 +610,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   font-family: sans-serif;
   min-width: 0;
@@ -653,7 +653,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   cursor: pointer;
   font-family: sans-serif;
@@ -744,7 +744,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-pref-field label {
   color: #ccc;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
 }
 
@@ -755,7 +755,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 4px 6px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   font-family: sans-serif;
   box-sizing: border-box;
@@ -786,7 +786,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   font-family: monospace;
   resize: vertical;
@@ -802,7 +802,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-prefs-empty {
   color: #999;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
   margin: 4px 0;
 }
@@ -815,8 +815,8 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-header span {
   color: #ccc;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--sc-font-2xs, 0.6875rem);
+  font-weight: var(--sc-weight-semibold, 600);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -825,7 +825,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   background: transparent;
   border: none;
   color: #888;
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
@@ -840,7 +840,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   font-family: monospace;
   resize: vertical;
@@ -859,7 +859,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-error {
   color: #e35b68;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   min-height: 0;
   line-height: 1.3;
 }
@@ -875,7 +875,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #ccc;
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   cursor: pointer;
   font-family: sans-serif;
@@ -891,7 +891,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
   cursor: pointer;
   font-family: sans-serif;
@@ -920,7 +920,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   border-radius: 3px;
   width: 220px;
 }
@@ -930,7 +930,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   border-radius: 3px;
   cursor: pointer;
 }
@@ -960,8 +960,8 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   padding: 6px 8px;
   background: var(--sc-surface-sunken, #f4f5f7);
   border-bottom: 1px solid var(--sc-border, #d9dce1);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--sc-font-2xs, 0.6875rem);
+  font-weight: var(--sc-weight-semibold, 600);
   color: var(--sc-text, #17191e);
   flex-shrink: 0;
 }
@@ -970,7 +970,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--sc-font-md, 0.875rem);
   color: var(--sc-text, #17191e);
   padding: 0 2px;
   line-height: 1;
@@ -981,7 +981,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   padding: 4px 6px;
   border: 1px solid var(--sc-border-control, #8c8e91);
   border-radius: 3px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   flex-shrink: 0;
 }
 
@@ -1007,7 +1007,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-widget-list li {
   padding: 5px 12px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   color: var(--sc-text, #17191e);
   cursor: pointer;
   white-space: nowrap;
@@ -1026,7 +1026,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   border-radius: 3px;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--sc-font-2xs, 0.6875rem);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1086,7 +1086,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid var(--sc-border, #d9dce1);
   border-top: none;
   border-radius: 0 0 4px 4px;
-  font-size: 1rem;
+  font-size: var(--sc-font-base, 1rem);
   min-height: 60px;
 }
 
@@ -1190,7 +1190,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   border-radius: 3px;
   padding: 4px 14px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   cursor: pointer;
 }
 
@@ -1209,7 +1209,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: 1px solid #ccc;
   border-radius: 3px;
   padding: 4px 14px;
-  font-size: 12px;
+  font-size: var(--sc-font-xs, 0.75rem);
   cursor: pointer;
 }
 
