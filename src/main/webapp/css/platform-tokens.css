@@ -80,6 +80,33 @@
   --sc-chrome-hover: #3e4045;
   --sc-chrome-ink: #ffffff;
   --sc-chrome-ink-muted: #d9dce1;
+
+  /* Type scale. Ten steps, derived from what the stylesheets already use rather than
+     imposed: 96 font-size declarations across 36 distinct values, of which the great
+     majority sat on or within a pixel of these. The near-misses -- 11.5, 12.5, 12.8,
+     13.1, 13.5, 14.4, 15.5, 17.5 and 17.6px -- snap to the nearest step, so nothing
+     moves by more than a pixel and the drift stops having somewhere to go.
+
+     Anchored at --sc-font-base = 1rem, so the scale follows the reader's own text
+     size rather than pinning it. Foundation's fluid heading sizes are deliberately
+     left alone: they are responsive behaviour, not steps on this scale. Issue 1575. */
+  --sc-font-3xs: 0.625rem;
+  --sc-font-2xs: 0.6875rem;
+  --sc-font-xs: 0.75rem;
+  --sc-font-sm: 0.8125rem;
+  --sc-font-md: 0.875rem;
+  --sc-font-base: 1rem;
+  --sc-font-lg: 1.125rem;
+  --sc-font-xl: 1.5rem;
+  --sc-font-2xl: 2rem;
+  --sc-font-3xl: 2.5rem;
+
+  /* Weights. The stylesheets carried nine distinct values including bold, bolder and
+     normal alongside numerics; these are the four that carry meaning here. */
+  --sc-weight-regular: 400;
+  --sc-weight-medium: 500;
+  --sc-weight-semibold: 600;
+  --sc-weight-bold: 700;
   --sc-text-inverse: #ffffff;
   /* Same reasoning as --sc-text-muted above, hue preserved: link on sunken
      4.51:1, link on surface 4.92:1. Issue 1498. */

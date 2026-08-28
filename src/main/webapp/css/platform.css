@@ -4,8 +4,8 @@
 
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: var(--sc-font-base, 1rem);
+  font-weight: var(--sc-weight-regular, 400);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color:transparent;
@@ -14,7 +14,7 @@ body {
 .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
   margin-bottom: .5rem;
-  font-weight: 500;
+  font-weight: var(--sc-weight-medium, 500);
   line-height: 1.2;
 }
 
@@ -24,7 +24,7 @@ body {
 
 @media (min-width: 1200px) {
   .h1, h1 {
-    font-size:2.5rem;
+    font-size: var(--sc-font-3xl, 2.5rem);
   }
 }
 
@@ -34,7 +34,7 @@ body {
 
 @media (min-width: 1200px) {
   .h2, h2 {
-    font-size:2rem;
+    font-size: var(--sc-font-2xl, 2rem);
   }
 }
 
@@ -54,7 +54,7 @@ body {
 
 @media (min-width: 1200px) {
   .h4, h4 {
-    font-size:1.5rem;
+    font-size: var(--sc-font-xl, 1.5rem);
   }
 }
 
@@ -77,7 +77,7 @@ body {
 
 @media (min-width: 1200px) {
   .widget-title {
-    font-size:1.5rem;
+    font-size: var(--sc-font-xl, 1.5rem);
   }
 }
 
@@ -86,7 +86,7 @@ body {
 }
 
 .h6, h6 {
-  font-size:1rem;
+  font-size: var(--sc-font-base, 1rem);
 }
 
 p {
@@ -155,8 +155,8 @@ p {
 #platform-menu .menu-text {
   padding: 0;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 15.5px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-base, 1rem);
 }
 #platform-menu ul.menu li.logo a:hover {
   background: transparent !important;
@@ -172,25 +172,25 @@ p {
 #platform-small-menu ul.menu li a,
 #platform-small-menu .title-bar-title {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 17.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-lg, 1.125rem);
 }
 #platform-menu ul.menu li > a:hover,
 #platform-menu ul.menu li.is-active > a,
 #platform-menu .is-active .is-dropdown-submenu-item a:hover {
-  font-weight: 500;
+  font-weight: var(--sc-weight-medium, 500);
 }
 /* Contact Us/Login/My Account/Log Out come from the header's "menu" widget
    (class="float-right header-item"), a separate widget instance from the
    Home/Solutions-style nav tabs above -- kept at 16px rather than the 17.5px
    those get, per request. */
 #platform-menu .header-item.float-right ul.menu li a {
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
 }
 #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 17.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-lg, 1.125rem);
 }
 
 /* fa-angle-down replaces Foundation's default CSS-triangle dropdown caret
@@ -225,8 +225,8 @@ p {
   background-color: #000000;
   color: var(--sc-text-inverse, #ffffff);
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 11.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-2xs, 0.6875rem);
 }
 .utility-links {
   float: right;
@@ -259,8 +259,8 @@ p {
   margin: 6px 0 10px;
   text-transform: uppercase;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 16px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-base, 1rem);
   letter-spacing: 0.05em;
   color: #53575c;
 }
@@ -354,7 +354,7 @@ p {
   border-right: 1px solid #999999; padding: 0 8px;
 }
 .platform-footer .menu-title {
-  font-weight: bold;
+  font-weight: var(--sc-weight-bold, 700);
 }
 
 /* Default page adjustments for footer when there is minimal content */
@@ -379,12 +379,12 @@ callout.round, .callout.round {
 /* Labels */
 
 label {
-  font-size: 1rem;
+  font-size: var(--sc-font-base, 1rem);
 }
 
 span.required {
   color: #ae1515;
-  font-weight: bold;
+  font-weight: var(--sc-weight-bold, 700);
 }
 
 label.radius, .label.radius {
@@ -785,27 +785,27 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-caption p {
-  font-size: 0.9rem;
+  font-size: var(--sc-font-md, 0.875rem);
   line-height: 1.25;
 }
 
 @media print, screen and (min-width: 40em) {
   .clean-hero-slider .orbit-caption p {
-    font-size: 1.1rem;
+    font-size: var(--sc-font-lg, 1.125rem);
   }
 }
 
 .clean-hero-slider .orbit-caption h3 {
   color: var(--sc-fnd-warning, #ffae00);
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: var(--sc-font-xl, 1.5rem);
+  font-weight: var(--sc-weight-bold, 700);
   margin-bottom: 0;
 }
 
 @media print, screen and (min-width: 40em) {
   .clean-hero-slider .orbit-caption h3 {
-    font-size: 2.5rem;
-    font-weight: normal;
+    font-size: var(--sc-font-3xl, 2.5rem);
+    font-weight: var(--sc-weight-regular, 400);
   }
 }
 
@@ -987,8 +987,8 @@ ul.pagination li.pagination-next a:hover {
   min-height: 90vh;
   background-color: var(--sc-chrome, #17191e);
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 13.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-sm, 0.8125rem);
   line-height: 1.4;
   color: var(--sc-chrome-ink-muted, #d9dce1);
 }
@@ -998,8 +998,8 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .app-title {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  font-weight: 500;
-  font-size: 15.5px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
   background-color: var(--sc-chrome, #17191e);
@@ -1011,8 +1011,8 @@ ul.pagination li.pagination-next a:hover {
   display: block;
   margin-top: 2px;
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 11px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-2xs, 0.6875rem);
   color: var(--sc-text-subtle, #979ca4);
 }
 .admin-menu .app-user {
@@ -1020,8 +1020,8 @@ ul.pagination li.pagination-next a:hover {
   padding: 10px 20px;
   background-color: var(--sc-chrome-raised, #53575c);
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-sm, 0.8125rem);
   color: var(--sc-chrome-ink, #ffffff);
 }
 .admin-menu .app-user i {
@@ -1032,8 +1032,8 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .section-title {
   margin-top: 4px;
   text-transform: uppercase;
-  font-weight: 500;
-  font-size: 11px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-2xs, 0.6875rem);
   letter-spacing: 0.05em;
   padding-left: 20px;
   color: var(--sc-text-subtle, #979ca4);
@@ -1041,7 +1041,7 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu a {
   padding-left: 20px;
   color: var(--sc-chrome-ink-muted, #d9dce1);
-  font-weight: 400;
+  font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
    only once the item is active (see .is-active > a i below). */
@@ -1082,7 +1082,7 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu li.is-active > a {
   background-color: var(--sc-chrome-raised, #53575c);
   color: var(--sc-chrome-ink, #ffffff);
-  font-weight: 500;
+  font-weight: var(--sc-weight-medium, 500);
   box-shadow: inset 3px 0 0 #7faed7;
 }
 .admin-menu li.is-active > a i {
@@ -1180,7 +1180,7 @@ ul.pagination li.pagination-next a:hover {
   border: 1px dashed var(--sc-border, #d9dce1);
   border-radius: var(--sc-radius-md, 4px);
   color: var(--sc-text-muted, #6c7178);
-  font-size: 2rem;
+  font-size: var(--sc-font-2xl, 2rem);
 }
 
 /* User Card Profile */
@@ -1220,7 +1220,7 @@ ul.pagination li.pagination-next a:hover {
 .card-profile-stats .card-profile-stats-more .card-profile-stats-more-link {
   margin: 0;
   text-align: center;
-  font-size: 1.5rem;
+  font-size: var(--sc-font-xl, 1.5rem);
   color: var(--sc-fnd-black, #0a0a0a);
   padding: 0.5rem;
   cursor: pointer;
@@ -1381,7 +1381,7 @@ a.read-more {
   border-bottom: 1px solid var(--sc-fnd-light-gray, #e6e6e6);
 }
 .tabs li a {
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   color: #000000;
   background: var(--sc-fnd-light-gray, #e6e6e6);
   transition: all 0.35s ease-in-out;
@@ -1544,7 +1544,7 @@ a.read-more {
 .text-no-wrap { white-space:nowrap; }
 .text-strike { text-decoration:line-through; }
 .text-no-strike { text-decoration:none; }
-.text-bold { font-weight: bold; }
+.text-bold { font-weight: var(--sc-weight-bold, 700); }
 /* For legible text inside a content widget placed on a dark section background -- content-widget
    HTML is sanitized on save and strips inline style= attributes, so a class is the only way to
    set this from page content (see .text-brand above, same restriction). */
@@ -2269,7 +2269,7 @@ div.item-image-large img {
 .platform-blog-showcase-container .card-section.blog-title h2,
 .platform-blog-showcase-container .card-section.blog-title h2 a {
   font-weight: 800;
-  font-size: 24px;
+  font-size: var(--sc-font-xl, 1.5rem);
   line-height: 1.22;
   letter-spacing: -0.01em;
   margin: 0;
@@ -2306,10 +2306,10 @@ div.item-image-large img {
 }
 
 .platform-blog-showcase-container .blog-showcase-date {
-  font-size: 0.78rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: var(--sc-weight-semibold, 600);
   color: var(--sc-text-muted, #6c7178);
 }
 
@@ -2319,8 +2319,8 @@ div.item-image-large img {
   border-radius: var(--sc-radius-pill, 999px);
   margin: 0;
   padding: 8px 16px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: var(--sc-font-sm, 0.8125rem);
+  font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -2363,8 +2363,8 @@ div.item-image-large img {
   min-width: 38px;
   height: 38px;
   padding: 0 10px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--sc-font-base, 1rem);
+  font-weight: var(--sc-weight-semibold, 600);
   color: inherit;
   opacity: 0.75;
   background: none;
@@ -2383,7 +2383,7 @@ div.item-image-large img {
   position: relative;
   min-width: 38px;
   padding: 0 10px;
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   font-weight: 800;
   color: inherit;
   background: none;
@@ -2409,7 +2409,7 @@ div.item-image-large img {
 .platform-blog-showcase-container nav ul.pagination li.ellipsis::after {
   color: inherit;
   opacity: 0.6;
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   line-height: 1;
 }
 

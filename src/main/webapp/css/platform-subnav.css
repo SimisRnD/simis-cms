@@ -35,11 +35,11 @@
 
 .subnav-section-menu li.item a {
   padding: 0.9rem 1rem;
-  font-size: 0.75rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   color: #fefefe;
   text-transform: uppercase;
   display: block;
-  font-weight: bold;
+  font-weight: var(--sc-weight-bold, 700);
   letter-spacing: 1px;
   transition: all 0.35s ease-in-out;
 }

@@ -121,7 +121,7 @@
 
 .todo-list-card ul input[type="checkbox"]:checked ~ label:after {
   font: normal normal normal 14px/1 FontAwesome;
-  font-size: 18px;
+  font-size: var(--sc-font-lg, 1.125rem);
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
