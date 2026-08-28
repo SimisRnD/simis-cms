@@ -299,9 +299,17 @@
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
           </c:choose>
         </c:if>
-        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
+        <%-- The admin console is chrome, not site content, so the site's own page and link
+             colours are scoped away from it and platform.css supplies the token values instead.
+             Without this an admin console inherits whatever the public site set: on a stock
+             install that is #ffffff/#000000 rather than the light palette, and a site that picked
+             a coloured link paints its admin links that colour too. The page-editing screens are
+             deliberately NOT admin-console pages -- they render inside the site's own chrome so
+             an editor previews the real thing. --%>
+        <c:set var="isAdminConsole" value="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}"/>
+        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body<c:if test="${isAdminConsole}">:not(.admin-console)</c:if>{color:var(--sc-body-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body<c:if test="${isAdminConsole}">:not(.admin-console)</c:if>{background-color:var(--sc-body-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.link.color']}"><c:if test="${isAdminConsole}">body:not(.admin-console) </c:if>a{color:var(--sc-link-color)}</c:if>
         <%-- Scoped away from .clear/.hollow/.box on purpose. Those variants draw on the PAGE surface
              rather than the theme's button fill, so Foundation gives them a color that contrasts with
              the page, not the solid-button text color; applying this with !important made every clear
@@ -476,6 +484,8 @@
     <c:otherwise><c:set var="bodyClass" value="page-edit-mode"/></c:otherwise>
   </c:choose>
 </c:if>
+<%-- Appended last: the page-edit-mode branch above rebuilds bodyClass from scratch. --%>
+<c:if test="${isAdminConsole}"><c:set var="bodyClass" value="${bodyClass} admin-console"/></c:if>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
   <!-- Skip link for keyboard navigation (WCAG 2.4.1) -->
   <a href="#main" class="platform-skip-link">Skip to main content</a>
