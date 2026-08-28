@@ -53,6 +53,11 @@ public class FileListWidget extends GenericWidget {
     // Preferences
     context.getRequest().setAttribute("useViewer", context.getPreferences().getOrDefault("useViewer", "false"));
     context.getRequest().setAttribute("showLinks", context.getPreferences().getOrDefault("showLinks", "true"));
+    // Off by default: every existing site's file lists render without icons today, and
+    // turning them on for all of them is a visual change nobody asked for. A String, not
+    // a boolean -- the JSP reads it through <jsp:useBean class="java.lang.String">, which
+    // throws ClassCastException on a raw Boolean.
+    context.getRequest().setAttribute("showIcon", context.getPreferences().getOrDefault("showIcon", "false"));
     String folderUniqueId = context.getPreferences().get("folderUniqueId");
     String rules = context.getPreferences().get("rules");
     String orderBy = context.getPreferences().get("orderBy");

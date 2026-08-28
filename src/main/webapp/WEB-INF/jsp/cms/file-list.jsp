@@ -26,6 +26,7 @@
 <jsp:useBean id="fileItemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useViewer" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLinks" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
@@ -36,6 +37,17 @@
   <ul>
   <c:forEach items="${fileItemList}" var="file" varStatus="status">
     <li>
+      <%-- The file's own type icon, matching admin/folder-files-list.jsp so a document looks
+           the same wherever it is listed. Decorative: the link beside it already names the
+           file, so it is hidden from assistive technology rather than given a title
+           attribute, which would be announced as a second, redundant label. --%>
+      <c:if test="${showIcon eq 'true'}"><c:choose>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'image'}"><i class="fa fa-file-image-o" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link" aria-hidden="true"></i> </c:when>
+          <c:otherwise><i class="fa fa-file-o" aria-hidden="true"></i> </c:otherwise>
+        </c:choose></c:if>
       <c:choose>
         <c:when test="${showLinks eq 'false'}">
           <c:out value="${file.title}" />
