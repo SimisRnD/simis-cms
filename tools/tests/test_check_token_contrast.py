@@ -186,10 +186,46 @@ def test_var_indirection_is_followed_through_two_levels(tokens):
 
 def test_a_waived_pairing_reports_but_does_not_fail(tokens):
     """The light-mode gaps this check found on its first run are held open with a reason,
-    not dropped from the table -- a waiver that prints every run cannot go stale."""
+    not dropped from the table. Printing is only half of it -- a waiver goes quiet the
+    moment its pairing passes, which is what the two tests below cover."""
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
     assert "WAIVED" in r.stdout and "--sc-surface-sunken" in r.stdout
+
+
+def test_a_waiver_whose_pairing_now_passes_fails_the_run(tokens):
+    """The failure mode the WAIVED table was meant to avoid and did not: fixing the value
+    silences the entry instead of retiring it, so it sits in the table forever looking
+    like a live exception. Lifting the light disabled-field ground off frost clears that
+    one waiver; the run must name it rather than quietly dropping to three."""
+    edit(tokens, "  --sc-field-disabled-bg: #f4f5f7;", "  --sc-field-disabled-bg: #ffffff;")
+    r = run_tool(TOOL, tokens)
+    assert r.returncode == 1
+    text = out(r)
+    assert "STALE" in text and "--sc-text-muted on --sc-field-disabled-bg (light)" in text
+    # The three that still miss their floor keep reporting, and keep not failing.
+    assert text.count("STALE") == 1
+    assert r.stdout.count("WAIVED") == 3
+
+
+def test_a_waiver_for_a_pairing_the_table_never_checks_is_dead_config():
+    """The other way a waiver stops meaning anything: the key names a block, token or
+    surface the PAIRINGS table does not put together, so it never matches and never
+    prints. Exercised on the function because no edit to the stylesheet can produce it."""
+    m = _module()
+    errors = []
+    m.WAIVED = {("light", "--sc-text-muted", "--sc-surface-nonexistent"): "reason"}
+    m.check_waivers(set(), errors)
+    assert len(errors) == 1
+    assert "does not make" in errors[0] and "--sc-surface-nonexistent" in errors[0]
+
+
+def test_a_waiver_covering_a_live_failure_is_not_reported_as_stale(tokens):
+    """The staleness check must not fire on the entries that are doing their job, or the
+    table could not hold an open gap at all."""
+    r = run_tool(TOOL, tokens)
+    assert r.returncode == 0, out(r)
+    assert "STALE" not in out(r)
 
 
 # -- 2. dark/auto parity ---------------------------------------------------
