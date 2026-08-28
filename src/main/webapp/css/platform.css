@@ -112,7 +112,7 @@ p {
 }
 
 .modal-prompt {
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   padding: 50px;
   text-align: center;
 }
@@ -292,7 +292,7 @@ p {
 
 .platform-dashboard-group {
   background-color: #eceef1;
-  border: 1px solid var(--sc-border, #d9dce1);
+  border: 1px solid var(--sc-border, #ddd8cf);
   border-radius: 10px;
   padding: 20px;
   margin-top: 10px;
@@ -1176,10 +1176,10 @@ ul.pagination li.pagination-next a:hover {
   justify-content: center;
   min-height: 120px;
   padding: 1.5rem;
-  background: var(--sc-surface-sunken, #f4f5f7);
-  border: 1px dashed var(--sc-border, #d9dce1);
+  background: var(--sc-surface-sunken, #ede9e3);
+  border: 1px dashed var(--sc-border, #ddd8cf);
   border-radius: var(--sc-radius-md, 4px);
-  color: var(--sc-text-muted, #6c7178);
+  color: var(--sc-text-muted, #656970);
   font-size: var(--sc-font-2xl, 2rem);
 }
 
@@ -1296,14 +1296,14 @@ button.round, .button.round {
    load-bearing against the theme's button-text rule, which now excludes .box alongside
    .clear and .hollow for the same reason -- see main.jsp. */
 button.box, .button.box {
-  background-color: var(--sc-surface, #ffffff);
-  border: 1px solid var(--sc-text, #17191e);
-  color: var(--sc-text, #17191e) !important;
+  background-color: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-text, #2c2925);
+  color: var(--sc-text, #2c2925) !important;
 }
 
 button.box:hover, button.box:focus, .button.box:hover, .button.box:focus {
-  background-color: var(--sc-text, #17191e);
-  color: var(--sc-surface, #ffffff) !important;
+  background-color: var(--sc-text, #2c2925);
+  color: var(--sc-surface, #f5f3ef) !important;
 }
 
 /* Links */
@@ -1315,7 +1315,7 @@ a.read-more {
 /* Callout */
 
 .callout.box {
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   color: var(--sc-fnd-black, #0a0a0a);
 }
 
@@ -1357,7 +1357,7 @@ a.read-more {
 
 .admin.card {
   border: 1px solid #d8d8d8;
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   color: #15325d;
 }
 
@@ -1436,7 +1436,7 @@ a.read-more {
 .platform-scrollable-view {
   height: 50vh;
   overflow-y: scroll;
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   margin-bottom: 20px;
   padding-left: 10px;
   padding-right: 5px;
@@ -2220,7 +2220,7 @@ div.item-image-large img {
   border: 0;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--sc-surface, #ffffff);
+  background: var(--sc-surface, #f5f3ef);
   box-shadow: var(--sc-shadow-lg, 0 2px 10px rgba(0, 0, 0, 0.10));
   transition: transform var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease),
               box-shadow var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease);
@@ -2248,7 +2248,7 @@ div.item-image-large img {
    The sunken surface token gives the letterboxing a deliberate ground. */
 .platform-blog-showcase-container .card-image {
   overflow: hidden;
-  background: var(--sc-surface-sunken, #f4f5f7);
+  background: var(--sc-surface-sunken, #ede9e3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2310,7 +2310,7 @@ div.item-image-large img {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   font-weight: var(--sc-weight-semibold, 600);
-  color: var(--sc-text-muted, #6c7178);
+  color: var(--sc-text-muted, #656970);
 }
 
 /* Shape only. The colours stay whatever the site's theme gives .button, so this
@@ -2414,7 +2414,7 @@ div.item-image-large img {
 }
 
 .platform-blog-showcase-container nav ul.pagination li a:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
   border-radius: 3px;
   opacity: 1;

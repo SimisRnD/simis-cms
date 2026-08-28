@@ -109,7 +109,7 @@
    boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
   color: #ccc;
-  border-color: var(--sc-border-control, #8c8e91);
+  border-color: var(--sc-border-control, #838589);
 }
 
 #sc-editor-toolbar a.button:hover {
@@ -375,7 +375,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: var(--sc-fnd-on-accent, #fefefe);
   font-size: var(--sc-font-2xs, 0.6875rem);
   padding: 2px 5px;
@@ -424,7 +424,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   margin-bottom: 0;
   font-size: var(--sc-font-xs, 0.75rem);
   color: #ccc;
-  border-color: var(--sc-border-control, #8c8e91);
+  border-color: var(--sc-border-control, #838589);
 }
 
 #sc-discard-draft-btn:hover {
@@ -496,7 +496,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-confirm-cancel {
   background: #3a3a4e;
   color: #ccc;
-  border: 1px solid var(--sc-border-control, #8c8e91) !important;
+  border: 1px solid var(--sc-border-control, #838589) !important;
 }
 
 #sc-confirm-cancel:hover {
@@ -576,7 +576,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #ccc;
   padding: 5px 4px;
   cursor: pointer;
@@ -595,7 +595,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn.sc-active {
   background: #0056b3;
-  border-color: var(--sc-border-control, #8c8e91);
+  border-color: var(--sc-border-control, #838589);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -607,7 +607,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-input {
   flex: 1;
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 3px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -644,7 +644,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
    checkbox and colour prefs, the close buttons -- are left to Layer 3a and to
    PR 1504, which is what reaches Foundation's own attribute-selector resets. */
 #sc-width-custom-input:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
@@ -752,7 +752,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 4px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -767,14 +767,14 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"]:focus-visible,
 .sc-pref-field select:focus-visible,
 .sc-pref-field textarea:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 .sc-pref-field input[type="color"] {
   width: 100%;
   height: 26px;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   border-radius: 3px;
   background: #2a2a3e;
   padding: 2px;
@@ -783,7 +783,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-pref-field textarea {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -837,7 +837,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-textarea {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -853,7 +853,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 /* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. */
 #sc-prefs-textarea:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
@@ -872,7 +872,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset {
   background: #3a3a4e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #ccc;
   padding: 3px 10px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -917,7 +917,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-link-prompt input[type="text"] {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 3px 6px;
   font-size: var(--sc-font-xs, 0.75rem);
@@ -944,7 +944,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-picker {
   position: fixed;
   z-index: 10020;
-  background: var(--sc-surface, #fff);
+  background: var(--sc-surface, #f5f3ef);
   border: 1px solid #ccc;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -958,11 +958,11 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
-  background: var(--sc-surface-sunken, #f4f5f7);
-  border-bottom: 1px solid var(--sc-border, #d9dce1);
+  background: var(--sc-surface-sunken, #ede9e3);
+  border-bottom: 1px solid var(--sc-border, #ddd8cf);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-weight: var(--sc-weight-semibold, 600);
-  color: var(--sc-text, #17191e);
+  color: var(--sc-text, #2c2925);
   flex-shrink: 0;
 }
 
@@ -971,7 +971,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
   cursor: pointer;
   font-size: var(--sc-font-md, 0.875rem);
-  color: var(--sc-text, #17191e);
+  color: var(--sc-text, #2c2925);
   padding: 0 2px;
   line-height: 1;
 }
@@ -979,7 +979,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-search {
   margin: 6px 8px;
   padding: 4px 6px;
-  border: 1px solid var(--sc-border-control, #8c8e91);
+  border: 1px solid var(--sc-border-control, #838589);
   border-radius: 3px;
   font-size: var(--sc-font-xs, 0.75rem);
   flex-shrink: 0;
@@ -993,7 +993,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
    6.98:1 against the light fill but only 1.03:1 in dark mode, where
    platform-tokens gives the field the same dark fill named in that note. */
 #sc-widget-search:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
@@ -1008,7 +1008,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-list li {
   padding: 5px 12px;
   font-size: var(--sc-font-xs, 0.75rem);
-  color: var(--sc-text, #17191e);
+  color: var(--sc-text, #2c2925);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -1016,8 +1016,8 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-widget-list li:hover {
-  background: var(--sc-surface-sunken, #f4f5f7);
-  color: var(--sc-text, #17191e);
+  background: var(--sc-surface-sunken, #ede9e3);
+  color: var(--sc-text, #2c2925);
 }
 
 .sc-mutate-btn-add-widget {
@@ -1050,7 +1050,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 /* Container Quill renders into */
 .sc-quill-editor-container {
   min-height: 80px;
-  background: var(--sc-surface, #fff);
+  background: var(--sc-surface, #f5f3ef);
   border: none;
 }
 
@@ -1076,14 +1076,14 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
    put the link tooltip at 3.00:1: --sc-link is #609ace in dark mode, and the
    tooltip painted itself #fff regardless. */
 .sc-quill-editing .ql-toolbar.ql-snow {
-  background: var(--sc-surface-sunken, #f4f5f7);
-  border: 1px solid var(--sc-border, #d9dce1);
+  background: var(--sc-surface-sunken, #ede9e3);
+  border: 1px solid var(--sc-border, #ddd8cf);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
 }
 
 .sc-quill-editing .ql-container.ql-snow {
-  border: 1px solid var(--sc-border, #d9dce1);
+  border: 1px solid var(--sc-border, #ddd8cf);
   border-top: none;
   border-radius: 0 0 4px 4px;
   font-size: var(--sc-font-base, 1rem);
@@ -1095,24 +1095,24 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
    fill: 16.12:1 light, 17.30:1 dark. */
 .sc-quill-editing .ql-snow .ql-stroke,
 .sc-quill-editing .ql-snow .ql-stroke-miter {
-  stroke: var(--sc-text, #17191e);
+  stroke: var(--sc-text, #2c2925);
 }
 
 .sc-quill-editing .ql-snow .ql-fill,
 .sc-quill-editing .ql-snow .ql-stroke.ql-fill {
-  fill: var(--sc-text, #17191e);
+  fill: var(--sc-text, #2c2925);
 }
 
 /* The header/list dropdowns: label is text, options are a floating panel that
    Quill paints #fff. */
 .sc-quill-editing .ql-snow .ql-picker {
-  color: var(--sc-text, #17191e);
+  color: var(--sc-text, #2c2925);
 }
 
 .sc-quill-editing .ql-snow .ql-picker-options {
-  background-color: var(--sc-surface, #ffffff);
-  border: 1px solid var(--sc-border, #d9dce1);
-  color: var(--sc-text, #17191e);
+  background-color: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  color: var(--sc-text, #2c2925);
 }
 
 /* Quill's active/hover accent is a fixed #06c, which lands at 3.39:1 on the
@@ -1124,7 +1124,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item:hover,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
-  color: var(--sc-link, #2a74b6);
+  color: var(--sc-link, #276caa);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke,
@@ -1135,7 +1135,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
-  stroke: var(--sc-link, #2a74b6);
+  stroke: var(--sc-link, #276caa);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -1144,7 +1144,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
-  fill: var(--sc-link, #2a74b6);
+  fill: var(--sc-link, #276caa);
 }
 
 /* The link tooltip: Quill paints it #fff and #444 and leaves the anchors to the
@@ -1154,21 +1154,21 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
    it and put --sc-link (#609ace) on that hardcoded white at 3.00:1. Themed, the
    fill moves with the ink instead: 5.87:1 dark, 5.57:1 light. */
 .sc-quill-editing .ql-snow .ql-tooltip {
-  background-color: var(--sc-surface, #ffffff);
-  border: 1px solid var(--sc-border, #d9dce1);
+  background-color: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-border, #ddd8cf);
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-  color: var(--sc-text, #17191e);
+  color: var(--sc-text, #2c2925);
 }
 
 .sc-quill-editing .ql-snow .ql-tooltip input[type=text] {
   background-color: var(--sc-field-bg, #ffffff);
-  border: 1px solid var(--sc-border-control, #8c8e91);
-  color: var(--sc-text, #17191e);
+  border: 1px solid var(--sc-border-control, #838589);
+  color: var(--sc-text, #2c2925);
 }
 
 /* Quill's placeholder is rgba(0,0,0,0.6) -- invisible on a dark editor. */
 .sc-quill-editing .ql-snow .ql-editor.ql-blank::before {
-  color: var(--sc-text-muted, #6c7178);
+  color: var(--sc-text-muted, #656970);
 }
 
 .sc-quill-editor-container .ql-editor {
@@ -1205,7 +1205,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-discard-btn {
   background: transparent;
-  color: var(--sc-text-muted, #6c7178);
+  color: var(--sc-text-muted, #656970);
   border: 1px solid #ccc;
   border-radius: 3px;
   padding: 4px 14px;
@@ -1214,8 +1214,8 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-discard-btn:hover {
-  background: var(--sc-surface-sunken, #f4f5f7);
-  color: var(--sc-text, #17191e);
+  background: var(--sc-surface-sunken, #ede9e3);
+  color: var(--sc-text, #2c2925);
 }
 
 /* ==========================================================================

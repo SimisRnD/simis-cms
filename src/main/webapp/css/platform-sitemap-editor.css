@@ -56,7 +56,7 @@
 .site-map-container {
   background-color: var(--sc-surface-raised, #ffffff);
   padding: 5px;
-  border: 1px solid var(--sc-border, #d9dce1);
+  border: 1px solid var(--sc-border, #ddd8cf);
   border-radius: 4px;
   overflow: auto;
   white-space: nowrap;

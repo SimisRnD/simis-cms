@@ -58,7 +58,7 @@
    text instead, which is why the band has to become a dark ground. */
 .leaderboard thead {
   color: #3d7d4e;
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   border: none;
   font-weight: var(--sc-weight-bold, 700);
 }
@@ -70,7 +70,7 @@
    dark at (0,2,2), which outranks the rule above at (0,1,1); this row paints
    over it either way, so no dark override is added for something invisible. */
 .leaderboard thead tr {
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
 }
 .leaderboard thead tr th {
   border-bottom: 2px solid #3d7d4e;
@@ -79,8 +79,8 @@
    Following --sc-surface keeps them reading as page in both modes instead of
    drawing white bars across a dark one. */
 .leaderboard tbody tr {
-  border-top: 10px solid var(--sc-surface, #ffffff);
-  border-bottom: 10px solid var(--sc-surface, #ffffff);
+  border-top: 10px solid var(--sc-surface, #f5f3ef);
+  border-bottom: 10px solid var(--sc-surface, #f5f3ef);
 }
 /* .leaderboard th, .leaderboard td {     */
   /* white-space: nowrap; */
@@ -93,7 +93,7 @@
      Darkened along its own hue: white on it is 4.95:1, and dark mode's
      near-white text token is 4.54:1. */
   background-color: #3d7d4e;
-  border-right: 10px solid var(--sc-surface, #ffffff);
+  border-right: 10px solid var(--sc-surface, #f5f3ef);
 }
 /* .leaderboard .leaderboard-photo { */
   /* background-color: #56C4CE; */
