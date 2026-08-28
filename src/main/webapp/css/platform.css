@@ -6,7 +6,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-size: var(--sc-font-base, 1rem);
   font-weight: var(--sc-weight-regular, 400);
-  line-height: 1.5;
+  line-height: var(--sc-leading-relaxed, 1.5);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color:transparent;
 }
@@ -15,7 +15,7 @@ body {
   margin-top: 0;
   margin-bottom: .5rem;
   font-weight: var(--sc-weight-medium, 500);
-  line-height: 1.2;
+  line-height: var(--sc-leading-tight, 1.2);
 }
 
 .h1, h1 {
@@ -989,7 +989,7 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
-  line-height: 1.4;
+  line-height: var(--sc-leading-normal, 1.4);
   color: var(--sc-chrome-ink-muted, #d9dce1);
 }
 .admin-menu .platform-content {
@@ -1479,7 +1479,7 @@ a.read-more {
 }
 .platform-activity-content {
   margin-left: 50px;
-  line-height: 1.4;
+  line-height: var(--sc-leading-normal, 1.4);
 }
 .platform-activity-content-name {
   font-weight: bolder;
