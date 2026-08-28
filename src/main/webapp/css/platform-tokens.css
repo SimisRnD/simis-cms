@@ -32,12 +32,12 @@
 
 :root {
   /* Surfaces - "Black Pearl" palette: ink/anthracite/link-blue on frost */
-  --sc-surface: #ffffff;
+  --sc-surface: #f5f3ef;
   --sc-surface-raised: #ffffff;
-  --sc-surface-sunken: #f4f5f7;
+  --sc-surface-sunken: #ede9e3;
   --sc-surface-overlay: #ffffff;
 
-  /* Text - contrast vs --sc-surface: text 17.58:1, muted 4.92:1, link 4.92:1.
+  /* Text - contrast vs --sc-surface: text 13.06:1, muted 4.98:1, link 4.97:1.
      Pewter (#979CA4, 2.76:1 on white / 2.53:1 on frost as text) and
      Platinum (#D9DCE1, 1.37:1 as a control border) both fail AA as given --
      --sc-text-muted uses a darkened "pewter-strong" and --sc-border-control
@@ -49,15 +49,15 @@
      significant content -- plus logotypes. Placeholder text in an active input
      is none of those, and #1490 already acted on that reading in dark mode. So
      --sc-field-placeholder is a text token and carries a text ratio. */
-  --sc-text: #17191e;
+  --sc-text: #2c2925;
   /* Darkened so it clears the sunken frost surface as well as the white page, not
-     only the page: muted on sunken 4.51:1, muted on surface 4.92:1. The previous
+     only the page: muted on sunken 4.56:1, muted on surface 4.98:1. The previous
      value was derived against white alone and fell short on frost. There is no
      surface-side fix here -- frost is the lighter of the pair, so it would have to
      become white to rescue the old ink, at which point it is not a surface. Light
      tokens never sit on a dark ground, so darkening costs nothing elsewhere.
      Issue 1498. */
-  --sc-text-muted: #6c7178;
+  --sc-text-muted: #656970;
   /* Sidebar chrome on the dark admin rail (#17191e): 6.37:1. Its own token because
      platform.css was reading --sc-field-placeholder for this, which tied unrelated
      things together -- raising the placeholder to clear SC 1.4.3 on a white field
@@ -109,9 +109,9 @@
   --sc-weight-bold: 700;
   --sc-text-inverse: #ffffff;
   /* Same reasoning as --sc-text-muted above, hue preserved: link on sunken
-     4.51:1, link on surface 4.92:1. Issue 1498. */
-  --sc-link: #2a74b6;
-  --sc-link-hover: #236098;
+     4.56:1, link on surface 4.97:1. Issue 1498. */
+  --sc-link: #276caa;
+  --sc-link-hover: #21598e;
 
   /* Semantic state. Each pair is a strong colour and the tint it sits on: the strong
      value is the button fill, the callout's left border AND the callout's text, so it
@@ -142,11 +142,11 @@
   --sc-leading-relaxed: 1.5;
 
   /* Lines. --sc-border is decorative (1.4.11 exempt), true Platinum.
-     --sc-border-control outlines real controls: 3.28:1 on white (platinum-strong). */
-  --sc-border: #d9dce1;
+     --sc-border-control outlines real controls: 3.34:1 on white (platinum-strong). */
+  --sc-border: #ddd8cf;
   /* Clears SC 1.4.11 on the sunken surface, which the previous value missed:
-     border on sunken 3.01:1, border on surface 3.28:1. Issue 1498. */
-  --sc-border-control: #8c8e91;
+     border on sunken 3.06:1, border on surface 3.34:1. Issue 1498. */
+  --sc-border-control: #838589;
 
   /* Form fields */
   --sc-field-bg: #ffffff;
@@ -161,9 +161,9 @@
   --sc-field-placeholder: #71767d;
   --sc-field-disabled-bg: #f4f5f7;
 
-  /* Focus ring - Fixed link blue, 4.58:1 on white, well past the 3:1 that
+  /* Focus ring - Fixed link blue, 4.97:1 on white, well past the 3:1 that
      1.4.11 asks of a focus indicator. */
-  --sc-focus-ring: #2c79be;
+  --sc-focus-ring: #276caa;
   --sc-focus-ring-width: 2px;
   --sc-focus-ring-offset: 2px;
 
@@ -751,8 +751,8 @@ input[type="radio"] {
 
    Links and muted text take one extra step darker than their plain light-mode
    values, because those were tuned against pure white and these fills are
-   tinted. --sc-link #2a74b6 is 4.92:1 on white but only 4.01:1 on the alert
-   fill; --sc-text-muted #6c7178 is 4.92:1 on white but 4.01:1 there. So --sc-link
+   tinted. --sc-link #2a74b6 is 4.97:1 on white but only 4.01:1 on the alert
+   fill; --sc-text-muted #6c7178 is 4.98:1 on white but 4.01:1 there. So --sc-link
    here is the light ramp's hover value with the hover one step darker again,
    and the muted grey is darkened the same way Layer 1's own "pewter-strong"
    was, far enough to clear the fills while staying a clear step off the ink
