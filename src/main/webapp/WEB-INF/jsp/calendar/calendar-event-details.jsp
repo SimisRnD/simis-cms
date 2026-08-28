@@ -30,7 +30,7 @@
 <div class="platform-calendar-details-container">
 <c:if test="${!empty title}">
   <div class="platform-calendar-title text-center">
-    <h3><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h3>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </div>
 </c:if>
   <%-- Date Formatting --%>
