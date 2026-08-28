@@ -414,6 +414,15 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # Brand is split by role: the fill carries white ink (a property of the fill, so no
+    # per-mode value), while the text variant is sized against the page and needs one.
+    (r"brand text on surface ([\d.]+):1, on sunken ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-brand-text", "--sc-surface")]),
+      ("exact", [("--sc-brand-text", "--sc-surface-sunken")])]),
+    (r"dark, brand text on surface ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-brand-text", "--sc-surface")])]),
     # The state families, stated against the ground that actually binds them: each
     # strong value is its own callout's text as well as its border, so the pairing that
     # matters is strong-on-tint, not strong-on-page. Registered per mode because the
