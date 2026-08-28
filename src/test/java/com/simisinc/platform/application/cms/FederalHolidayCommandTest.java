@@ -131,6 +131,23 @@ class FederalHolidayCommandTest {
   }
 
   @Test
+  void theObservedLabelReadsAsAPersonWouldWriteIt() {
+    // LocalDate#getMonth is an enum, so EL renders it "SEPTEMBER" -- the label exists to avoid that
+    FederalHoliday labor = FederalHolidayCommand.forYear(2026).stream()
+        .filter(h -> h.getName().equals("Labor Day")).findFirst().orElseThrow();
+    assertEquals("September 7", labor.getObservedLabel());
+  }
+
+  @Test
+  void aMovedHolidayCanNameTheDayItActuallyFallsOn() {
+    // Independence Day 2026 is a Saturday, observed the Friday before
+    FederalHoliday july4 = FederalHolidayCommand.forYear(2026).stream()
+        .filter(h -> h.getName().equals("Independence Day")).findFirst().orElseThrow();
+    assertEquals("July 3", july4.getObservedLabel(), "the label shows the day off, not the statute's date");
+    assertEquals("Saturday", july4.getDayName(), "and the statutory day is available to explain why");
+  }
+
+  @Test
   void badInputReturnsAnEmptyListRatherThanThrowing() {
     assertTrue(FederalHolidayCommand.upcoming(null, 4).isEmpty());
     assertTrue(FederalHolidayCommand.upcoming(LocalDate.of(2026, 1, 1), 0).isEmpty());

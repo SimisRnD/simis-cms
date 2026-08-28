@@ -18,6 +18,8 @@ package com.simisinc.platform.domain.model;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * A United States federal holiday, carrying both the date the statute names and the date it is
@@ -55,6 +57,23 @@ public class FederalHoliday implements Serializable, Comparable<FederalHoliday> 
   /** The date it is actually taken, which is what a reader is looking for */
   public LocalDate getObservedDate() {
     return observedDate;
+  }
+
+  /**
+   * The observed date as a person would write it, e.g. "September 7".
+   *
+   * <p>Formatted here rather than in the JSP because {@code LocalDate#getMonth} is an enum, so EL
+   * renders it as "SEPTEMBER", and JSTL's {@code fmt:formatDate} cannot take a {@code LocalDate}.
+   * Fixed to {@code Locale.US}: these are United States federal holidays, so the month names are
+   * part of the subject rather than a presentation choice that should follow the viewer.
+   */
+  public String getObservedLabel() {
+    return observedDate.format(DateTimeFormatter.ofPattern("MMMM d", Locale.US));
+  }
+
+  /** The weekday the statutory date falls on, e.g. "Saturday", for explaining a moved holiday */
+  public String getDayName() {
+    return date.format(DateTimeFormatter.ofPattern("EEEE", Locale.US));
   }
 
   /** True when the weekend rule moved it, so a caller can show the statutory date as well */

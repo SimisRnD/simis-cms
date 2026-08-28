@@ -25,11 +25,11 @@
     <li>
       <span class="federal-holiday-date">
         <%-- The observed date leads: it is the day the office is actually shut --%>
-        <c:out value="${holiday.observedDate.month}"/> <c:out value="${holiday.observedDate.dayOfMonth}"/>
+        <c:out value="${holiday.observedLabel}"/>
       </span>
       <span class="federal-holiday-name"><c:out value="${holiday.name}"/></span>
       <c:if test="${showObservedNote eq 'true' && holiday.observedOnDifferentDay}">
-        <span class="federal-holiday-observed">observed &mdash; falls on <c:out value="${holiday.date.dayOfWeek}"/></span>
+        <span class="federal-holiday-observed">observed &mdash; falls on <c:out value="${holiday.dayName}"/></span>
       </c:if>
     </li>
   </c:forEach>
