@@ -40,16 +40,19 @@
       <%-- The file's own type icon, matching admin/folder-files-list.jsp so a document looks
            the same wherever it is listed. Decorative: the link beside it already names the
            file, so it is hidden from assistive technology rather than given a title
-           attribute, which would be announced as a second, redundant label. It is emitted
+           attribute, which would be announced as a second, redundant label. fa-fw gives it a
+           fixed 1.25em box, which both separates it from the title and lines the icons
+           up in a column -- c:set trims its body, so a trailing space here would not
+           survive. It is emitted
            inside the link below so that it takes the link's own color; a site that themes
            its links would otherwise leave the icon in the surrounding text color, which on
            a dark panel can be invisible. --%>
       <c:set var="fileIcon"><c:if test="${showIcon eq 'true'}"><c:choose>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'image'}"><i class="fa fa-file-image-o" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link" aria-hidden="true"></i> </c:when>
-          <c:otherwise><i class="fa fa-file-o" aria-hidden="true"></i> </c:otherwise>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o fa-fw" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o fa-fw" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'image'}"><i class="fa fa-file-image-o fa-fw" aria-hidden="true"></i> </c:when>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link fa-fw" aria-hidden="true"></i> </c:when>
+          <c:otherwise><i class="fa fa-file-o fa-fw" aria-hidden="true"></i> </c:otherwise>
         </c:choose></c:if></c:set>
       <c:choose>
         <c:when test="${showLinks eq 'false'}">
