@@ -113,6 +113,34 @@
   --sc-link: #276caa;
   --sc-link-hover: #21598e;
 
+  /* Semantic state. Each pair is a strong colour and the tint it sits on: the strong
+     value is the button fill, the callout's left border AND the callout's text, so it
+     has to clear the AA floor against its own tint, not only against the page. That is the
+     binding constraint, and it is why these are darker than the Foundation fills they
+     stand beside -- #3adb76 and #ffae00 clear that floor on white with so little headroom
+     that any visible tint underneath them fails.
+
+     Distinct from the --sc-fnd-* bridge below, which carries Foundation's own fills for
+     Foundation's own components. These are the product's, so a palette change retunes
+     them without editing vendored CSS.
+
+     strong on its own tint: success 4.79:1, warning 4.78:1, danger 4.77:1, info 4.74:1 */
+  --sc-success: #167a3c;
+  --sc-success-light: #dbf8e6;
+  --sc-warning: #906100;
+  --sc-warning-light: #fff0cf;
+  --sc-danger: #ba4230;
+  --sc-danger-light: #faefed;
+  --sc-info: #286eac;
+  --sc-info-light: #eaf2fa;
+
+  /* Line height. Three steps; the stylesheets carried twelve distinct values including
+     raw pixel line-heights, which stop scaling when the reader resizes text. Declared
+     once: leading is a rhythm, not a colour, and does not change with the mode. */
+  --sc-leading-tight: 1.2;
+  --sc-leading-normal: 1.4;
+  --sc-leading-relaxed: 1.5;
+
   /* Lines. --sc-border is decorative (1.4.11 exempt), true Platinum.
      --sc-border-control outlines real controls: 3.34:1 on white (platinum-strong). */
   --sc-border: #ddd8cf;
@@ -300,6 +328,17 @@
   --sc-link: #609ace;
   --sc-link-hover: #7fb0d9;
 
+  /* State, dark. Same contract: the strong value reads as text on its own tint.
+     dark, strong on its own tint: success 4.93:1, warning 4.91:1, danger 4.97:1, info 4.96:1 */
+  --sc-success: #24c762;
+  --sc-success-light: #22432f;
+  --sc-warning: #ea9e00;
+  --sc-warning-light: #463b24;
+  --sc-danger: #e39c91;
+  --sc-danger-light: #57322d;
+  --sc-info: #7eb3e1;
+  --sc-info-light: #293e50;
+
   --sc-border: rgba(244, 245, 247, 0.12);
   --sc-border-control: #d9dce1; /* true Platinum -- 10.72:1 on raised, no darkening needed here */
 
@@ -379,6 +418,14 @@
     --sc-text-inverse: #17191e;
     --sc-link: #609ace;
     --sc-link-hover: #7fb0d9;
+    --sc-success: #24c762;
+    --sc-success-light: #22432f;
+    --sc-warning: #ea9e00;
+    --sc-warning-light: #463b24;
+    --sc-danger: #e39c91;
+    --sc-danger-light: #57322d;
+    --sc-info: #7eb3e1;
+    --sc-info-light: #293e50;
 
     --sc-border: rgba(244, 245, 247, 0.12);
     --sc-border-control: #d9dce1;

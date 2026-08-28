@@ -259,7 +259,7 @@ a.sc-editor-handle:hover {
   cursor: pointer;
   border-radius: 3px;
   font-size: var(--sc-font-sm, 0.8125rem);
-  line-height: 1.4;
+  line-height: var(--sc-leading-normal, 1.4);
   min-width: 26px;
   font-family: sans-serif;
 }
@@ -381,7 +381,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   padding: 2px 5px;
   cursor: pointer;
   border-radius: 2px;
-  line-height: 1.2;
+  line-height: var(--sc-leading-tight, 1.2);
   font-family: sans-serif;
 }
 
@@ -462,7 +462,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   color: #eee;
   font-size: var(--sc-font-md, 0.875rem);
   margin-bottom: 1rem;
-  line-height: 1.5;
+  line-height: var(--sc-leading-relaxed, 1.5);
 }
 
 #sc-confirm-modal-actions {
@@ -532,7 +532,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   padding: 2px 6px;
   cursor: pointer;
   border-radius: 2px;
-  line-height: 1.4;
+  line-height: var(--sc-leading-normal, 1.4);
   font-family: sans-serif;
   white-space: nowrap;
 }
@@ -584,7 +584,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   font-size: var(--sc-font-xs, 0.75rem);
   text-align: center;
   font-family: sans-serif;
-  line-height: 1.2;
+  line-height: var(--sc-leading-tight, 1.2);
 }
 
 .sc-width-preset-btn:hover {
@@ -848,7 +848,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   max-height: 200px;
   width: 100%;
   box-sizing: border-box;
-  line-height: 1.5;
+  line-height: var(--sc-leading-relaxed, 1.5);
 }
 
 /* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. */
