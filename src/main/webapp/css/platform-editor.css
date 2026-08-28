@@ -88,9 +88,9 @@
    the 3:1 SC 1.4.11 asks between a control and the colours adjacent to it.
 
    --sc-border-control is the token that already means "boundary of a control",
-   and it happens to work on both kinds of surface here: its light value #8d8f92
-   clears 3:1 on all three fixed chrome panels (5.26 / 4.32 / 3.42) AND on the
-   white picker (3.24), while its dark value #d9dce1 clears them by more. A fixed
+   and it happens to work on both kinds of surface here: its light value #8c8e91
+   clears 3:1 on all three fixed chrome panels (5.19 / 4.26 / 3.37) AND on the
+   white picker (3.28), while its dark value #d9dce1 clears them by more. A fixed
    literal would have been enough for the chrome, but the same declarations also
    sit on themed surfaces, and one answer beats two.
 
@@ -109,7 +109,7 @@
    boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
   color: #ccc;
-  border-color: var(--sc-border-control, #8d8f92);
+  border-color: var(--sc-border-control, #8c8e91);
 }
 
 #sc-editor-toolbar a.button:hover {
@@ -375,7 +375,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: var(--sc-fnd-on-accent, #fefefe);
   font-size: 11px;
   padding: 2px 5px;
@@ -424,7 +424,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   margin-bottom: 0;
   font-size: 0.75rem;
   color: #ccc;
-  border-color: var(--sc-border-control, #8d8f92);
+  border-color: var(--sc-border-control, #8c8e91);
 }
 
 #sc-discard-draft-btn:hover {
@@ -496,7 +496,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-confirm-cancel {
   background: #3a3a4e;
   color: #ccc;
-  border: 1px solid var(--sc-border-control, #8d8f92) !important;
+  border: 1px solid var(--sc-border-control, #8c8e91) !important;
 }
 
 #sc-confirm-cancel:hover {
@@ -576,7 +576,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #ccc;
   padding: 5px 4px;
   cursor: pointer;
@@ -595,7 +595,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn.sc-active {
   background: #0056b3;
-  border-color: var(--sc-border-control, #8d8f92);
+  border-color: var(--sc-border-control, #8c8e91);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -607,7 +607,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-input {
   flex: 1;
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
   font-size: 11px;
@@ -752,7 +752,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 4px 6px;
   font-size: 11px;
@@ -774,7 +774,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="color"] {
   width: 100%;
   height: 26px;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   border-radius: 3px;
   background: #2a2a3e;
   padding: 2px;
@@ -783,7 +783,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-pref-field textarea {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
   font-size: 11px;
@@ -837,7 +837,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-textarea {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
   font-size: 11px;
@@ -872,7 +872,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset {
   background: #3a3a4e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #ccc;
   padding: 3px 10px;
   font-size: 11px;
@@ -917,7 +917,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-link-prompt input[type="text"] {
   background: #2a2a3e;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
   font-size: 12px;
@@ -979,7 +979,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-search {
   margin: 6px 8px;
   padding: 4px 6px;
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   border-radius: 3px;
   font-size: 12px;
   flex-shrink: 0;
