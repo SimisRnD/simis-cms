@@ -1123,7 +1123,7 @@ ul.pagination li.pagination-next a:hover {
   padding: 5px;
 }
 .admin.card:hover {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 .template.card {
   cursor: pointer;
@@ -1131,14 +1131,14 @@ ul.pagination li.pagination-next a:hover {
   padding: 5px;
 }
 .template.card:hover {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 /* Persistent "selected" state, layered on the existing hover-only .admin.card/.template.card
    highlight above -- needed for the logo-color card picker (which replaces a <select>, so the
    current value must stay visible at rest, not just on hover). */
 .admin.card.selected,
 .template.card.selected {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 .admin.card.logo-color-card {
   width: 120px;
@@ -1371,13 +1371,13 @@ a.read-more {
 /* Cards */
 
 .admin.card {
-  border: 1px solid #d8d8d8;
+  border: 1px solid var(--sc-border);
   background-color: var(--sc-surface, #f5f3ef);
-  color: #15325d;
+  color: var(--sc-text);
 }
 
 .admin.card .card-divider {
-  background-color: #deebf8;
+  background-color: var(--sc-surface-sunken);
   min-height: 84px;
 }
 
@@ -1386,7 +1386,7 @@ a.read-more {
 }
 
 .admin.card .fa-3x {
-  color: #15325d;
+  color: var(--sc-text);
 }
 
 /* Content Tabs */
@@ -2136,11 +2136,11 @@ div.item-image-large img {
    the button is for. The var() keeps a literal fallback so this holds whether or not
    the Foundation token layer is present. */
 .button.brand {
-  background-color: #ff8c00;
+  background-color: var(--sc-brand);
   color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 .button.brand:hover, .button.brand:focus {
-  background-color: #d97700;
+  background-color: var(--sc-brand-hover);
   color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 /* Same brand-orange accent as .button.brand above, for inline text (e.g. a small eyebrow/kicker
@@ -2148,7 +2148,7 @@ div.item-image-large img {
    attribute -- content-widget HTML is sanitized on save and strips inline style= attributes, so
    there is no other way to color a piece of page text without a real CSS class to reference. */
 .text-brand {
-  color: #ff8c00;
+  color: var(--sc-brand-text);
 }
 
 /* Full-bleed hero treatment for a contentSlider: image as a fixed-height cropped background with

@@ -81,6 +81,17 @@
   --sc-chrome-ink: #ffffff;
   --sc-chrome-ink-muted: #d9dce1;
 
+  /* Brand. Two roles, deliberately not one token. --sc-brand is a fill that carries white
+     ink, which is a property of the fill alone and so needs no per-mode value.
+     --sc-brand-text is the brand used AS text on the page, which has to be sized against
+     the page and therefore does. The single #ff8c00 this replaces tried to be both and
+     cleared neither -- white on it did not come close to the floor, and it was the
+     fill behind 33 buttons.
+     brand text on surface 5.81:1, on sunken 5.32:1 */
+  --sc-brand: #c4441f;
+  --sc-brand-hover: #a83917;
+  --sc-brand-text: #a83917;
+
   /* Type scale. Ten steps, derived from what the stylesheets already use rather than
      imposed: 96 font-size declarations across 36 distinct values, of which the great
      majority sat on or within a pixel of these. The near-misses -- 11.5, 12.5, 12.8,
@@ -326,6 +337,8 @@
   --sc-text-muted: #979ca4;
   --sc-text-inverse: #17191e;
   --sc-link: #609ace;
+  /* dark, brand text on surface 5.86:1 -- the light value is far too dark here. */
+  --sc-brand-text: #e8734f;
   --sc-link-hover: #7fb0d9;
 
   /* State, dark. Same contract: the strong value reads as text on its own tint.
@@ -417,6 +430,8 @@
     --sc-text-muted: #979ca4;
     --sc-text-inverse: #17191e;
     --sc-link: #609ace;
+    /* dark, brand text on surface 5.86:1 -- the light value is far too dark here. */
+    --sc-brand-text: #e8734f;
     --sc-link-hover: #7fb0d9;
     --sc-success: #24c762;
     --sc-success-light: #22432f;
