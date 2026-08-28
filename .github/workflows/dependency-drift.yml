@@ -15,11 +15,12 @@
 # the version checks above compare names, not bytes, so a tampered or swapped jar
 # would pass them and ship in the WAR. See tools/check-vendored-provenance.py.
 #
-# The three CSS steps ride along here rather than in their own workflow: they are
+# The four CSS steps ride along here rather than in their own workflow: they are
 # the same shape of check (a pure-python guard over a committed file, no build
 # needed) and sharing one checkout keeps them a single job. The contrast gate is
-# the only one of the three that looks at a colour *value* -- the other two count
-# literals and byte-diff a generated file, which is why #1489 shipped past both.
+# the only one of the four that looks at a colour *value* -- the others count
+# literals, byte-diff a generated file, and compare a fallback against the token
+# it stands in for, which is why #1489 shipped past all of them.
 name: Dependency drift
 
 on:
@@ -58,3 +59,10 @@ jobs:
       # drifted, the comment did not, and nothing in CI could tell.
       - name: Fail on design tokens below their WCAG contrast floor
         run: python3 tools/check-token-contrast.py .
+      # A var() fallback is what renders when the token stylesheet does not load, and
+      # image-browser.jsp deliberately loads platform.css on its own -- no Foundation,
+      # no platform-tokens.css -- so on that page every fallback in it is the live
+      # value, not a safety net. Nothing re-pointed them when a token moved, and the
+      # tool that catches it was written and then never wired up. See issue #1565.
+      - name: Fail on var() fallbacks that no longer match their token
+        run: python3 tools/check-css-var-fallbacks.py .
