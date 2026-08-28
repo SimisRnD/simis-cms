@@ -8,6 +8,8 @@ the tables would not recognise.
 
 import importlib.util
 import re
+import subprocess
+import sys
 
 import pytest
 from conftest import TOOLS_DIR, run_tool, write
@@ -36,6 +38,29 @@ def edit(repo, old: str, new: str, count: int = -1) -> None:
 
 def out(r):
     return r.stdout + r.stderr
+
+
+# WAIVED is empty, and should stay that way -- every gap it held has been closed.
+# The waiver paths still need covering, so these run a COPY of the tool carrying an
+# injected entry. Asserting against whichever gap production happens to be carrying
+# would make these tests fail as a reward for fixing one, which is how they broke
+# the last two times a colour was repaired.
+
+def tool_holding(tmp_path, key: str, reason: str = "held open for this test"):
+    """A copy of the tool whose WAIVED table holds exactly the one given entry."""
+    src = (TOOLS_DIR / TOOL).read_text(encoding="utf-8")
+    patched, n = re.subn(r"^WAIVED = \{.*?^\}\n",
+                         "WAIVED = {\n    %s: %r,\n}\n" % (key, reason),
+                         src, count=1, flags=re.S | re.M)
+    assert n == 1, "WAIVED table not found -- its shape changed"
+    path = tmp_path / "tool_with_waiver.py"
+    path.write_text(patched, encoding="utf-8")
+    return path
+
+
+def run_copy(tool_path, root, *args):
+    return subprocess.run([sys.executable, str(tool_path), str(root), *args],
+                          capture_output=True, text=True)
 
 
 # -- the calculator --------------------------------------------------------
@@ -112,13 +137,17 @@ def test_an_unreachable_bound_says_so_rather_than_naming_a_colour():
     assert "foreground L >= 0.1750 (lighter" in hint
 
 
-def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens):
+def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens, tmp_path):
     """Default output stays readable: a waived pairing's analysis lives in its ticket, a
     failing one needs the bounds in front of whoever just broke it."""
-    r = run_tool(TOOL, tokens)
+    # The waived-but-passing half needs a live waiver, and the committed table has
+    # none by design, so this makes its own.
+    tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
+    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
+    r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
     assert "to clear it:" not in r.stdout
-    assert "to clear it:" in run_tool(TOOL, tokens, "--verbose").stdout
+    assert "to clear it:" in run_copy(tool, tokens, "--verbose").stdout
 
     edit(tokens, "--sc-surface-raised: #26282e;", "--sc-surface-raised: #53575c;")
     edit(tokens, "--sc-surface-overlay: #26282e;", "--sc-surface-overlay: #53575c;")
@@ -184,28 +213,32 @@ def test_var_indirection_is_followed_through_two_levels(tokens):
     assert "--sc-fnd-ink" in out(r) and "--sc-fnd-surface" in out(r)
 
 
-def test_a_waived_pairing_reports_but_does_not_fail(tokens):
-    """The light-mode gaps this check found on its first run are held open with a reason,
-    not dropped from the table. Printing is only half of it -- a waiver goes quiet the
-    moment its pairing passes, which is what the two tests below cover."""
-    r = run_tool(TOOL, tokens)
+def test_a_waived_pairing_reports_but_does_not_fail(tokens, tmp_path):
+    """A waiver holds a known gap open with a reason instead of dropping it from the
+    table: it reports on every run, so it cannot go quiet, and it never turns a red
+    build green by silence."""
+    tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
+    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
+    r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
-    assert "WAIVED" in r.stdout and "--sc-surface-sunken" in r.stdout
+    assert "WAIVED" in r.stdout and "--sc-fnd-alert" in r.stdout
+    assert "STALE" not in out(r)
 
 
-def test_a_waiver_whose_pairing_now_passes_fails_the_run(tokens):
-    """The failure mode the WAIVED table was meant to avoid and did not: fixing the value
-    silences the entry instead of retiring it, so it sits in the table forever looking
-    like a live exception. Lifting the light disabled-field ground off frost clears that
-    one waiver; the run must name it rather than quietly dropping to three."""
-    edit(tokens, "  --sc-field-disabled-bg: #f4f5f7;", "  --sc-field-disabled-bg: #ffffff;")
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 1
+def test_a_waiver_whose_pairing_now_passes_fails_the_run(tokens, tmp_path):
+    """The failure mode the table was meant to avoid and did not: fixing the colour
+    silences the entry instead of retiring it, so it sits there forever looking like a
+    live exception. Both entries the table carried reached that state unnoticed -- one
+    when the light placeholder was fixed, one when Foundation's alert moved to #cb4834
+    and started computing 4.61:1 against an entry still claiming 4.4981:1."""
+    tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
+    # left unmodified, so the waived pairing passes and the waiver covers nothing
+    r = run_copy(tool, tokens)
+    assert r.returncode == 1, out(r)
     text = out(r)
-    assert "STALE" in text and "--sc-text-muted on --sc-field-disabled-bg (light)" in text
-    # The three that still miss their floor keep reporting, and keep not failing.
-    assert text.count("STALE") == 1
-    assert r.stdout.count("WAIVED") == 3
+    assert "STALE" in text
+    assert "--sc-fnd-on-accent on --sc-fnd-alert" in text
+    assert "WAIVED" not in r.stdout
 
 
 def test_a_waiver_for_a_pairing_the_table_never_checks_is_dead_config():
@@ -220,12 +253,13 @@ def test_a_waiver_for_a_pairing_the_table_never_checks_is_dead_config():
     assert "does not make" in errors[0] and "--sc-surface-nonexistent" in errors[0]
 
 
-def test_a_waiver_covering_a_live_failure_is_not_reported_as_stale(tokens):
-    """The staleness check must not fire on the entries that are doing their job, or the
-    table could not hold an open gap at all."""
+def test_the_committed_table_carries_no_dead_waivers(tokens):
+    """The state this check exists to hold: the shipped table excuses nothing that has
+    since been fixed, so a clean run reports neither a waiver nor a stale one."""
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
     assert "STALE" not in out(r)
+    assert "WAIVED" not in r.stdout
 
 
 # -- 2. dark/auto parity ---------------------------------------------------
