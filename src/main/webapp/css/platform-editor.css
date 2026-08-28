@@ -79,9 +79,37 @@
   font-size: 0.75rem;
 }
 
+/* Control boundaries in the editor chrome, issue 1518.
+
+   The chrome paints itself #1a1a2e / #2a2a3e / #3a3a4e and none of that sits in
+   a theme block -- the editor panels are dark in light mode too. So the panels
+   were never the problem; the borders were. #555 on those panels runs 1.49:1 to
+   2.29:1, and #ccc on the white picker and the light page runs 1.61:1, all under
+   the 3:1 SC 1.4.11 asks between a control and the colours adjacent to it.
+
+   --sc-border-control is the token that already means "boundary of a control",
+   and it happens to work on both kinds of surface here: its light value #8c8e91
+   clears 3:1 on all three fixed chrome panels (5.19 / 4.26 / 3.37) AND on the
+   white picker (3.28), while its dark value #d9dce1 clears them by more. A fixed
+   literal would have been enough for the chrome, but the same declarations also
+   sit on themed surfaces, and one answer beats two.
+
+   Measured over http with the real cascade, worst case per mode:
+     before   light 14 of 15 controls fail, dark 10 of 15
+     after    0 of 15 in both
+
+   Dark was already better than the issue reports: platform-tokens.css's dark
+   input rules outrank .sc-pref-field's (0,2,1) and had quietly rescued the pref
+   fields and the picker search. .sc-move-btns runs the other way -- its
+   rgba(0,0,0,0.55) fill composites DARKER than the dark page, so the fill could
+   not carry the boundary there, and its rgba(255,255,255,0.3) border was 2.61:1.
+   It is opaque now.
+
+   #sc-widget-picker keeps its #ccc: that is a container edge, not a control
+   boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
   color: #ccc;
-  border-color: #555;
+  border-color: var(--sc-border-control, #8c8e91);
 }
 
 #sc-editor-toolbar a.button:hover {
@@ -347,7 +375,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: var(--sc-fnd-on-accent, #fefefe);
   font-size: 11px;
   padding: 2px 5px;
@@ -396,7 +424,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   margin-bottom: 0;
   font-size: 0.75rem;
   color: #ccc;
-  border-color: #555;
+  border-color: var(--sc-border-control, #8c8e91);
 }
 
 #sc-discard-draft-btn:hover {
@@ -468,7 +496,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-confirm-cancel {
   background: #3a3a4e;
   color: #ccc;
-  border: 1px solid #555 !important;
+  border: 1px solid var(--sc-border-control, #8c8e91) !important;
 }
 
 #sc-confirm-cancel:hover {
@@ -548,7 +576,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn {
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #ccc;
   padding: 5px 4px;
   cursor: pointer;
@@ -567,7 +595,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn.sc-active {
   background: #0056b3;
-  border-color: #0056b3;
+  border-color: var(--sc-border-control, #8c8e91);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -579,7 +607,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-input {
   flex: 1;
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
   font-size: 11px;
@@ -724,7 +752,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 4px 6px;
   font-size: 11px;
@@ -746,7 +774,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="color"] {
   width: 100%;
   height: 26px;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   border-radius: 3px;
   background: #2a2a3e;
   padding: 2px;
@@ -755,7 +783,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-pref-field textarea {
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
   font-size: 11px;
@@ -809,7 +837,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-textarea {
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 6px;
   font-size: 11px;
@@ -844,7 +872,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset {
   background: #3a3a4e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #ccc;
   padding: 3px 10px;
   font-size: 11px;
@@ -889,7 +917,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-link-prompt input[type="text"] {
   background: #2a2a3e;
-  border: 1px solid #555;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: #eee;
   padding: 3px 6px;
   font-size: 12px;
@@ -951,7 +979,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-search {
   margin: 6px 8px;
   padding: 4px 6px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sc-border-control, #8c8e91);
   border-radius: 3px;
   font-size: 12px;
   flex-shrink: 0;
@@ -1026,20 +1054,121 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   border: none;
 }
 
-/* Override Snow theme to integrate with the editor chrome */
-.sc-quill-editor-container .ql-toolbar.ql-snow {
-  background: #f5f6fa;
-  border: 1px solid #cdd0d5;
+/* Override Snow theme to integrate with the editor chrome.
+
+   Both of these were written as descendants of .sc-quill-editor-container and
+   selected nothing. Quill's snow theme does not build that DOM: handed an
+   element, it adds `ql-container ql-snow` to THAT element and inserts the
+   toolbar as its PREVIOUS SIBLING -- which is why deactivateQuill() reaches for
+   container.previousElementSibling to avoid orphaning it. So the toolbar was
+   never inside the container, and shipped with Quill's own defaults instead:
+   .ql-toolbar.ql-snow sets no background at all, over #444 glyphs, which on the
+   dark page (#17191e) is 1.81:1. Issue 1519.
+
+   .sc-quill-editing is the widget element activateQuill() marks, and both the
+   toolbar and the container sit inside it -- so it reaches the toolbar without
+   :has(), and stays scoped to an editor that is actually open rather than to
+   every widget on an edit-mode page.
+
+   Everything below is a token rather than a literal, so the chrome follows the
+   theme on its own and needs no dark/auto pair. Quill's own values are all
+   fixed light-mode colours, and a fixed fill under themed ink is exactly what
+   put the link tooltip at 3.00:1: --sc-link is #609ace in dark mode, and the
+   tooltip painted itself #fff regardless. */
+.sc-quill-editing .ql-toolbar.ql-snow {
+  background: var(--sc-surface-sunken, #f4f5f7);
+  border: 1px solid var(--sc-border, #d9dce1);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
 }
 
-.sc-quill-editor-container .ql-container.ql-snow {
-  border: 1px solid #cdd0d5;
+.sc-quill-editing .ql-container.ql-snow {
+  border: 1px solid var(--sc-border, #d9dce1);
   border-top: none;
   border-radius: 0 0 4px 4px;
   font-size: 1rem;
   min-height: 60px;
+}
+
+/* Toolbar glyphs. Quill draws its icons as SVG strokes and fills, so these are
+   stroke/fill rather than color, and they are the 1.81:1 above. On the toolbar
+   fill: 16.12:1 light, 17.30:1 dark. */
+.sc-quill-editing .ql-snow .ql-stroke,
+.sc-quill-editing .ql-snow .ql-stroke-miter {
+  stroke: var(--sc-text, #17191e);
+}
+
+.sc-quill-editing .ql-snow .ql-fill,
+.sc-quill-editing .ql-snow .ql-stroke.ql-fill {
+  fill: var(--sc-text, #17191e);
+}
+
+/* The header/list dropdowns: label is text, options are a floating panel that
+   Quill paints #fff. */
+.sc-quill-editing .ql-snow .ql-picker {
+  color: var(--sc-text, #17191e);
+}
+
+.sc-quill-editing .ql-snow .ql-picker-options {
+  background-color: var(--sc-surface, #ffffff);
+  border: 1px solid var(--sc-border, #d9dce1);
+  color: var(--sc-text, #17191e);
+}
+
+/* Quill's active/hover accent is a fixed #06c, which lands at 3.39:1 on the
+   dark toolbar -- under the floor for the picker labels, which are text. */
+.sc-quill-editing .ql-snow.ql-toolbar button:hover,
+.sc-quill-editing .ql-snow.ql-toolbar button:focus,
+.sc-quill-editing .ql-snow.ql-toolbar button.ql-active,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label:hover,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item:hover,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
+  color: var(--sc-link, #2a74b6);
+}
+
+.sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke,
+.sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke,
+.sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke-miter,
+.sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke-miter,
+.sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+  stroke: var(--sc-link, #2a74b6);
+}
+
+.sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-fill,
+.sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-fill,
+.sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-fill,
+.sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
+.sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke.ql-fill,
+.sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
+  fill: var(--sc-link, #2a74b6);
+}
+
+/* The link tooltip: Quill paints it #fff and #444 and leaves the anchors to the
+   page. Light mode was fine -- Quill's own `.ql-snow a{color:#06c}` survives
+   there at 5.57:1 -- but in dark mode
+   `:root[data-theme="dark"] .platform-content a:not(.button)` at (0,4,1) beats
+   it and put --sc-link (#609ace) on that hardcoded white at 3.00:1. Themed, the
+   fill moves with the ink instead: 5.87:1 dark, 5.57:1 light. */
+.sc-quill-editing .ql-snow .ql-tooltip {
+  background-color: var(--sc-surface, #ffffff);
+  border: 1px solid var(--sc-border, #d9dce1);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  color: var(--sc-text, #17191e);
+}
+
+.sc-quill-editing .ql-snow .ql-tooltip input[type=text] {
+  background-color: var(--sc-field-bg, #ffffff);
+  border: 1px solid var(--sc-border-control, #8c8e91);
+  color: var(--sc-text, #17191e);
+}
+
+/* Quill's placeholder is rgba(0,0,0,0.6) -- invisible on a dark editor. */
+.sc-quill-editing .ql-snow .ql-editor.ql-blank::before {
+  color: var(--sc-text-muted, #6c7178);
 }
 
 .sc-quill-editor-container .ql-editor {
