@@ -27,7 +27,7 @@
   <input type="hidden" name="collectionId" value="${collection.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <p class="help-text">This only declares that <c:out value="${collection.name}" /> and the collection you pick below are allowed to link records to each other -- it doesn't link any specific records. That happens later, on an individual item's own page. The relationship is one-directional: it does not automatically make the other collection relate back to this one.</p>

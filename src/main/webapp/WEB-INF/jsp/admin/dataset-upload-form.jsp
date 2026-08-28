@@ -26,7 +26,7 @@
   <input type="hidden" name="id" value="${dataset.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <p class="help-text">Creates a new Dataset: give it a name, supply a source URL or upload a file, and pick the matching Dataset Type. Once it's created, the source, sync schedule, and field mappings are configured on its own tabs.</p>

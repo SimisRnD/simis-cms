@@ -33,7 +33,7 @@
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/calendar?returnPage=/admin/calendars">Add a Calendar <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>

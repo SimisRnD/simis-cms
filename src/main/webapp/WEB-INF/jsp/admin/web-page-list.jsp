@@ -25,7 +25,7 @@
 <jsp:useBean id="standardPages" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="linkedPagePaths" class="java.util.HashSet" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <p class="help-text">
   Every page on the site lives here, in two views of the same underlying records. <strong>In Navigation
