@@ -414,6 +414,24 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # The state families, stated against the ground that actually binds them: each
+    # strong value is its own callout's text as well as its border, so the pairing that
+    # matters is strong-on-tint, not strong-on-page. Registered per mode because the
+    # tints differ; the tool re-derives all eight.
+    (r"(?<!dark, )strong on its own tint: success ([\d.]+):1, warning ([\d.]+):1, "
+     r"danger ([\d.]+):1, info ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-success", "--sc-success-light")]),
+      ("exact", [("--sc-warning", "--sc-warning-light")]),
+      ("exact", [("--sc-danger", "--sc-danger-light")]),
+      ("exact", [("--sc-info", "--sc-info-light")])]),
+    (r"dark, strong on its own tint: success ([\d.]+):1, warning ([\d.]+):1, "
+     r"danger ([\d.]+):1, info ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-success", "--sc-success-light")]),
+      ("exact", [("--sc-warning", "--sc-warning-light")]),
+      ("exact", [("--sc-danger", "--sc-danger-light")]),
+      ("exact", [("--sc-info", "--sc-info-light")])]),
     # Issue 1574: the admin rail's fixed chrome, stated against both grounds it uses.
     # Real token pairings, so the tool re-derives all four rather than trusting the
     # comment -- which is the point, since the previous rail ratios were only ever
