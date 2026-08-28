@@ -40,29 +40,32 @@
       <%-- The file's own type icon, matching admin/folder-files-list.jsp so a document looks
            the same wherever it is listed. Decorative: the link beside it already names the
            file, so it is hidden from assistive technology rather than given a title
-           attribute, which would be announced as a second, redundant label. --%>
-      <c:if test="${showIcon eq 'true'}"><c:choose>
+           attribute, which would be announced as a second, redundant label. It is emitted
+           inside the link below so that it takes the link's own color; a site that themes
+           its links would otherwise leave the icon in the surrounding text color, which on
+           a dark panel can be invisible. --%>
+      <c:set var="fileIcon"><c:if test="${showIcon eq 'true'}"><c:choose>
           <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o" aria-hidden="true"></i> </c:when>
           <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o" aria-hidden="true"></i> </c:when>
           <c:when test="${fn:toLowerCase(file.fileType) eq 'image'}"><i class="fa fa-file-image-o" aria-hidden="true"></i> </c:when>
           <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link" aria-hidden="true"></i> </c:when>
           <c:otherwise><i class="fa fa-file-o" aria-hidden="true"></i> </c:otherwise>
-        </c:choose></c:if>
+        </c:choose></c:if></c:set>
       <c:choose>
         <c:when test="${showLinks eq 'false'}">
-          <c:out value="${file.title}" />
+          ${fileIcon}<c:out value="${file.title}" />
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${useViewer eq 'true' && fn:toLowerCase(file.fileType) eq 'pdf'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:otherwise>
-          <a href="${ctx}/assets/file/${file.url}"><c:out value="${file.title}" /></a>
+          <a href="${ctx}/assets/file/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:otherwise>
       </c:choose>
       <c:if test="${file.fileLength gt 0}">
