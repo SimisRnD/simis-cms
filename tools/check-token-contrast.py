@@ -341,37 +341,28 @@ for _block in BLOCKS:
         PAIRINGS += [(_block, fg, bg, floor) for fg, bg, floor in DARK_ONLY]
 
 # Pairings that miss their floor today. Held open here, with the measured value
-# and a reason, rather than dropped from the table: a waiver prints on every run
-# and cannot go stale, which is more than the CSS comments it replaces managed.
-# None of these is introduced by this change -- the check found them on its
-# first run against main.
+# and a reason, rather than dropped from the table, so the gap stays visible with
+# its reason attached instead of living in a CSS comment nobody re-derives.
+#
+# This once claimed a waiver "cannot go stale" because it prints on every run.
+# It only prints while its pairing still fails: fix the value and the entry goes
+# quiet and sits here forever, which is exactly the staleness the table was meant
+# to avoid. So check_waivers() fails the run on any entry that no longer covers a
+# failing pairing -- the same standard EXEMPT_RATIOS and RENDERED_RATIOS are held
+# to below. Clearing a waived pairing means deleting its entry here in the same
+# change.
 WAIVED = {
-    # Issue 1498's four waivers are gone: the three light tokens were darkened so
-    # they clear frost outright, rather than being held here. The note that made
-    # this look unfixable was right about the surface and wrong about the cost --
-    # frost is the lighter of the pair, so no surface-side fix exists, but the ink
-    # only had to move a few points and every one of those moves also improved the
-    # ratio on white. Light-mode tokens never sit on a dark ground, so darkening
-    # them cannot cost anything elsewhere.
-    # Issue 1506, and read the reason before trusting the number. 2.76:1 is what
-    # THIS PAIRING computes, but it is not what ships: no light-mode rule applies
-    # --sc-field-placeholder at all (the only ::placeholder rules in first-party CSS
-    # are the two dark-scoped ones), so Foundation's own
-    # `::placeholder{color:var(--sc-fnd-medium-gray,#cacaca)}` wins and the rendered
-    # light placeholder is 1.64:1. This gate cannot see that: the failing declaration
-    # lives in vendored Foundation, not here. See "What this cannot check" above.
-    # The trap for whoever fixes 1506: adding the missing light rule without also
-    # changing the value swaps 1.64:1 for 2.76:1 and looks resolved.
-    ("light", "--sc-field-placeholder", "--sc-field-bg"):
-        "2.76:1 as declared -- but nothing applies this token in light mode; what "
-        "renders is Foundation's #cacaca at 1.64:1. Issue 1506. The light-mode note "
-        "calls placeholder text 'not AA-required', which SC 1.4.3 does not exempt.",
-    # None means every theme: Foundation's five accent fills are deliberately
-    # not redefined for dark, so this one misses in all three blocks.
-    (None, "--sc-fnd-on-accent", "--sc-fnd-alert"):
-        "4.4981:1 -- Foundation's own $white on its own $alert, marginally under. "
-        "Vendored palette, shipped unmodified on purpose (see the Layer 1b note); "
-        "repainting it is a brand decision, not a CI one.",
+    # Empty, and that is the point: every gap this table once held has been closed.
+    # Issue 1498's four went when the three light tokens were darkened to clear frost
+    # outright. Issue 1506's placeholder waiver went when the light value was fixed.
+    # Foundation's $white-on-$alert went when the palette moved to #cb4834, which
+    # computes 4.61:1 -- the entry claimed 4.4981:1 and had drifted from its own
+    # subject, which is exactly what check_waivers now refuses to let happen again.
+    #
+    # An entry here excuses a pairing that misses its floor, with a written reason.
+    # It is not a place to park a failure indefinitely: check_waivers fails the run
+    # if the pairing it names has since started passing, so a waiver cannot outlive
+    # the problem it documents.
 }
 
 # --------------------------------------------------------------------------
@@ -713,6 +704,7 @@ def how_to_clear(fg_val: str, bg_val: str, floor: float) -> str:
 def check_pairings(tokens, errors, notes, verbose):
     checked = 0
     seen_waivers = set()
+    used_waivers = set()
     for block, fg, bg, floor in PAIRINGS:
         try:
             fg_val, bg_val = colour_of(fg, block, tokens), colour_of(bg, block, tokens)
@@ -726,9 +718,13 @@ def check_pairings(tokens, errors, notes, verbose):
         shown = f"{r:.4f}" if r < floor <= float(f"{r:.2f}") else f"{r:.2f}"
         label = f"{block:5s} {fg} ({fg_val}) on {bg} ({bg_val}) = {shown}:1, floor {floor}:1"
         if r < floor:
-            waiver = WAIVED.get((block, fg, bg)) or WAIVED.get((None, fg, bg))
+            # The block-specific entry wins, so a pairing waived for one theme does
+            # not silently excuse the other two through the None key.
+            key = (block, fg, bg) if (block, fg, bg) in WAIVED else (None, fg, bg)
+            waiver = WAIVED.get(key)
             hint = how_to_clear(fg_val, bg_val, floor) if r < floor else ""
             if waiver:
+                used_waivers.add(key)
                 # The reason is printed once per distinct waiver, not once per
                 # block, so a token waived in all three does not triple the noise.
                 if waiver in seen_waivers:
@@ -741,7 +737,31 @@ def check_pairings(tokens, errors, notes, verbose):
                 errors.append(f"CONTRAST {label}\n           {hint}")
         elif verbose:
             notes.append(f"ok       {label}")
-    return checked
+    return checked, used_waivers
+
+
+def check_waivers(used, errors):
+    """A waiver that covers no failing pairing is dead config, and dead config is how
+    tables stop being read. Reported as a failure, not a note, for the same reason the
+    ratio claims are: the run that clears a pairing is the only run that can tell you
+    which waiver it retired, and by the next one nobody is looking."""
+    checkable = set()
+    for block, fg, bg, _floor in PAIRINGS:
+        checkable |= {(block, fg, bg), (None, fg, bg)}
+
+    for key in WAIVED:
+        if key in used:
+            continue
+        block, fg, bg = key
+        where = block if block else "every block"
+        if key not in checkable:
+            errors.append(
+                f"STALE    the waiver for {fg} on {bg} ({where}) names a pairing this check "
+                f"does not make -- correct the key or drop it from WAIVED")
+        else:
+            errors.append(
+                f"STALE    the waiver for {fg} on {bg} ({where}) covers no failing pairing "
+                f"-- the value was fixed and the waiver left behind. Drop it from WAIVED.")
 
 
 def check_parity(tokens, errors, verbose, notes):
@@ -915,7 +935,8 @@ def main() -> int:
             print(e, file=sys.stderr)
         return 1
 
-    pairs = check_pairings(tokens, errors, notes, args.verbose)
+    pairs, used_waivers = check_pairings(tokens, errors, notes, args.verbose)
+    check_waivers(used_waivers, errors)
     parity = check_parity(tokens, errors, args.verbose, notes)
     covered, claims = check_claims(text, blocks, tokens, errors, notes, args.verbose)
     check_registration(text, comment_spans, covered, errors)
