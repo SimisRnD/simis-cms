@@ -64,6 +64,22 @@
      would have dragged this token's own consumers below that floor on the rail,
      and broken them silently. */
   --sc-text-subtle: #979ca4;
+
+  /* Admin rail chrome. The rail is not a themed surface -- it is dark in light mode
+     and dark in dark mode -- so these are declared once here and deliberately never
+     redefined below, the same way --sc-text-subtle above is. Ink and ground move
+     together or not at all.
+
+     Pointing rail ink at a themed token is what broke it: --sc-text-inverse flips to
+     #17191e in dark while the rail's own background stayed a literal #17191e, so the
+     product name was painted in exactly its own background colour. Issue 1574.
+
+     ink on rail 17.58:1, ink on raised 7.28:1, muted on rail 12.79:1, muted on raised 5.29:1 */
+  --sc-chrome: #17191e;
+  --sc-chrome-raised: #53575c;
+  --sc-chrome-hover: #3e4045;
+  --sc-chrome-ink: #ffffff;
+  --sc-chrome-ink-muted: #d9dce1;
   --sc-text-inverse: #ffffff;
   /* Same reasoning as --sc-text-muted above, hue preserved: link on sunken
      4.51:1, link on surface 4.92:1. Issue 1498. */

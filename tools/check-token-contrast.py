@@ -414,6 +414,17 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # Issue 1574: the admin rail's fixed chrome, stated against both grounds it uses.
+    # Real token pairings, so the tool re-derives all four rather than trusting the
+    # comment -- which is the point, since the previous rail ratios were only ever
+    # written down and one of them had silently become 1.00:1.
+    (r"ink on rail ([\d.]+):1, ink on raised ([\d.]+):1, "
+     r"muted on rail ([\d.]+):1, muted on raised ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
     # Light placeholder, issue 1506. A real token pairing, so the tool re-derives it
     # rather than taking the comment's word for it.
     (r"Placeholder on the white field below: ([\d.]+):1",
