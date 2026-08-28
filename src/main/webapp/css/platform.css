@@ -421,6 +421,21 @@ table td .input-group {
   min-height: 500px;
   overflow-x: auto;
 }
+/* The admin console draws from the token layer rather than the site's own page colours.
+   main.jsp scopes theme.body.* and theme.link.color away from .admin-console for this;
+   without these declarations the console would fall through to Foundation's defaults.
+   Buttons are excluded from the link rule because they carry their own ink. */
+body.admin-console {
+  background-color: var(--sc-surface);
+  color: var(--sc-text);
+}
+body.admin-console a:not(.button) {
+  color: var(--sc-link);
+}
+body.admin-console a:not(.button):hover,
+body.admin-console a:not(.button):focus {
+  color: var(--sc-link-hover);
+}
 .admin-web-content .platform-body {
   margin-top: 10px;
 }

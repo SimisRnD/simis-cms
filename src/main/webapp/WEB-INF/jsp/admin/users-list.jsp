@@ -391,7 +391,7 @@
         <c:choose>
           <c:when test="${role.level > actingRoleLevel}"><%-- --%></c:when>
           <c:otherwise>
-            <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label>
+            <span class="text-no-wrap no-gap-all"><input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label></span>
           </c:otherwise>
         </c:choose>
       </c:forEach>
@@ -404,7 +404,7 @@
             <%-- not a logged in user group --%>
           </c:when>
           <c:otherwise>
-            <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" /><label for="groupId${group.id}"><c:out value="${group.name}" /></label>
+            <span class="text-no-wrap no-gap-all"><input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" /><label for="groupId${group.id}"><c:out value="${group.name}" /></label></span>
           </c:otherwise>
         </c:choose>
       </c:forEach>
