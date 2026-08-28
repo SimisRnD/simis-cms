@@ -347,6 +347,9 @@ ALLOWLIST: dict[str, str] = {
         "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
     "${siteProperty.value eq 'none'}":
         "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
+    "${fileIcon}":
+        "Set via <c:set var='fileIcon'> in file-list.jsp from a closed <c:choose> whose every branch is a JSP-authored literal <i class=\"fa fa-...\"> -- the only input is file.fileType, which is compared against fixed strings and never itself rendered. It holds no user-supplied value of any kind. Rendered unescaped by design inside each <a> so the icon inherits the link's color; a render-site <c:out> would print the literal tag text instead of the glyph.",
+
     "${itemImageAttrs}":
         "Set via <c:set var='itemImageAttrs'> in items-card-view.jsp, combining fixed JSP-authored attribute literals (sizes=/decoding=/loading=) with its one dynamic component, ${itemImageSrcset} -- which is itself wrapped in <c:out> at the point it is written into the block, encoding '\"' the same way ${logoSrc} does. Rendered unescaped by design at the <img ...> sink: the value holds pre-built HTML attribute syntax (srcset=\"...\" sizes=\"...\" decoding=\"async\" loading=\"lazy\") that a render-site <c:out> would corrupt by HTML-entity-encoding its own quotes.",
 
