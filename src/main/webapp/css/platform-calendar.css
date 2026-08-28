@@ -246,7 +246,7 @@
   opacity: 1;
 }
 :root .fc .fc-day-other .fc-daygrid-day-number {
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
 }
 
 /* Editorial Calendar (issue #426) -- /admin/editorial-calendar's entry rendering */
@@ -365,7 +365,7 @@
 }
 .ec-undated-empty {
   padding: 6px 4px;
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
   font-style: italic;
 }
 

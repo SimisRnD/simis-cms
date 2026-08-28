@@ -228,6 +228,20 @@ public class PageServlet extends HttpServlet {
               + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
               + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
               + "script-src 'self' 'nonce-" + cspNonce + "'");
+
+      // The candidate policy from Security Settings, when one is configured. Report-only cannot
+      // block a resource, so this is safe to run against live traffic -- which is the point: the
+      // directives #1430 still needs (connect-src, and default-src behind it) cannot be written by
+      // reading the source, because the hosts a third-party script calls only exist at runtime.
+      //
+      // Reporting-Endpoints goes with it. report-to names an endpoint; without this header the
+      // name resolves to nothing and the browser evaluates the policy and reports to nobody, which
+      // is indistinguishable from a policy that found no violations.
+      String reportOnlyPolicy = CspPolicyCommand.reportOnlyPolicy(cspNonce);
+      if (reportOnlyPolicy != null) {
+        response.setHeader("Content-Security-Policy-Report-Only", reportOnlyPolicy);
+        response.setHeader("Reporting-Endpoints", CspPolicyCommand.reportingEndpointsHeader());
+      }
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
