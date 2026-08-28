@@ -1096,7 +1096,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item:hover,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
-  color: var(--sc-link, #2c79be);
+  color: var(--sc-link, #2a74b6);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke,
@@ -1107,7 +1107,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
-  stroke: var(--sc-link, #2c79be);
+  stroke: var(--sc-link, #2a74b6);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -1116,7 +1116,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
-  fill: var(--sc-link, #2c79be);
+  fill: var(--sc-link, #2a74b6);
 }
 
 /* The link tooltip: Quill paints it #fff and #444 and leaves the anchors to the
@@ -1134,13 +1134,13 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-editing .ql-snow .ql-tooltip input[type=text] {
   background-color: var(--sc-field-bg, #ffffff);
-  border: 1px solid var(--sc-border-control, #8d8f92);
+  border: 1px solid var(--sc-border-control, #8c8e91);
   color: var(--sc-text, #17191e);
 }
 
 /* Quill's placeholder is rgba(0,0,0,0.6) -- invisible on a dark editor. */
 .sc-quill-editing .ql-snow .ql-editor.ql-blank::before {
-  color: var(--sc-text-muted, #71767d);
+  color: var(--sc-text-muted, #6c7178);
 }
 
 .sc-quill-editor-container .ql-editor {
