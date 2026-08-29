@@ -74,6 +74,16 @@ PALETTE = {
     "#e6e6e6": "--sc-fnd-light-gray",
     "#cacaca": "--sc-fnd-medium-gray",
     "#8a8a8a": "--sc-fnd-dark-gray",
+    # Table chrome. Sass-computed neutrals rather than base palette entries, added because
+    # the admin is mostly tables and these were the last thing in it still reading cool
+    # against a warm surface -- thead, tfoot, the stripe, the rules between rows and the
+    # three hover shades. Seeded with Foundation's own values, so routing them changes
+    # nothing until someone decides what they should be.
+    "#f8f8f8": "--sc-fnd-table-head",
+    "#f1f1f1": "--sc-fnd-table-stripe",
+    "#f3f3f3": "--sc-fnd-table-head-hover",
+    "#f9f9f9": "--sc-fnd-table-row-hover",
+    "#ececec": "--sc-fnd-table-stripe-hover",
 }
 
 # (colour, role) -> token, for the two that invert. Role is derived from the

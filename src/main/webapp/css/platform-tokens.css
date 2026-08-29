@@ -244,6 +244,17 @@
   --sc-fnd-ink: var(--sc-text);   /* $black as text (36 uses) */
   --sc-fnd-ink-surface: #0a0a0a;  /* $black painting a surface (12 uses) */
 
+  /* Table chrome, seeded with Foundation's own values so nothing moves until these are
+     deliberately changed. Routed because the admin is mostly tables, and on a warm surface
+     these cool greys were the last thing in it reading as a different palette. No dark
+     values: they have none today either, so light-only keeps the current behaviour exactly
+     rather than quietly fixing a second thing. */
+  --sc-fnd-table-head: #f8f8f8;
+  --sc-fnd-table-stripe: #f1f1f1;
+  --sc-fnd-table-head-hover: #f3f3f3;
+  --sc-fnd-table-row-hover: #f9f9f9;
+  --sc-fnd-table-stripe-hover: #ececec;
+
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
      once, here, and deliberately never redefined for dark: those fills keep their
      light values in dark mode, so the text on them has to stay dark or it lands
