@@ -99,9 +99,21 @@ public class CaptchaCommand {
     if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
       parameters.put("remoteip", context.getUserSession().getIpAddress());
     }
-    String remoteContent = HttpPostCommand.execute(url, parameters);
+    // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
+    // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
+    // secret with 400 and {"error-codes":["invalid-input-secret"]}, so this read "Remote content is
+    // empty" and an operator could not tell a wrong secret from a network fault -- which is what
+    // made an evening of Turnstile debugging produce nothing (issue 1616). Google returns 200 with
+    // success:false for the same class of error, which is why only one of the two was ever
+    // diagnosable. Parse the body whatever the status; the codes are in there either way.
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url, parameters);
+    if (result == null) {
+      LOG.error("The verification request could not be sent to " + url);
+      return false;
+    }
+    String remoteContent = result.getBody();
     if (StringUtils.isBlank(remoteContent)) {
-      LOG.error("Remote content is empty");
+      LOG.error("Verification returned HTTP " + result.getStatusCode() + " with no body from " + url);
       return false;
     }
 
@@ -124,7 +136,8 @@ public class CaptchaCommand {
           return true;
         }
       }
-      LOG.error("reCAPTCHA rejected the response: " + describeRejection(json));
+      LOG.error("reCAPTCHA rejected the response (HTTP " + result.getStatusCode() + "): "
+          + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateRequest json error", e);
     }
@@ -197,9 +210,21 @@ public class CaptchaCommand {
     if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
       parameters.put("remoteip", context.getUserSession().getIpAddress());
     }
-    String remoteContent = HttpPostCommand.execute(url, parameters);
+    // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
+    // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
+    // secret with 400 and {"error-codes":["invalid-input-secret"]}, so this read "Remote content is
+    // empty" and an operator could not tell a wrong secret from a network fault -- which is what
+    // made an evening of Turnstile debugging produce nothing (issue 1616). Google returns 200 with
+    // success:false for the same class of error, which is why only one of the two was ever
+    // diagnosable. Parse the body whatever the status; the codes are in there either way.
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url, parameters);
+    if (result == null) {
+      LOG.error("The verification request could not be sent to " + url);
+      return false;
+    }
+    String remoteContent = result.getBody();
     if (StringUtils.isBlank(remoteContent)) {
-      LOG.error("Remote content is empty");
+      LOG.error("Verification returned HTTP " + result.getStatusCode() + " with no body from " + url);
       return false;
     }
 
@@ -222,7 +247,8 @@ public class CaptchaCommand {
           return true;
         }
       }
-      LOG.error("Turnstile rejected the response: " + describeRejection(json));
+      LOG.error("Turnstile rejected the response (HTTP " + result.getStatusCode() + "): "
+          + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateTurnstileRequest json error", e);
     }
