@@ -74,9 +74,9 @@ public class ContentHtmlCommand {
       return null;
     }
     if (contentFormat == DeltaContentCommand.DELTA_FORMAT_VERSION) {
-      return ContentImageSrcsetCommand.enhanceImageTags(DeltaContentCommand.render(content));
+      return ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(DeltaContentCommand.render(content)));
     }
-    return ContentImageSrcsetCommand.enhanceImageTags(content);
+    return ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(content));
   }
 
   public static String getHtmlFromPreferences(WidgetContext context) {
@@ -123,7 +123,7 @@ public class ContentHtmlCommand {
     // content-manager. Without this, every widget that calls this method (content, cards,
     // carousel, gallery, reveal, slider, accordion) renders an unsanitized preference unescaped.
     if (html == null) {
-      html = ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanContent(context.getPreferences().get("html")));
+      html = ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanContent(context.getPreferences().get("html"))));
     }
 
     // It's possible to have different content injected into this content
