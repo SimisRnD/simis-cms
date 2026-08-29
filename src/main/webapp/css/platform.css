@@ -760,11 +760,15 @@ ul.pagination li.pagination-next a:hover {
 }
 
 /* Orbit Hero */
+/* The slide and caption paint a dark SURFACE, so they take --sc-fnd-ink-surface rather
+   than --sc-fnd-black, which aliases the text role. Same colour, but the two move apart
+   the moment either is themed -- and they did: pointing light-mode --sc-fnd-ink at the
+   page ink would have turned both of these hero backgrounds warm-dark by accident. */
 
 .clean-hero-slider .orbit-caption {
   width: auto;
   height: auto;
-  background: var(--sc-fnd-black, #0a0a0a);
+  background: var(--sc-fnd-ink-surface, #0a0a0a);
   position: absolute;
   text-align: center;
   right: 0;
@@ -826,7 +830,7 @@ ul.pagination li.pagination-next a:hover {
 
 .clean-hero-slider .orbit-slide {
   padding-bottom: 40%;
-  background: var(--sc-fnd-black, #0a0a0a);
+  background: var(--sc-fnd-ink-surface, #0a0a0a);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -842,7 +846,7 @@ ul.pagination li.pagination-next a:hover {
 
 .clean-hero-slider .orbit-controls button:hover {
   background: var(--sc-fnd-white, #fefefe);
-  color: var(--sc-fnd-black, #0a0a0a);
+  color: var(--sc-fnd-black, #2c2925);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -1236,7 +1240,7 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   text-align: center;
   font-size: var(--sc-font-xl, 1.5rem);
-  color: var(--sc-fnd-black, #0a0a0a);
+  color: var(--sc-fnd-black, #2c2925);
   padding: 0.5rem;
   cursor: pointer;
 }
@@ -1339,7 +1343,7 @@ a.read-more {
 
 .callout.box {
   background-color: var(--sc-surface, #f5f3ef);
-  color: var(--sc-fnd-black, #0a0a0a);
+  color: var(--sc-fnd-black, #2c2925);
 }
 
 .callout.prototype {
@@ -1348,7 +1352,7 @@ a.read-more {
   background-position: center center;
   background-repeat: repeat;
   background-size: 16px;
-  color: var(--sc-fnd-black, #0a0a0a);
+  color: var(--sc-fnd-black, #2c2925);
 }
 
 .callout.header {

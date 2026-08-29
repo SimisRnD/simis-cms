@@ -236,7 +236,12 @@
      express that -- a dark --sc-fnd-white would turn 32 button captions dark-on-dark. */
   --sc-fnd-surface: #fefefe;      /* $white painting a surface (27 uses) */
   --sc-fnd-on-accent: #fefefe;    /* $white as text ON a coloured fill (32 uses) */
-  --sc-fnd-ink: #0a0a0a;          /* $black as text (36 uses) */
+  /* Follows the page's own ink rather than Foundation's $black, so a component's text and
+     the body text on the same page are the same colour. They were not: an admin page showed
+     body text at --sc-text while its callouts, table heads and form controls stayed #0a0a0a,
+     which reads as two blacks once the surface around them is warm. Dark mode already made
+     this choice (--sc-fnd-ink: var(--sc-text) in both dark blocks); light was left behind. */
+  --sc-fnd-ink: var(--sc-text);   /* $black as text (36 uses) */
   --sc-fnd-ink-surface: #0a0a0a;  /* $black painting a surface (12 uses) */
 
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
