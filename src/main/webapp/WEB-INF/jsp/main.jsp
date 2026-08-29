@@ -340,18 +340,33 @@
              platform.css's own .button.box at (0,3,0) against (0,2,0), so the !important there could
              not defend it. --%>
         <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow):not(.box){color:var(--sc-button-text-color) !important}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover, .button.primary:focus, #platform-menu ul.menu li a.button.primary:hover{background-color:var(--sc-button-primary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary{background-color:var(--sc-button-secondary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover, .button.secondary:focus, #platform-menu ul.menu li a.button.secondary:hover{background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success{background-color:var(--sc-button-success-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover, .button.success:focus{background-color:var(--sc-button-success-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning{background-color:var(--sc-button-warning-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover, .button.warning:focus{background-color:var(--sc-button-warning-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert{background-color:var(--sc-button-alert-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover, .button.alert:focus{background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <%-- The fills carry the same :not(.clear):not(.hollow) scope as the ink rules above and
+             below, because the two halves have to agree about which buttons they are for. They did
+             not: every ink rule excluded the two variants and no fill rule did, so a hollow button
+             got a background it is not supposed to have and was then skipped by the rule that would
+             have given it a readable caption. It kept Foundation's hollow ink -- which is the
+             secondary color itself, the same value now sitting behind it. On the pilot that made
+             the page editor's Media Library button a blank grey slab, 1.000:1 (issue 1608). Only
+             <button> was affected; Foundation ships an anchor-qualified a.button.hollow.secondary
+             at (0,3,1) that outranks the theme, and there is no <button> equivalent.
+             :where() rather than a bare :not() because the exclusion must not move these rules.
+             The site's own stylesheet loads further down this file, so a site rule at (0,2,0) wins
+             a tie against the theme on source order today; :not() would take the default fill from
+             (0,1,0) to (0,3,0) and silently invert that for every site-authored
+             .button.<name>{background} override. :where() contributes no specificity, so nothing
+             that currently wins or loses changes -- only hollow and clear stop matching. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-default-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover:where(:not(.clear):not(.hollow)), .button:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-default-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover:where(:not(.clear):not(.hollow)), .button.primary:focus:where(:not(.clear):not(.hollow)), #platform-menu ul.menu li a.button.primary:hover:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover:where(:not(.clear):not(.hollow)), .button.secondary:focus:where(:not(.clear):not(.hollow)), #platform-menu ul.menu li a.button.secondary:hover:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-success-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover:where(:not(.clear):not(.hollow)), .button.success:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-success-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-warning-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover:where(:not(.clear):not(.hollow)), .button.warning:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-warning-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-alert-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover:where(:not(.clear):not(.hollow)), .button.alert:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-alert-hover-background-color)}</c:if>
         <%-- Each themed fill gets the caption color it can actually carry. theme.button.text.color
              is one color applied to buttons whose fills are deliberately not one color, so on the
              stock palette it lands at 2.86:1 on the success green and 1.86:1 on the warning amber
