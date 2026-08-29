@@ -53,36 +53,87 @@ public class CaptchaCommand {
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
+  /** The value of captcha.service for Cloudflare Turnstile */
+  private static final String TURNSTILE = "turnstile";
+  /** The value of captcha.service for Google reCAPTCHA */
+  private static final String GOOGLE = "google";
+
+  /**
+   * The configured captcha service, but only if it can actually run -- otherwise null.
+   * <p>
+   * Naming a service used to be enough to be trusted. If captcha.service said {@code turnstile}
+   * or {@code google} and the keys behind it were blank, or if it held anything else at all,
+   * validateRequest logged a warning and returned true: every submission accepted, on a control
+   * whose entire job is to reject some of them. The widget still rendered, so the form looked
+   * protected from the outside, and the only trace was a line in a log nobody reads (issue 1614).
+   * </p>
+   * <p>
+   * captcha.service is a free-text site property, not a fixed list, so an unrecognised value is
+   * not hypothetical -- {@code Google}, {@code recaptcha}, or a trailing space all reach this.
+   * </p>
+   * <p>
+   * Returning null routes those cases to the drawn-image captcha, which the dispatch already fell
+   * back to when nothing was configured at all. That is deliberately not the same as rejecting
+   * every submission: a misconfigured site keeps a working form and a real challenge, rather than
+   * trading a silent hole for a silent outage.
+   * </p>
+   */
+  private static String usableService() {
+    String service = LoadSitePropertyCommand.loadByName("captcha.service");
+    if (StringUtils.isBlank(service)) {
+      return null;
+    }
+    service = service.trim();
+    if (TURNSTILE.equals(service)) {
+      if (StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey"))
+          || StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey"))) {
+        LOG.warn("captcha.service is 'turnstile' but its keys are not set -- "
+            + "using the drawn-image captcha instead");
+        return null;
+      }
+      return TURNSTILE;
+    }
+    if (GOOGLE.equals(service)) {
+      if (StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"))
+          || StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.google.secretkey"))) {
+        LOG.warn("captcha.service is 'google' but its keys are not set -- "
+            + "using the drawn-image captcha instead");
+        return null;
+      }
+      return GOOGLE;
+    }
+    LOG.warn("captcha.service is set to an unrecognized value -- "
+        + "using the drawn-image captcha instead");
+    return null;
+  }
+
+  /** The built-in drawn-image challenge: compares the submitted text to the value held in session. */
+  private static boolean validateDrawnImageCaptcha(WidgetContext context) {
+    String checkValue = (String) context.getRequest().getSession().getAttribute(SessionConstants.CAPTCHA_TEXT);
+    String captcha = context.getParameter("captcha");
+    if (StringUtils.isBlank(checkValue) || StringUtils.isBlank(captcha)) {
+      return false;
+    }
+    return (captcha.trim().equalsIgnoreCase(checkValue));
+  }
+
   public static boolean validateRequest(WidgetContext context) {
 
-    // Determine the service
-    String service = LoadSitePropertyCommand.loadByName("captcha.service");
+    // A named service whose keys are usable, or null. Both this and populateWidgetAttributes read
+    // it, which is the point: the page must not render a provider's widget that the check will not
+    // then honour, or a visitor solves one challenge and is graded on another.
+    String service = usableService();
 
-    // Use Cloudflare Turnstile if it's configured (checked first: a Turnstile-only install has
-    // no reason to have captcha.google.sitekey set, so that value must not gate this branch)
-    if ("turnstile".equals(service)) {
+    if (service == null) {
+      return validateDrawnImageCaptcha(context);
+    }
+
+    if (TURNSTILE.equals(service)) {
       return validateTurnstileRequest(context);
     }
 
     String siteKey = LoadSitePropertyCommand.loadByName("captcha.google.sitekey");
-
-    // Use the default service
-    if (StringUtils.isBlank(service) || StringUtils.isBlank(siteKey)) {
-      String checkValue = (String) context.getRequest().getSession().getAttribute(SessionConstants.CAPTCHA_TEXT);
-      String captcha = context.getParameter("captcha");
-      if (StringUtils.isBlank(checkValue) || StringUtils.isBlank(captcha)) {
-        return false;
-      }
-      return (captcha.trim().equalsIgnoreCase(checkValue));
-    }
-
     String secretKey = LoadSitePropertyCommand.loadByName("captcha.google.secretkey");
-
-    // Use Google Recaptcha if it's configured
-    if (!"google".equals(service) || StringUtils.isBlank(siteKey) || StringUtils.isBlank(secretKey)) {
-      LOG.warn("Google reCAPTCHA is not configured, so skipping check");
-      return true;
-    }
 
     // Check for the required parameter
     String gResponse = context.getParameter("g-recaptcha-response");
@@ -99,9 +150,21 @@ public class CaptchaCommand {
     if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
       parameters.put("remoteip", context.getUserSession().getIpAddress());
     }
-    String remoteContent = HttpPostCommand.execute(url, parameters);
+    // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
+    // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
+    // secret with 400 and {"error-codes":["invalid-input-secret"]}, so this read "Remote content is
+    // empty" and an operator could not tell a wrong secret from a network fault -- which is what
+    // made an evening of Turnstile debugging produce nothing (issue 1616). Google returns 200 with
+    // success:false for the same class of error, which is why only one of the two was ever
+    // diagnosable. Parse the body whatever the status; the codes are in there either way.
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url, parameters);
+    if (result == null) {
+      LOG.error("The verification request could not be sent to " + url);
+      return false;
+    }
+    String remoteContent = result.getBody();
     if (StringUtils.isBlank(remoteContent)) {
-      LOG.error("Remote content is empty");
+      LOG.error("Verification returned HTTP " + result.getStatusCode() + " with no body from " + url);
       return false;
     }
 
@@ -124,7 +187,8 @@ public class CaptchaCommand {
           return true;
         }
       }
-      LOG.error("reCAPTCHA rejected the response: " + describeRejection(json));
+      LOG.error("reCAPTCHA rejected the response (HTTP " + result.getStatusCode() + "): "
+          + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateRequest json error", e);
     }
@@ -178,8 +242,12 @@ public class CaptchaCommand {
     String siteKey = LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey");
     String secretKey = LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey");
     if (StringUtils.isBlank(siteKey) || StringUtils.isBlank(secretKey)) {
-      LOG.warn("Cloudflare Turnstile is not configured, so skipping check");
-      return true;
+      // Unreachable: usableService() has already established both keys before dispatching here.
+      // Kept as a guard, and it fails CLOSED -- this is the shape that made issue 1614, where a
+      // blank secret meant every submission was accepted by the control meant to reject them. A
+      // caller reaching this has bypassed the dispatch, which is not a state to trust.
+      LOG.error("validateTurnstileRequest reached without usable keys -- rejecting");
+      return false;
     }
 
     // Check for the required parameter (Turnstile's widget submits this field name)
@@ -197,9 +265,21 @@ public class CaptchaCommand {
     if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
       parameters.put("remoteip", context.getUserSession().getIpAddress());
     }
-    String remoteContent = HttpPostCommand.execute(url, parameters);
+    // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
+    // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
+    // secret with 400 and {"error-codes":["invalid-input-secret"]}, so this read "Remote content is
+    // empty" and an operator could not tell a wrong secret from a network fault -- which is what
+    // made an evening of Turnstile debugging produce nothing (issue 1616). Google returns 200 with
+    // success:false for the same class of error, which is why only one of the two was ever
+    // diagnosable. Parse the body whatever the status; the codes are in there either way.
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url, parameters);
+    if (result == null) {
+      LOG.error("The verification request could not be sent to " + url);
+      return false;
+    }
+    String remoteContent = result.getBody();
     if (StringUtils.isBlank(remoteContent)) {
-      LOG.error("Remote content is empty");
+      LOG.error("Verification returned HTTP " + result.getStatusCode() + " with no body from " + url);
       return false;
     }
 
@@ -222,7 +302,8 @@ public class CaptchaCommand {
           return true;
         }
       }
-      LOG.error("Turnstile rejected the response: " + describeRejection(json));
+      LOG.error("Turnstile rejected the response (HTTP " + result.getStatusCode() + "): "
+          + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateTurnstileRequest json error", e);
     }
@@ -242,11 +323,15 @@ public class CaptchaCommand {
    */
   public static void populateWidgetAttributes(WidgetContext context) {
     context.getRequest().setAttribute("useCaptcha", "true");
-    String service = LoadSitePropertyCommand.loadByName("captcha.service");
+    // usableService(), not the raw property: a service whose keys are missing is verified with the
+    // drawn-image captcha, so its widget must not be the one rendered. Reading the raw value here
+    // would put a Turnstile box on the page while validateRequest graded a drawn-image answer, and
+    // every submission would fail for a reason nothing on screen explains.
+    String service = usableService();
     context.getRequest().setAttribute("captchaService", service);
-    if ("turnstile".equals(service)) {
+    if (TURNSTILE.equals(service)) {
       context.getRequest().setAttribute("turnstileSiteKey", LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey"));
-    } else if ("google".equals(service)) {
+    } else if (GOOGLE.equals(service)) {
       context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
     }
   }

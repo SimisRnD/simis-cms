@@ -17,6 +17,9 @@
 package com.simisinc.platform.application.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.BufferedReader;
@@ -257,4 +260,66 @@ class HttpPostCommandTest {
 
     assertEquals("POST", captured.get().method());
   }
+
+  @Test
+  void executeWithResponseKeepsTheBodyOfA400() throws IOException {
+    // The case issue 1616 is about. Cloudflare answers a wrong Turnstile secret with exactly this
+    // shape, and execute() drops it -- so CaptchaCommand could only report "Remote content is
+    // empty" and an operator had no way to tell a bad secret from a network fault.
+    String cloudflareStyle = "{\"error-codes\":[\"invalid-input-secret\"],\"success\":false}";
+    int port = startServer(400, cloudflareStyle, null);
+
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url(port), null, "payload",
+        HttpPostCommand.POST);
+
+    assertNotNull(result);
+    assertEquals(400, result.getStatusCode());
+    assertEquals(cloudflareStyle, result.getBody(), "the explanation must survive the non-2xx status");
+    assertFalse(result.isSuccess());
+  }
+
+  @Test
+  void executeDiscardsTheSameBodyExecuteWithResponseKeeps() throws IOException {
+    // Pins the contrast rather than describing it: same response, two overloads, and the reason
+    // the new one had to exist.
+    int port = startServer(400, "{\"error-codes\":[\"invalid-input-secret\"]}", null);
+
+    assertNull(HttpPostCommand.execute(url(port), null, "payload"));
+  }
+
+  @Test
+  void executeWithResponseReturnsStatusAndBodyOnA200() throws IOException {
+    int port = startServer(200, "hello world", null);
+
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url(port), null, "payload",
+        HttpPostCommand.POST);
+
+    assertNotNull(result);
+    assertEquals(200, result.getStatusCode());
+    assertEquals("hello world", result.getBody());
+    assertTrue(result.isSuccess());
+  }
+
+  @Test
+  void executeWithResponseReturnsNullWhenTheRequestCannotBeSent() {
+    // A url that fails pre-flight validation never reaches a server, so there is no status to
+    // report -- null, not a result carrying a synthetic status.
+    assertNull(HttpPostCommand.executeWithResponse("not a url", null, "payload", HttpPostCommand.POST));
+    assertNull(HttpPostCommand.executeWithResponse("", null, "payload", HttpPostCommand.POST));
+  }
+
+  @Test
+  void executeWithResponseFormEncodesParameters() throws IOException {
+    // The single-argument overload is the one CaptchaCommand uses; it must still send a form body.
+    int port = startServer(200, "ok", null);
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("secret", "s3cret");
+    parameters.put("response", "token");
+
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url(port), parameters);
+
+    assertNotNull(result);
+    assertEquals(200, result.getStatusCode());
+  }
+
 }
