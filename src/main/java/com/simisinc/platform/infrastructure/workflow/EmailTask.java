@@ -220,7 +220,13 @@ public class EmailTask implements Work {
         LOG.info("The message " + template + " was sent/queued: " + messageId);
 
       } catch (Exception e) {
-        LOG.error("sendConfirmationToUser could not send mail", e);
+        // Names the template and recipients, because this line is what a duplicate-delivery
+        // investigation reads: the enclosing job replays the WHOLE workflow on retry, so a
+        // failure reported here after the message already reached the server sends it twice.
+        // "sendConfirmationToUser" was copied from a caller that no longer exists -- this task
+        // sends every workflow email, admin notifications included, and the old wording sent
+        // anyone searching the log toward the submitter confirmation instead.
+        LOG.error("Could not send the '" + template + "' email to " + describeRecipients(toUserList, toEmail), e);
         // A FAILED report (not COMPLETED) is required for WorkflowManager.findAndRunWorkflow() to
         // let this propagate to the enclosing JobRunr job's retries=1 (issue #1124) -- returning
         // COMPLETED here regardless of outcome is what made that retry dead code.
@@ -228,8 +234,28 @@ public class EmailTask implements Work {
       }
       return new DefaultWorkReport(WorkStatus.COMPLETED, workContext);
     } catch (Exception e) {
-      LOG.error("Email", e);
+      // Reached before a send is attempted -- template resolution, recipient lookup, or building
+      // the message. Distinguished from the send failure above so the two are not confused in a
+      // log: this one delivered nothing, that one may have delivered and still reported failure.
+      LOG.error("Could not build the '" + template + "' email", e);
     }
     return new DefaultWorkReport(WorkStatus.FAILED, workContext);
   }
+
+  /** Recipients for a log line: named accounts and any literal addresses, never more than a few */
+  private static String describeRecipients(List<User> toUserList, String toEmail) {
+    List<String> addresses = new ArrayList<>();
+    if (toUserList != null) {
+      for (User user : toUserList) {
+        addresses.add(user.getEmail());
+      }
+    }
+    if (StringUtils.isNotBlank(toEmail)) {
+      for (String thisEmail : toEmail.split(",")) {
+        addresses.add(thisEmail.trim());
+      }
+    }
+    return addresses.isEmpty() ? "(no recipients)" : String.join(", ", addresses);
+  }
+
 }
