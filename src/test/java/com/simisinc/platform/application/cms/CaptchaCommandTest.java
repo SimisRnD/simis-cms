@@ -111,15 +111,16 @@ class CaptchaCommandTest {
       when(userSession.getIpAddress()).thenReturn("127.0.0.1");
       when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
 
-      httpPost.when(() -> HttpPostCommand.execute(
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(
           eq("https://challenges.cloudflare.com/turnstile/v0/siteverify"), anyMap()))
-          .thenReturn("{\"success\": true}");
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
 
       Assertions.assertTrue(CaptchaCommand.validateRequest(context));
 
-      httpPost.when(() -> HttpPostCommand.execute(
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(
           eq("https://challenges.cloudflare.com/turnstile/v0/siteverify"), anyMap()))
-          .thenReturn("{\"success\": false, \"error-codes\": [\"invalid-input-response\"]}");
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"success\": false, \"error-codes\": [\"invalid-input-response\"]}"));
 
       Assertions.assertFalse(CaptchaCommand.validateRequest(context));
     }
@@ -194,4 +195,61 @@ class CaptchaCommandTest {
     }
     Assertions.assertTrue(out.size() > 0);
   }
+
+  @Test
+  void validateRequestTurnstileReadsTheErrorCodesOutOfA400() {
+    // Issue 1616. Cloudflare reports a wrong secret as HTTP 400 with the codes in the body, and the
+    // old call dropped the body of any non-2xx -- so this arrived as "Remote content is empty" and
+    // a wrong secret was indistinguishable from a network fault. Google returns 200 with
+    // success:false for the same class of error, which is why only one provider was diagnosable.
+    //
+    // The verify is the real assertion: the return value is false either way, so what has to be
+    // pinned is that the status-and-body call is the one being made.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("test-sitekey");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey"))
+          .thenReturn("a-stale-secret");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(
+          eq("https://challenges.cloudflare.com/turnstile/v0/siteverify"), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(400,
+              "{\"error-codes\":[\"invalid-input-secret\"],\"success\":false,\"messages\":[]}"));
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(context));
+
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(
+          eq("https://challenges.cloudflare.com/turnstile/v0/siteverify"), anyMap()));
+    }
+  }
+
+  @Test
+  void validateRequestTurnstileFailsWhenTheRequestCouldNotBeSent() {
+    // Null result means no response at all -- a genuine network fault, which is the thing the 400
+    // case used to be confused with.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("test-sitekey");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn("test-secretkey");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(
+          eq("https://challenges.cloudflare.com/turnstile/v0/siteverify"), anyMap()))
+          .thenReturn(null);
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(context));
+    }
+  }
+
 }
