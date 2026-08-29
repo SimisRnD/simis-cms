@@ -73,3 +73,5 @@ jobs:
         run: python3 tools/check-duplicate-migration-versions.py . --strict
       - name: Fail on inline on*= event handlers that the CSP makes dead
         run: python3 tools/check-inline-handlers.py . --strict
+      - name: Fail on a theme colour rule that reaches the admin console
+        run: python3 tools/check-theme-scope.py . --strict
