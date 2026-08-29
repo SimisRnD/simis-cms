@@ -213,7 +213,25 @@ public class CaptchaCommand {
    * as an error code.
    * </p>
    */
-  private static String describeRejection(JsonNode json) {
+  /**
+   * A one-line explanation of why a verification service said no.
+   *
+   * <p>
+   * Package-private so it can be tested directly. The value it returns only ever reaches a log
+   * line, so nothing observable distinguishes a good description from a useless one at the call
+   * site, and "the codes were parsed" is exactly the kind of thing that passes a test while telling
+   * an operator nothing (see issue 1604 for the same shape of mistake in a different file).
+   * </p>
+   *
+   * <p>
+   * {@code messages} is read because Cloudflare puts the human-readable half of the answer there
+   * while {@code error-codes} carries only a slug. On a 415 the codes said "bad-request" and the
+   * message said "This API expects Content-Type to be application/json,
+   * application/x-www-form-urlencoded, or multipart/form-data" -- which named the defect outright
+   * (issue 1624). Google does not send the field, so this costs nothing there.
+   * </p>
+   */
+  static String describeRejection(JsonNode json) {
     StringBuilder detail = new StringBuilder();
     if (json.has("error-codes") && json.get("error-codes").isArray()) {
       for (JsonNode code : json.get("error-codes")) {
@@ -225,6 +243,14 @@ public class CaptchaCommand {
     }
     if (detail.length() == 0) {
       detail.append("no error codes returned");
+    }
+    if (json.has("messages") && json.get("messages").isArray()) {
+      for (JsonNode message : json.get("messages")) {
+        String text = message.asText();
+        if (StringUtils.isNotBlank(text)) {
+          detail.append(" -- ").append(text);
+        }
+      }
     }
     if (json.has("hostname")) {
       detail.append(" (hostname: ").append(json.get("hostname").asText()).append(")");

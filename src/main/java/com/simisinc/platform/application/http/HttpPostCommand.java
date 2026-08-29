@@ -23,6 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -195,7 +196,46 @@ public class HttpPostCommand {
 
   public static String execute(String url, Map<String, String> headers, Map<String, String> parameters,
       int httpMethod) {
-    return execute(url, headers, getFormDataAsString(parameters), httpMethod);
+    return execute(url, withFormContentType(headers), getFormDataAsString(parameters), httpMethod);
+  }
+
+  /**
+   * Declares the encoding this class just applied, unless the caller already said something.
+   *
+   * <p>
+   * The parameters overloads turn a Map into an {@code a=1&b=2} body and then sent it with no
+   * {@code Content-Type} at all, because Java's HttpClient adds none. Whether that works is up to
+   * the remote: Google's reCAPTCHA siteverify accepts it, and Cloudflare's Turnstile siteverify
+   * answers {@code 415 Unsupported Media Type} with "This API expects Content-Type to be
+   * application/json, application/x-www-form-urlencoded, or multipart/form-data".
+   * </p>
+   *
+   * <p>
+   * So Turnstile verification could never have succeeded, on any secret -- the request was rejected
+   * before the credentials were read (issue 1624). Two callers had already found this the hard way
+   * and set the header themselves ({@code OAuthHttpCommand}, {@code PERLSAccessTokenCommand}),
+   * which is the tell: the default was missing, and each caller was paying for it separately.
+   * </p>
+   *
+   * <p>
+   * A caller's own Content-Type always wins -- MailChimp posts JSON through the string overload and
+   * must not be second-guessed -- and the caller's map is copied rather than mutated.
+   * </p>
+   */
+  private static Map<String, String> withFormContentType(Map<String, String> headers) {
+    if (headers != null) {
+      for (String name : headers.keySet()) {
+        if ("content-type".equalsIgnoreCase(name)) {
+          return headers;
+        }
+      }
+    }
+    Map<String, String> withType = new HashMap<>();
+    if (headers != null) {
+      withType.putAll(headers);
+    }
+    withType.put("Content-Type", "application/x-www-form-urlencoded");
+    return withType;
   }
 
   /**
