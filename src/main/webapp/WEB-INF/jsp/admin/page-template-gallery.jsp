@@ -18,7 +18,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="webPageTemplateList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:out value="${title}" /></h2>
 </c:if>
 <div class="callout primary radius">
   <p style="margin-bottom:0">

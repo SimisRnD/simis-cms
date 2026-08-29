@@ -25,7 +25,7 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="activityList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4 class="platform-activity-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title platform-activity-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div id="platform-activity-list${widgetContext.uniqueId}" class="platform-scrollable-view">

@@ -35,7 +35,7 @@
 <input type="hidden" name="token" value="${userSession.formToken}"/>
 <%-- Form body--%>
 <div class="checkout-summary-title">
-  <h3><c:out value="${title}" /></h3>
+  <h2 class="widget-title"><c:out value="${title}" /></h2>
 <%--
   <div class="checkout-summary-header">
     <div class="grid-x grid-margin-x">

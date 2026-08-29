@@ -18,7 +18,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <div class="platform-weather">
   <c:if test="${!empty title}">
-    <h4><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:out value="${title}" /></h2>
   </c:if>
   <div class="grid-x grid-margin-x">
     <c:forEach items="${periods}" var="period">
