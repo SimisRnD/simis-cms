@@ -63,8 +63,8 @@
   left: 0;
   right: 0;
   height: 44px;
-  background: #1a1a2e;
-  border-bottom: 2px solid #0056b3;
+  background: var(--sc-chrome, #17191e);
+  border-bottom: 2px solid var(--sc-chrome-accent, #0056b3);
   display: flex;
   align-items: center;
   padding: 0 1rem;
@@ -81,18 +81,26 @@
 
 /* Control boundaries in the editor chrome, issue 1518.
 
-   The chrome paints itself #1a1a2e / #2a2a3e / #3a3a4e and none of that sits in
-   a theme block -- the editor panels are dark in light mode too. So the panels
-   were never the problem; the borders were. #555 on those panels runs 1.49:1 to
-   2.29:1, and #ccc on the white picker and the light page runs 1.61:1, all under
-   the 3:1 SC 1.4.11 asks between a control and the colours adjacent to it.
+   The chrome is dark in light mode too -- none of it sits in a theme block. So
+   the panels were never the problem; the borders were. #555 on those panels runs
+   1.49:1 to 2.29:1, and #ccc on the white picker and the light page runs 1.61:1,
+   all under the 3:1 SC 1.4.11 asks between a control and the colours adjacent to
+   it.
 
    --sc-border-control is the token that already means "boundary of a control",
-   and it happens to work on both kinds of surface here: its light value #8c8e91
-   clears 3:1 on all three fixed chrome panels (5.19 / 4.26 / 3.37) AND on the
-   white picker (3.28), while its dark value #d9dce1 clears them by more. A fixed
-   literal would have been enough for the chrome, but the same declarations also
-   sit on themed surfaces, and one answer beats two.
+   and it works on both kinds of surface here. A fixed literal would have been
+   enough for the chrome, but the same declarations also sit on themed surfaces,
+   and one answer beats two.
+
+   The ratios this note originally quoted were computed against #8c8e91, which
+   --sc-border-control has not been for some time; it is #838589. Re-derived
+   against the real value, two of the pairings it reported as clearing 3:1 did
+   not -- the secondary buttons sat at 3.00:1 at rest and 2.34:1 hovered. Issue
+   1590 moved the chrome onto --sc-chrome-control / --sc-chrome-control-hover,
+   whose values are chosen against the border token rather than inherited from
+   the navy, and both clear it there. The numbers now live beside those tokens in
+   platform-tokens.css, where check-token-contrast.py re-derives them; quoting a
+   token's value in prose in another file is what let this drift unnoticed.
 
    Measured over http with the real cascade, worst case per mode:
      before   light 14 of 15 controls fail, dark 10 of 15
@@ -190,7 +198,7 @@ body.page-edit-mode [data-editor-widget]:hover {
 }
 
 .sc-editor-handle-section {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -224,20 +232,20 @@ a.sc-editor-handle:hover {
 
 /* Active editing state */
 .platform-content[contenteditable="true"] {
-  outline: 2px solid #0056b3;
+  outline: 2px solid var(--sc-chrome-accent, #0056b3);
   outline-offset: 3px;
   min-height: 2em;
   cursor: text;
 }
 
 .platform-content[contenteditable="true"]:focus {
-  outline-color: #003d82;
+  outline-color: var(--sc-chrome-accent-deep, #004494);
 }
 
 /* Floating inline toolbar (appears above the content block) */
 #sc-inline-toolbar {
   position: absolute;
-  background: #1a1a2e;
+  background: var(--sc-chrome, #17191e);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 3px 6px;
@@ -266,7 +274,7 @@ a.sc-editor-handle:hover {
 
 #sc-inline-toolbar button:hover,
 #sc-inline-toolbar button.sc-active {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -299,7 +307,7 @@ a.sc-editor-handle:hover {
 
 /* Dim the editor widget outline while actively editing */
 body.page-edit-mode [data-editor-widget].sc-editing {
-  outline-color: #0056b3;
+  outline-color: var(--sc-chrome-accent, #0056b3);
 }
 
 /* ── Drag-to-reorder layout ── */
@@ -329,7 +337,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
 }
 
 .sc-drag-handle-section {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
 }
 
 .sc-drag-handle-widget {
@@ -351,7 +359,7 @@ body.page-edit-mode [data-editor-widget].sc-dragging {
 /* Drop insertion indicator */
 .sc-drop-indicator {
   height: 3px;
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   border-radius: 2px;
   pointer-events: none;
   margin: 0;
@@ -386,8 +394,8 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 .sc-move-btns button:hover {
-  background: #0056b3;
-  border-color: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
+  border-color: var(--sc-chrome-accent, #0056b3);
 }
 
 /* Save Layout button in toolbar */
@@ -448,7 +456,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-box {
-  background: #1a1a2e;
+  background: var(--sc-chrome, #17191e);
   border: 1px solid #444;
   border-radius: 6px;
   padding: 1.25rem 1.5rem;
@@ -481,7 +489,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-ok {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -494,13 +502,13 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-cancel {
-  background: #3a3a4e;
+  background: var(--sc-chrome-control, #2a2c31);
   color: #ccc;
   border: 1px solid var(--sc-border-control, #838589) !important;
 }
 
 #sc-confirm-cancel:hover {
-  background: #4a4a5e;
+  background: var(--sc-chrome-control-hover, #383a3f);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -542,7 +550,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-add:hover {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
 }
 
 .sc-mutate-btn-remove {
@@ -557,7 +565,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 #sc-width-picker {
   position: absolute;
-  background: #1a1a2e;
+  background: var(--sc-chrome, #17191e);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -575,7 +583,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-width-preset-btn {
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #ccc;
   padding: 5px 4px;
@@ -588,13 +596,13 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-width-preset-btn:hover {
-  border-color: #0056b3;
+  border-color: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
-  background: #2a2a4e;
+  background: var(--sc-chrome-control-hover, #383a3f);
 }
 
 .sc-width-preset-btn.sc-active {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   border-color: var(--sc-border-control, #838589);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
@@ -606,7 +614,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 #sc-width-custom-input {
   flex: 1;
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 3px 6px;
@@ -649,7 +657,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 #sc-width-custom-apply {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
@@ -678,7 +686,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-style:hover {
-  background: #0056b3 !important;
+  background: var(--sc-chrome-accent, #0056b3) !important;
 }
 
 .sc-mutate-btn-prefs {
@@ -707,7 +715,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-panel {
   position: absolute;
-  background: #1a1a2e;
+  background: var(--sc-chrome, #17191e);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -751,7 +759,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="text"],
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 4px 6px;
@@ -776,13 +784,13 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   height: 26px;
   border: 1px solid var(--sc-border-control, #838589);
   border-radius: 3px;
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   padding: 2px;
   box-sizing: border-box;
 }
 
 .sc-pref-field textarea {
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 6px;
@@ -836,7 +844,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-textarea {
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 6px;
@@ -871,7 +879,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-reset {
-  background: #3a3a4e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #ccc;
   padding: 3px 10px;
@@ -883,11 +891,11 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  background: #4a4a5e;
+  background: var(--sc-chrome-control-hover, #383a3f);
 }
 
 #sc-prefs-apply {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 10px;
@@ -904,7 +912,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
-  background: #1a1a2e;
+  background: var(--sc-chrome, #17191e);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 6px 8px;
@@ -916,7 +924,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt input[type="text"] {
-  background: #2a2a3e;
+  background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 3px 6px;
@@ -926,7 +934,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt button {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
@@ -1185,7 +1193,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-save-btn {
-  background: #0056b3;
+  background: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
   border: none;
   border-radius: 3px;
@@ -1195,7 +1203,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-save-btn:hover:not(:disabled) {
-  background: #004494;
+  background: var(--sc-chrome-accent-deep, #004494);
 }
 
 .sc-quill-actions .sc-save-btn:disabled {
