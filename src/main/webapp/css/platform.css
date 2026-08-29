@@ -262,13 +262,18 @@ p {
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-base, 1rem);
   letter-spacing: 0.05em;
-  color: #53575c;
+  /* --sc-text-muted, not --sc-chrome-raised, even though the #53575c that was here is that
+     token's value exactly. Issue 1590 names this pairing as a trap: the value matches, the ROLE
+     does not -- --sc-chrome-raised is a raised surface in the admin rail. Binding a dashboard
+     label to it looks right until chrome is re-themed and the label follows it somewhere it was
+     never meant to go. */
+  color: var(--sc-text-muted, #656970);
 }
 .platform-dashboard-section-label::after {
   content: '';
   flex: 1;
   height: 1px;
-  background-color: #d9dce1;
+  background-color: var(--sc-border, #ddd8cf);
 }
 /* Panel binding each group's tiles into one visible unit -- the label sits
    above it (its own section, so it stays outside the tint), the individual
@@ -291,7 +296,7 @@ p {
 }
 
 .platform-dashboard-group {
-  background-color: #eceef1;
+  background-color: var(--sc-surface-sunken, #ede9e3);
   border: 1px solid var(--sc-border, #ddd8cf);
   border-radius: 10px;
   padding: 20px;
@@ -383,7 +388,7 @@ label {
 }
 
 span.required {
-  color: #ae1515;
+  color: var(--sc-danger, #ba4230);
   font-weight: var(--sc-weight-bold, 700);
 }
 
@@ -403,7 +408,7 @@ label.button {
 }
 
 .input-error {
-  color: #ae1515;
+  color: var(--sc-danger, #ba4230);
 }
 
 /* Tables */
@@ -473,7 +478,7 @@ body.admin-console a:not(.button):focus {
 ul.pagination li.page {
   height: 45px;
   width: 45px;
-  border: 1px solid #D1D1D1;
+  border: 1px solid var(--sc-border, #ddd8cf);
   padding: 0;
   vertical-align: middle;
   border-radius: .25rem;
@@ -913,7 +918,11 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .input-box-container textarea:focus {
-  border: 1px solid #999;
+  /* --sc-border-control, not the #999 that was here: a control's boundary has to clear 3:1
+     against what surrounds it (SC 1.4.11), and #999 on the white field fell under that floor -- on
+     a focus state, which is the one moment the boundary is doing real work. The token clears it,
+     and is already the answer everywhere else in this file. */
+  border: 1px solid var(--sc-border-control, #838589);
   box-shadow: none;
 }
 
@@ -1409,7 +1418,7 @@ a.read-more {
 }
 .tabs li a {
   font-size: var(--sc-font-base, 1rem);
-  color: #000000;
+  color: var(--sc-text, #2c2925);
   background: var(--sc-fnd-light-gray, #e6e6e6);
   transition: all 0.35s ease-in-out;
   padding: 0.5rem 1rem;
@@ -1419,7 +1428,7 @@ a.read-more {
   padding-bottom: 2px;
 }
 .tabs .tabs-title>a:hover {
-  color: #000000;
+  color: var(--sc-text, #2c2925);
   background: #cdcdcd;
 }
 .tabs .tabs-title>a:focus, .tabs .tabs-title>a[aria-selected=true],
@@ -1467,7 +1476,7 @@ a.read-more {
   margin-bottom: 20px;
   padding-left: 10px;
   padding-right: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sc-border, #ddd8cf);
 }
 .platform-scrollable-view::-webkit-scrollbar {
   -webkit-appearance: none;
@@ -1494,7 +1503,7 @@ a.read-more {
 .platform-activity-date {
   text-align: center;
   padding-bottom: 4px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--sc-border, #ddd8cf);
   margin: 12px 0 18px 0;
   font-size: 80%;
 }
