@@ -307,9 +307,16 @@
              deliberately NOT admin-console pages -- they render inside the site's own chrome so
              an editor previews the real thing. --%>
         <c:set var="isAdminConsole" value="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}"/>
-        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body<c:if test="${isAdminConsole}">:not(.admin-console)</c:if>{color:var(--sc-body-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body<c:if test="${isAdminConsole}">:not(.admin-console)</c:if>{background-color:var(--sc-body-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.link.color']}"><c:if test="${isAdminConsole}">body:not(.admin-console) </c:if>a{color:var(--sc-link-color)}</c:if>
+        <%-- The site's own colours stop here for the admin console. It is chrome, not site
+             content, and takes its palette from the token layer instead (platform.css
+             body.admin-console). Scoping only body/text/link left the console with a
+             token-driven ground under theme-driven buttons and callouts -- 22 rules in
+             this block reach it. The page-editing screens are not admin-console pages, so
+             they still get the theme and preview the real thing. --%>
+        <c:if test="${!isAdminConsole}">
+        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
         <%-- Scoped away from .clear/.hollow/.box on purpose. Those variants draw on the PAGE surface
              rather than the theme's button fill, so Foundation gives them a color that contrasts with
              the page, not the solid-button text color; applying this with !important made every clear
@@ -401,6 +408,7 @@
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeBackgroundColor']}">#platform-menu ul.menu .active > a{background-color:var(--sc-topbar-menu-active-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeTextColor']}">#platform-menu ul.menu .active > a{color:var(--sc-topbar-menu-active-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
+        </c:if>
         #site-newsletter-overlay, #site-promo-overlay {
           position: fixed;
           bottom: 0;
