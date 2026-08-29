@@ -290,6 +290,32 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postToTheOauthPrefixIsGatedByStepUp() {
+    // Turning on an external identity provider, or repointing oauth.serviceUrl at a different one,
+    // decides who can get into the site -- so it is gated like mfa rather than like mail. Before
+    // there was a settings page at all, this prefix was only reachable by editing the database
+    // (issue 1585), so it had never needed the gate.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>oauth</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("oauth.serviceUrl", "https://idp.example.com", "url"));
+    addQueryParameter(widgetContext, "oauth.serviceUrl", "https://attacker.example.com");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+    }
+  }
+
+  @Test
   void postToANonSecurityPrefixIsUnaffectedByTheStepUpGate() {
     // mail is not in SECURITY_PREFIXES -- confirms the gate is scoped to mfa/content.review/security only
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
