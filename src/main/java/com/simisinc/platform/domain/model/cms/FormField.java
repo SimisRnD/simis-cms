@@ -40,11 +40,13 @@ public class FormField extends Entity {
   private String defaultValue = null;
   private String userValue = null;
 
-  // A checkbox-group field's userValue stores the checked options' joined DISPLAY LABELS, which
+  // A checkbox-group or select field's userValue stores the chosen options' DISPLAY LABELS, which
   // isn't safely reversible back to option keys if two options ever share a label -- so the
   // originally-submitted keys are tracked here separately, purely so a validation-error redisplay
-  // (see FormWidget#post) can mark the right boxes checked again. Never persisted -- FormDataJSONCommand
-  // builds the stored JSON from explicit fields and doesn't touch this one.
+  // (see FormWidget#post) can mark the right boxes checked, or the right option selected, again.
+  // A select records the single chosen key; a checkbox group records every checked one.
+  // Never persisted -- FormDataJSONCommand builds the stored JSON from explicit fields and doesn't
+  // touch this one.
   private List<String> checkedOptionKeys = null;
 
   // Database-backed form builder bookkeeping (issue #409). Both default to values the existing

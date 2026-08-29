@@ -124,10 +124,48 @@ public class CaptchaCommand {
           return true;
         }
       }
+      LOG.error("reCAPTCHA rejected the response: " + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateRequest json error", e);
     }
     return false;
+  }
+
+  /**
+   * A rejection, in the terms the vendor used.
+   *
+   * <p>
+   * Both providers return an {@code error-codes} array naming exactly why a token was refused --
+   * {@code invalid-input-secret} for a mismatched key pair, {@code timeout-or-duplicate} for a token
+   * already spent or past its lifetime, {@code invalid-input-response} for one that never came from
+   * this widget. Reading only {@code success} threw that away, leaving a failed submission with no
+   * log line at all: the two error paths above this one log, this one did not, so the most common
+   * failure was the only silent one. A site owner then sees "the form could not be validated" and
+   * has nothing anywhere to say which of those it was.
+   * </p>
+   *
+   * <p>
+   * The hostname is included because a mismatch there is a common cause and is not always reported
+   * as an error code.
+   * </p>
+   */
+  private static String describeRejection(JsonNode json) {
+    StringBuilder detail = new StringBuilder();
+    if (json.has("error-codes") && json.get("error-codes").isArray()) {
+      for (JsonNode code : json.get("error-codes")) {
+        if (detail.length() > 0) {
+          detail.append(", ");
+        }
+        detail.append(code.asText());
+      }
+    }
+    if (detail.length() == 0) {
+      detail.append("no error codes returned");
+    }
+    if (json.has("hostname")) {
+      detail.append(" (hostname: ").append(json.get("hostname").asText()).append(")");
+    }
+    return detail.toString();
   }
 
   /**
@@ -184,6 +222,7 @@ public class CaptchaCommand {
           return true;
         }
       }
+      LOG.error("Turnstile rejected the response: " + describeRejection(json));
     } catch (Exception e) {
       LOG.error("validateTurnstileRequest json error", e);
     }

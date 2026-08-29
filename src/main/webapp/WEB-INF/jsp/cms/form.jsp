@@ -267,9 +267,17 @@
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
             <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+              <%-- Re-select what was chosen when a same-request validation error redisplays the
+                   form. Matched on the option KEY recorded by FormWidget#post, not on userValue,
+                   which holds the display label and is not a safe reverse lookup if two options
+                   ever share one -- the same reason the checkbox group above tracks keys. Without
+                   this the select silently resets to "< Please Choose >" while every other field
+                   keeps its value, so a required choice is lost exactly when the form is telling
+                   the visitor to correct something. --%>
+              <c:set var="selectedOptionKey" value="${!empty formField.checkedOptionKeys ? formField.checkedOptionKeys[0] : null}"/>
               <option value="">&lt; Please Choose &gt;</option>
               <c:forEach items="${formField.listOfOptions}" var="option">
-                <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
+                <option value="<c:out value="${option.key}"/>"<c:if test="${selectedOptionKey eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
               </c:forEach>
             </select>
           </c:when>
