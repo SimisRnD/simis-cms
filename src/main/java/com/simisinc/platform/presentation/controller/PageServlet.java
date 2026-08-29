@@ -20,6 +20,7 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.AllowedIframeHostCommand;
+import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
@@ -222,10 +223,18 @@ public class PageServlet extends HttpServlet {
       // it would back-stop must be set first, or the content it governs falls through to it.
       // connect-src has had no inventory taken -- video.jsp alone calls Vimeo's oEmbed endpoint
       // from the browser -- and must not be inherited from a backstop before it does.
+      // Leaflet fetches map tiles as images, so the configured tile host has to be here or the
+      // map widget renders its controls and marker over an empty grey square -- the same class of
+      // gap as the two video hosts above, and one a content crawl cannot find either, because the
+      // requirement is in the platform rather than in any page.
+      String tileSource = FindMapTilesCredentialsCommand.cspImageSource();
+      String mapTileImageSource = tileSource == null ? "" : " " + tileSource;
+
       response.setHeader("Content-Security-Policy",
           "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
               + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
+              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com"
+              + mapTileImageSource + "; "
               + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
               + "script-src 'self' 'nonce-" + cspNonce + "'");
 
