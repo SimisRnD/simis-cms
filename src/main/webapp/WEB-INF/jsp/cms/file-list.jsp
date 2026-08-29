@@ -21,6 +21,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="file" uri="/WEB-INF/tlds/file-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="fileItemList" class="java.util.ArrayList" scope="request"/>
@@ -47,13 +48,7 @@
            inside the link below so that it takes the link's own color; a site that themes
            its links would otherwise leave the icon in the surrounding text color, which on
            a dark panel can be invisible. --%>
-      <c:set var="fileIcon"><c:if test="${showIcon eq 'true'}"><c:choose>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o fa-fw" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o fa-fw" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'image'}"><i class="fa fa-file-image-o fa-fw" aria-hidden="true"></i> </c:when>
-          <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link fa-fw" aria-hidden="true"></i> </c:when>
-          <c:otherwise><i class="fa fa-file-o fa-fw" aria-hidden="true"></i> </c:otherwise>
-        </c:choose></c:if></c:set>
+      <c:set var="fileIcon"><c:if test="${showIcon eq 'true'}"><i class="fa <c:out value="${file:icon(file.fileType)}"/> fa-fw" aria-hidden="true"></i> </c:if></c:set>
       <c:choose>
         <c:when test="${showLinks eq 'false'}">
           ${fileIcon}<c:out value="${file.title}" />
