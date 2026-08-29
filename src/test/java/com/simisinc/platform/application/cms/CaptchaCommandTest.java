@@ -30,6 +30,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,17 +65,96 @@ class CaptchaCommandTest {
   }
 
   @Test
-  void validateRequestTurnstileNotConfiguredSkipsCheck() {
-    // Issue #519: captcha.service=turnstile but no site/secret key set yet -- must not fall back
-    // to the drawn-image check the way a blank service would (captcha.google.sitekey is
-    // irrelevant here and is deliberately left unstubbed to prove it's never consulted).
+  void validateRequestTurnstileNotConfiguredFallsBackRatherThanAcceptingEverything() {
+    // This reverses issue #519, which asserted the opposite here: "captcha.service=turnstile but no
+    // site/secret key set yet -- must not fall back to the drawn-image check the way a blank
+    // service would", and returned true.
+    //
+    // Returning true means every submission is accepted by the control whose only job is to reject
+    // some of them, while the page still renders a widget so it looks protected (issue 1614). The
+    // reason #519 avoided the fallback looks like the renderer: populateWidgetAttributes read the
+    // raw property, so falling back in validation alone would have put a Turnstile box on the page
+    // and graded a drawn-image answer, failing every submission. Both now read usableService(), so
+    // the fallback renders the challenge it grades and that objection no longer holds.
+    //
+    // captcha.google.sitekey is deliberately left unstubbed, as it was before, to prove the Google
+    // keys are never consulted on this path.
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn(null);
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn(null);
 
       WidgetContext context = mock(WidgetContext.class);
-      Assertions.assertTrue(CaptchaCommand.validateRequest(context));
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      HttpSession session = mock(HttpSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(request.getSession()).thenReturn(session);
+      when(session.getAttribute(SessionConstants.CAPTCHA_TEXT)).thenReturn(null);
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(context),
+          "a service named without keys must not accept the submission");
+    }
+  }
+
+  @Test
+  void validateRequestUnrecognizedServiceDoesNotAcceptEverything() {
+    // captcha.service is a free-text site property, not a fixed list, so this is a typo away:
+    // "Google" with a capital G reached the !"google".equals(service) branch and returned true.
+    for (String typo : new String[] { "Google", "recaptcha", "reCAPTCHA", "turnstile " }) {
+      try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+        property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(typo);
+        property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+        property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+        WidgetContext context = mock(WidgetContext.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpSession session = mock(HttpSession.class);
+        when(context.getRequest()).thenReturn(request);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute(SessionConstants.CAPTCHA_TEXT)).thenReturn(null);
+
+        Assertions.assertFalse(CaptchaCommand.validateRequest(context),
+            "captcha.service=\"" + typo + "\" must not accept the submission");
+      }
+    }
+  }
+
+  @Test
+  void validateRequestGoogleWithoutASecretDoesNotAcceptEverything() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      HttpSession session = mock(HttpSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(request.getSession()).thenReturn(session);
+      when(session.getAttribute(SessionConstants.CAPTCHA_TEXT)).thenReturn(null);
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(context));
+    }
+  }
+
+  @Test
+  void populateWidgetAttributesDoesNotRenderAWidgetTheCheckWillNotHonour() {
+    // The half that makes the fallback safe. If this exposed turnstileSiteKey while validateRequest
+    // graded a drawn-image answer, every submission would fail for a reason nothing on screen
+    // explains -- which is the trap that made returning true look reasonable in #519.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("a-site-key");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn(null);
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      when(context.getRequest()).thenReturn(request);
+
+      CaptchaCommand.populateWidgetAttributes(context);
+
+      verify(request, never()).setAttribute(eq("turnstileSiteKey"), any());
+      verify(request).setAttribute("captchaService", null);
     }
   }
 
@@ -131,6 +211,9 @@ class CaptchaCommandTest {
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("google-sitekey");
+      // The secret is stubbed too: a widget is only rendered for a service that can
+      // actually verify it, so populateWidgetAttributes now needs both keys (issue 1614).
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn("a-secret");
 
       WidgetContext context = mock(WidgetContext.class);
       HttpServletRequest request = mock(HttpServletRequest.class);
@@ -150,6 +233,9 @@ class CaptchaCommandTest {
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("turnstile-sitekey");
+      // The secret is stubbed too: a widget is only rendered for a service that can
+      // actually verify it, so populateWidgetAttributes now needs both keys (issue 1614).
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn("a-secret");
 
       WidgetContext context = mock(WidgetContext.class);
       HttpServletRequest request = mock(HttpServletRequest.class);

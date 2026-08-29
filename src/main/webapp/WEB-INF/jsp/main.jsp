@@ -414,20 +414,36 @@
         <c:if test="${!empty themePropertyMap['theme.callout.alert.text.color']}">.callout.alert,.callout.alert label{color:var(--sc-callout-alert-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">.platform-footer{background-color:var(--sc-footer-background-color)}.platform-footer .fa-inverse{color:var(--sc-footer-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer,.platform-footer p{color:var(--sc-footer-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.text.color']}">#platform-menu .utility-bar{color:var(--sc-utilitybar-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.link.color']}">#platform-menu .utility-bar a, #platform-menu .utility-bar button.button i.fa{color:var(--sc-utilitybar-link-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:var(--sc-utilitybar-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.text.color']}">#platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover{color:var(--sc-topbar-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:var(--sc-topbar-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:var(--sc-topbar-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:var(--sc-topbar-menu-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header, #platform-menu button.button i.fa{color:var(--sc-topbar-menu-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header{color:var(--sc-topbar-menu-text-color)}</c:if>
         <%-- Foundation draws this caret as a CSS triangle built from borders (foundation.css:
              border-style:solid; border-width:6px; border-bottom-width:0; border-color:#1779ba
              transparent transparent), so it takes its color from border-color, not color. Setting
              color here had no effect at all and the caret stayed Foundation's default blue however
              the theme's arrow color was set. --%>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:var(--sc-topbar-menu-arrow-color) transparent transparent}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
+        </c:if>
+        <%-- The site header keeps its theme in the admin console, unlike everything else in this
+             block. Issues 1587 and 1594 scoped the theme away from the console because it competed
+             with the design tokens there -- but #platform-menu is the SITE's header, and it renders
+             on admin pages too. Stripping it left no styling at all rather than token styling: a
+             transparent bar with Foundation's stock blue links floating over the warm admin surface,
+             while the rail beside it stayed dark. There is no --sc-chrome-* rule covering these
+             selectors, so the guard removed a theme and put nothing in its place.
+        
+             These selectors are all #platform-menu / #platform-small-menu, so nothing here can reach
+             the console's own chrome or content. The caret rule is narrowed to #platform-menu for the
+             same reason -- unscoped, .dropdown.menu would have repainted an admin dropdown.
+        
+             Measured on the pilot's theme (topbar #353535): nav 12.27:1, hover 5.26:1, utility bar
+             12.27:1. check-theme-scope.py allows this exception by selector -- see its docstring. --%>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.text.color']}">#platform-menu .utility-bar{color:var(--sc-utilitybar-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.link.color']}">#platform-menu .utility-bar a, #platform-menu .utility-bar button.button i.fa{color:var(--sc-utilitybar-link-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:var(--sc-utilitybar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.text.color']}">#platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover{color:var(--sc-topbar-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:var(--sc-topbar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:var(--sc-topbar-menu-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">#platform-menu .dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:var(--sc-topbar-menu-arrow-color) transparent transparent}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu button.button i.fa:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
@@ -435,8 +451,13 @@
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a{color:var(--sc-topbar-menu-dropdown-text-color);}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeBackgroundColor']}">#platform-menu ul.menu .active > a{background-color:var(--sc-topbar-menu-active-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeTextColor']}">#platform-menu ul.menu .active > a{color:var(--sc-topbar-menu-active-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
-        </c:if>
+        <%-- The header's own buttons, scoped the same way. The general .button.primary rule stays
+             guarded -- it would repaint the console's content buttons -- but the site header carries
+             a call-to-action, and leaving it on Foundation's stock blue put a #1779ba pill in a
+             themed bar that is grey on every public page. The variant exclusion matches the general
+             rules (issue 1608): a hollow button has no fill to paint. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">#platform-menu ul.menu li a.button.primary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">#platform-menu ul.menu li a.button.secondary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-background-color)}</c:if>
         #site-newsletter-overlay, #site-promo-overlay {
           position: fixed;
           bottom: 0;

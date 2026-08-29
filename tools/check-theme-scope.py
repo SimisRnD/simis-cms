@@ -23,6 +23,20 @@ So: every rule in that block which paints a colour must sit inside the
 they are typography, not palette, and the console inheriting the site's face is
 a separate decision that has not been made.
 
+The site header is the one palette exception, and it is allowed by selector
+rather than by exemption comment. ``#platform-menu`` is the SITE's header and it
+renders on admin pages too, so guarding its rules did not hand it to the token
+layer -- there is no ``--sc-chrome-*`` rule covering those selectors. It removed a
+theme and put nothing in its place: a transparent bar with Foundation's stock
+blue links over the warm admin surface, beside a dark rail. A rule whose every
+selector is scoped to ``#platform-menu``, ``#platform-small-menu`` or
+``#platform-small-toggle-menu`` cannot reach the console's own chrome or content,
+so it is safe outside the guard and is where the header's colours belong.
+
+That is checked, not assumed: a rule listing a header selector *and* something
+else -- ``.callout.header, #platform-menu button.button i.fa`` was one -- is still
+a finding, because the non-header half would reach the console.
+
 This is a read-only reporter. It changes no files.
 
 Exit status is 1 when a colour-emitting theme rule is found outside the guard.
@@ -53,6 +67,22 @@ PAINTS_COLOUR = re.compile(r"\{[^}]*\b(color|background|background-color|border|
 # Lines that mention a theme property without emitting a rule -- the c:set statements that
 # compute a contrasting ink, for example, are inputs to a rule rather than a rule themselves.
 IS_SET = re.compile(r"<c:set\b")
+
+# The site header, which renders on admin pages as well as public ones and has no token-layer
+# equivalent. A rule is exempt only when EVERY selector it lists is scoped to one of these -- a
+# mixed rule still reaches the console through its other half.
+HEADER_PREFIXES = ("#platform-menu", "#platform-small-menu", "#platform-small-toggle-menu")
+
+
+def is_header_scoped(line: str) -> bool:
+    """True when every selector in the rule is confined to the site header."""
+    if '">' not in line or "{" not in line:
+        return False
+    selectors = line.split('">', 1)[1].split("{")[0]
+    parts = [p.strip() for p in selectors.split(",") if p.strip()]
+    if not parts:
+        return False
+    return all(any(part.startswith(prefix) for prefix in HEADER_PREFIXES) for part in parts)
 
 
 def find_guard_region(lines: list[str]) -> tuple[int, int] | None:
@@ -85,7 +115,8 @@ def offenders(path: str) -> tuple[list[tuple[int, str]], bool]:
         # No guard at all: every colour rule is unscoped.
         found = []
         for i, line in enumerate(lines):
-            if THEME_RULE.search(line) and PAINTS_COLOUR.search(line) and not IS_SET.match(line.strip()):
+            if (THEME_RULE.search(line) and PAINTS_COLOUR.search(line) and not IS_SET.match(line.strip())
+                    and not is_header_scoped(line)):
                 found.append((i + 1, line.strip()))
         return found, False
 
@@ -94,7 +125,8 @@ def offenders(path: str) -> tuple[list[tuple[int, str]], bool]:
     for i, line in enumerate(lines):
         if start <= i < end:
             continue
-        if THEME_RULE.search(line) and PAINTS_COLOUR.search(line) and not IS_SET.match(line.strip()):
+        if (THEME_RULE.search(line) and PAINTS_COLOUR.search(line) and not IS_SET.match(line.strip())
+                and not is_header_scoped(line)):
             found.append((i + 1, line.strip()))
     return found, True
 
