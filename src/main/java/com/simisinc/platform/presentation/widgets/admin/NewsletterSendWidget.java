@@ -61,7 +61,11 @@ public class NewsletterSendWidget extends GenericWidget {
 
     BlogPostSpecification specification = new BlogPostSpecification();
     specification.setPublishedOnly(true);
-    DataConstraints constraints = new DataConstraints(1, 50).setDefaultColumnToSortBy("published DESC");
+    DataConstraints constraints = new DataConstraints(1, 50);
+    // The repository overwrites defaultColumnToSortBy with "post_id", so the newest-first order
+    // this screen wants never reached the SQL -- an admin picking posts for a newsletter saw them
+    // in insertion order. columnsToSortBy survives the repository. Issue 1604.
+    constraints.setColumnsToSortBy(new String[] { "published DESC" });
     List<BlogPost> blogPosts = BlogPostRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("blogPosts", blogPosts);
 
