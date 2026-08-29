@@ -399,4 +399,39 @@ class HttpPostCommandTest {
     assertNull(captured.get().headers().get("Content-Type"));
   }
 
+
+  @Test
+  void executeWithResponseAlsoDeclaresTheFormEncoding() throws IOException {
+    // The regression that shipped. Issue 1616 added this as a second form-encoding entry point and
+    // moved the captcha onto it; the issue 1624 fix then landed on execute(), the overload the
+    // captcha had stopped calling. The header was declared on a path nothing used, and Turnstile
+    // went on answering 415 with the fix supposedly deployed.
+    AtomicReference<ReceivedRequest> captured = new AtomicReference<>();
+    int port = startServer(200, "{}", captured);
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("secret", "s3cret");
+    parameters.put("response", "token");
+
+    HttpPostCommand.executeWithResponse(url(port), parameters);
+
+    assertEquals("application/x-www-form-urlencoded", captured.get().headers().get("Content-Type"));
+  }
+
+  @Test
+  void everyFormEncodingEntryPointDeclaresTheEncoding() throws IOException {
+    // Asserted together rather than one test each, so adding a third entry point that forgets the
+    // header fails here rather than in production against whichever remote is strict about it.
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("a", "1");
+
+    AtomicReference<ReceivedRequest> viaExecute = new AtomicReference<>();
+    HttpPostCommand.execute(url(startServer(200, "{}", viaExecute)), parameters);
+
+    AtomicReference<ReceivedRequest> viaWithResponse = new AtomicReference<>();
+    HttpPostCommand.executeWithResponse(url(startServer(200, "{}", viaWithResponse)), parameters);
+
+    assertEquals("application/x-www-form-urlencoded", viaExecute.get().headers().get("Content-Type"));
+    assertEquals("application/x-www-form-urlencoded", viaWithResponse.get().headers().get("Content-Type"));
+  }
+
 }

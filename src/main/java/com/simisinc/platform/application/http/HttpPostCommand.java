@@ -203,6 +203,15 @@ public class HttpPostCommand {
    * Declares the encoding this class just applied, unless the caller already said something.
    *
    * <p>
+   * Both overloads that call {@code getFormDataAsString} must route through this. They are the only
+   * two places a Map becomes a form body, and they are the only two that can know it -- which is
+   * exactly how this was missed once: issue 1616 added executeWithResponse as a second encoding
+   * entry point and moved the captcha onto it, and the fix for issue 1624 then landed on the
+   * overload the captcha had stopped calling. The header was declared on a path nothing used while
+   * Turnstile kept answering 415.
+   * </p>
+   *
+   * <p>
    * The parameters overloads turn a Map into an {@code a=1&b=2} body and then sent it with no
    * {@code Content-Type} at all, because Java's HttpClient adds none. Whether that works is up to
    * the remote: Google's reCAPTCHA siteverify accepts it, and Cloudflare's Turnstile siteverify
@@ -261,7 +270,7 @@ public class HttpPostCommand {
    * @return the status and body, or null if the request could not be sent at all
    */
   public static HttpPostResult executeWithResponse(String url, Map<String, String> parameters) {
-    return executeWithResponse(url, null, getFormDataAsString(parameters), POST);
+    return executeWithResponse(url, withFormContentType(null), getFormDataAsString(parameters), POST);
   }
 
   /** @see #executeWithResponse(String, Map) */
