@@ -182,7 +182,13 @@ public class FeedServlet extends HttpServlet {
     // skipped, so a SQL LIMIT here would silently under-fill the feed.
     DataConstraints constraints = new DataConstraints();
     constraints.setUseCount(false);
-    constraints.setDefaultColumnToSortBy("COALESCE(start_date, published) DESC, post_id DESC");
+    // setColumnsToSortBy, not setDefaultColumnToSortBy: the "default" setter is the repository's
+    // own, and BlogPostRepository#findAll overwrites whatever a caller put there with "post_id"
+    // one line after receiving it. Issue #1418 set the sort here and it never reached the SQL --
+    // the feed has been in insertion order since, which with MAX_ENTRIES means a site publishes
+    // its OLDEST entries and never its recent ones, the exact failure that issue set out to fix.
+    // columnsToSortBy is read before the default in DB#createOrderBy, so it survives.
+    constraints.setColumnsToSortBy(new String[] { "COALESCE(start_date, published) DESC", "post_id DESC" });
     List<BlogPost> posts = BlogPostRepository.findAll(spec, constraints);
     List<FeedEntry> entries = new ArrayList<>();
 
