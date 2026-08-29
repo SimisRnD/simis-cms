@@ -109,6 +109,21 @@ public class AllowedIframeHostCommand {
       }
     }
 
+    // A hosted captcha renders as a vendor iframe, so it needs the same treatment Metabase gets
+    // above: switching the shipped captcha on must not also require discovering this setting.
+    // Without the host, frame-src refuses the widget, no token is ever produced, and the form's
+    // submit button does nothing at all -- no error, no log line, no stored submission.
+    // The branches mirror CaptchaCommand#validateRequest exactly: Turnstile wins when selected,
+    // and Google is only in play when a service is named AND a site key is set. Otherwise the
+    // built-in text captcha is used, which draws no iframe and needs no host.
+    String captchaService = LoadSitePropertyCommand.loadByName("captcha.service");
+    if ("turnstile".equals(captchaService)) {
+      hosts.add("challenges.cloudflare.com");
+    } else if (StringUtils.isNotBlank(captchaService)
+        && StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"))) {
+      hosts.add("www.google.com");
+    }
+
     // Accepts commas, whitespace or newlines, and tolerates a full URL where a host was meant --
     // "https://example.com/embed" is what someone pastes when the label says host, and rejecting it
     // silently would be a worse answer than understanding it.

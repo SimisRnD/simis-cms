@@ -43,6 +43,42 @@ class AllowedIframeHostCommandTest {
     return m;
   }
 
+  /** A site with a captcha provider selected, and the allowlist property empty. */
+  private MockedStatic<LoadSitePropertyCommand> siteWithCaptcha(String service, String googleSiteKey) {
+    MockedStatic<LoadSitePropertyCommand> m = siteWith("");
+    m.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(service);
+    m.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(googleSiteKey);
+    return m;
+  }
+
+  @Test
+  void googlesHostIsAllowedWhenRecaptchaIsConfigured() {
+    // Without this the CSP refuses the reCAPTCHA widget, no token is produced, and the form's
+    // submit button silently does nothing -- the failure this branch exists to prevent.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("google", "6LcSomeSiteKey")) {
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
+  }
+
+  @Test
+  void cloudflaresHostIsAllowedWhenTurnstileIsSelected() {
+    // Turnstile wins on the service name alone, matching CaptchaCommand: a Turnstile-only install
+    // has no reason to have a Google site key set.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("turnstile", null)) {
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://challenges.cloudflare.com/turnstile/v0/api.js"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
+  }
+
+  @Test
+  void noVendorHostIsAllowedWhenTheBuiltInCaptchaIsInUse() {
+    // A service named but no site key falls through to the built-in text captcha, which draws no
+    // iframe. Allowing a vendor host here would widen frame-src for a feature that is not in use.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("google", "")) {
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
+  }
+
   @Test
   void thePlatformsOwnHostsAreAllowedWithNothingConfigured() {
     // The default state of every site: the property is seeded empty. Empty must not mean "nothing
