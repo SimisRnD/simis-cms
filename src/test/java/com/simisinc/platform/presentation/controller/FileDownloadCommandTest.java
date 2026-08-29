@@ -46,6 +46,10 @@ class FileDownloadCommandTest {
     assertTrue(FileDownloadCommand.isSafeToDisplayInline("audio/mpeg"));
     assertTrue(FileDownloadCommand.isSafeToDisplayInline("IMAGE/PNG"), "case-insensitive");
     assertTrue(FileDownloadCommand.isSafeToDisplayInline("text/plain; charset=utf-8"), "charset param ignored");
+    // A <track> cannot load a caption file served as an octet-stream attachment, so this pairing is
+    // what makes WCAG 1.2.2 reachable at all -- see the note on SAFE_INLINE_TYPES.
+    assertTrue(FileDownloadCommand.isSafeToDisplayInline("text/vtt"), "WebVTT captions must serve inline");
+    assertTrue(FileDownloadCommand.isSafeToDisplayInline("text/vtt; charset=utf-8"));
   }
 
   @Test
