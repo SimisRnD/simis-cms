@@ -164,7 +164,7 @@ public class HttpPostCommand {
       int httpMethod) {
     RemoteUrlValidationCommand.ValidationResult validation = RemoteUrlValidationCommand.validate(url);
     if (!validation.isAllowed()) {
-      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + url);
+      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + redactUrl(url));
       return null;
     }
     if (!PIN_RESOLVER_AVAILABLE) {
@@ -293,7 +293,7 @@ public class HttpPostCommand {
       // WARN, not DEBUG: this is the branch that silently drops a remote's explanation of its own
       // failure, and a caller using this overload has no other way to learn the status. Callers
       // that need the body of a non-2xx should use executeWithResponse (issue 1616).
-      LOG.warn("Received status " + status + " from " + url + " -- response body discarded");
+      LOG.warn("Received status " + status + " from " + redactUrl(url) + " -- response body discarded");
       return null;
     }
     String content = response.body();
@@ -315,6 +315,27 @@ public class HttpPostCommand {
     return response != null ? response.statusCode() : -1;
   }
 
+
+  /**
+   * A url safe to write to a log: any credential carried in the query string is masked.
+   *
+   * <p>
+   * Most APIs here authenticate with a header, but not all can. Google's reCAPTCHA Enterprise
+   * assessment endpoint takes its API key as {@code ?key=...}, which is the form Google's own
+   * integration instructions print, so the credential is part of the url by design. Every url this
+   * class logs therefore passes through here first -- including the DEBUG lines, since a secret in
+   * a debug log is still a secret in a log, and DEBUG is exactly the level someone turns on while
+   * chasing a failure.
+   * </p>
+   */
+  static String redactUrl(String url) {
+    if (url == null) {
+      return null;
+    }
+    return url.replaceAll("(?i)([?&](?:key|api[-_]?key|access[-_]?token|token|secret)=)[^&]*",
+        "$1REDACTED");
+  }
+
   private static HttpResponse<String> sendRequest(String url, Map<String, String> headers, String data,
       int httpMethod) {
     // Validate the url
@@ -325,12 +346,12 @@ public class HttpPostCommand {
     String[] schemes = { "http", "https" };
     UrlValidator urlValidator = new UrlValidator(schemes);
     if (!urlValidator.isValid(url)) {
-      LOG.debug("Invalid url: " + url);
+      LOG.debug("Invalid url: " + redactUrl(url));
       return null;
     }
 
     try {
-      LOG.debug("Posting to: " + url);
+      LOG.debug("Posting to: " + redactUrl(url));
       // Build the request
       HttpRequest.Builder builder = HttpRequest.newBuilder();
       builder.uri(URI.create(url));

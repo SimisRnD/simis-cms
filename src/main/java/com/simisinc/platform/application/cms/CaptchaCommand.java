@@ -35,6 +35,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
@@ -57,6 +59,11 @@ public class CaptchaCommand {
   private static final String TURNSTILE = "turnstile";
   /** The value of captcha.service for Google reCAPTCHA */
   private static final String GOOGLE = "google";
+  /**
+   * Google reCAPTCHA verified through the Enterprise assessment API rather than the legacy
+   * siteverify endpoint. An internal mode, never a captcha.service value -- see usableGoogleMode.
+   */
+  private static final String GOOGLE_ENTERPRISE = "google-enterprise";
 
   /**
    * The configured captcha service, but only if it can actually run -- otherwise null.
@@ -94,16 +101,52 @@ public class CaptchaCommand {
       return TURNSTILE;
     }
     if (GOOGLE.equals(service)) {
-      if (StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"))
-          || StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.google.secretkey"))) {
-        LOG.warn("captcha.service is 'google' but its keys are not set -- "
-            + "using the drawn-image captcha instead");
-        return null;
-      }
-      return GOOGLE;
+      return usableGoogleMode();
     }
     LOG.warn("captcha.service is set to an unrecognized value -- "
         + "using the drawn-image captcha instead");
+    return null;
+  }
+
+  /**
+   * Which Google integration can actually run: Enterprise, legacy, or neither.
+   *
+   * <p>
+   * Enterprise is inferred from a project id and an API key being present, deliberately rather
+   * than from a fourth captcha.service value. That property is free text, and issue 1614 is what a
+   * typo in it costs -- a site that meant "google" and wrote "Google" had no captcha at all. A
+   * setting nobody types cannot be mistyped, and the two values Enterprise needs are ones a site
+   * either has from the Google console or does not.
+   * </p>
+   *
+   * <p>
+   * The legacy path is checked second, so a site that has both configured uses Enterprise. That is
+   * the right way round: a key issued by today's console cannot be verified by siteverify at all
+   * (issue 1615), while an older key works either way.
+   * </p>
+   */
+  private static String usableGoogleMode() {
+    if (StringUtils.isBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"))) {
+      LOG.warn("captcha.service is 'google' but no site key is set -- "
+          + "using the drawn-image captcha instead");
+      return null;
+    }
+    boolean hasProject = StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.projectid"));
+    boolean hasApiKey = StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.apikey"));
+    if (hasProject && hasApiKey) {
+      return GOOGLE_ENTERPRISE;
+    }
+    if (hasProject || hasApiKey) {
+      // Half-configured Enterprise. Saying so beats falling back to a legacy secret that may not
+      // exist and reporting whatever siteverify makes of a key it cannot verify.
+      LOG.warn("captcha.google.projectid and captcha.google.apikey must both be set to use the "
+          + "reCAPTCHA Enterprise API; only one is present");
+    }
+    if (StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.secretkey"))) {
+      return GOOGLE;
+    }
+    LOG.warn("captcha.service is 'google' but neither a secret key nor an Enterprise project and "
+        + "API key are set -- using the drawn-image captcha instead");
     return null;
   }
 
@@ -130,6 +173,10 @@ public class CaptchaCommand {
 
     if (TURNSTILE.equals(service)) {
       return validateTurnstileRequest(context);
+    }
+
+    if (GOOGLE_ENTERPRISE.equals(service)) {
+      return validateEnterpriseRequest(context);
     }
 
     String siteKey = LoadSitePropertyCommand.loadByName("captcha.google.sitekey");
@@ -259,6 +306,135 @@ public class CaptchaCommand {
   }
 
   /**
+   * Validates a token through the reCAPTCHA Enterprise assessment API.
+   *
+   * <p>
+   * A key issued by Google's current console cannot be verified by the legacy {@code siteverify}
+   * endpoint at all -- not with its secret, and not with the "legacy secret key" the console offers
+   * for third-party integrations, which covers checkbox keys only. Verified against the live
+   * service on a policy-based key: {@code invalid-input-response} every time (issue 1615). So this
+   * is the only route by which a site can use a key created today.
+   * </p>
+   *
+   * <p>
+   * Unlike siteverify, the response carries a score. The legacy paths read only {@code success} and
+   * throw the score away, which means a threshold set in Google's console governs whether the
+   * BROWSER shows a challenge and has no effect on what the server accepts. Here the score is read.
+   * When {@code captcha.google.scorethreshold} is set it is enforced; when it is not, the score is
+   * logged rather than silently ignored, so an operator can see what real traffic scores before
+   * choosing a number to reject people on.
+   * </p>
+   *
+   * https://cloud.google.com/recaptcha/docs/create-assessment-website
+   */
+  private static boolean validateEnterpriseRequest(WidgetContext context) {
+
+    String siteKey = LoadSitePropertyCommand.loadByName("captcha.google.sitekey");
+    String projectId = LoadSitePropertyCommand.loadByName("captcha.google.projectid");
+    String apiKey = LoadSitePropertyCommand.loadByName("captcha.google.apikey");
+    if (StringUtils.isBlank(siteKey) || StringUtils.isBlank(projectId) || StringUtils.isBlank(apiKey)) {
+      // Unreachable: usableGoogleMode established all three before dispatching here. Kept as a
+      // guard, and it fails CLOSED -- see issue 1614 for what the other choice costs.
+      LOG.error("validateEnterpriseRequest reached without usable settings -- rejecting");
+      return false;
+    }
+
+    String gResponse = context.getParameter("g-recaptcha-response");
+    if (StringUtils.isBlank(gResponse)) {
+      LOG.error("Request is missing g-recaptcha-response: " + context.getRequest().getRemoteAddr());
+      return false;
+    }
+
+    // The API key travels in the query string because that is the form Google's API takes. Every
+    // url this platform logs is redacted first (HttpPostCommand#redactUrl), so it cannot reach a
+    // log line from here -- including at DEBUG, which is the level someone turns on while chasing
+    // exactly this kind of failure.
+    String url = "https://recaptchaenterprise.googleapis.com/v1/projects/" + projectId
+        + "/assessments?key=" + apiKey;
+
+    String body;
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      ObjectNode event = mapper.createObjectNode();
+      // Built through Jackson rather than concatenated: the token is request input, and a quote in
+      // it would otherwise rewrite the document being posted.
+      event.put("token", gResponse);
+      event.put("siteKey", siteKey);
+      event.put("expectedAction", "submit");
+      ObjectNode root = mapper.createObjectNode();
+      root.set("event", event);
+      body = mapper.writeValueAsString(root);
+    } catch (Exception e) {
+      LOG.error("Could not build the assessment request", e);
+      return false;
+    }
+
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-Type", "application/json");
+
+    HttpPostCommand.HttpPostResult result = HttpPostCommand.executeWithResponse(url, headers, body,
+        HttpPostCommand.POST);
+    if (result == null) {
+      LOG.error("The assessment request could not be sent to the reCAPTCHA Enterprise API");
+      return false;
+    }
+    String remoteContent = result.getBody();
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("The reCAPTCHA Enterprise API returned HTTP " + result.getStatusCode() + " with no body");
+      return false;
+    }
+
+    try {
+      JsonNode json = JsonLoader.fromString(remoteContent);
+
+      // A 4xx here is an API problem rather than a visitor problem -- an unenabled API, a
+      // restricted key, an exhausted quota. Naming it matters: the same shape of failure spent a
+      // day looking like a bad secret (issue 1616).
+      if (!result.isSuccess()) {
+        String message = json.has("error") && json.get("error").has("message")
+            ? json.get("error").get("message").asText()
+            : "no message returned";
+        LOG.error("The reCAPTCHA Enterprise API rejected the request (HTTP " + result.getStatusCode()
+            + "): " + message);
+        return false;
+      }
+
+      JsonNode tokenProperties = json.get("tokenProperties");
+      if (tokenProperties == null || !tokenProperties.path("valid").asBoolean(false)) {
+        String reason = tokenProperties != null && tokenProperties.has("invalidReason")
+            ? tokenProperties.get("invalidReason").asText()
+            : "no reason returned";
+        LOG.error("reCAPTCHA Enterprise rejected the token: " + reason);
+        return false;
+      }
+
+      double score = json.path("riskAnalysis").path("score").asDouble(-1d);
+      String threshold = LoadSitePropertyCommand.loadByName("captcha.google.scorethreshold");
+      if (StringUtils.isNotBlank(threshold)) {
+        try {
+          double floor = Double.parseDouble(threshold.trim());
+          if (score >= 0d && score < floor) {
+            LOG.warn("reCAPTCHA Enterprise scored " + score + ", below the configured threshold "
+                + floor + " -- rejecting");
+            return false;
+          }
+        } catch (NumberFormatException e) {
+          // A threshold nobody can parse must not quietly become no threshold at all.
+          LOG.error("captcha.google.scorethreshold is not a number: " + threshold + " -- rejecting");
+          return false;
+        }
+      } else if (score >= 0d) {
+        LOG.info("reCAPTCHA Enterprise scored " + score
+            + "; set captcha.google.scorethreshold to reject below a value");
+      }
+      return true;
+    } catch (Exception e) {
+      LOG.error("validateEnterpriseRequest json error", e);
+    }
+    return false;
+  }
+
+  /**
    * Validates a Cloudflare Turnstile response, mirroring the Google reCAPTCHA branch above:
    * same secret+response POST shape, same {"success": true|false} response shape.
    * https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
@@ -357,8 +533,15 @@ public class CaptchaCommand {
     context.getRequest().setAttribute("captchaService", service);
     if (TURNSTILE.equals(service)) {
       context.getRequest().setAttribute("turnstileSiteKey", LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey"));
-    } else if (GOOGLE.equals(service)) {
+    } else if (GOOGLE.equals(service) || GOOGLE_ENTERPRISE.equals(service)) {
       context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+      // Enterprise keys are driven by enterprise.js, not api.js -- the two are different script
+      // families and a key from one is not rendered by the other. The JSPs branch on this rather
+      // than on captchaService, so the markup and the check agree the same way they do for
+      // Turnstile (issue 1614).
+      if (GOOGLE_ENTERPRISE.equals(service)) {
+        context.getRequest().setAttribute("googleEnterprise", "true");
+      }
     }
   }
 

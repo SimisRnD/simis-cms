@@ -434,4 +434,28 @@ class HttpPostCommandTest {
     assertEquals("application/x-www-form-urlencoded", viaWithResponse.get().headers().get("Content-Type"));
   }
 
+
+  @Test
+  void aCredentialInAQueryStringIsNotWrittenToALog() {
+    // Issue 1615: Google's reCAPTCHA Enterprise assessment endpoint takes its API key as ?key=,
+    // which is the form Google's own instructions print, so the credential is part of the url by
+    // design. Every url this class logs goes through here first -- including the DEBUG lines, since
+    // DEBUG is exactly the level someone turns on while chasing the failure.
+    assertEquals("https://example.org/v1/assessments?key=REDACTED",
+        HttpPostCommand.redactUrl("https://example.org/v1/assessments?key=AIzaSyTOPSECRET"));
+    assertEquals("https://example.org/a?x=1&api_key=REDACTED&y=2",
+        HttpPostCommand.redactUrl("https://example.org/a?x=1&api_key=hunter2&y=2"));
+    assertEquals("https://example.org/a?access_token=REDACTED",
+        HttpPostCommand.redactUrl("https://example.org/a?access_token=abc"));
+    assertEquals("https://example.org/a?KEY=REDACTED",
+        HttpPostCommand.redactUrl("https://example.org/a?KEY=abc"), "header names vary in case");
+  }
+
+  @Test
+  void aUrlWithNothingSecretInItIsLeftAlone() {
+    assertEquals("https://example.org/a?page=2&sort=name",
+        HttpPostCommand.redactUrl("https://example.org/a?page=2&sort=name"));
+    assertNull(HttpPostCommand.redactUrl(null));
+  }
+
 }

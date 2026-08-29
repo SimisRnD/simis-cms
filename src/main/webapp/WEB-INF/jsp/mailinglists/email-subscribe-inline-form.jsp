@@ -30,7 +30,18 @@
      Turnstile, the image+text fallback, or none -- issue #519 added Turnstile), adapted for this
      widget's AJAX (not native POST) submit. --%>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+<%-- enterprise.js for a key issued by Google's current console: those cannot be verified by
+     the legacy siteverify endpoint at all, so they take the Enterprise assessment API and its own
+     script family. The button markup below is identical either way -- Google's integration panel
+     prints the same data-sitekey/data-callback form for both. Issue 1615. --%>
+<c:choose>
+  <c:when test="${googleEnterprise eq 'true'}">
+    <script src='https://www.google.com/recaptcha/enterprise.js?render=<c:out value="${googleSiteKey}"/>' nonce="${cspNonce}"></script>
+  </c:when>
+  <c:otherwise>
+    <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  </c:otherwise>
+</c:choose>
 </c:if>
 <c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>

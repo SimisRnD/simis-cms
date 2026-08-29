@@ -32,6 +32,8 @@ import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -381,6 +383,190 @@ class CaptchaCommandTest {
 
     Assertions.assertTrue(detail.contains("no error codes returned"),
         "an empty rejection must read as empty, not as a blank line in the log");
+  }
+
+
+  /** Settings for a working Enterprise configuration. */
+  private static void enterpriseSettings(MockedStatic<LoadSitePropertyCommand> property) {
+    property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
+    property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+    property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.projectid")).thenReturn("my-project-1234");
+    property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.apikey")).thenReturn("an-api-key");
+  }
+
+  private static WidgetContext contextWithToken() {
+    WidgetContext context = mock(WidgetContext.class);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(context.getRequest()).thenReturn(request);
+    when(context.getParameter("g-recaptcha-response")).thenReturn("a-token");
+    return context;
+  }
+
+  @Test
+  void enterpriseIsInferredFromAProjectAndApiKeyRatherThanAServiceValue() {
+    // Issue 1615. captcha.service stays "google" -- a fourth free-text value is what issue 1614 is
+    // about. The assertion is the endpoint: only the Enterprise path posts to an assessments url.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"tokenProperties\":{\"valid\":true},\"riskAnalysis\":{\"score\":0.9}}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(contextWithToken()));
+
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(
+          contains("recaptchaenterprise.googleapis.com/v1/projects/my-project-1234/assessments"),
+          anyMap(), anyString(), anyInt()));
+    }
+  }
+
+  @Test
+  void enterpriseWinsOverALegacySecretWhenBothAreConfigured() {
+    // An older key works either way; a key from today's console works only through Enterprise. So a
+    // site with both configured must take the path that can verify either.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn("a-legacy-secret");
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"tokenProperties\":{\"valid\":true}}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(contextWithToken()));
+
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(
+          contains("recaptchaenterprise"), anyMap(), anyString(), anyInt()));
+    }
+  }
+
+  @Test
+  void halfConfiguredEnterpriseFallsBackToTheLegacySecretRatherThanFailing() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.projectid")).thenReturn("my-project-1234");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.apikey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn("a-legacy-secret");
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(contextWithToken()));
+
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(contains("siteverify"), anyMap()));
+    }
+  }
+
+  @Test
+  void halfConfiguredEnterpriseWithNoLegacySecretDoesNotAcceptEverything() {
+    // Issue 1614's rule still holds: a service named but unusable falls to the drawn-image check.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.projectid")).thenReturn("my-project-1234");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.apikey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      HttpSession session = mock(HttpSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(request.getSession()).thenReturn(session);
+      when(session.getAttribute(SessionConstants.CAPTCHA_TEXT)).thenReturn(null);
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(context));
+    }
+  }
+
+  @Test
+  void anInvalidEnterpriseTokenIsRejected() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"tokenProperties\":{\"valid\":false,\"invalidReason\":\"EXPIRED\"}}"));
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(contextWithToken()));
+    }
+  }
+
+  @Test
+  void anApiErrorIsRejectedRatherThanTreatedAsAPass() {
+    // An unenabled API, a restricted key or an exhausted quota is a 4xx. Accepting on an API
+    // failure would turn a billing problem into an open form.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(403,
+              "{\"error\":{\"message\":\"reCAPTCHA Enterprise API has not been used in project\"}}"));
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(contextWithToken()));
+    }
+  }
+
+  @Test
+  void aScoreBelowTheConfiguredThresholdIsRejected() {
+    // The gap this closes: the legacy paths read only success, so a threshold set in Google's
+    // console governed whether the BROWSER showed a challenge and nothing the server did.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.scorethreshold")).thenReturn("0.5");
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"tokenProperties\":{\"valid\":true},\"riskAnalysis\":{\"score\":0.1}}"));
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(contextWithToken()));
+    }
+  }
+
+  @Test
+  void aScoreAtOrAboveTheThresholdIsAccepted() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.scorethreshold")).thenReturn("0.5");
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"tokenProperties\":{\"valid\":true},\"riskAnalysis\":{\"score\":0.5}}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(contextWithToken()));
+    }
+  }
+
+  @Test
+  void anUnparseableThresholdRejectsRatherThanBecomingNoThreshold() {
+    // A typo in a spam control must not silently disable it -- the shape of issue 1614.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      enterpriseSettings(property);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.scorethreshold")).thenReturn("half");
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200,
+              "{\"tokenProperties\":{\"valid\":true},\"riskAnalysis\":{\"score\":0.9}}"));
+
+      Assertions.assertFalse(CaptchaCommand.validateRequest(contextWithToken()));
+    }
+  }
+
+  @Test
+  void populateWidgetAttributesAsksForTheEnterpriseScript() {
+    // The markup and the check have to agree: enterprise.js and api.js are different script
+    // families, and a key from one is not rendered by the other.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      enterpriseSettings(property);
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      when(context.getRequest()).thenReturn(request);
+
+      CaptchaCommand.populateWidgetAttributes(context);
+
+      verify(request).setAttribute("googleSiteKey", "a-site-key");
+      verify(request).setAttribute("googleEnterprise", "true");
+    }
   }
 
 }
