@@ -249,11 +249,19 @@
      these cool greys were the last thing in it reading as a different palette. No dark
      values: they have none today either, so light-only keeps the current behaviour exactly
      rather than quietly fixing a second thing. */
-  --sc-fnd-table-head: #f8f8f8;
-  --sc-fnd-table-stripe: #f1f1f1;
-  --sc-fnd-table-head-hover: #f3f3f3;
-  --sc-fnd-table-row-hover: #f9f9f9;
-  --sc-fnd-table-stripe-hover: #ececec;
+  /* Warmed to the palette's own hue and saturation (40deg / 23%, read from --sc-surface
+     rather than picked). Each value keeps its Foundation lightness to the decimal --
+     97.3, 94.5, 95.3, 97.6 and 92.5 -- so NO contrast ratio moves: every pairing on these
+     surfaces keeps exactly the ratio it had, and only the temperature changes. That was
+     the complaint: an admin is mostly tables, and cool grey tables on a warm page read as
+     two palettes. Subtle on purpose, because Foundation's greys are subtle and matching
+     their lightness keeps that; making the tables read as more recessed is a different
+     change that would move ratios and need measuring. */
+  --sc-fnd-table-head: #faf9f6;
+  --sc-fnd-table-stripe: #f4f2ee;
+  --sc-fnd-table-head-hover: #f6f4f0;
+  --sc-fnd-table-row-hover: #faf9f8;
+  --sc-fnd-table-stripe-hover: #f0ede8;
 
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
      once, here, and deliberately never redefined for dark: those fills keep their
