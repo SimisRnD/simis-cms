@@ -104,13 +104,29 @@ public class DataConstraints implements Serializable {
   }
 
   /**
-   * Used by the repository objects to define a define
+   * Sets the repository's fallback sort, used when nothing else has asked for one.
+   * <p>
+   * First writer wins, and that is the point. A repository calls this <em>after</em> receiving a
+   * caller's constraints -- 165 call sites do, none of which used to check whether anything was
+   * already there -- so an unconditional write discarded whatever the caller had set. Six callers
+   * reached for this setter expecting the word "default" to mean what it says, and their sort
+   * orders were dropped on the floor (issue 1604). The name was accurate about ownership and
+   * nothing enforced it.
+   * <p>
+   * The application-facing setters are {@link #setColumnToSortBy(String)} and
+   * {@link #setColumnsToSortBy(String[])}, which write {@code columnsToSortBy} -- a separate field
+   * {@link DB#appendSortClause} reads ahead of this one. Those remain the right way for a caller to
+   * order a result set, and are unaffected by this method. What changed is that reaching for the
+   * wrong one is no longer silent: a caller's value now survives the repository instead of being
+   * overwritten by it.
    *
-   * @param columnToSortBy
-   * @return
+   * @param columnToSortBy the fallback ordering, applied only if no default has been set yet
+   * @return this, for chaining
    */
   public DataConstraints setDefaultColumnToSortBy(String columnToSortBy) {
-    this.defaultColumnToSortBy = columnToSortBy;
+    if (this.defaultColumnToSortBy == null) {
+      this.defaultColumnToSortBy = columnToSortBy;
+    }
     return this;
   }
 
