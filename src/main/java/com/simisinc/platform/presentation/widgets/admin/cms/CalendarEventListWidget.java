@@ -68,7 +68,9 @@ public class CalendarEventListWidget extends GenericWidget {
     int page = context.getParameterAsInt("page", 1);
     int itemsPerPage = context.getParameterAsInt("items", limit);
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
-    constraints.setDefaultColumnToSortBy("start_date");
+    // Same value the repository defaults to, so this was harmless -- but it is the setter
+    // the repository owns, and reading it here is how the pattern spreads. Issue 1604.
+    constraints.setColumnsToSortBy(new String[] { "start_date" });
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
     CalendarEventSpecification specification = buildSpecification(context);
