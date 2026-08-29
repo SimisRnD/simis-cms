@@ -257,7 +257,14 @@ public class FormWidget extends GenericWidget {
         // Same isEmpty() guard as isCheckboxGroup above -- otherwise a checkbox field with a
         // non-null-but-empty listOfOptions (single-toggle per form.jsp) would wrongly take the
         // select-field label-lookup path here and always resolve to null against zero options.
-        formField.setUserValue(formField.getListOfOptions().get(parameterValue));
+        String selectedLabel = formField.getListOfOptions().get(parameterValue);
+        formField.setUserValue(selectedLabel);
+        // Same reason the checkbox group records its keys: userValue holds the display LABEL, so
+        // form.jsp cannot reverse it to an option key to re-select on a validation-error redisplay.
+        // Only recorded when the key resolves to a real option, so a submitted value that is not on
+        // the list is not echoed back into the markup.
+        formField.setCheckedOptionKeys(
+            selectedLabel != null ? Collections.singletonList(parameterValue) : Collections.emptyList());
       } else {
         formField.setUserValue(parameterValue);
       }
