@@ -322,4 +322,81 @@ class HttpPostCommandTest {
     assertEquals(200, result.getStatusCode());
   }
 
+
+  @Test
+  void aFormEncodedPostDeclaresItsEncoding() throws IOException {
+    // Issue 1624. These overloads build an "a=1&b=2" body and used to send it with no
+    // Content-Type, because Java's HttpClient adds none. Whether that worked was up to the remote:
+    // Google's siteverify accepted it, Cloudflare's answered 415 and named the missing header, so
+    // Turnstile verification could never have succeeded on any secret.
+    AtomicReference<ReceivedRequest> captured = new AtomicReference<>();
+    int port = startServer(200, "{}", captured);
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("secret", "s3cret");
+    parameters.put("response", "token");
+
+    HttpPostCommand.execute(url(port), parameters);
+
+    assertEquals("application/x-www-form-urlencoded", captured.get().headers().get("Content-Type"));
+  }
+
+  @Test
+  void aCallersOwnContentTypeIsNotOverridden() throws IOException {
+    // MailChimp posts JSON through the string overload; guessing on its behalf would break it.
+    AtomicReference<ReceivedRequest> captured = new AtomicReference<>();
+    int port = startServer(200, "{}", captured);
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-Type", "application/json");
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("a", "1");
+
+    HttpPostCommand.execute(url(port), headers, parameters, HttpPostCommand.POST);
+
+    assertEquals("application/json", captured.get().headers().get("Content-Type"));
+  }
+
+  @Test
+  void aCallersContentTypeIsHonouredWhateverItsCase() throws IOException {
+    // Header names are case-insensitive; matching only "Content-Type" would send two of them.
+    AtomicReference<ReceivedRequest> captured = new AtomicReference<>();
+    int port = startServer(200, "{}", captured);
+    Map<String, String> headers = new HashMap<>();
+    headers.put("content-type", "application/json");
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("a", "1");
+
+    HttpPostCommand.execute(url(port), headers, parameters, HttpPostCommand.POST);
+
+    assertNull(captured.get().headers().get("Content-Type"),
+        "the caller's lower-case header must not be joined by a second one");
+    assertEquals("application/json", captured.get().headers().get("content-type"));
+  }
+
+  @Test
+  void theCallersHeaderMapIsNotMutated() throws IOException {
+    // A caller that reuses its header map across calls must not silently acquire this.
+    int port = startServer(200, "{}", null);
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Basic dGVzdA==");
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("a", "1");
+
+    HttpPostCommand.execute(url(port), headers, parameters, HttpPostCommand.POST);
+
+    assertEquals(1, headers.size(), "the caller's map must come back as it went in");
+    assertFalse(headers.containsKey("Content-Type"));
+  }
+
+  @Test
+  void aStringBodyIsNotGivenAFormContentType() throws IOException {
+    // Only the parameters overloads know the body is form-encoded, because they encoded it. A raw
+    // string could be anything, and labelling it would be a guess.
+    AtomicReference<ReceivedRequest> captured = new AtomicReference<>();
+    int port = startServer(200, "{}", captured);
+
+    HttpPostCommand.execute(url(port), null, "{\"already\":\"json\"}");
+
+    assertNull(captured.get().headers().get("Content-Type"));
+  }
+
 }

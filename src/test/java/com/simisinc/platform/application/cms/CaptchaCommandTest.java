@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
 import com.simisinc.platform.presentation.controller.SessionConstants;
@@ -336,6 +337,50 @@ class CaptchaCommandTest {
 
       Assertions.assertFalse(CaptchaCommand.validateRequest(context));
     }
+  }
+
+
+  @Test
+  void describeRejectionSurfacesTheCodesTheServiceReturned() throws Exception {
+    String body = "{\"success\":false,\"error-codes\":[\"invalid-input-secret\"]}";
+
+    String detail = CaptchaCommand.describeRejection(JsonLoader.fromString(body));
+
+    Assertions.assertTrue(detail.contains("invalid-input-secret"));
+  }
+
+  @Test
+  void describeRejectionSurfacesCloudflaresReadableMessage() throws Exception {
+    // Issue 1624. The code alone said "bad-request", which does not say what is wrong. Cloudflare
+    // puts the half a human can act on in "messages", and it named the defect outright.
+    String body = "{\"error-codes\":[\"bad-request\"],\"success\":false,"
+        + "\"messages\":[\"This API expects Content-Type to be \\\"application/json\\\", "
+        + "\\\"application/x-www-form-urlencoded\\\", or \\\"multipart/form-data\\\".\"]}";
+
+    String detail = CaptchaCommand.describeRejection(JsonLoader.fromString(body));
+
+    Assertions.assertTrue(detail.contains("bad-request"));
+    Assertions.assertTrue(detail.contains("expects Content-Type"),
+        "the message is the half that says what to change");
+  }
+
+  @Test
+  void describeRejectionAppendsTheHostnameWhenOneIsReturned() throws Exception {
+    String body = "{\"success\":false,\"error-codes\":[\"hostname-mismatch\"],"
+        + "\"hostname\":\"example.org\"}";
+
+    String detail = CaptchaCommand.describeRejection(JsonLoader.fromString(body));
+
+    Assertions.assertTrue(detail.contains("hostname-mismatch"));
+    Assertions.assertTrue(detail.contains("example.org"));
+  }
+
+  @Test
+  void describeRejectionSaysSoWhenTheServiceExplainedNothing() throws Exception {
+    String detail = CaptchaCommand.describeRejection(JsonLoader.fromString("{\"success\":false}"));
+
+    Assertions.assertTrue(detail.contains("no error codes returned"),
+        "an empty rejection must read as empty, not as a blank line in the log");
   }
 
 }
