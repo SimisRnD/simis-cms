@@ -172,9 +172,22 @@
     <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
   </c:if>
   <%-- Atom feed autodiscovery (issue #1182). Gated on the same site property FeedServlet checks,
-       so the tag never advertises a feed that would answer 404. --%>
+       so the tag never advertises a feed that would answer 404.
+
+       A page presenting one blog advertises that blog's feed instead of the site-wide one, so the
+       browser's own subscribe affordance and the page's visible "Subscribe" link lead to the same
+       place -- and so the feed title an editor set on the blog is what a reader actually sees.
+       Pointed at rather than added alongside: some readers take the first rel=alternate they find,
+       so two links would make which feed you get depend on the client. Issue 1586. --%>
   <c:if test="${sitePropertyMap['site.feed.xml'] eq 'true' && !empty sitePropertyMap['site.url']}">
-    <link rel="alternate" type="application/atom+xml" title="<c:out value="${sitePropertyMap['site.name']}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed.xml" />
+    <c:choose>
+      <c:when test="${!empty masterFeedBlogUniqueId}">
+        <link rel="alternate" type="application/atom+xml" title="<c:out value="${masterFeedBlogTitle}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed/<c:out value="${masterFeedBlogUniqueId}"/>" />
+      </c:when>
+      <c:otherwise>
+        <link rel="alternate" type="application/atom+xml" title="<c:out value="${sitePropertyMap['site.name']}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed.xml" />
+      </c:otherwise>
+    </c:choose>
   </c:if>
   <%-- Issue #419: a draft preview link renders unreviewed content -- keep it out of search indexes --%>
   <c:if test="${previewingDraft eq 'true'}">
@@ -656,6 +669,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/theme')}"> class="is-active"</c:if>><a href="${ctx}/admin/theme-properties"><i class="${font:far()} fa-palette fa-fw"></i> <span>Theme</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/site-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/site-properties"><i class="${font:far()} fa-rocket fa-fw"></i> <span>Site Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mfa')}"> class="is-active"</c:if>><a href="${ctx}/admin/mfa-properties"><i class="${font:far()} fa-lock fa-fw"></i> <span>MFA Settings</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sso')}"> class="is-active"</c:if>><a href="${ctx}/admin/sso-properties"><i class="${font:far()} fa-id-badge fa-fw"></i> <span>Single Sign-On</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/social')}"> class="is-active"</c:if>><a href="${ctx}/admin/social-media-settings"><i class="${font:far()} fa-thumbs-up fa-fw"></i> <span>Social Media</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>

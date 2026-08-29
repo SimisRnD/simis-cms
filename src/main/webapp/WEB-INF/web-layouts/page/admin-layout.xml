@@ -2559,6 +2559,29 @@
     </section>
   </page>
 
+  <page name="/admin/sso-properties" role="admin" capability="admin:manage" title="Single Sign-On Settings">
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Single Sign-On</title>
+          <prefix>oauth</prefix>
+        </widget>
+      </column>
+      <column class="medium-5 cell">
+        <widget name="content" class="callout primary radius">
+          <html><![CDATA[<h4>About Single Sign-On</h4>
+          <p>These settings let people sign in with an existing identity provider instead of a password held here. The platform speaks standard OpenID Connect, so any provider that does will work.</p>
+          <p><strong>OpenAuth enabled</strong> is the switch. The other fields do nothing until it is on, and turning it off returns the site to password sign-in without discarding what is configured here.</p>
+          <p><strong>OpenAuth service URL</strong>, <strong>client ID</strong> and <strong>client secret</strong> come from the application you register with the provider. The secret is stored encrypted and always shows blank after saving; leave it blank to keep the current one.</p>
+          <p><strong>Role attribute</strong> and <strong>group attribute</strong> name the claims the provider sends that carry a person's roles and groups. They default to <code>roles</code> and <code>groups</code>, which is what Keycloak emits. Providers differ, and this is the setting most likely to be wrong: a mismatch fails silently, in the sense that sign-in succeeds and the account simply arrives with no roles. If people can sign in but cannot see anything, look here first.</p>
+          <p>Group claims are matched against this site's own user groups by name. A provider that sends group identifiers rather than names — Microsoft Entra sends object GUIDs unless told otherwise — needs to be configured to emit names, or no group will match.</p>
+          <p><strong>Redirect guests</strong> sends signed-out visitors straight to the provider rather than showing this site's login page.</p>
+          <p><strong>Saving requires re-authentication:</strong> these settings decide who can get in, so a recent password or authenticator code is required before a change is accepted.</p>]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mfa-properties" role="admin" title="MFA Enforcement Settings">
     <section>
       <column class="small-12 medium-7 cell">

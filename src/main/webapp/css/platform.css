@@ -1307,18 +1307,26 @@ button.round, .button.round {
    base, so both states hold up in either mode:
      base  light 17.585:1   dark 16.120:1
      hover light 17.585:1   dark 16.120:1
-   The !important is still needed to beat Foundation's own .button colour; it is no longer
-   load-bearing against the theme's button-text rule, which now excludes .box alongside
-   .clear and .hollow for the same reason -- see main.jsp. */
+   The !important these declarations used to carry is gone (issue 1589). It was there to beat
+   Foundation's own .button colour, and it did -- but it also beat the site, which is the half
+   nobody wanted: the fill above is overridable at normal specificity while the ink was not, so a
+   site that repainted a .box button got the new fill and the old ink. That happened, at 2.89:1 on
+   the new fill, and the only way out was matching !important in site CSS -- not a fix an author
+   should have to find by measuring contrast.
+   Specificity alone is enough. Only three rules set colour on a .button.box: Foundation's `a`
+   (0,0,1) and `.button` (0,1,0), and the theme's `a` (0,0,1). These select at (0,2,0) from a later
+   stylesheet, so they win on their own, and a site's more specific rule now wins over them. The
+   theme's own button-text rule is not a competitor: it excludes .box alongside .clear and .hollow
+   -- see main.jsp. */
 button.box, .button.box {
   background-color: var(--sc-surface, #f5f3ef);
   border: 1px solid var(--sc-text, #2c2925);
-  color: var(--sc-text, #2c2925) !important;
+  color: var(--sc-text, #2c2925);
 }
 
 button.box:hover, button.box:focus, .button.box:hover, .button.box:focus {
   background-color: var(--sc-text, #2c2925);
-  color: var(--sc-surface, #f5f3ef) !important;
+  color: var(--sc-surface, #f5f3ef);
 }
 
 /* Links */

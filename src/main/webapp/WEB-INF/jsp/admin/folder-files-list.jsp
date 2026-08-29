@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="file" uri="/WEB-INF/tlds/file-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="folderCategory" uri="/WEB-INF/tlds/folder-category-functions.tld" %>
@@ -123,12 +124,7 @@
                above) -- pdf/video/url get a specific icon, anything else falls back to a generic
                file icon. --%>
           <c:if test="${fn:toLowerCase(file.fileType) ne 'image'}">
-            <c:choose>
-              <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o" title="PDF file"></i></c:when>
-              <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o" title="Video file"></i></c:when>
-              <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link" title="Link"></i></c:when>
-              <c:otherwise><i class="fa fa-file-o" title="File"></i></c:otherwise>
-            </c:choose>
+            <i class="fa <c:out value="${file:icon(file.fileType)}"/>" title="<c:out value="${!empty file.fileType ? file.fileType : 'File'}"/>"></i>
           </c:if>
           <%-- selectFile() opens the edit-file modal (#fileFormReveal / #fileForm), which only exists
                in the DOM for admin/content-manager (see the c:if guarding it below) -- a
