@@ -25,7 +25,7 @@
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="activeFilters" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4 class="margin-bottom-20"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title margin-bottom-20"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <c:if test="${!empty activeFilters}">
   <div class="margin-bottom-10">

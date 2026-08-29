@@ -44,7 +44,7 @@
 </c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">
-    <h4 class="no-gap"><c:out value="${title}" /></h4>
+    <h2 class="widget-title no-gap"><c:out value="${title}" /></h2>
   </c:when>
   <c:otherwise>
     <h4 class="no-gap"><c:out value="${wikiPage.title}" /></h4>
