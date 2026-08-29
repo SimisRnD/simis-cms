@@ -81,6 +81,38 @@
   --sc-chrome-ink: #ffffff;
   --sc-chrome-ink-muted: #d9dce1;
 
+  /* The page editor's chrome, issue 1590. The editor is theme-invariant dark for the same
+     reason the rail is -- it floats over page content whose colour it does not control --
+     so it belongs to this family rather than to the themed surfaces. Its 38 navy and blue
+     literals read from here now.
+
+     --sc-chrome-control is a level the rail never needed: a control fill sitting ON chrome
+     (the editor's inputs, selects, textareas, preset buttons and secondary buttons), with
+     --sc-chrome-control-hover as its hover. --sc-chrome-raised cannot do this job -- it is
+     light enough to put --sc-border-control under the 3:1 that SC 1.4.11 asks between a
+     control and its surroundings, which is the boundary issue 1518 was opened to fix. That
+     failure is registered below so it stays true: this level exists because of it.
+
+     The values are picked on this family's own hue ramp against the border token rather
+     than matched to the navy they replace, because the navy did not clear the bar either:
+     the editor's secondary buttons sat under 1.4.11 on a control boundary at rest and
+     further under it hovered. Both clear it on these two levels -- see the claims below.
+
+     control fill: ink 13.97:1, muted 10.16:1, border 3.78:1
+     control hover: border 3.08:1
+     border on the too-light level: 1.97:1
+
+     --sc-chrome-accent is the editor's interactive accent -- selection, focus, the active
+     widget, primary actions -- seeded at the blue it has always used, so routing it changed
+     no pixels. Whether that accent stays blue or moves to the brand is a live question; it
+     is one line here now instead of eighteen sites. --sc-chrome-accent-deep is its pressed
+     and hover partner, and absorbs the #003d82 the focus outline used, which differed from
+     #004494 by 0.013 luminance. */
+  --sc-chrome-control: #2a2c31;
+  --sc-chrome-control-hover: #383a3f;
+  --sc-chrome-accent: #0056b3;
+  --sc-chrome-accent-deep: #004494;
+
   /* Brand. Two roles, deliberately not one token. --sc-brand is a fill that carries white
      ink, which is a property of the fill alone and so needs no per-mode value.
      --sc-brand-text is the brand used AS text on the page, which has to be sized against

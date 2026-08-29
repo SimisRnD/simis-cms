@@ -452,6 +452,23 @@ CLAIMS = [
       ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
       ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
       ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
+    # Issue 1590: the editor's control fill, the level the rail never needed. The border
+    # pairing is the load-bearing one -- --sc-chrome-raised puts --sc-border-control at
+    # 2.22:1 here, which is why this token exists rather than reusing that one.
+    (r"control fill: ink ([\d.]+):1, muted ([\d.]+):1, border ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink", "--sc-chrome-control")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-control")]),
+      ("exact", [("--sc-border-control", "--sc-chrome-control")])]),
+    # The negative result that justifies --sc-chrome-control existing at all. Verified like
+    # any other claim so that a future change to --sc-chrome-raised cannot quietly make the
+    # extra token look redundant.
+    (r"control hover: border ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-border-control", "--sc-chrome-control-hover")])]),
+    (r"border on the too-light level: ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-border-control", "--sc-chrome-raised")])]),
     # Light placeholder, issue 1506. A real token pairing, so the tool re-derives it
     # rather than taking the comment's word for it.
     (r"Placeholder on the white field below: ([\d.]+):1",
@@ -610,6 +627,7 @@ EXEMPT_RATIOS = [
     (r"even the (3):1 of 1\.4\.11", "SC 1.4.11 floor, not a measurement"),
     (r"under the (4\.5):1 floor of SC 1\.4\.3", "SC 1.4.3 floor, not a measurement"),
     (r"clears (4\.5):1 on #17191e", "SC 1.4.3 floor, not a measurement"),
+    (r"under the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
