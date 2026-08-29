@@ -187,7 +187,7 @@ public class FeedServlet extends HttpServlet {
     // one line after receiving it. Issue #1418 set the sort here and it never reached the SQL --
     // the feed has been in insertion order since, which with MAX_ENTRIES means a site publishes
     // its OLDEST entries and never its recent ones, the exact failure that issue set out to fix.
-    // columnsToSortBy is read before the default in DB#createOrderBy, so it survives.
+    // columnsToSortBy is read before the default in DB#appendSortClause, so it survives.
     constraints.setColumnsToSortBy(new String[] { "COALESCE(start_date, published) DESC", "post_id DESC" });
     List<BlogPost> posts = BlogPostRepository.findAll(spec, constraints);
     List<FeedEntry> entries = new ArrayList<>();
