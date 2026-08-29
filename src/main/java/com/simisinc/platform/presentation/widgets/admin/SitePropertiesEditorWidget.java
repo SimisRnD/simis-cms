@@ -65,7 +65,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   // Prefixes controlling security-sensitive behaviour; changes require a recent step-up (IA-2 / AC-6).
   private static final Set<String> SECURITY_PREFIXES =
-      new HashSet<>(Arrays.asList("mfa", "content.review", "security"));
+      // oauth included for the same reason as mfa: turning on an external identity provider, or
+      // repointing oauth.serviceUrl at a different one, decides who can get into the site.
+      new HashSet<>(Arrays.asList("mfa", "content.review", "security", "oauth"));
 
   public WidgetContext execute(WidgetContext context) {
 
