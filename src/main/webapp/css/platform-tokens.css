@@ -81,6 +81,19 @@
   --sc-chrome-ink: #ffffff;
   --sc-chrome-ink-muted: #d9dce1;
 
+  /* A third ink tier for chrome, issue 1590. The page scale has had three levels since it was
+     built -- --sc-text, --sc-text-muted, --sc-text-subtle -- and chrome had two, so the editor
+     expressed its quietest text as literals instead: #aaa on the toolbar title and status, #999 on
+     the empty preferences state, #888 on a close button. Routing those to --sc-chrome-ink-muted
+     would have read as adoption while flattening three deliberate levels into one.
+
+     Not --sc-text-subtle, for the reason the state family cannot be adopted either: that token
+     flips between light and dark, and chrome does not. This one is defined here in :root only,
+     like the rest of the family.
+
+     subtle on chrome 6.93:1, subtle on control 5.51:1 */
+  --sc-chrome-ink-subtle: #9ea3ab;
+
   /* The page editor's chrome, issue 1590. The editor is theme-invariant dark for the same
      reason the rail is -- it floats over page content whose colour it does not control --
      so it belongs to this family rather than to the themed surfaces. Its 38 navy and blue
