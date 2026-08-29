@@ -106,3 +106,52 @@ def test_reports_without_strict_but_does_not_fail(repo):
     r = run_tool(TOOL, repo)
     assert r.returncode == 0
     assert "outside the admin-console guard" in r.stdout
+
+# The site header renders on admin pages too and has no token-layer equivalent, so guarding its
+# rules removed a theme without replacing it -- see the tool's docstring.
+HEADER_OUTSIDE_GUARD = """      <style>
+        <c:set var="isAdminConsole" value="${fn:startsWith(pageRenderInfo.name, '/admin')}"/>
+        <c:if test="${!isAdminConsole}">
+        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
+        </c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu{background-color:var(--sc-topbar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a{color:var(--sc-topbar-menu-text-color)}</c:if>
+      </style>
+"""
+
+# One selector in the header, one not: the second half still reaches the console.
+MIXED_RULE_OUTSIDE_GUARD = """      <style>
+        <c:set var="isAdminConsole" value="${fn:startsWith(pageRenderInfo.name, '/admin')}"/>
+        <c:if test="${!isAdminConsole}">
+        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
+        </c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header, #platform-menu button.button i.fa{color:var(--sc-topbar-menu-text-color)}</c:if>
+      </style>
+"""
+
+
+def test_a_header_scoped_rule_may_sit_outside_the_guard(repo):
+    write(repo, MAIN_JSP, HEADER_OUTSIDE_GUARD)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_rule_mixing_header_and_non_header_selectors_still_fails(repo):
+    # The exemption is per-selector, not per-rule: ".callout.header" is page content, and letting
+    # the whole rule through because it also names #platform-menu would put a theme colour on a
+    # console callout. This exact rule existed and had to be split.
+    write(repo, MAIN_JSP, MIXED_RULE_OUTSIDE_GUARD)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1
+    assert ".callout.header" in r.stdout
+
+
+def test_a_selector_merely_containing_a_header_id_is_not_exempt(repo):
+    # Prefix match, not substring: a rule that reaches #platform-menu from an outer selector is
+    # not confined to the header.
+    rule = ('<c:if test="${!empty themePropertyMap[\'theme.topbar.backgroundColor\']}">'
+            'body .platform-body #platform-menu{background-color:var(--sc-topbar-background-color)}</c:if>')
+    write(repo, MAIN_JSP, HEADER_OUTSIDE_GUARD.replace(
+        "      </style>", "        " + rule + "\n      </style>"))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1
