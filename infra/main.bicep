@@ -72,8 +72,11 @@ param containerImage string = 'simis-cms:latest'
 @description('Database login the application connects with. Pilot default is the administrator login; a lesser application role is a hardening follow-up.')
 param dbUser string = 'simiscmsadmin'
 
-@description('CMS_TRUSTED_PROXIES value. Set to the edge egress ranges when the edge tier (#245) fronts the app.')
+@description('CMS_TRUSTED_PROXIES value. A Java regular expression -- NOT CIDR -- matching the immediate peer (the App Service front ends) when the edge tier (#245) fronts the app.')
 param trustedProxies string = ''
+
+@description('CMS_CLIENT_IP_HEADER value. Set to X-Azure-ClientIP when Front Door fronts the app; empty keeps X-Forwarded-For. See issue #1675.')
+param clientIpHeader string = ''
 
 @description('Public URL of the site (CMS_URL). Empty means the App Service default hostname; the custom domain replaces it at cutover.')
 param customUrl string = ''
@@ -217,6 +220,7 @@ module appService 'modules/appservice.bicep' = {
     postgresDatabaseName: postgres.outputs.databaseName
     dbUser: dbUser
     trustedProxies: trustedProxies
+    clientIpHeader: clientIpHeader
     customUrl: publicUrl
     appInsightsConnectionString: appInsights.outputs.connectionString
   }
