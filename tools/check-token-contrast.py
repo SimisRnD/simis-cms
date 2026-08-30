@@ -311,9 +311,11 @@ COMMON = [
     # fills keep their light values in dark mode, so their text must not follow.
     ("--sc-fnd-ink-on-accent", "--sc-fnd-warning", TEXT),
     ("--sc-fnd-ink-on-accent", "--sc-fnd-success", TEXT),
-    # The deprecated role-blind aliases, still used by stylesheets routed
-    # before the split. They resolve through two levels of var().
-    ("--sc-fnd-black", "--sc-fnd-white", TEXT),
+    # What the retired --sc-fnd-black/--sc-fnd-white aliases used to cover. The eight
+    # first-party references now name the role they mean, so the pairing is checked
+    # under the role names instead -- same two values, one fewer level of var() to
+    # resolve, and no name left that invites the role-blind mistake.
+    ("--sc-fnd-ink", "--sc-fnd-surface", TEXT),
 ]
 
 # Pairings that only exist in dark mode. --sc-fnd-on-accent is white text for a
@@ -673,6 +675,7 @@ EXEMPT_RATIOS = [
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
+    (r"under the (3):1 SC 1\.4\.11 asks of a", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
@@ -692,6 +695,9 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
+    (r"border\s+stands on a #fefefe field at ([\d.]+):1",
+     "Foundation's factory field border #cdc9c3 on its own #fefefe field -- neither is a token, "
+     "so no pairing can express it; this is what light mode ships before the rule above"),
     (r"declaration standing, and ships ([\d.]+):1 on a white field", "Foundation's factory placeholder again, at the light-mode rule that overrides it"),
     (r"Foundation's own #cacaca at\s+([\d.]+):1 on white", "Foundation's factory placeholder, the value light mode shipped before issue 1506"),
     (r"the dark admin rail \(#17191e\): ([\d.]+):1", "--sc-text-subtle on the rail's hardcoded background, which is not a token"),

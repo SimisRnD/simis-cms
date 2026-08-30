@@ -766,9 +766,9 @@ ul.pagination li.pagination-next a:hover {
 
 /* Orbit Hero */
 /* The slide and caption paint a dark SURFACE, so they take --sc-fnd-ink-surface rather
-   than --sc-fnd-black, which aliases the text role. Same colour, but the two move apart
-   the moment either is themed -- and they did: pointing light-mode --sc-fnd-ink at the
-   page ink would have turned both of these hero backgrounds warm-dark by accident. */
+   than --sc-fnd-ink, which is the text role. Same colour, but the two move apart the
+   moment either is themed -- and they did: pointing light-mode --sc-fnd-ink at the page
+   ink would have turned both of these hero backgrounds warm-dark by accident. */
 
 .clean-hero-slider .orbit-caption {
   width: auto;
@@ -850,8 +850,8 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-controls button:hover {
-  background: var(--sc-fnd-white, #fefefe);
-  color: var(--sc-fnd-black, #2c2925);
+  background: var(--sc-fnd-surface, #fefefe);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -884,7 +884,7 @@ ul.pagination li.pagination-next a:hover {
   width: 3rem;
   height: 0.4rem;
   border-radius: 0;
-  background-color: var(--sc-fnd-white, #fefefe);
+  background-color: var(--sc-fnd-surface, #fefefe);
 }
 
 .clean-hero-slider .orbit-bullets button.is-active {
@@ -906,7 +906,7 @@ ul.pagination li.pagination-next a:hover {
 /* Activity Input */
 
 .status-update-input-box {
-  background-color: var(--sc-fnd-white, #fefefe);
+  background-color: var(--sc-fnd-surface, #fefefe);
   padding: 0;
   width: 100%;
   border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
@@ -1232,7 +1232,7 @@ body.admin-console .admin-menu a:not(.button):focus {
   border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   margin: 0 0 1.25rem;
   padding: 1.25rem;
-  background: var(--sc-fnd-white, #fefefe);
+  background: var(--sc-fnd-surface, #fefefe);
 }
 
 .card-profile-stats .card-profile-stats-intro {
@@ -1264,7 +1264,7 @@ body.admin-console .admin-menu a:not(.button):focus {
   margin: 0;
   text-align: center;
   font-size: var(--sc-font-xl, 1.5rem);
-  color: var(--sc-fnd-black, #2c2925);
+  color: var(--sc-fnd-ink, #2c2925);
   padding: 0.5rem;
   cursor: pointer;
 }
@@ -1367,7 +1367,7 @@ a.read-more {
 
 .callout.box {
   background-color: var(--sc-surface, #f5f3ef);
-  color: var(--sc-fnd-black, #2c2925);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 .callout.prototype {
@@ -1376,7 +1376,7 @@ a.read-more {
   background-position: center center;
   background-repeat: repeat;
   background-size: 16px;
-  color: var(--sc-fnd-black, #2c2925);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 .callout.header {
