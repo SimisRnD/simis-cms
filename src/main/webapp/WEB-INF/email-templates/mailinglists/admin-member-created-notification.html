@@ -147,7 +147,7 @@
                           <h2 style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 18px; font-weight:normal; line-height: 1.5; margin: 0 0 20px;">A new subscriber confirmed:</h2>
                           <p style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 18px; line-height: 1.5; margin: 0;">
                             <span th:text="${member.emailAddress}">email@example.com</span><br>
-                            subscribed to <span th:text="${mailingList.name}">List name</span>
+                            subscribed to <span th:text="${mailingList.title}">List name</span>
                           </p>
                           <p style="color: #868e96; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 15px; line-height: 1.5; margin: 20px 0 0;">
                             Confirmed via the double opt-in link on <a href="https://example.com" th:href="${site.url}" style="color: #868e96;" target="_blank">[[${site.name}]]</a>

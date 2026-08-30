@@ -26,5 +26,5 @@
   workflow:
     - email:
       to-capability: 'community:manage'
-      subject: 'New {{ mailingList.name }} subscriber'
+      subject: 'New {{ mailingList.title }} subscriber'
       template: 'mailinglists/admin-member-created-notification'
