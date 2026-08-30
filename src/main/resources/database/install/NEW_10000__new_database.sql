@@ -847,6 +847,15 @@ CREATE TABLE distributed_lock (
   uuid VARCHAR(255) NOT NULL
 );
 
+-- Records a workflow side effect that must happen at most once, so a replayed playbook cannot
+-- repeat it. A workflow step claims a key here before acting; the claim is the INSERT, so two
+-- attempts race on the primary key and exactly one wins. See EmailTask's once-key handling and
+-- issue 1643, where a retried playbook re-sent a notification that had already gone out.
+CREATE TABLE workflow_notification_sent (
+  notification_key VARCHAR(255) PRIMARY KEY NOT NULL,
+  sent_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 -- Aggregated Content-Security-Policy violation reports (see UPGRADE_20260827.1000). One row per
 -- (directive, host), not per event: /csp-report is necessarily unauthenticated, so aggregating
 -- means a flood inflates a counter instead of growing the table. Only the blocked URL's host is

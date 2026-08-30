@@ -19,18 +19,26 @@
         to-email: '{{ emailTo }}'
         subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
         template: 'cms/admin-form-submitted-notification'
+        # At most one notification per submission, however many times this playbook runs. The
+        # retry that caused issue 1643 is fixed separately; this makes a repeat send impossible
+        # rather than unlikely, for any future retry cause.
+        once-key: 'form-notification:{{ generatedId }}'
     - block:
       - when: '{{ empty(emailTo) }}'
       - email:
         to-role: 'community-manager'
         subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
         template: 'cms/admin-form-submitted-notification'
+        # Same notification as the block above, addressed by role instead. Shares the key space so
+        # a submission cannot produce one of each.
+        once-key: 'form-notification:{{ generatedId }}'
     - block:
       - when: '{{ sendConfirmation && !empty(submitterEmail) }}'
       - email:
         to-email: '{{ submitterEmail }}'
         subject: '{{ !empty(confirmationSubject) ? confirmationSubject : "We received your submission" }}'
         template: 'cms/form-submitter-confirmation'
+        once-key: 'form-confirmation:{{ generatedId }}'
 
 - id: blog-post-published
   vars:
