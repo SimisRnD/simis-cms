@@ -276,7 +276,20 @@ jobs:
       - name: Capture the application image digest
         id: app_digest
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" | cut -d@ -f2)
+          # RepoDigests carries one entry per registry this image has been pushed to, and `index 0`
+          # takes whichever happens to be first. That is not a stable choice once the ACR mirror
+          # runs: ACR converts the manifest, so its digest differs from ghcr's, and attesting
+          # ghcr's subject-name with ACR's digest makes the attestation fetch 404 and fails the
+          # publish -- which stops delivery without stopping merges (issue 1642).
+          # Select by repository rather than by position, and fail loudly rather than attesting an
+          # empty digest.
+          digest=$(docker inspect --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" \
+            | grep -m1 "^$IMAGE_PREFIX/simis-cms@" | cut -d@ -f2)
+          if [ -z "$digest" ]; then
+            echo "::error::No $IMAGE_PREFIX/simis-cms digest found -- was the image pushed to ghcr?"
+            exit 1
+          fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Attest the application image
@@ -350,7 +363,20 @@ jobs:
       - name: Capture the database image digest
         id: db_digest
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" | cut -d@ -f2)
+          # RepoDigests carries one entry per registry this image has been pushed to, and `index 0`
+          # takes whichever happens to be first. That is not a stable choice once the ACR mirror
+          # runs: ACR converts the manifest, so its digest differs from ghcr's, and attesting
+          # ghcr's subject-name with ACR's digest makes the attestation fetch 404 and fails the
+          # publish -- which stops delivery without stopping merges (issue 1642).
+          # Select by repository rather than by position, and fail loudly rather than attesting an
+          # empty digest.
+          digest=$(docker inspect --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" \
+            | grep -m1 "^$IMAGE_PREFIX/simis-cms-db@" | cut -d@ -f2)
+          if [ -z "$digest" ]; then
+            echo "::error::No $IMAGE_PREFIX/simis-cms-db digest found -- was the image pushed to ghcr?"
+            exit 1
+          fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       # Blocking gate for the database image: the published OpenVEX suppresses
