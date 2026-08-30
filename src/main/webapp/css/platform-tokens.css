@@ -167,13 +167,14 @@
      distinct role from a fill or an ink, and it was the last hardcoded colour in the rail,
      which mattered because a theme could change everything else and leave a stripe behind.
 
-     It was a lightened link-blue while the active item was a grey fill. Crema makes that
-     item a dove band, and that blue against dove is close enough in luminance to disappear
-     against it. It takes the selected ink instead, so it reads as a deliberate edge at
-     marker on selected 7.01:1.
+     It was a lightened link-blue while the active item was a full-bleed grey band with the
+     marker inset into it. Crema makes the item an inset pill, which puts the marker in the
+     list's gutter against the RAIL instead -- so it is brass, the mockup's --brass-on-dark,
+     at marker on rail 8.91:1. Laid over the dove fill the same brass would have been close
+     enough in luminance to disappear, which is what the intermediate step got wrong.
 
      The value does not move between light and dark; the rail is dark in both. */
-  --sc-chrome-active-marker: #1c1917;
+  --sc-chrome-active-marker: #c4b89e;
 
   /* Brand. Two roles, deliberately not one token. --sc-brand is a fill that carries white
      ink, which is a property of the fill alone and so needs no per-mode value.

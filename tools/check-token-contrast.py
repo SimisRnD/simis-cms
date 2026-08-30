@@ -427,8 +427,8 @@ CLAIMS = [
     # The marker moved with the Crema fill. It used to sit on --sc-chrome-raised, which was
     # the active item's grey; the active item is now --sc-chrome-selected, so that is the
     # ground the marker is actually drawn on and the pair to check.
-    (r"marker on selected ([\d.]+):1",
-     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome-selected")])]),
+    (r"marker on rail ([\d.]+):1",
+     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome")])]),
     # The Crema rail. Every number the chrome comment states, re-derived.
     (r"ink on rail ([\d.]+):1, ink on raised ([\d.]+):1, muted on rail ([\d.]+):1, muted on raised ([\d.]+):1",
      "light",
