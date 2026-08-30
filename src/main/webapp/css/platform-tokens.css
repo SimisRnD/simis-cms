@@ -360,9 +360,9 @@
      --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
      clear the floor on the light ground and costs the dark case as little as possible. */
   --sc-fnd-alert: #cb4834;
-  --sc-fnd-light-gray: #e6e6e6;
-  --sc-fnd-medium-gray: #cacaca;
-  --sc-fnd-dark-gray: #8a8a8a;
+  --sc-fnd-light-gray: #e7e6e3;
+  --sc-fnd-medium-gray: #cdc9c3;
+  --sc-fnd-dark-gray: #91897b;
 }
 
 /* ==========================================================================
@@ -949,7 +949,7 @@ input[type="radio"] {
 }
 
 /* Light mode needs this rule at all: without it Foundation's own
-   `::placeholder { color: var(--sc-fnd-medium-gray, #cacaca) }` is the only
+   `::placeholder { color: var(--sc-fnd-medium-gray, #cdc9c3) }` is the only
    declaration standing, and ships 1.64:1 on a white field. Layer 3 otherwise
    repaints only under [data-theme="dark"], on the principle that light mode is
    already correct -- which held everywhere except here. */

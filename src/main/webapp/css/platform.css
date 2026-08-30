@@ -909,7 +909,7 @@ ul.pagination li.pagination-next a:hover {
   background-color: var(--sc-fnd-white, #fefefe);
   padding: 0;
   width: 100%;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
 }
 
 .status-update-input-box .input-box-container textarea {
@@ -939,7 +939,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box {
   padding: 0;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -947,7 +947,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box .action-area {
   width: 20%;
-  border-right: 0.0625rem solid var(--sc-fnd-medium-gray, #cacaca);
+  border-right: 0.0625rem solid var(--sc-fnd-medium-gray, #cdc9c3);
   text-align: center;
   padding-top: 0.275rem;
   padding-bottom: 0.275rem;
@@ -968,7 +968,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-submit-box {
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -1224,7 +1224,7 @@ body.admin-console .admin-menu a:not(.button):focus {
 /* User Card Profile */
 
 .card-profile-stats {
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   margin: 0 0 1.25rem;
   padding: 1.25rem;
   background: var(--sc-fnd-white, #fefefe);
@@ -1424,12 +1424,12 @@ a.read-more {
 
 .tabs {
   border: none;
-  border-bottom: 1px solid var(--sc-fnd-light-gray, #e6e6e6);
+  border-bottom: 1px solid var(--sc-fnd-light-gray, #e7e6e3);
 }
 .tabs li a {
   font-size: var(--sc-font-base, 1rem);
   color: var(--sc-text, #2c2925);
-  background: var(--sc-fnd-light-gray, #e6e6e6);
+  background: var(--sc-fnd-light-gray, #e7e6e3);
   transition: all 0.35s ease-in-out;
   padding: 0.5rem 1rem;
 }
@@ -1532,10 +1532,10 @@ a.read-more {
 }
 .platform-activity-content-date {
   font-size: 80%;
-  color: var(--sc-fnd-dark-gray, #8a8a8a);
+  color: var(--sc-fnd-dark-gray, #91897b);
 }
 .platform-activity-content-other {
-  color: var(--sc-fnd-dark-gray, #8a8a8a);
+  color: var(--sc-fnd-dark-gray, #91897b);
 }
 
 /* Controls */
