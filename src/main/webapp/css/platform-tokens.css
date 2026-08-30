@@ -163,15 +163,17 @@
   --sc-chrome-accent: #0056b3;
   --sc-chrome-accent-deep: #004494;
 
-  /* The 3px bar marking the active rail item. Not --sc-chrome-accent: this one sits ON
-     --sc-chrome-raised rather than on the rail proper, and it is a meaningful-state
-     graphic, so SC 1.4.11 applies to it. --sc-link's #609ace manages only 2.43:1 there;
-     this is that blue lightened 20% to reach marker on raised 3.10:1.
+  /* The 3px bar marking the active rail item. Kept as its own token -- a marker is a
+     distinct role from a fill or an ink, and it was the last hardcoded colour in the rail,
+     which mattered because a theme could change everything else and leave a stripe behind.
 
-     It was the last hardcoded colour in the admin rail, which mattered because a theme
-     could change every other thing about the rail and leave a blue stripe behind. The
-     value does not move between light and dark -- the rail is dark in both. */
-  --sc-chrome-active-marker: #7faed7;
+     It was a lightened link-blue while the active item was a grey fill. Crema makes that
+     item a dove band, and that blue against dove is close enough in luminance to disappear
+     against it. It takes the selected ink instead, so it reads as a deliberate edge at
+     marker on selected 7.01:1.
+
+     The value does not move between light and dark; the rail is dark in both. */
+  --sc-chrome-active-marker: #1c1917;
 
   /* Brand. Two roles, deliberately not one token. --sc-brand is a fill that carries white
      ink, which is a property of the fill alone and so needs no per-mode value.

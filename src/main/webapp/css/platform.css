@@ -1137,7 +1137,7 @@ body.admin-console .admin-menu a:not(.button):focus {
   background-color: var(--sc-chrome-selected, #aea38d);
   color: var(--sc-chrome-ink-selected, #1c1917);
   font-weight: var(--sc-weight-medium, 500);
-  box-shadow: inset 3px 0 0 var(--sc-chrome-active-marker, #7faed7);
+  box-shadow: inset 3px 0 0 var(--sc-chrome-active-marker, #1c1917);
 }
 .admin-menu li.is-active > a i {
   color: var(--sc-chrome-ink-selected, #1c1917);
