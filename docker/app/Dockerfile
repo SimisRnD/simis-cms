@@ -7,7 +7,7 @@
 
 # Tomcat 11 (Jakarta EE / jakarta.servlet). The application targets Servlet 6.1; it will not
 # run on the Tomcat 9 base this image used previously, which serves the javax.* namespace.
-FROM tomcat:11.0-jdk21@sha256:7e6712756c721966f4157f53794a5507398e9020a3dec86e086475503aa7b57f
+FROM tomcat:11.0-jdk21@sha256:133546e3740f0e17d2307d9b324de082062b009226a602111a422016f1e84173
 
 # STIG hardening. Overlay the hardened server.xml (shutdown port disabled, HTTP TRACE off,
 # server banner suppressed, no error-page disclosure, autoDeploy off, access logging), add
