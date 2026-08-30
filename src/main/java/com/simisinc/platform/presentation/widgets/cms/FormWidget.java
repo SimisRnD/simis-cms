@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.application.cms.FormNotificationSubjectCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
@@ -363,8 +364,19 @@ public class FormWidget extends GenericWidget {
     boolean sendConfirmation = formDefinition != null && formDefinition.getSendConfirmationToSubmitter();
     String confirmationSubject = formDefinition != null ? formDefinition.getConfirmationSubject() : null;
     String confirmationMessage = formDefinition != null ? formDefinition.getConfirmationMessage() : null;
-    WorkflowManager.triggerWorkflowForEvent(new FormSubmittedEvent(
-        formData, emailAddresses, submitterEmail, sendConfirmation, confirmationSubject, confirmationMessage));
+    // The notification's subject is resolved HERE rather than in the playbook. A configured
+    // subject may substitute answers a stranger typed into a public form, and that text ends up in
+    // an email header -- so it is made safe in one place, before it is handed to anything else.
+    // See FormNotificationSubjectCommand.
+    String notificationSubject = FormNotificationSubjectCommand.createSubject(
+        formDefinition != null ? formDefinition.getNotificationSubject() : null,
+        formData,
+        formDefinition != null ? formDefinition.getName() : null);
+
+    FormSubmittedEvent formSubmittedEvent = new FormSubmittedEvent(
+        formData, emailAddresses, submitterEmail, sendConfirmation, confirmationSubject, confirmationMessage);
+    formSubmittedEvent.setNotificationSubject(notificationSubject);
+    WorkflowManager.triggerWorkflowForEvent(formSubmittedEvent);
 
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
