@@ -231,39 +231,64 @@ Multi-instance behavior:
 
 ## 5. Configure Proxy IP Forwarding
 
-Set the `CMS_TRUSTED_PROXIES` environment variable to Azure Front Door's backend IP ranges. This allows the app to see real client IPs (for audit logs, firewall, rate limiting).
+The app must see the real client IP, not the proxy's — audit `sourceIp`, the IP firewall, rate
+limiting, geo filtering and the captcha `remoteip` all read the same value.
 
-### 5.1 Get Front Door backend ranges
+Two variables cooperate:
 
-Azure publishes service-tag IP ranges. Retrieve them:
+| variable | what it is | value behind Front Door |
+|---|---|---|
+| `CMS_TRUSTED_PROXIES` | a **Java regular expression** matching the *immediate peer* | the App Service front ends: `10\.\d{1,3}\.\d{1,3}\.\d{1,3}\|169\.254\.\d{1,3}\.\d{1,3}\|127\.\d{1,3}\.\d{1,3}\.\d{1,3}` |
+| `CMS_CLIENT_IP_HEADER` | the header carrying the true client | `X-Azure-ClientIP` |
+
+> **`CMS_TRUSTED_PROXIES` is a regex, not CIDR.** A value like `147.243.0.0/16` is accepted
+> silently and then matches nothing, because it is compiled as a regular expression — so the
+> setting appears configured while the app still records the proxy. Verify any value with
+> `Pattern.matches(expr, ip)` before trusting it.
+
+### 5.1 Why the header, and not just the ranges
+
+`RemoteIpFilter` walks `X-Forwarded-For` right-to-left and stops at the first address it does not
+recognise as a trusted proxy — reporting that address as the client. Front Door's origin-facing
+addresses are **public**, so unless every one of them appears in `CMS_TRUSTED_PROXIES` the walk
+stops on the Front Door node itself. That is issue #1675: the recorded client IP became a Front Door
+edge node, varying per request and geolocating to arbitrary cities.
+
+Listing them is not practical. `AzureFrontDoor.Backend` currently carries **147 IPv4 prefixes** (plus
+92 IPv6), mostly /29s and /31s, and Microsoft revises the set — so the expression would need
+regenerating on a schedule, and every miss silently misattributes traffic again.
+
+Front Door instead publishes the true client in `X-Azure-ClientIP`, a single value, and **overwrites
+any client-supplied copy** on the way through. Reading that header sidesteps the walk entirely and
+needs no maintenance.
+
+### 5.2 Set the variables
+
+Both are template parameters (`trustedProxies`, `clientIpHeader`), so set them at deploy — App
+Service settings written by hand are replaced on the next Bicep deployment.
 
 ```bash
-curl -s https://www.microsoft.com/en-us/download/details.aspx?id=56519 | \
-  jq '.[] | select(.id=="AzureFrontDoor") | .prefixes' | \
-  jq -r '.[] | select(startswith("BACKENDS"))'
-```
-
-Or check [Azure IP Ranges and Service Tags](https://www.microsoft.com/en-us/download/details.aspx?id=56519) and search for `AzureFrontDoor.Backend`.
-
-### 5.2 Set the environment variable
-
-```bash
-# Format: comma-separated CIDR blocks
 az webapp config appsettings set \
   --name «appServiceName» \
   --resource-group my-simis-rg \
-  --settings CMS_TRUSTED_PROXIES="«IP_RANGE_1»,«IP_RANGE_2»,..."
+  --settings "CMS_CLIENT_IP_HEADER=X-Azure-ClientIP"
 ```
 
-Example (check current ranges before using):
+Security requirement: the origin must not be reachable except through Front Door, or a client could
+set `X-Azure-ClientIP` itself. The Private Link origin configuration in `infra/README.md` already
+enforces this — do not set this variable on an app whose origin accepts direct public traffic.
+
+### 5.3 Verify
+
+Submit any form, or check an audit record, and confirm the recorded address is a real client rather
+than a Front Door node:
+
 ```bash
-az webapp config appsettings set \
-  --name simiscms-pilot \
-  --resource-group my-simis-rg \
-  --settings "CMS_TRUSTED_PROXIES=147.243.0.0/16,2607:f758::/32"
+az network list-service-tags --location «region» \
+  --query "values[?name=='AzureFrontDoor.Backend'].properties.addressPrefixes | [0]"
 ```
 
-**Revisit monthly:** Azure updates service tags ~weekly. Refresh this monthly so the regex stays current.
+If a recorded IP falls inside one of those prefixes, resolution is still wrong.
 
 ### 5.3 Session Affinity (Multi-Instance)
 
