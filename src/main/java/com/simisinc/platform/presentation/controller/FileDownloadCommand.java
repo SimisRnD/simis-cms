@@ -44,10 +44,15 @@ public class FileDownloadCommand {
 
   // Content types that are safe to display inline. SVG is deliberately excluded (it is an image type but
   // can carry script), as are HTML/XML and anything not listed -- those are served as downloads instead.
+  // text/vtt earns its place the same way text/plain does: it is inert text a browser parses, never
+  // executes. It is here because a <track> cannot load otherwise -- an unlisted type is served as
+  // application/octet-stream with an attachment disposition, and nosniff (correctly) stops the
+  // browser reading it as captions anyway. Without this a video can carry perfectly good caption
+  // markup and still fail WCAG 1.2.2, with nothing on the page saying why.
   private static final Set<String> SAFE_INLINE_TYPES = Set.of(
       "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp", "image/bmp",
       "image/tiff", "image/x-icon", "image/vnd.microsoft.icon",
-      "application/pdf", "text/plain");
+      "application/pdf", "text/plain", "text/vtt");
 
   private FileDownloadCommand() {
     // Static utility

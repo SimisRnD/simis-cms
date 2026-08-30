@@ -79,6 +79,29 @@
   font-size: var(--sc-font-xs, 0.75rem);
 }
 
+/* Ink, issue 1590. The quiet greys in this file were three tiers expressed as literals, and they
+   are now the chrome family's three:
+
+     --sc-chrome-ink         field and message text, the things a reader is actually reading
+     --sc-chrome-ink-muted   labels and button captions
+     --sc-chrome-ink-subtle  the toolbar title, the status line, an empty state, a close button
+
+   The subtle tier was added for this -- chrome had only two ink levels, so routing #aaa/#999/#888
+   to the muted one would have read as adoption while flattening a distinction the editor was
+   already making. Every pairing improved or held; the ratios live beside the tokens in
+   platform-tokens.css, where check-token-contrast.py re-derives them. They are deliberately not
+   repeated here -- a ratio quoted in a file that gate does not read is how the numbers in this
+   file went stale once already (see the note on issue 1518 below).
+
+   Two swaps here are deliberately not ink. The hover border on the toolbar and discard buttons
+   takes --sc-border-control, because a control's boundary is a boundary whatever colour it happens
+   to share with text; and the link prompt's cancel button takes --sc-chrome-raised, which is what
+   its #555 already was.
+
+   Still literal below: the state colours (green, red, amber, purple, teal), which cannot take
+   --sc-success and its siblings because those flip between modes while these fills do not, and the
+   #444 container edges, which want a chrome border token that does not exist yet. */
+
 /* Control boundaries in the editor chrome, issue 1518.
 
    The chrome is dark in light mode too -- none of it sits in a theme block. So
@@ -116,17 +139,17 @@
    #sc-widget-picker keeps its #ccc: that is a container edge, not a control
    boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   border-color: var(--sc-border-control, #838589);
 }
 
 #sc-editor-toolbar a.button:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  border-color: #aaa;
+  border-color: var(--sc-border-control, #838589);
 }
 
 #sc-editor-toolbar-title {
-  color: #aaa;
+  color: var(--sc-chrome-ink-subtle, #9ea3ab);
   font-size: var(--sc-font-xs, 0.75rem);
   font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.04em;
@@ -135,7 +158,7 @@
 }
 
 #sc-editor-status {
-  color: #aaa;
+  color: var(--sc-chrome-ink-subtle, #9ea3ab);
   font-size: var(--sc-font-xs, 0.75rem);
   margin-left: auto;
   white-space: nowrap;
@@ -262,7 +285,7 @@ a.sc-editor-handle:hover {
 #sc-inline-toolbar button {
   background: transparent;
   border: none;
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   padding: 3px 7px;
   cursor: pointer;
   border-radius: 3px;
@@ -431,13 +454,13 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-discard-draft-btn {
   margin-bottom: 0;
   font-size: var(--sc-font-xs, 0.75rem);
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   border-color: var(--sc-border-control, #838589);
 }
 
 #sc-discard-draft-btn:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  border-color: #aaa;
+  border-color: var(--sc-border-control, #838589);
 }
 
 /* Confirm modal overlay */
@@ -467,7 +490,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-msg {
-  color: #eee;
+  color: var(--sc-chrome-ink, #ffffff);
   font-size: var(--sc-font-md, 0.875rem);
   margin-bottom: 1rem;
   line-height: var(--sc-leading-relaxed, 1.5);
@@ -503,7 +526,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-cancel {
   background: var(--sc-chrome-control, #2a2c31);
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   border: 1px solid var(--sc-border-control, #838589) !important;
 }
 
@@ -585,7 +608,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 .sc-width-preset-btn {
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   padding: 5px 4px;
   cursor: pointer;
   border-radius: 3px;
@@ -616,7 +639,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   flex: 1;
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #eee;
+  color: var(--sc-chrome-ink, #ffffff);
   padding: 3px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -751,7 +774,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-pref-field label {
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
 }
@@ -792,7 +815,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field textarea {
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #eee;
+  color: var(--sc-chrome-ink, #ffffff);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -809,7 +832,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-prefs-empty {
-  color: #999;
+  color: var(--sc-chrome-ink-subtle, #9ea3ab);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
   margin: 4px 0;
@@ -822,7 +845,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-header span {
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-weight: var(--sc-weight-semibold, 600);
   text-transform: uppercase;
@@ -832,7 +855,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-prefs-close {
   background: transparent;
   border: none;
-  color: #888;
+  color: var(--sc-chrome-ink-subtle, #9ea3ab);
   font-size: var(--sc-font-base, 1rem);
   cursor: pointer;
   padding: 0 2px;
@@ -846,7 +869,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-prefs-textarea {
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #eee;
+  color: var(--sc-chrome-ink, #ffffff);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -881,7 +904,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-prefs-reset {
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #ccc;
+  color: var(--sc-chrome-ink-muted, #d9dce1);
   padding: 3px 10px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -926,7 +949,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-link-prompt input[type="text"] {
   background: var(--sc-chrome-control, #2a2c31);
   border: 1px solid var(--sc-border-control, #838589);
-  color: #eee;
+  color: var(--sc-chrome-ink, #ffffff);
   padding: 3px 6px;
   font-size: var(--sc-font-xs, 0.75rem);
   border-radius: 3px;
@@ -944,7 +967,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt button.sc-cancel {
-  background: #555;
+  background: var(--sc-chrome-raised, #53575c);
 }
 
 /* ── Widget picker ─────────────────────────────────────────────────────────── */
