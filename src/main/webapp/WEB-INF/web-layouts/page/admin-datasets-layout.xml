@@ -51,7 +51,7 @@
       <column class="small-12 cell margin-top-100">
         <widget name="content" class="padding-width-50">
       <html><![CDATA[
-<h4>Example File Format</h4>
+<h2 class="h4">Example File Format</h2>
 <div class="table-scroll">
 <table>
 <tr>
@@ -77,7 +77,7 @@
        <widget name="content" class="padding-width-50">
           <html><![CDATA[
 <hr>
-<h4>Multicolumn Datasets</h4>
+<h2 class="h4">Multicolumn Datasets</h2>
 <p>If your dataset has multiple columns, the file must be in csv format. The first row must contain the column names.</p>
 <p>Example:</p>
 <table>
@@ -92,7 +92,7 @@
         <widget name="content" class="padding-width-50">
           <html><![CDATA[
 <hr>
-<h4>Plain Text Lists</h4>
+<h2 class="h4">Plain Text Lists</h2>
 <p>If your dataset is a simple list of values, specify each value on a separate line. Do not include a header row.</p>
 <p>Example:</p>
 <table>
@@ -179,9 +179,9 @@
         <widget name="content" class="callout secondary" sticky="true">
           <html>
             <![CDATA[
-            <h4>Path to Records Array</h4>
+            <h2 class="h4">Path to Records Array</h2>
             <p class="subheader">Use &quot;/&quot; for top-level</p>
-            <h4>Column Configuration</h4>
+            <h2 class="h4">Column Configuration</h2>
             <p class="subheader">Use JSON dot-notation</p>
             <ul>
               <li>example.title=name</li>
@@ -232,7 +232,7 @@
         <widget name="content" class="callout secondary" sticky="true">
           <html>
             <![CDATA[
-            <h4>Options</h4>
+            <h2 class="h4">Options</h2>
             <p class="subheader">Separate multiple options with a &quot;;&quot;</p>
             <ul>
               <li>caps</li>
