@@ -1532,10 +1532,10 @@ a.read-more {
 }
 .platform-activity-content-date {
   font-size: 80%;
-  color: var(--sc-fnd-dark-gray, #91897b);
+  color: var(--sc-text-muted, #656970);
 }
 .platform-activity-content-other {
-  color: var(--sc-fnd-dark-gray, #91897b);
+  color: var(--sc-text-muted, #656970);
 }
 
 /* Controls */
