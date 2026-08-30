@@ -77,3 +77,9 @@ jobs:
         run: python3 tools/check-theme-scope.py . --strict
       - name: Fail on a themed button colour that reaches a hollow or clear button
         run: python3 tools/check-button-variant-scope.py . --strict
+      # The adoption ratchet counts hex literals, which a runtime theme rule does not have -- it
+      # points at a custom property. That is how 22 theme rules reached the admin console with the
+      # adoption number unmoved across three PRs (issue 1598). This compares the two layers
+      # directly instead of counting literals.
+      - name: Fail on a new overlap between the runtime theme and the token layer
+        run: python3 tools/check-theme-token-overlap.py . --strict
