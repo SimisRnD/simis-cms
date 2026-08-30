@@ -749,6 +749,20 @@ input[type="radio"] {
   color: var(--sc-text);
 }
 
+/* Foundation paints .subheader with --sc-fnd-dark-gray, a NEUTRAL token -- the same one its
+   borders and rules use. As ink that is subheader neutral on raised 3.46:1, on surface 3.12:1,
+   under the 4.5:1 floor of SC 1.4.3, on every subheader in the console (seen on /admin/wikis).
+   The dark-mode rule below already routes it to --sc-text-muted; light mode had no counterpart,
+   so it fell through to the vendor default.
+
+   Pointing it at the text token rather than darkening the neutral is deliberate: --sc-fnd-dark-gray
+   also draws borders, which are held to the 3:1 that SC 1.4.11 asks, and a darker value would
+   weight every rule in the product. One token cannot serve both roles well, so the text case takes
+   a text token: subheader muted on raised 5.51:1, on surface 4.98:1. */
+.subheader {
+  color: var(--sc-text-muted, #656970);
+}
+
 :root[data-theme="dark"] .help-text,
 :root[data-theme="dark"] .platform-activity-date,
 :root[data-theme="dark"] .platform-activity-content-date,
