@@ -311,9 +311,11 @@ COMMON = [
     # fills keep their light values in dark mode, so their text must not follow.
     ("--sc-fnd-ink-on-accent", "--sc-fnd-warning", TEXT),
     ("--sc-fnd-ink-on-accent", "--sc-fnd-success", TEXT),
-    # The deprecated role-blind aliases, still used by stylesheets routed
-    # before the split. They resolve through two levels of var().
-    ("--sc-fnd-black", "--sc-fnd-white", TEXT),
+    # What the retired --sc-fnd-black/--sc-fnd-white aliases used to cover. The eight
+    # first-party references now name the role they mean, so the pairing is checked
+    # under the role names instead -- same two values, one fewer level of var() to
+    # resolve, and no name left that invites the role-blind mistake.
+    ("--sc-fnd-ink", "--sc-fnd-surface", TEXT),
 ]
 
 # Pairings that only exist in dark mode. --sc-fnd-on-accent is white text for a
@@ -414,19 +416,18 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
-    # The Crema rail. Every number the chrome comment states, re-derived: the dove fill has
-    # to clear 3:1 against the rail to mark the item, and the dark ink on it has to clear
-    # 4.5:1 to be read. Both land on 7.01:1, which is the ratio the mockup was built around.
-    (r"ink on rail ([\d.]+):1, ink on raised ([\d.]+):1, muted on rail ([\d.]+):1, muted on raised ([\d.]+):1",
-     "light",
-     [("exact", [("--sc-chrome-ink", "--sc-chrome")]),
-      ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
-      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
-      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
-    (r"selected ink on selected ([\d.]+):1, selected fill vs rail ([\d.]+):1",
-     "light",
-     [("exact", [("--sc-chrome-ink-selected", "--sc-chrome-selected")]),
-      ("exact", [("--sc-chrome-selected", "--sc-chrome")])]),
+    # The active-rail marker, and the link blue it had to be lightened away from. Both are
+    # token pairings now that the marker is a token, so both are re-derived rather than
+    # trusted: the 2.43:1 is the reason the 3.10:1 exists, and a comment that keeps the
+    # rejected number has to keep it honest too.
+    # Checked in the DARK block on purpose: --sc-link is #276caa in light and #609ace in
+    # dark, and the rail is dark in both modes, so the blue that was rejected here is the
+    # dark-mode one. Claiming it under "light" computes 1.32:1 against #276caa and fails --
+    # which is how the mode error in this very comment was caught.
+    (r"--sc-link's #609ace manages only ([\d.]+):1 there",
+     "dark", [("exact", [("--sc-link", "--sc-chrome-raised")])]),
+    (r"lightened 20% to reach marker on raised ([\d.]+):1",
+     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome-raised")])]),
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
@@ -677,7 +678,7 @@ EXEMPT_RATIOS = [
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
-    (r"lands under (4\.5):1 on", "SC 1.4.3 floor, not a measurement"),
+    (r"under the (3):1 SC 1\.4\.11 asks of a", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
@@ -697,9 +698,9 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
-    (r"sat only ([\d.]+):1 off the rail",
-     "the Anthracite accent #53575c against the old rail #17191e -- neither is a token any "
-     "more, so no pairing can express it; recorded because it is why the rail was changed"),
+    (r"border\s+stands on a #fefefe field at ([\d.]+):1",
+     "Foundation's factory field border #cdc9c3 on its own #fefefe field -- neither is a token, "
+     "so no pairing can express it; this is what light mode ships before the rule above"),
     (r"declaration standing, and ships ([\d.]+):1 on a white field", "Foundation's factory placeholder again, at the light-mode rule that overrides it"),
     (r"Foundation's own #cacaca at\s+([\d.]+):1 on white", "Foundation's factory placeholder, the value light mode shipped before issue 1506"),
     (r"the dark admin rail \(#17191e\): ([\d.]+):1", "--sc-text-subtle on the rail's hardcoded background, which is not a token"),
