@@ -112,16 +112,6 @@
     var firstErrorField = null;
     <c:forEach items="${formFieldList}" var="formField" varStatus="status">
       <c:if test="${formField.required}">
-        <%-- The field's initial value. "Default Value" has been offered in the form-field editor,
-             saved and persisted all along, and never read here -- so filling it in did nothing, for
-             every field type.
-
-             It applies only when userValue is NULL, which is a fresh render. An EMPTY userValue is
-             different: it means the form is being redisplayed after a validation error and the
-             visitor left this field blank. Re-applying the default there would put text back that
-             they had deliberately removed, at the exact moment the page is asking them to correct
-             something. --%>
-        <c:set var="initialValue" value="${formField.userValue == null ? formField.defaultValue : formField.userValue}"/>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
             <c:choose>
@@ -255,6 +245,21 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <c:forEach items="${formFieldList}" var="formField" varStatus="status">
+    <%-- The field's initial value. "Default Value" has been offered in the form-field editor,
+         saved and persisted all along, and never read here -- so filling it in did nothing, for
+         every field type.
+
+         It applies only when userValue is NULL, which is a fresh render. An EMPTY userValue is
+         different: it means the form is being redisplayed after a validation error and the
+         visitor left this field blank. Re-applying the default there would put text back that
+         they had deliberately removed, at the exact moment the page is asking them to correct
+         something.
+
+         Keep this inside THIS loop, the one that renders the fields. <c:set> without a scope is
+         page-scoped, not loop-local: computed in the validation-script loop above, it survived that
+         loop and left every input, textarea and checkbox below rendering the LAST required field's
+         value -- on this site, the message body appearing in name, email and phone. --%>
+    <c:set var="initialValue" value="${formField.userValue == null ? formField.defaultValue : formField.userValue}"/>
     <c:choose>
       <c:when test="${formField.type eq 'checkbox' && !empty formField.listOfOptions}">
         <%-- Checkbox group: multiple checkboxes sharing one name, so a visitor can check several --%>
