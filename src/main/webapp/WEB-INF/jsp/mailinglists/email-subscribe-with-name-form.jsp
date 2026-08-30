@@ -23,7 +23,18 @@
 <jsp:useBean id="countryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="email" class="com.simisinc.platform.domain.model.mailinglists.Email" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+<%-- enterprise.js for a key issued by Google's current console: those cannot be verified by
+     the legacy siteverify endpoint at all, so they take the Enterprise assessment API and its own
+     script family. The button markup below is identical either way -- Google's integration panel
+     prints the same data-sitekey/data-callback form for both. Issue 1615. --%>
+<c:choose>
+  <c:when test="${googleEnterprise eq 'true'}">
+    <script src='https://www.google.com/recaptcha/enterprise.js?render=<c:out value="${googleSiteKey}"/>' nonce="${cspNonce}"></script>
+  </c:when>
+  <c:otherwise>
+    <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  </c:otherwise>
+</c:choose>
 <script nonce="${cspNonce}">
   function onSubmit(token) {
     document.getElementById("form${widgetContext.uniqueId}").submit();
