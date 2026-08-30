@@ -28,7 +28,7 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<h4><c:out value="${mailingList.name}" /></h4>
+<h3 class="h4"><c:out value="${mailingList.name}" /></h3>
 <button class="button small primary radius float-left" data-open="formReveal"><i class="fa fa-plus"></i> Add Email</button>
 <form id="fileForm" method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>

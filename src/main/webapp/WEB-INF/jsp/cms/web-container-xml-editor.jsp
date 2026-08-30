@@ -65,7 +65,7 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>Widgets</h4>
+        <h3 class="h4">Widgets</h3>
         <dl>
           <dt>systemAlert</dt>
           <dd></dd>

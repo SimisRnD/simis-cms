@@ -20,7 +20,7 @@
 <%-- Sits directly under the settings form's Save/Cancel buttons, so it needs its own breathing
      room rather than butting up against them. --%>
 <div style="margin-top: 2.5rem;">
-<h4>MFA status by role</h4>
+<h2 class="h4">MFA status by role</h2>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text">Every role in the system and where it stands. <strong>Required</strong> means the role is listed above in
   &ldquo;Roles that must enroll in MFA&rdquo;. <strong>Enrolled</strong> means at least one member has actually set up a second

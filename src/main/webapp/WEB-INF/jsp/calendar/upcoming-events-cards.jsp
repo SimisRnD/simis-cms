@@ -36,7 +36,7 @@
           <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
             <c:if test="${!empty titles && fn:length(titles) > status.index }">
               <div class="event-designation">
-                <h4><c:out value="${titles[status.index]}" /></h4>
+                <h3 class="h4"><c:out value="${titles[status.index]}" /></h3>
               </div>
             </c:if>
             <div class="card-section event-date">

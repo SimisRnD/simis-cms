@@ -76,9 +76,9 @@
   }
 </script>
 <c:choose>
-  <c:when test="${product.id eq -1}"><h4>New Product</h4></c:when>
+  <c:when test="${product.id eq -1}"><h2 class="h4">New Product</h2></c:when>
   <c:otherwise>
-    <h4>Update Product</h4>
+    <h2 class="h4">Update Product</h2>
     <c:choose>
       <c:when test="${empty product.products}">
         <span class="label primary">Incomplete</span>

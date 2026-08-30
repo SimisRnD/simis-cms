@@ -414,6 +414,20 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
+    # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
+    # recomputes these and the comment cannot drift away from the declaration.
+    (r"measured\s+([\d.]+):1 on #2f323a and ([\d.]+):1 on #1b1d23",
+     "dark",
+     [("exact", [("--sc-text", "--sc-fnd-table-row-hover")]),
+      ("exact", [("--sc-text", "--sc-fnd-table-stripe-hover")])]),
+    # The step each hover makes against its OWN ground. Deliberately small, and registered
+    # so that "small" stays a measured claim rather than an assurance -- the value this
+    # replaced was exactly equal to its ground, i.e. 1.00:1 and invisible.
+    (r"deliberately small \(([\d.]+):1 and ([\d.]+):1\)",
+     "dark",
+     [("exact", [("--sc-fnd-table-row-hover", "--sc-surface-raised")]),
+      ("exact", [("--sc-fnd-table-stripe-hover", "--sc-surface-sunken")])]),
     # .subheader took Foundation's neutral token as ink until issue 1598's follow-up. Both the
     # failing pairing and the replacement are registered, so a later change to either token
     # re-derives against these numbers instead of leaving the comment to drift.
@@ -645,7 +659,8 @@ EXEMPT_RATIOS = [
     (r"clears (4\.5):1 on #17191e", "SC 1.4.3 floor, not a measurement"),
     (r"under the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
-    (r"under the (3):1 SC 1\.4\.11 asks of a", "SC 1.4.11 floor, not a measurement"),
+    (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
+    (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token

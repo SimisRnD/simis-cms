@@ -27,13 +27,13 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<h4>
+<h3 class="h4">
   <i class="fa fa-folder-open-o"></i> <c:out value="${folder.name}" />
   <c:if test="${!empty subFolder.name}">
     <br />
     <i class="fa fa-folder-open-o"></i> <c:out value="${subFolder.name}" />
   </c:if>
-</h4>
+</h3>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script src="${ctx}/javascript/dropzone-setup.js"></script>
 <script nonce="${cspNonce}">

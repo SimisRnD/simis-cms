@@ -20,9 +20,9 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="address" class="com.simisinc.platform.domain.model.ecommerce.SalesTaxNexusAddress" scope="request"/>
 <c:choose>
-  <c:when test="${address.id eq -1}"><h4>New Address</h4></c:when>
+  <c:when test="${address.id eq -1}"><h2 class="h4">New Address</h2></c:when>
   <c:otherwise>
-    <h4>Update Address</h4>
+    <h2 class="h4">Update Address</h2>
   </c:otherwise>
 </c:choose>
 <form method="post" autocomplete="off">
