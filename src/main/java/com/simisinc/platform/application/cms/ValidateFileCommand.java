@@ -164,6 +164,14 @@ public class ValidateFileCommand {
         return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       } else if ("vsdx".equals(extension)) {
         return "application/vnd.visio";
+      } else if ("vtt".equals(extension)) {
+        // WebVTT caption files, which is how a video meets WCAG 1.2.2. Files.probeContentType does
+        // not know the extension on the platforms this runs on, so without this a caption file is
+        // stored with no mime type at all -- and FileDownloadCommand then serves an unknown type as
+        // application/octet-stream with an attachment disposition and nosniff, which a browser will
+        // not accept as a <track>. The captions would upload, the markup would be correct, and the
+        // track would silently never load.
+        return "text/vtt";
       }
     }
     LOG.debug("MimeType: " + mimeType);
