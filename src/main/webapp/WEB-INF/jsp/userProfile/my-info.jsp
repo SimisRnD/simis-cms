@@ -30,7 +30,7 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <c:if test="${showName eq 'true'}">
-<h4><c:out value="${user.fullName}"/></h4>
+<h3 class="h4"><c:out value="${user.fullName}"/></h3>
 </c:if>
 <c:if test="${showNickname eq 'true'}">
 <p class="subheader"><span class="display-field-value"><c:if test="${!empty user.nickname}"><c:out value="${user.nickname}"/></span></p></c:if>

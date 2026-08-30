@@ -59,7 +59,7 @@
     </div>
     <div class="small-12 hide-for-small-only medium-4 cell">
       <div id="information" style="overflow:scroll;padding-right:20px">
-        <h4>Typography</h4>
+        <h3 class="h4">Typography</h3>
         <h1>H1 Header</h1>
         <h2>H2 Header</h2>
         <h3>H3 Header</h3>
@@ -67,7 +67,7 @@
         <h5>H5 Header</h5>
         <p class="no-gap">This is body text, with <a href="#">an example link</a>, and there is also <strong>bold text</strong>.</p>
         <hr />
-        <h4>Reference Elements</h4>
+        <h3 class="h4">Reference Elements</h3>
         <div class="callout">Callout</div>
         <div class="primary callout">Primary Callout</div>
         <div class="secondary callout">Secondary Callout</div>

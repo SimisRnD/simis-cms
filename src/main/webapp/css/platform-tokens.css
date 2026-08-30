@@ -308,6 +308,12 @@
   --sc-fnd-table-head-hover: #f6f4f0;
   --sc-fnd-table-row-hover: #faf9f8;
   --sc-fnd-table-stripe-hover: #f0ede8;
+  /* The rule around tbody/tfoot/thead. Foundation spends one colour (#f1f1f1) on both
+     this and the stripe fill, which works while everything is pale and comes apart in
+     dark mode -- the fill has to go darker than the surface it stripes, the rule has to
+     stay light enough to be seen against it. Split out so each can move independently;
+     the light value matches --sc-fnd-table-stripe exactly, so light mode is unchanged. */
+  --sc-fnd-table-rule: #f4f2ee;
 
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
      once, here, and deliberately never redefined for dark: those fills keep their
@@ -483,6 +489,31 @@
   --sc-fnd-medium-gray: #4a4f57;
   --sc-fnd-dark-gray: #8f959d;
 
+  /* Table chrome. These had no dark values at all, which is why the dark theme carried
+     five hand-written table overrides further down this file: each one existed to point
+     a Foundation table rule at a semantic token the framework could not reach. The rule
+     colour was the one nobody compensated for, so `thead` shipped a near-white #f1f1f1
+     border on a dark table.
+
+     Fill and rule move in opposite directions here, which is the whole reason
+     --sc-fnd-table-rule was split out of the stripe: the fills sit BELOW the surface
+     they stripe (#101115 against a #26282e body), the rule sits ABOVE it. */
+  --sc-fnd-table-head: #101115;
+  --sc-fnd-table-stripe: #101115;
+  --sc-fnd-table-rule: rgba(244, 245, 247, 0.12);
+  /* Hover shades step toward the light rather than away from it, so a row lifts under
+     the pointer instead of receding. Text stays --sc-text (#f4f5f7) on both -- measured
+     11.75:1 on #2f323a and 15.44:1 on #1b1d23, so neither hover state comes near the
+     4.5:1 floor.
+
+     Against their own ground the steps are deliberately small (1.15:1 and 1.12:1). A
+     hover state is transient and pointer-driven, so it carries no meaning on its own and
+     has no 3:1 obligation; the previous value carried the opposite problem, being exactly
+     equal to the row beneath it and therefore invisible. */
+  --sc-fnd-table-row-hover: #2f323a;
+  --sc-fnd-table-stripe-hover: #1b1d23;
+  --sc-fnd-table-head-hover: #1b1d23;
+
   color-scheme: dark;
 }
 
@@ -571,6 +602,15 @@
     --sc-fnd-light-gray: #2b2f36;
     --sc-fnd-medium-gray: #4a4f57;
     --sc-fnd-dark-gray: #8f959d;
+
+    /* Mirrors the explicit dark block above -- see the note there for why fill and rule
+       had to be split, and for the measured hover ratios. */
+    --sc-fnd-table-head: #101115;
+    --sc-fnd-table-stripe: #101115;
+    --sc-fnd-table-rule: rgba(244, 245, 247, 0.12);
+    --sc-fnd-table-row-hover: #2f323a;
+    --sc-fnd-table-stripe-hover: #1b1d23;
+    --sc-fnd-table-head-hover: #1b1d23;
 
     color-scheme: dark;
   }
@@ -929,37 +969,21 @@ input[type="radio"] {
   color: var(--sc-text-muted);
 }
 
-/* Tables */
-:root[data-theme="dark"] table,
-:root[data-theme="dark"] table tbody {
-  /* Foundation paints tbody/tfoot directly (foundation.css "tbody, tfoot"),
-     so styling the table alone leaves un-striped rows white. */
-  background-color: var(--sc-surface-raised);
-  color: var(--sc-text);
-  border-color: var(--sc-border);
-}
+/* Tables: nothing here any more, and that is the point.
+   Five rules used to live at this spot, each one reaching past Foundation to point a
+   table at a semantic token. They existed because the --sc-fnd-table-* tokens had no
+   dark values, so the framework painted tables light and something had to undo it.
+   Giving those tokens dark values (see the dark block above) removes the reason, and
+   removing the rules fixed two things they were quietly causing:
 
-:root[data-theme="dark"] table thead,
-:root[data-theme="dark"] table tfoot {
-  background-color: var(--sc-surface-sunken);
-  color: var(--sc-text);
-}
+     - `thead` kept a near-white #f4f2ee border, because the override that corrected
+       the rule colour only covered `table tbody`, never thead or tfoot;
+     - every `table.unstriped` was striped anyway in dark mode, because
+       `[data-theme="dark"] table tbody tr:nth-child(even)` outranks Foundation's
+       `table.unstriped tbody tr`. Light mode showed no stripes on the same table.
 
-:root[data-theme="dark"] table tbody tr:nth-child(even) {
-  background-color: var(--sc-surface-sunken);
-  color: var(--sc-text);
-}
-
-:root[data-theme="dark"] table tbody td,
-:root[data-theme="dark"] table tbody th,
-:root[data-theme="dark"] table thead th {
-  border-color: var(--sc-border);
-  color: var(--sc-text);
-}
-
-:root[data-theme="dark"] table.hover tbody tr:hover {
-  background-color: var(--sc-surface-overlay);
-}
+   Verified against the rendered cascade on /admin/users rather than by reading: row,
+   header and cell colours come out identical, and those two defects disappear. */
 
 /* Form fields */
 :root[data-theme="dark"] input[type="text"],
@@ -982,6 +1006,39 @@ input[type="radio"] {
   color: var(--sc-field-text);
   border-color: var(--sc-border-control);
   box-shadow: none;
+}
+
+/* The same defect as the placeholder rule below, one property over: in light mode
+   nothing applies --sc-border-control to a field, so Foundation's own #cdc9c3 border
+   stands on a #fefefe field at 1.63:1 -- under the 3:1 SC 1.4.11 asks of a control
+   boundary. The token has existed all along and is applied everywhere else, including
+   the status-update textarea's focus ring a few hundred lines up in platform.css.
+
+   Scoped to the admin console, and that is a deliberate departure from the placeholder
+   fix (#1506 / PR #1566), which went sitewide. Any compliant value is visibly darker
+   than #cdc9c3, so applying it to every form on the public site is a design change as
+   well as an accessibility one -- the console is corrected here and the public site is
+   left as its own decision. That decision is still open; the failure is still there.
+
+   Only the border is repainted. The field's background and text already clear their
+   floors in light mode, so repainting them would be churn with no ratio behind it. */
+body.admin-console input[type="text"],
+body.admin-console input[type="password"],
+body.admin-console input[type="date"],
+body.admin-console input[type="datetime"],
+body.admin-console input[type="datetime-local"],
+body.admin-console input[type="month"],
+body.admin-console input[type="week"],
+body.admin-console input[type="email"],
+body.admin-console input[type="number"],
+body.admin-console input[type="search"],
+body.admin-console input[type="tel"],
+body.admin-console input[type="time"],
+body.admin-console input[type="url"],
+body.admin-console input[type="color"],
+body.admin-console textarea,
+body.admin-console select {
+  border-color: var(--sc-border-control);
 }
 
 /* Light mode needs this rule at all: without it Foundation's own
@@ -1240,34 +1297,9 @@ textarea::placeholder {
     color: var(--sc-text-muted);
   }
 
-  :root[data-theme="auto"] table,
-  :root[data-theme="auto"] table tbody {
-    background-color: var(--sc-surface-raised);
-    color: var(--sc-text);
-    border-color: var(--sc-border);
-  }
-
-  :root[data-theme="auto"] table thead,
-  :root[data-theme="auto"] table tfoot {
-    background-color: var(--sc-surface-sunken);
-    color: var(--sc-text);
-  }
-
-  :root[data-theme="auto"] table tbody tr:nth-child(even) {
-    background-color: var(--sc-surface-sunken);
-    color: var(--sc-text);
-  }
-
-  :root[data-theme="auto"] table tbody td,
-  :root[data-theme="auto"] table tbody th,
-  :root[data-theme="auto"] table thead th {
-    border-color: var(--sc-border);
-    color: var(--sc-text);
-  }
-
-  :root[data-theme="auto"] table.hover tbody tr:hover {
-    background-color: var(--sc-surface-overlay);
-  }
+  /* The five table rules that stood here are gone for the same reason as their
+     [data-theme="dark"] twins above -- the --sc-fnd-table-* tokens now carry dark
+     values, so Foundation paints the table correctly without being overridden. */
 
   :root[data-theme="auto"] input[type="text"],
   :root[data-theme="auto"] input[type="password"],

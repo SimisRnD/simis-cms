@@ -17,7 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webhookDeliveryList" class="java.util.ArrayList" scope="request"/>
-<h4>Delivery Log</h4>
+<h2 class="h4">Delivery Log</h2>
 <%@include file="../page_messages.jspf" %>
 <c:choose>
   <c:when test="${empty webhookSubscription}">

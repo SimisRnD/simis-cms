@@ -22,9 +22,9 @@
 <jsp:useBean id="shippingCountryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="shippingMethodList" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${shippingRate.id eq -1}"><h4>New Shipping Rate</h4></c:when>
+  <c:when test="${shippingRate.id eq -1}"><h2 class="h4">New Shipping Rate</h2></c:when>
   <c:otherwise>
-    <h4>Update Shipping Rate</h4>
+    <h2 class="h4">Update Shipping Rate</h2>
   </c:otherwise>
 </c:choose>
 <form method="post" autocomplete="off">
