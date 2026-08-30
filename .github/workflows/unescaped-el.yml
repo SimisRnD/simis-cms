@@ -83,3 +83,9 @@ jobs:
       # directly instead of counting literals.
       - name: Fail on a new overlap between the runtime theme and the token layer
         run: python3 tools/check-theme-token-overlap.py . --strict
+      # main.jsp emits a screen-reader h1 on admin-console pages, so an authored h4 there is an
+      # h1 -> h4 jump and an authored h1 is a second h1 on the page. Both happened and neither
+      # was detected: issue 1622 catalogued the skips by hand and had the count wrong twice over,
+      # and the duplicate h1s (issue 1660) were never catalogued at all.
+      - name: Fail on a skipped heading level or a duplicate h1 in the admin console
+        run: python3 tools/check-heading-levels.py . --strict
