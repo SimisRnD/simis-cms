@@ -21,8 +21,8 @@
 <jsp:useBean id="subFolder" class="com.simisinc.platform.domain.model.cms.SubFolder" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${subFolder.id eq -1}"><h4>New Sub-Folder</h4></c:when>
-  <c:otherwise><h4>Update Sub-Folder</h4></c:otherwise>
+  <c:when test="${subFolder.id eq -1}"><h2 class="h4">New Sub-Folder</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Sub-Folder</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>

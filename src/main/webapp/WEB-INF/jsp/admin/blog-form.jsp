@@ -20,8 +20,8 @@
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="mailingLists" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${blog.id eq -1}"><h4>New Blog</h4></c:when>
-  <c:otherwise><h4>Update Blog</h4></c:otherwise>
+  <c:when test="${blog.id eq -1}"><h2 class="h4">New Blog</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Blog</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
