@@ -466,6 +466,11 @@ CLAIMS = [
     (r"control hover: border ([\d.]+):1",
      "light",
      [("exact", [("--sc-border-control", "--sc-chrome-control-hover")])]),
+    # Issue 1590: the third chrome ink tier, stated against both grounds it is used on.
+    (r"subtle on chrome ([\d.]+):1, subtle on control ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink-subtle", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink-subtle", "--sc-chrome-control")])]),
     (r"border on the too-light level: ([\d.]+):1",
      "light",
      [("exact", [("--sc-border-control", "--sc-chrome-raised")])]),
