@@ -47,7 +47,7 @@
     <h2 class="widget-title no-gap"><c:out value="${title}" /></h2>
   </c:when>
   <c:otherwise>
-    <h4 class="no-gap"><c:out value="${wikiPage.title}" /></h4>
+    <h3 class="no-gap h4"><c:out value="${wikiPage.title}" /></h3>
   </c:otherwise>
 </c:choose>
 <p class="subheader no-gap">
