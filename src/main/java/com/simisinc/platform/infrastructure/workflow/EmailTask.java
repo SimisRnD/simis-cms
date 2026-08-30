@@ -20,6 +20,7 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SendCommunityManagerEmailCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.infrastructure.persistence.workflow.WorkflowNotificationSentRepository;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.email.EmailTemplateCommand;
@@ -60,6 +61,11 @@ public class EmailTask implements Work {
   public static final String TO_EMAIL = "to-email";
   public static final String SUBJECT = "subject";
   public static final String TEMPLATE = "template";
+  /**
+   * Optional. When set, this email is sent at most once for this key however many times the
+   * playbook runs -- see WorkflowNotificationSentRepository and issue 1643.
+   */
+  public static final String ONCE_KEY = "once-key";
 
   @Override
   public WorkReport execute(WorkContext workContext, TaskContext taskContext) {
@@ -71,23 +77,24 @@ public class EmailTask implements Work {
     String toEmail = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TO_EMAIL));
     String subject = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(SUBJECT));
     String template = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(TEMPLATE));
+    String onceKey = WorkflowCommand.getValue(workContext, taskContext, taskContext.get(ONCE_KEY));
 
     // Validate the requirements
     if (StringUtils.isBlank(template)) {
       LOG.error("Message or Template is required");
-      return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+      return TaskReports.failure(workContext, "Message or Template is required");
     }
     if (toUserId == -1 && StringUtils.isBlank(toRoleList) && StringUtils.isBlank(toCapability)
         && StringUtils.isBlank(toEmail)) {
       LOG.error("User Id, Role List, Capability, or Email Address is required");
-      return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+      return TaskReports.failure(workContext, "User Id, Role List, Capability, or Email Address is required");
     }
 
     try {
       // If using a template, set the objects in the object_list for the template engine
       ServletContext servletContext = SchedulerManager.getServletContext();
       if (servletContext == null) {
-        return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+        return TaskReports.failure(workContext, "The servlet context was not available to render the email");
       }
 
       JakartaServletWebApplication application = JakartaServletWebApplication.buildApplication(servletContext);
@@ -131,7 +138,7 @@ public class EmailTask implements Work {
       String html = templateEngine.process(template, ctx);
       if (StringUtils.isBlank(html)) {
         LOG.error("Aborting email - Email Template not processed: " + template);
-        return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+        return TaskReports.failure(workContext, "Email template not processed: " + template);
       }
 
       if (LOG.isDebugEnabled()) {
@@ -181,7 +188,7 @@ public class EmailTask implements Work {
 
       if (toUserList.isEmpty() && StringUtils.isBlank(toEmail)) {
         LOG.error("Aborting email - No email addresses were found");
-        return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+        return TaskReports.failure(workContext, "No email addresses were found");
       }
 
       // Prepare the email
@@ -213,8 +220,28 @@ public class EmailTask implements Work {
         email.setHtmlMsg(html);
         email.setTextMsg(HtmlCommand.text(html));
 
+        // Claim the one-time key immediately before the send, not earlier: a failure while
+        // building the message must not consume the claim and suppress a legitimate retry. If the
+        // key is already taken this message has been delivered by an earlier run of this playbook,
+        // so report COMPLETED -- the work is done, and reporting failure would trigger yet another
+        // retry of a workflow that has nothing left to do.
+        if (StringUtils.isNotBlank(onceKey) && !WorkflowNotificationSentRepository.claim(onceKey)) {
+          LOG.info("Skipping the '" + template + "' email; already sent for: " + onceKey);
+          return new DefaultWorkReport(WorkStatus.COMPLETED, workContext);
+        }
+
         // Send the email
-        String messageId = email.send();
+        String messageId;
+        try {
+          messageId = email.send();
+        } catch (Exception sendException) {
+          // The send did not happen, so give the key back or the retry this failure is meant to
+          // trigger would find the notification already claimed and skip it.
+          if (StringUtils.isNotBlank(onceKey)) {
+            WorkflowNotificationSentRepository.release(onceKey);
+          }
+          throw sendException;
+        }
 
         // @todo Store in an email log
         LOG.info("The message " + template + " was sent/queued: " + messageId);
@@ -230,7 +257,7 @@ public class EmailTask implements Work {
         // A FAILED report (not COMPLETED) is required for WorkflowManager.findAndRunWorkflow() to
         // let this propagate to the enclosing JobRunr job's retries=1 (issue #1124) -- returning
         // COMPLETED here regardless of outcome is what made that retry dead code.
-        return new DefaultWorkReport(WorkStatus.FAILED, workContext, e);
+        return TaskReports.failure(workContext, "The email could not be sent", e);
       }
       return new DefaultWorkReport(WorkStatus.COMPLETED, workContext);
     } catch (Exception e) {
@@ -239,7 +266,7 @@ public class EmailTask implements Work {
       // log: this one delivered nothing, that one may have delivered and still reported failure.
       LOG.error("Could not build the '" + template + "' email", e);
     }
-    return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+    return TaskReports.failure(workContext, "Could not build the '" + template + "' email");
   }
 
   /** Recipients for a log line: named accounts and any literal addresses, never more than a few */
