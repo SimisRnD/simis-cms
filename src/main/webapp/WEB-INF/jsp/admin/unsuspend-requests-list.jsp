@@ -23,7 +23,7 @@
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
+  <h2 class="h1"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <p class="help-text">
   Accounts holding an elevated role (community-manager and above) can't be reactivated by one
