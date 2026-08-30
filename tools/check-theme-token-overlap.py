@@ -76,6 +76,13 @@ ACCEPTED = [
     ("a", "color",
      "A site sets its own link colour; body.admin-console re-points links at the token layer for "
      "the console, which is the intended split."),
+    (".callout", "background-color",
+     "Both layers do claim this, and that is intended: the token is the default surface and the "
+     "site's theme.callout.backgroundColor is meant to override it. It did not until issue 1650 -- "
+     "the token rule carried six :not() exclusions, taking it to (0,7,0) and outranking the "
+     "theme's (0,1,0), so a configured callout colour was silently discarded. The exclusions are "
+     "gone from the light-mode rule, which now sits at (0,1,0) and loses to the theme emitted "
+     "after it, as it should."),
     (".callout.header", "color",
      "The header callout is chrome rather than page content: platform.css gives it inverse ink on "
      "a fixed dark fill, and the theme's callout ink would be unreadable on it. Deliberate, and "
@@ -85,11 +92,6 @@ ACCEPTED = [
 # Overlaps that are NOT accepted and NOT yet fixed, recorded so the gate can go green on the state
 # it was written against without pretending the finding is resolved. Each needs an issue.
 KNOWN_UNFIXED = [
-    (".callout", "background-color",
-     "theme.callout.backgroundColor is dead: platform-tokens.css claims the same property at "
-     "(0,7,0) via .callout:not(.primary)...:not(.header), which outranks the theme rule's (0,1,0). "
-     "Verified on a live site -- a bare .callout renders the token's #ffffff, not the theme's "
-     "configured #ffffea. See the issue this script's first run raised."),
 ]
 
 
