@@ -1013,12 +1013,12 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   padding: 0;
   min-height: 90vh;
-  background-color: var(--sc-chrome, #17191e);
+  background-color: var(--sc-chrome, #1c1917);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
   line-height: var(--sc-leading-normal, 1.4);
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -1030,8 +1030,8 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: var(--sc-chrome, #17191e);
-  color: var(--sc-chrome-ink, #ffffff);
+  background-color: var(--sc-chrome, #1c1917);
+  color: var(--sc-chrome-ink, #f5f3ef);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -1043,19 +1043,24 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-2xs, 0.6875rem);
   color: var(--sc-text-subtle, #979ca4);
 }
+/* No fill. It used to take --sc-chrome-raised, which is the same token the ACTIVE nav item
+   took, so the signed-in user read as a selected menu entry and the rail appeared to have
+   two selections. Crema's sidebar treats the user row the same way: no band, separated
+   from the nav by a hairline, with the dove reserved for the one item that is actually
+   selected. */
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  background-color: var(--sc-chrome-raised, #53575c);
+  border-bottom: 1px solid var(--sc-chrome-hover, #292624);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-sm, 0.8125rem);
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink, #f5f3ef);
 }
 .admin-menu .app-user i {
   /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
      2.64:1 on this lighter strip. Issue 1574. */
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1077,7 +1082,7 @@ ul.pagination li.pagination-next a:hover {
    its ink. */
 body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
   font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
@@ -1100,14 +1105,14 @@ body.admin-console .admin-menu a:not(.button) {
   padding-bottom: 6px;
 }
 .admin-menu li:hover {
-  background-color: var(--sc-chrome-hover, #3e4045);
+  background-color: var(--sc-chrome-hover, #292624);
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;
 }
 body.admin-console .admin-menu a:not(.button):hover,
 body.admin-console .admin-menu a:not(.button):focus {
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink, #f5f3ef);
 }
 /* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
    Higher specificity than Foundation's .menu .is-active > a (#1779ba) so
@@ -1118,13 +1123,18 @@ body.admin-console .admin-menu a:not(.button):focus {
    wherever it appears as body/dark-mode link text instead. Weight 500 (not
    bold) carries the emphasis, matching every other active-state label. */
 .admin-menu li.is-active > a {
-  background-color: var(--sc-chrome-raised, #53575c);
-  color: var(--sc-chrome-ink, #ffffff);
+  background-color: var(--sc-chrome-selected, #aea38d);
+  color: var(--sc-chrome-ink-selected, #1c1917);
   font-weight: var(--sc-weight-medium, 500);
-  box-shadow: inset 3px 0 0 #7faed7;
+  /* The dove fill is 7.01:1 against the rail, so the fill itself marks the item and the
+     bar is a reinforcement rather than the signal. It takes the selected ink for that
+     reason -- the blue it used to be would sit at about 1.2:1 on dove and simply vanish.
+     Crema puts its own 3px bar OUTSIDE the item, against the rail, which only works once
+     the nav items become inset pills; that is geometry, and it is not this change. */
+  box-shadow: inset 3px 0 0 var(--sc-chrome-ink-selected, #1c1917);
 }
 .admin-menu li.is-active > a i {
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink-selected, #1c1917);
 }
 
 /* Cards */

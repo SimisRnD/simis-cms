@@ -414,6 +414,19 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # The Crema rail. Every number the chrome comment states, re-derived: the dove fill has
+    # to clear 3:1 against the rail to mark the item, and the dark ink on it has to clear
+    # 4.5:1 to be read. Both land on 7.01:1, which is the ratio the mockup was built around.
+    (r"ink on rail ([\d.]+):1, ink on raised ([\d.]+):1, muted on rail ([\d.]+):1, muted on raised ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
+    (r"selected ink on selected ([\d.]+):1, selected fill vs rail ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink-selected", "--sc-chrome-selected")]),
+      ("exact", [("--sc-chrome-selected", "--sc-chrome")])]),
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
@@ -496,7 +509,10 @@ CLAIMS = [
      "light",
      [("exact", [("--sc-chrome-ink-subtle", "--sc-chrome")]),
       ("exact", [("--sc-chrome-ink-subtle", "--sc-chrome-control")])]),
-    (r"border on the too-light level: ([\d.]+):1",
+    # Renamed with the Crema rail: --sc-chrome-raised is no longer "too light" -- it went
+    # from the #53575c accent to #211d1a, and this pairing improved from 1.97:1 to 4.53:1
+    # as a side effect of fixing the fill.
+    (r"border on the raised level: ([\d.]+):1",
      "light",
      [("exact", [("--sc-border-control", "--sc-chrome-raised")])]),
     # Light placeholder, issue 1506. A real token pairing, so the tool re-derives it
@@ -661,6 +677,7 @@ EXEMPT_RATIOS = [
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
+    (r"lands under (4\.5):1 on", "SC 1.4.3 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
@@ -680,6 +697,9 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
+    (r"sat only ([\d.]+):1 off the rail",
+     "the Anthracite accent #53575c against the old rail #17191e -- neither is a token any "
+     "more, so no pairing can express it; recorded because it is why the rail was changed"),
     (r"declaration standing, and ships ([\d.]+):1 on a white field", "Foundation's factory placeholder again, at the light-mode rule that overrides it"),
     (r"Foundation's own #cacaca at\s+([\d.]+):1 on white", "Foundation's factory placeholder, the value light mode shipped before issue 1506"),
     (r"the dark admin rail \(#17191e\): ([\d.]+):1", "--sc-text-subtle on the rail's hardcoded background, which is not a token"),
