@@ -278,7 +278,8 @@
   /* $white and $black are split by role. Foundation uses each across both text and
      surfaces, and in a dark theme those move in opposite directions: surfaces go dark
      while text sitting on a coloured button must stay light. A single token cannot
-     express that -- a dark --sc-fnd-white would turn 32 button captions dark-on-dark. */
+     express that -- one $white token given a dark value turns 32 button captions
+     dark-on-dark. */
   --sc-fnd-surface: #fefefe;      /* $white painting a surface (27 uses) */
   --sc-fnd-on-accent: #fefefe;    /* $white as text ON a coloured fill (32 uses) */
   /* Follows the page's own ink rather than Foundation's $black, so a component's text and
@@ -329,10 +330,13 @@
   --sc-fnd-success-ink: #188441;
   --sc-fnd-warning-ink: #9b6900;
 
-  /* Deprecated aliases, kept so first-party stylesheets routed before the split keep
-     working. Prefer the role-specific names above; these cannot be themed for dark. */
-  --sc-fnd-white: var(--sc-fnd-surface);
-  --sc-fnd-black: var(--sc-fnd-ink);
+  /* --sc-fnd-white and --sc-fnd-black used to be defined here, aliased to
+     --sc-fnd-surface and --sc-fnd-ink, so that stylesheets routed before the role split
+     kept working. Every one of those eight references now names the role it means, so
+     the aliases are gone rather than deprecated -- they were the last two Foundation
+     tokens with no dark value, and their existence invited exactly the mistake the
+     split was made to prevent: a name that says "white" reads as safe to use for text
+     ON a fill, which inverts the wrong way the moment a theme is applied. */
 
   --sc-fnd-primary: #1779ba;
   --sc-fnd-secondary: #767676;
