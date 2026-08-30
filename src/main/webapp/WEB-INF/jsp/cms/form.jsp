@@ -112,6 +112,16 @@
     var firstErrorField = null;
     <c:forEach items="${formFieldList}" var="formField" varStatus="status">
       <c:if test="${formField.required}">
+        <%-- The field's initial value. "Default Value" has been offered in the form-field editor,
+             saved and persisted all along, and never read here -- so filling it in did nothing, for
+             every field type.
+
+             It applies only when userValue is NULL, which is a fresh render. An EMPTY userValue is
+             different: it means the form is being redisplayed after a validation error and the
+             visitor left this field blank. Re-applying the default there would put text back that
+             they had deliberately removed, at the exact moment the page is asking them to correct
+             something. --%>
+        <c:set var="initialValue" value="${formField.userValue == null ? formField.defaultValue : formField.userValue}"/>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
             <c:choose>
@@ -277,7 +287,14 @@
         <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
-            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+            <%-- A required select gets the attribute the same way the input and textarea branches
+                 below do. It was the only control that did not, so a required dropdown was enforced
+                 on the server and nowhere else: the visitor filled the whole form, submitted, and
+                 only then got "Topic is required" back. The placeholder option immediately below
+                 carries value="", which is what lets the browser treat "unchosen" as empty and
+                 refuse the submit. --%>
+            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${formField.required}">required</c:if>>
               <%-- Re-select what was chosen when a same-request validation error redisplays the
                    form. Matched on the option KEY recorded by FormWidget#post, not on userValue,
                    which holds the display label and is not a safe reverse lookup if two options
@@ -285,7 +302,9 @@
                    this the select silently resets to "< Please Choose >" while every other field
                    keeps its value, so a required choice is lost exactly when the form is telling
                    the visitor to correct something. --%>
-              <c:set var="selectedOptionKey" value="${!empty formField.checkedOptionKeys ? formField.checkedOptionKeys[0] : null}"/>
+              <%-- Fresh render falls back to the default; a redisplay honours what was chosen, and
+                   honours an unchosen dropdown by leaving it unchosen. --%>
+              <c:set var="selectedOptionKey" value="${!empty formField.checkedOptionKeys ? formField.checkedOptionKeys[0] : (formField.userValue == null ? formField.defaultValue : null)}"/>
               <option value="">&lt; Please Choose &gt;</option>
               <c:forEach items="${formField.listOfOptions}" var="option">
                 <option value="<c:out value="${option.key}"/>"<c:if test="${selectedOptionKey eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
@@ -295,27 +314,27 @@
           <c:when test="${formField.type eq 'textarea'}">
             <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
                 <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-                <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.userValue}"><c:out value="${formField.userValue}" /></c:if></textarea>
+                <c:if test="${formField.required}">required</c:if>><c:if test="${!empty initialValue}"><c:out value="${initialValue}" /></c:if></textarea>
           </c:when>
           <c:when test="${formField.type eq 'checkbox'}">
             <%-- Single-toggle checkbox --%>
             <input type="checkbox"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
                 value="true"
-                <c:if test="${formField.userValue eq 'true'}">checked</c:if>>
+                <c:if test="${initialValue eq 'true'}">checked</c:if>>
           </c:when>
           <c:when test="${formField.type eq 'date'}">
             <%-- HTML5 date input always submits/echoes yyyy-MM-dd, so userValue round-trips as-is --%>
             <input type="date"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${!empty initialValue}">value="<c:out value="${initialValue}" />"</c:if>
                 <c:if test="${formField.required}">required</c:if>>
           </c:when>
           <c:otherwise>
             <input type="text"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
                 <c:if test="${!empty formField.placeholder}">placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${!empty initialValue}">value="<c:out value="${initialValue}" />"</c:if>
                 <c:if test="${formField.required}">required</c:if>>
           </c:otherwise>
         </c:choose>

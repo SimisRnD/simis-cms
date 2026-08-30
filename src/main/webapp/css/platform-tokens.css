@@ -673,7 +673,25 @@ input[type="radio"] {
    never overridden for light mode -- only the dark-mode background is set,
    in Layer 3b below. Themed variants (primary/success/etc.) keep their
    intentional color in both modes. */
-.callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
+/* Plain .callout, not the themed variants. Stated WITHOUT the :not() chain the dark-mode rules
+   below use, and the difference is not cosmetic.
+
+   Each :not() contributes its argument's specificity, so excluding six variants took this rule to
+   0-7-0 -- a rule written to be narrower outranking almost everything. It outranked the site's own
+   theme.callout.backgroundColor at 0-1-0, so a site could set a callout colour in Theme Settings,
+   save it, and have it silently discarded on every page. Measured on a live site: a bare .callout
+   rendered the token's #ffffff, not the configured #ffffea (issue 1650).
+
+   At 0-1-0 the exclusions are unnecessary here: Foundation states each variant at 0-2-0
+   (.callout.primary and friends) and platform.css states .callout.header the same way, so all of
+   them already outrank this. The site theme, also 0-1-0 but emitted after this file, now wins --
+   which is the point of a theme setting.
+
+   The dark-mode rules keep their exclusions because the arithmetic is different there: prefixing
+   :root[data-theme="dark"] takes them to 0-2-0, which TIES Foundation's variants, and a tie goes to
+   source order -- this file loads later, so without the exclusions a dark-mode themed callout would
+   lose its colour. Same shape, opposite requirement. */
+.callout {
   background-color: var(--sc-surface-raised);
 }
 
@@ -747,6 +765,20 @@ input[type="radio"] {
 :root[data-theme="dark"] legend,
 :root[data-theme="dark"] .platform-blog-body {
   color: var(--sc-text);
+}
+
+/* Foundation paints .subheader with --sc-fnd-dark-gray, a NEUTRAL token -- the same one its
+   borders and rules use. As ink that is subheader neutral on raised 3.46:1, on surface 3.12:1,
+   under the 4.5:1 floor of SC 1.4.3, on every subheader in the console (seen on /admin/wikis).
+   The dark-mode rule below already routes it to --sc-text-muted; light mode had no counterpart,
+   so it fell through to the vendor default.
+
+   Pointing it at the text token rather than darkening the neutral is deliberate: --sc-fnd-dark-gray
+   also draws borders, which are held to the 3:1 that SC 1.4.11 asks, and a darker value would
+   weight every rule in the product. One token cannot serve both roles well, so the text case takes
+   a text token: subheader muted on raised 5.51:1, on surface 4.98:1. */
+.subheader {
+  color: var(--sc-text-muted, #656970);
 }
 
 :root[data-theme="dark"] .help-text,

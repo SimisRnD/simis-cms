@@ -414,6 +414,17 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # .subheader took Foundation's neutral token as ink until issue 1598's follow-up. Both the
+    # failing pairing and the replacement are registered, so a later change to either token
+    # re-derives against these numbers instead of leaving the comment to drift.
+    (r"subheader neutral on raised ([\d.]+):1, on surface ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-fnd-dark-gray", "--sc-surface-raised")]),
+      ("exact", [("--sc-fnd-dark-gray", "--sc-surface")])]),
+    (r"subheader muted on raised ([\d.]+):1, on surface ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-text-muted", "--sc-surface-raised")]),
+      ("exact", [("--sc-text-muted", "--sc-surface")])]),
     # Brand is split by role: the fill carries white ink (a property of the fill, so no
     # per-mode value), while the text variant is sized against the page and needs one.
     (r"brand text on surface ([\d.]+):1, on sunken ([\d.]+):1",
@@ -633,6 +644,7 @@ EXEMPT_RATIOS = [
     (r"under the (4\.5):1 floor of SC 1\.4\.3", "SC 1.4.3 floor, not a measurement"),
     (r"clears (4\.5):1 on #17191e", "SC 1.4.3 floor, not a measurement"),
     (r"under the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
+    (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
