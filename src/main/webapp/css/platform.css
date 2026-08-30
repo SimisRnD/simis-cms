@@ -1557,6 +1557,23 @@ a.read-more {
 }
 
 .no-gap { margin-bottom: 0 !important; }
+
+/* Admin secret fields: input plus its reveal toggle. No colour is named here on purpose --
+   the button inherits its surrounding ink, so it stays legible in both themes without adding
+   a token pair or a dark-mode override to keep in parity. */
+.secret-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.secret-reveal-toggle {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
 .no-gap-all, .no-gap-all .platform-container, .no-gap-all .platform-content, .no-gap-all p, .no-gap-all img, .no-gap-all .button, .no-gap-all input[type="checkbox"], .no-gap-all input[type="text"], .no-gap-all input[type="search"], .no-gap-all select {
   margin: 0;
 }
