@@ -1057,7 +1057,7 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--sc-chrome-hover, #292624);
+  border-bottom: 1px solid var(--sc-chrome-border, rgba(245, 243, 239, 0.09));
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-sm, 0.8125rem);
@@ -1111,7 +1111,7 @@ body.admin-console .admin-menu a:not(.button) {
   padding-bottom: 6px;
 }
 .admin-menu li:hover {
-  background-color: var(--sc-chrome-hover, #292624);
+  background-color: var(--sc-chrome-hover, rgba(245, 243, 239, 0.06));
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;

@@ -84,9 +84,20 @@
      ink on rail 15.78:1, ink on raised 15.09:1, muted on rail 7.01:1, muted on raised 6.71:1 */
   --sc-chrome: #1c1917;
   --sc-chrome-raised: #211d1a;
-  --sc-chrome-hover: #292624;
   --sc-chrome-ink: #f5f3ef;
   --sc-chrome-ink-muted: #aea38d;
+
+  /* Translucent on purpose, both of them, and taken from the mockup rather than flattened.
+     An opaque approximation was the first thing tried here and it is wrong for two
+     reasons: the rail is a gradient, so a flat hover patch paints over it and flattens the
+     one spot the pointer is on; and a hairline has to sit on whatever it happens to cross.
+     Letting the rail show through is the whole point of expressing them as an overlay.
+
+     Two values, not one -- the mockup separates the hover wash (0.06) from the rule it
+     draws under the user row (0.09), and using the hover value for the hairline made it
+     disappear. */
+  --sc-chrome-hover: rgba(245, 243, 239, 0.06);
+  --sc-chrome-border: rgba(245, 243, 239, 0.09);
 
   /* The selected nav item, split out of --sc-chrome-raised because Crema INVERTS it: a
      dove fill carrying dark ink, where every other rail surface carries light ink. One
