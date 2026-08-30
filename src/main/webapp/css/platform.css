@@ -1114,14 +1114,19 @@ body.admin-console .admin-menu a:not(.button):focus {
    the admin shell's own active state wins without !important. The literal
    indicator blue (#609ACE) is only 2.43:1 on this background -- below the
    3:1 floor for a meaningful-state graphic (WCAG 1.4.11) -- so the inset
-   bar uses a 20%-lightened variant (3.10:1); #609ACE is kept as-is
-   wherever it appears as body/dark-mode link text instead. Weight 500 (not
-   bold) carries the emphasis, matching every other active-state label. */
+   bar uses a 20%-lightened variant; #609ACE is kept as-is wherever it
+   appears as body/dark-mode link text instead. Weight 500 (not bold)
+   carries the emphasis, matching every other active-state label.
+
+   The bar's colour is --sc-chrome-active-marker, where its ratio is stated
+   and re-derived by the contrast gate. It lived here as a literal until
+   then, which meant a theme could restyle the whole rail and leave a blue
+   stripe behind it. */
 .admin-menu li.is-active > a {
   background-color: var(--sc-chrome-raised, #53575c);
   color: var(--sc-chrome-ink, #ffffff);
   font-weight: var(--sc-weight-medium, 500);
-  box-shadow: inset 3px 0 0 #7faed7;
+  box-shadow: inset 3px 0 0 var(--sc-chrome-active-marker, #7faed7);
 }
 .admin-menu li.is-active > a i {
   color: var(--sc-chrome-ink, #ffffff);
@@ -1997,6 +2002,16 @@ div.item-image-large img {
   max-width: 100%;
   height: 175px;
   text-align: center;
+  /* Deliberately NOT routed to tokens, and the last five literals in this file that are
+     not. This is the transparency checkerboard -- the conventional two-tone 10px tile
+     that means "there is no image data here", the same idiom every image editor uses.
+     Its job is to read as the ABSENCE of a colour; bound to surface tokens it would
+     follow the theme and start reading as a deliberate background instead, which is the
+     one thing it must not say.
+
+     Whether a dark theme should get a darker checker is a real question and a design
+     decision -- left open rather than answered here, because the honest fix is two
+     checker-specific tokens, not pointing these at surfaces that mean something else. */
   background-image: linear-gradient(45deg, #F6F6F6 25%, transparent 25%),
   linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
   linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
