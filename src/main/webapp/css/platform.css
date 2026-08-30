@@ -1013,7 +1013,13 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   padding: 0;
   min-height: 90vh;
+  /* Espresso, not black, and not flat: Crema's rail is a slow vertical gradient from
+     --sc-chrome down to --sc-chrome-raised (the mockup's --sidebar-bg / --sidebar-bg-2).
+     Both are warm -- red channel highest in each -- which is what stops a very dark rail
+     reading as grey. background-color stays as the fallback for anything that cannot
+     paint the gradient. */
   background-color: var(--sc-chrome, #1c1917);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #1c1917) 0%, var(--sc-chrome-raised, #211d1a) 100%);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
