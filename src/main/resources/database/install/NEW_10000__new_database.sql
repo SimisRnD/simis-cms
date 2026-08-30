@@ -218,6 +218,15 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha service', 'captcha.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA site key', 'captcha.google.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA secret key', 'captcha.google.secretkey', '');
+-- Issue #1615: reCAPTCHA Enterprise. A key issued by Google's current console cannot be verified by
+-- the legacy siteverify endpoint the secret key above is for, so it takes the assessment API and its
+-- own credentials. Enterprise is inferred from these two being set rather than from a fourth
+-- captcha.service value -- that property is free text, and issue #1614 is what a typo in it costs.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Google reCAPTCHA Enterprise project id', 'captcha.google.projectid', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (32, 'Google reCAPTCHA Enterprise API key', 'captcha.google.apikey', '');
+-- Optional. When blank the score is logged rather than enforced, so an operator can see what real
+-- traffic scores before choosing a number to reject people on.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (33, 'Google reCAPTCHA minimum score (0.0-1.0)', 'captcha.google.scorethreshold', '');
 -- Issue #519: Cloudflare Turnstile, a second captcha.service option alongside Google reCAPTCHA above.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile site key', 'captcha.turnstile.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile secret key', 'captcha.turnstile.secretkey', '');
