@@ -424,10 +424,22 @@ CLAIMS = [
     # dark, and the rail is dark in both modes, so the blue that was rejected here is the
     # dark-mode one. Claiming it under "light" computes 1.32:1 against #276caa and fails --
     # which is how the mode error in this very comment was caught.
-    (r"--sc-link's #609ace manages only ([\d.]+):1 there",
-     "dark", [("exact", [("--sc-link", "--sc-chrome-raised")])]),
-    (r"lightened 20% to reach marker on raised ([\d.]+):1",
-     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome-raised")])]),
+    # The marker moved with the Crema fill. It used to sit on --sc-chrome-raised, which was
+    # the active item's grey; the active item is now --sc-chrome-selected, so that is the
+    # ground the marker is actually drawn on and the pair to check.
+    (r"marker on rail ([\d.]+):1",
+     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome")])]),
+    # The Crema rail. Every number the chrome comment states, re-derived.
+    (r"ink on rail ([\d.]+):1, ink on raised ([\d.]+):1, muted on rail ([\d.]+):1, muted on raised ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
+    (r"selected ink on selected ([\d.]+):1, selected fill vs rail ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-chrome-ink-selected", "--sc-chrome-selected")]),
+      ("exact", [("--sc-chrome-selected", "--sc-chrome")])]),
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
@@ -510,7 +522,10 @@ CLAIMS = [
      "light",
      [("exact", [("--sc-chrome-ink-subtle", "--sc-chrome")]),
       ("exact", [("--sc-chrome-ink-subtle", "--sc-chrome-control")])]),
-    (r"border on the too-light level: ([\d.]+):1",
+    # Renamed with the Crema rail: --sc-chrome-raised is no longer "too light" -- it went
+    # from the #53575c accent to #211d1a, and this pairing improved from 1.97:1 to 4.53:1
+    # as a side effect of fixing the fill.
+    (r"border on the raised level: ([\d.]+):1",
      "light",
      [("exact", [("--sc-border-control", "--sc-chrome-raised")])]),
     # Light placeholder, issue 1506. A real token pairing, so the tool re-derives it
@@ -675,6 +690,7 @@ EXEMPT_RATIOS = [
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
+    (r"lands under (4\.5):1 on", "SC 1.4.3 floor, not a measurement"),
     (r"under the (3):1 SC 1\.4\.11 asks of a", "SC 1.4.11 floor, not a measurement"),
 ]
 
@@ -695,6 +711,9 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
+    (r"sat only ([\d.]+):1 off the rail",
+     "the Anthracite accent #53575c against the old rail #17191e -- neither is a token any "
+     "more, so no pairing can express it; recorded because it is why the rail was changed"),
     (r"border\s+stands on a #fefefe field at ([\d.]+):1",
      "Foundation's factory field border #cdc9c3 on its own #fefefe field -- neither is a token, "
      "so no pairing can express it; this is what light mode ships before the rule above"),

@@ -1013,12 +1013,18 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   padding: 0;
   min-height: 90vh;
-  background-color: var(--sc-chrome, #17191e);
+  /* Espresso, not black, and not flat: Crema's rail is a slow vertical gradient from
+     --sc-chrome down to --sc-chrome-raised (the mockup's --sidebar-bg / --sidebar-bg-2).
+     Both are warm -- red channel highest in each -- which is what stops a very dark rail
+     reading as grey. background-color stays as the fallback for anything that cannot
+     paint the gradient. */
+  background-color: var(--sc-chrome, #1c1917);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #1c1917) 0%, var(--sc-chrome-raised, #211d1a) 100%);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
   line-height: var(--sc-leading-normal, 1.4);
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -1030,8 +1036,8 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: var(--sc-chrome, #17191e);
-  color: var(--sc-chrome-ink, #ffffff);
+  background-color: var(--sc-chrome, #1c1917);
+  color: var(--sc-chrome-ink, #f5f3ef);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -1043,19 +1049,24 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-2xs, 0.6875rem);
   color: var(--sc-text-subtle, #979ca4);
 }
+/* No fill. It used to take --sc-chrome-raised, which is the same token the ACTIVE nav item
+   took, so the signed-in user read as a selected menu entry and the rail appeared to have
+   two selections. Crema's sidebar treats the user row the same way: no band, separated
+   from the nav by a hairline, with the dove reserved for the one item that is actually
+   selected. */
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  background-color: var(--sc-chrome-raised, #53575c);
+  border-bottom: 1px solid var(--sc-chrome-border, rgba(245, 243, 239, 0.09));
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-sm, 0.8125rem);
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink, #f5f3ef);
 }
 .admin-menu .app-user i {
   /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
      2.64:1 on this lighter strip. Issue 1574. */
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1063,7 +1074,10 @@ ul.pagination li.pagination-next a:hover {
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-2xs, 0.6875rem);
   letter-spacing: 0.05em;
-  padding-left: 20px;
+  /* Aligned to the pill's text, not the rail edge: the items are inset 12px by the list
+     gutter and padded 12px again inside, so their label starts at 24px. */
+  padding-left: 24px;
+  padding-bottom: 6px;
   color: var(--sc-text-subtle, #979ca4);
 }
 /* Scoped with body.admin-console and :not(.button) so this outranks the console's blanket
@@ -1077,7 +1091,7 @@ ul.pagination li.pagination-next a:hover {
    its ink. */
 body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: var(--sc-chrome-ink-muted, #d9dce1);
+  color: var(--sc-chrome-ink-muted, #aea38d);
   font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
@@ -1085,29 +1099,62 @@ body.admin-console .admin-menu a:not(.button) {
 .admin-menu a i {
   color: var(--sc-text-subtle, #979ca4);
 }
+/* Crema's nav is a column of inset pills rather than full-bleed bands: the list carries a
+   12px gutter, and each item is a rounded rectangle inside it. The gutter is not decoration
+   -- it is what the active marker occupies, sitting at left:-12px against the rail rather
+   than on top of the item. */
 .admin-menu ul {
   padding-left: 0;
+  padding-right: 0;
   padding-bottom: 10px;
 }
 .admin-menu ul li {
   margin-top: 0;
   margin-left: 0;
-  padding-left: 0;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 .admin-menu ul li a {
-  padding-left: 25px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  position: relative;
+  display: block;
+  padding: 8px 12px;
+  /* The mockup asks for 6px; this takes the platform's own --sc-radius-sm, which is 4px.
+     A 2px divergence, taken deliberately: a one-off literal here would put the nav off the
+     radius scale, and moving the scale to 6px is a change to every rounded thing in the
+     product, not to this nav. Worth revisiting if Crema is adopted wholesale. */
+  border-radius: var(--sc-radius-sm, 4px);
 }
-.admin-menu li:hover {
-  background-color: var(--sc-chrome-hover, #3e4045);
+
+/* Hover moved from the li to the a. On the li it painted the full width of the rail, which
+   is the shape this change is getting rid of -- the wash has to follow the pill. */
+.admin-menu li > a:hover {
+  background-color: var(--sc-chrome-hover, rgba(245, 243, 239, 0.06));
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;
 }
+/* The RESTING state, which this scoping never covered. Only :hover and :focus were given
+   the higher-specificity rule below, so at rest the blanket content-link rule still won and
+   painted the rail's navigation with --sc-link -- the LIGHT-mode link colour -- at 3.17:1
+   on the rail. Under the 4.5:1 floor, on the navigation every admin page carries, in the
+   one state the links spend nearly all their time in.
+
+   The comment above describes this defect and the fix for it; the fix was simply only ever
+   applied to the two interactive states. Same specificity (0,3,2) as those, which is what
+   beats the blanket rule's (0,2,2). */
+body.admin-console .admin-menu a:not(.button) {
+  color: var(--sc-chrome-ink-muted, #aea38d);
+}
 body.admin-console .admin-menu a:not(.button):hover,
 body.admin-console .admin-menu a:not(.button):focus {
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink, #f5f3ef);
+}
+/* The active item overrides both: it carries dark ink on the dove fill, and these two rules
+   outrank .admin-menu li.is-active > a on specificity alone. */
+body.admin-console .admin-menu li.is-active > a:not(.button),
+body.admin-console .admin-menu li.is-active > a:not(.button):hover,
+body.admin-console .admin-menu li.is-active > a:not(.button):focus {
+  color: var(--sc-chrome-ink-selected, #1c1917);
 }
 /* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
    Higher specificity than Foundation's .menu .is-active > a (#1779ba) so
@@ -1123,13 +1170,27 @@ body.admin-console .admin-menu a:not(.button):focus {
    then, which meant a theme could restyle the whole rail and leave a blue
    stripe behind it. */
 .admin-menu li.is-active > a {
-  background-color: var(--sc-chrome-raised, #53575c);
-  color: var(--sc-chrome-ink, #ffffff);
+  background-color: var(--sc-chrome-selected, #aea38d);
+  color: var(--sc-chrome-ink-selected, #1c1917);
   font-weight: var(--sc-weight-medium, 500);
-  box-shadow: inset 3px 0 0 var(--sc-chrome-active-marker, #7faed7);
+}
+/* The marker sits in the list gutter, against the rail -- not inset into the pill. That is
+   why it is brass again: on the rail it reads at 8.91:1, where the same brass laid over the
+   dove fill would have been close enough in luminance to vanish. It was an inset box-shadow
+   only because the item used to be a full-bleed band with no gutter to sit in. */
+.admin-menu li.is-active > a::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--sc-chrome-active-marker, #c4b89e);
 }
 .admin-menu li.is-active > a i {
-  color: var(--sc-chrome-ink, #ffffff);
+  color: var(--sc-chrome-ink-selected, #1c1917);
 }
 
 /* Cards */

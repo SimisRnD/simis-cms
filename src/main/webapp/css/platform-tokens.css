@@ -74,12 +74,45 @@
      #17191e in dark while the rail's own background stayed a literal #17191e, so the
      product name was painted in exactly its own background colour. Issue 1574.
 
-     ink on rail 17.58:1, ink on raised 7.28:1, muted on rail 12.79:1, muted on raised 5.29:1 */
-  --sc-chrome: #17191e;
-  --sc-chrome-raised: #53575c;
-  --sc-chrome-hover: #3e4045;
-  --sc-chrome-ink: #ffffff;
-  --sc-chrome-ink-muted: #d9dce1;
+     These are the Crema values (mockup L in the planning repo), replacing the cool greys
+     the rail shipped with. The one that was actually wrong rather than merely cool was
+     --sc-chrome-raised: at #53575c it was the Anthracite brand ACCENT pressed into service
+     as a surface -- the same mistake issue 1489 caught in --sc-surface-raised, one family
+     over -- and it sat only 2.42:1 off the rail, so the active item read as a washed grey
+     slab rather than a chosen state.
+
+     ink on rail 15.78:1, ink on raised 15.09:1, muted on rail 7.01:1, muted on raised 6.71:1 */
+  --sc-chrome: #1c1917;
+  --sc-chrome-raised: #211d1a;
+  --sc-chrome-ink: #f5f3ef;
+  --sc-chrome-ink-muted: #aea38d;
+
+  /* Translucent on purpose, both of them, and taken from the mockup rather than flattened.
+     An opaque approximation was the first thing tried here and it is wrong for two
+     reasons: the rail is a gradient, so a flat hover patch paints over it and flattens the
+     one spot the pointer is on; and a hairline has to sit on whatever it happens to cross.
+     Letting the rail show through is the whole point of expressing them as an overlay.
+
+     Two values, not one -- the mockup separates the hover wash (0.06) from the rule it
+     draws under the user row (0.09), and using the hover value for the hairline made it
+     disappear. */
+  --sc-chrome-hover: rgba(245, 243, 239, 0.06);
+  --sc-chrome-border: rgba(245, 243, 239, 0.09);
+
+  /* The selected nav item, split out of --sc-chrome-raised because Crema INVERTS it: a
+     dove fill carrying dark ink, where every other rail surface carries light ink. One
+     token cannot say both, and --sc-chrome-raised was saying it for three unrelated
+     things -- the active item, the user chip and a status-update box. Only the first is a
+     selection, which is why the chip looked selected too.
+
+     The fill alone marks the item, so no second signal is needed. Crema uses the raw
+     #AEA38D for exactly this -- background and highlight, where it always passed -- and
+     keeps its deepened --brass tokens for borders and text, which is the discipline the
+     earlier warm-palette attempt got wrong.
+
+     selected ink on selected 7.01:1, selected fill vs rail 7.01:1 */
+  --sc-chrome-selected: #aea38d;
+  --sc-chrome-ink-selected: #1c1917;
 
   /* A third ink tier for chrome, issue 1590. The page scale has had three levels since it was
      built -- --sc-text, --sc-text-muted, --sc-text-subtle -- and chrome had two, so the editor
@@ -91,7 +124,11 @@
      flips between light and dark, and chrome does not. This one is defined here in :root only,
      like the rest of the family.
 
-     subtle on chrome 6.93:1, subtle on control 5.51:1 */
+     Left cool while its siblings went warm: it is the page editor's tier, not the rail's,
+     and every warm candidate that reads correctly on the rail lands under 4.5:1 on
+     --sc-chrome-control. Warming it needs its own contrast pass, not a colour swap.
+
+     subtle on chrome 6.90:1, subtle on control 5.51:1 */
   --sc-chrome-ink-subtle: #9ea3ab;
 
   /* The page editor's chrome, issue 1590. The editor is theme-invariant dark for the same
@@ -111,9 +148,9 @@
      the editor's secondary buttons sat under 1.4.11 on a control boundary at rest and
      further under it hovered. Both clear it on these two levels -- see the claims below.
 
-     control fill: ink 13.97:1, muted 10.16:1, border 3.78:1
+     control fill: ink 12.61:1, muted 5.60:1, border 3.78:1
      control hover: border 3.08:1
-     border on the too-light level: 1.97:1
+     border on the raised level: 4.53:1
 
      --sc-chrome-accent is the editor's interactive accent -- selection, focus, the active
      widget, primary actions -- seeded at the blue it has always used, so routing it changed
@@ -126,15 +163,18 @@
   --sc-chrome-accent: #0056b3;
   --sc-chrome-accent-deep: #004494;
 
-  /* The 3px bar marking the active rail item. Not --sc-chrome-accent: this one sits ON
-     --sc-chrome-raised rather than on the rail proper, and it is a meaningful-state
-     graphic, so SC 1.4.11 applies to it. --sc-link's #609ace manages only 2.43:1 there;
-     this is that blue lightened 20% to reach marker on raised 3.10:1.
+  /* The 3px bar marking the active rail item. Kept as its own token -- a marker is a
+     distinct role from a fill or an ink, and it was the last hardcoded colour in the rail,
+     which mattered because a theme could change everything else and leave a stripe behind.
 
-     It was the last hardcoded colour in the admin rail, which mattered because a theme
-     could change every other thing about the rail and leave a blue stripe behind. The
-     value does not move between light and dark -- the rail is dark in both. */
-  --sc-chrome-active-marker: #7faed7;
+     It was a lightened link-blue while the active item was a full-bleed grey band with the
+     marker inset into it. Crema makes the item an inset pill, which puts the marker in the
+     list's gutter against the RAIL instead -- so it is brass, the mockup's --brass-on-dark,
+     at marker on rail 8.91:1. Laid over the dove fill the same brass would have been close
+     enough in luminance to disappear, which is what the intermediate step got wrong.
+
+     The value does not move between light and dark; the rail is dark in both. */
+  --sc-chrome-active-marker: #c4b89e;
 
   /* Brand. Two roles, deliberately not one token. --sc-brand is a fill that carries white
      ink, which is a property of the fill alone and so needs no per-mode value.
