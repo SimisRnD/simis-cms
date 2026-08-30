@@ -69,21 +69,21 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>Keyboard</h4>
+        <h3 class="h4">Keyboard</h3>
         <dl>
           <dt>Delete Line</dt>
           <dd>CTRL+D / CMD+D</dd>
           <dt>Duplicate Line</dt>
           <dd>CTRL+SHIFT+D / CMD+SHIFT+D</dd>
         </dl>
-        <h4>Page</h4>
+        <h3 class="h4">Page</h3>
         <dl>
           <dd><strong>page</strong> class="full-page"</dd>
           <dd><strong>section</strong> id="" class="grid-x grid-margin-x platform-no-margin align-middle align-center" hr="true"</dd>
           <dd><strong>column</strong> id="" class="small-12 cell text-center callout radius round" hr="true"</dd>
           <dd><strong>widget</strong> id="" name="" hr="true"</dd>
         </dl>
-        <h4>Widgets</h4>
+        <h3 class="h4">Widgets</h3>
         <dl>
           <dt>content</dt>
           <dd>uniqueId, html</dd>

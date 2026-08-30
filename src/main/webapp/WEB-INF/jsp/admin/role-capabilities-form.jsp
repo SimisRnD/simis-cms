@@ -23,7 +23,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<h4><c:out value="${role.title}" /></h4>
+<h3 class="h4"><c:out value="${role.title}" /></h3>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text">Capabilities checked below apply to everyone who holds this role. A user's effective access is the union of every role they hold plus any active direct grants made to them individually - a direct grant (see a user's Capability Grants page from their user details) can only add to what a role provides, never restrict it, so don't use this form to try to carve out an exception for one person.</p>
 <form method="post">
