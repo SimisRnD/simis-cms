@@ -11,3 +11,20 @@
       to-email: '{{ member.emailAddress }}'
       subject: '{{ site.name }} - Please confirm your subscription'
       template: 'mailinglists/confirm-subscription'
+
+# Fires from MailingListConfirmSubscriptionWidget once the recipient clicks the confirm link --
+# NOT when they first submit the form. That is deliberate: under double opt-in the pending row
+# is not a subscriber yet, so notifying at submit time would report people who never consented.
+#
+# Addressed by capability rather than role, matching user-registered in site-workflows.yml: a
+# System Administrator holds community:manage but sits in the admin role, so a mail sent to
+# 'community-manager' would reach them only through the empty-role fallback.
+- id: mailing-list-member-created
+  vars:
+    member: '{{ event.member }}'
+    mailingList: '{{ event.mailingList }}'
+  workflow:
+    - email:
+      to-capability: 'community:manage'
+      subject: 'New {{ mailingList.name }} subscriber'
+      template: 'mailinglists/admin-member-created-notification'
