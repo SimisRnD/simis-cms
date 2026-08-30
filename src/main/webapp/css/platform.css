@@ -1066,7 +1066,16 @@ ul.pagination li.pagination-next a:hover {
   padding-left: 20px;
   color: var(--sc-text-subtle, #979ca4);
 }
-.admin-menu a {
+/* Scoped with body.admin-console and :not(.button) so this outranks the console's blanket
+   content-link rule (body.admin-console a:not(.button), specificity 0-2-2), which was silently
+   painting this dark rail with --sc-link -- the LIGHT-mode link colour. #276caa on #17191e is
+   3.19:1, below the 4.5:1 floor for body text, on the navigation every admin page carries. The
+   rail's own colour below was correct all along and simply never applied; only the .is-active
+   rule, which happens to sit later in the file, was winning. Raising the rail rather than
+   excluding the rail from the blanket rule keeps the failure mode safe: if this selector is ever
+   not understood, the rail falls back to today's behaviour instead of every console link losing
+   its ink. */
+body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
   color: var(--sc-chrome-ink-muted, #d9dce1);
   font-weight: var(--sc-weight-regular, 400);
@@ -1096,7 +1105,8 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu li.section-title:hover {
   background-color: transparent;
 }
-.admin-menu a:hover {
+body.admin-console .admin-menu a:not(.button):hover,
+body.admin-console .admin-menu a:not(.button):focus {
   color: var(--sc-chrome-ink, #ffffff);
 }
 /* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
