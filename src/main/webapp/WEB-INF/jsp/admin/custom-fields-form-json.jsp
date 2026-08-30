@@ -43,8 +43,8 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>JSON Array</h4>
-        <h4>Custom Fields</h4>
+        <h3 class="h4">JSON Array</h3>
+        <h3 class="h4">Custom Fields</h3>
         <dl>
           <dt>label</dt>
           <dd>display label</dd>

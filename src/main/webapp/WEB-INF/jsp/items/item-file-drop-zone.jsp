@@ -27,9 +27,9 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty folder.name}">
-<h4>
+<h3 class="h4">
   <i class="fa fa-folder-open-o"></i> <c:out value="${folder.name}" />
-</h4>
+</h3>
 </c:if>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script src="${ctx}/javascript/dropzone-setup.js"></script>

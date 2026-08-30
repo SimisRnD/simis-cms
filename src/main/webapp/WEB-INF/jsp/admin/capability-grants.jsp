@@ -25,7 +25,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<h4><c:out value="${targetUser.fullName}" /></h4>
+<h3 class="h4"><c:out value="${targetUser.fullName}" /></h3>
 <p class="help-text">Direct grants give this specific user a capability without changing their role - useful for a
   temporary need (set an expiration) or a one-off exception (leave it permanent). This user's effective capabilities
   are the union of what their role(s) grant (see <a href="${ctx}/admin/role-capabilities">Role Capabilities</a>) and
