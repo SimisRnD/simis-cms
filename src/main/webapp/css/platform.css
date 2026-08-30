@@ -75,6 +75,35 @@ body {
   font-size:calc(1.275rem + .3vw);
 }
 
+/* Admin console typography.
+
+   Foundation styles .help-text italic. That is reasonable for a one-line hint and wrong at the
+   volume these settings screens carry: /admin/site-properties alone renders ~4,775 characters of
+   it across 32 elements, and /admin/web-pages opens with ~1,700 before the table. Italic body
+   text at this length is measurably harder to read, and it is the single largest reason the
+   console reads as unfinished rather than considered. Upright, muted, with room to breathe.
+
+   Foundation's heading weight is 500, and .widget-title above sets only a size -- so page titles,
+   section labels and body copy all land within one weight step of each other and nothing reads as
+   a heading. 700 restores the hierarchy without touching sizes.
+
+   Scoped to body.admin-console so the public site, and the page-editing screens that deliberately
+   render in site chrome, are untouched. */
+body.admin-console .help-text {
+  font-style: normal;
+  color: var(--sc-text-muted, #656970);
+  line-height: 1.5;
+}
+
+body.admin-console h1,
+body.admin-console h2,
+body.admin-console h3,
+body.admin-console h4,
+body.admin-console h5,
+body.admin-console .widget-title {
+  font-weight: 700;
+}
+
 @media (min-width: 1200px) {
   .widget-title {
     font-size: var(--sc-font-xl, 1.5rem);
