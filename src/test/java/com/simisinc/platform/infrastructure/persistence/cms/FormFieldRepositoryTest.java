@@ -383,6 +383,7 @@ class FormFieldRepositoryTest {
           + "enabled BOOLEAN DEFAULT TRUE, "
           + "show_privacy_notice BOOLEAN DEFAULT FALSE, "
           + "send_confirmation_to_submitter BOOLEAN DEFAULT FALSE, "
+          + "notification_subject VARCHAR(255), "
           + "confirmation_subject VARCHAR(255), "
           + "confirmation_message TEXT, "
           + "created_by BIGINT, "

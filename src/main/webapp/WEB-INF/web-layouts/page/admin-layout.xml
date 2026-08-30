@@ -5,14 +5,14 @@
     <section>
       <column>
         <widget name="content" class="margin-bottom-20">
-          <html><![CDATA[<h4>Welcome back, ${user.fullName:html}.</h4>]]></html>
+          <html><![CDATA[<h2 class="h4">Welcome back, ${user.fullName:html}.</h2>]]></html>
         </widget>
       </column>
     </section>
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Activity</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Activity</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -42,7 +42,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Security</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Security</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -83,7 +83,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Deliverability</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Deliverability</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -100,7 +100,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Workflow</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Workflow</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -141,7 +141,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Insights</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Insights</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -225,7 +225,7 @@
   <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager">
     <column class="small-12 cell">
       <widget name="content">
-        <html><![CDATA[<h3>App Platform Resources</h3>
+        <html><![CDATA[<h2 class="h3">App Platform Resources</h2>
 <ul>
 <li><a target="_blank" href="https://www.simisinc.com/mobile-apps-and-websites">Platform Product Information</a></li>
 <li><a href="/admin/documentation/wiki/Home">Platform Documentation Wiki</a></li>
@@ -324,7 +324,7 @@
       </column>
       <column class="small-12 medium-6 large-5 cell">
         <widget name="content" class="box">
-          <html><![CDATA[<h4>Typography</h4>
+          <html><![CDATA[<h2 class="h4">Typography</h2>
           <h1>H1 Header</h1>
           <h2>H2 Header</h2>
           <h3>H3 Header</h3>
@@ -332,7 +332,7 @@
           <h5>H5 Header</h5>
           <p class="no-gap">This is body text, with <a href="#">an example link</a>, and <strong>bold text</strong>.</p>
           <hr />
-          <h4>Reference Elements</h4>
+          <h2 class="h4">Reference Elements</h2>
           <table>
             <thead>
               <tr>
@@ -753,9 +753,9 @@
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
-          <html><![CDATA[<h4>About Map Services</h4>
+          <html><![CDATA[<h2 class="h4">About Map Services</h2>
           <ul><li>The Tiles Service value must be exactly <code>openstreetmap</code> or <code>custom</code> (a self-hosted tile server; set the Custom Map Tiles URL to a template like https://tiles.example.com/{z}/{x}/{y}.png). Any other value, including "google" or "apple", silently falls back to openstreetmap -- there is no Google Maps or Apple Maps tile integration today.</li><li>The Geocoder Service value must be exactly <code>nominatim</code>; any other value (including blank) turns off automatic address-to-coordinate lookups.</li></ul>
-<h5>Nominatim Usage</h5><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
+<h3 class="h5">Nominatim Usage</h3><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
 ]]></html>
         </widget>
         <widget name="map" class="callout secondary radius">
@@ -772,7 +772,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Traffic &amp; Sessions</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Traffic &amp; Sessions</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -899,7 +899,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Users &amp; Accounts</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Users &amp; Accounts</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -983,7 +983,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Mailing Lists</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Mailing Lists</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1047,7 +1047,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Forms</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Forms</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1143,7 +1143,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Content Engagement</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Content Engagement</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1209,7 +1209,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<div class="callout primary radius">
-  <h4>What this page shows</h4>
+  <h2 class="h4">What this page shows</h2>
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
@@ -1302,7 +1302,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">By Content Type &amp; Page</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">By Content Type &amp; Page</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1459,7 +1459,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-20">
           <html><![CDATA[
-            <h4>Content Analytics</h4>
+            <h2 class="h4">Content Analytics</h2>
             <p>Traffic and engagement across the site, grouped below by what each group of tiles is
             actually trying to answer. <strong>Every number on this page already excludes known
             bots and crawlers</strong> -- search engine crawlers, SEO/AI crawlers, and social-media
@@ -1473,7 +1473,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Traffic</h5>
+            <h2 class="platform-dashboard-section-label">Traffic</h2>
             <p>How much traffic, and to which pages. <strong>Top Pages</strong> and
             <strong>Top Modules</strong> sound like the same thing but count differently: Top Pages
             counts every hit to a raw URL path (minus admin/login/asset paths), whether or not that
@@ -1530,7 +1530,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Where Visitors Come From</h5>
+            <h2 class="platform-dashboard-section-label">Where Visitors Come From</h2>
             <p><strong>Referrals</strong> lists the site that sent someone here (the HTTP Referer
             header), over the last 30 days. Two things it doesn't show: a visitor with no referrer
             at all -- bookmarks, typed-in URLs, some mobile apps that strip the header -- isn't
@@ -1556,7 +1556,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Engagement</h5>
+            <h2 class="platform-dashboard-section-label">Engagement</h2>
             <p>What visitors do once they're here, all over a 30-day window. <strong>Return Visitor
             Rate</strong> is the trickiest of the three to read correctly: "active" is bounded to
             the last 30 days (has this visitor had at least one session recently), but "returning"
@@ -1625,7 +1625,7 @@
       <column class="small-12 cell">
         <widget name="content" class="callout">
           <uniqueId>admin-content-FF54248C-71B7-4B3C-966F-9B343310F510</uniqueId>
-          <html><![CDATA[<h5>About Useful Links</h5>
+          <html><![CDATA[<h2 class="h5">About Useful Links</h2>
           <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
           <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
           <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
@@ -1655,7 +1655,7 @@
       <column class="small-12 cell">
         <widget name="content" class="callout">
           <uniqueId>admin-content-55EC31E9-5FA5-4A33-95DB-111B8755789F</uniqueId>
-          <html><![CDATA[<h5>About Sticky Page Buttons</h5>
+          <html><![CDATA[<h2 class="h5">About Sticky Page Buttons</h2>
           <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
           <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
           <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>. For the rest of the site's branding, see <a href="/admin/site-properties">Site Settings</a>.</p>
@@ -2569,7 +2569,7 @@
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
-          <html><![CDATA[<h4>About Single Sign-On</h4>
+          <html><![CDATA[<h2 class="h4">About Single Sign-On</h2>
           <p>These settings let people sign in with an existing identity provider instead of a password held here. The platform speaks standard OpenID Connect, so any provider that does will work.</p>
           <p><strong>OpenAuth enabled</strong> is the switch. The other fields do nothing until it is on, and turning it off returns the site to password sign-in without discarding what is configured here.</p>
           <p><strong>OpenAuth service URL</strong>, <strong>client ID</strong> and <strong>client secret</strong> come from the application you register with the provider. The secret is stored encrypted and always shows blank after saving; leave it blank to keep the current one.</p>
@@ -2593,7 +2593,7 @@
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
-          <html><![CDATA[<h4>About MFA Enforcement</h4>
+          <html><![CDATA[<h2 class="h4">About MFA Enforcement</h2>
           <p><strong>Roles that must enroll in MFA</strong>: enter a comma-separated list of role codes (e.g. <code>admin</code>) whose members must have two-factor authentication enrolled before accessing any page. Role codes are matched case-sensitively. Leave blank to disable enforcement — no user is affected until a role is listed.</p>
           <p><strong>MFA enrollment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-page</code> is seeded by the installer, is where the header's &quot;My Account&quot; link goes, and contains the two-factor authentication settings widget. The page is checked when you save: if it doesn't exist or doesn't contain the two-factor authentication widget, Save is refused rather than locking everyone out.</p>
           <p><strong>Saving requires re-authentication:</strong> because this is a security-sensitive page, Save will first ask for your password or authenticator code again if you haven't verified recently, then re-apply your changes once confirmed.</p>
