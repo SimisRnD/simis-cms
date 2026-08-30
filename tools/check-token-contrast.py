@@ -416,6 +416,18 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # The active-rail marker, and the link blue it had to be lightened away from. Both are
+    # token pairings now that the marker is a token, so both are re-derived rather than
+    # trusted: the 2.43:1 is the reason the 3.10:1 exists, and a comment that keeps the
+    # rejected number has to keep it honest too.
+    # Checked in the DARK block on purpose: --sc-link is #276caa in light and #609ace in
+    # dark, and the rail is dark in both modes, so the blue that was rejected here is the
+    # dark-mode one. Claiming it under "light" computes 1.32:1 against #276caa and fails --
+    # which is how the mode error in this very comment was caught.
+    (r"--sc-link's #609ace manages only ([\d.]+):1 there",
+     "dark", [("exact", [("--sc-link", "--sc-chrome-raised")])]),
+    (r"lightened 20% to reach marker on raised ([\d.]+):1",
+     "light", [("exact", [("--sc-chrome-active-marker", "--sc-chrome-raised")])]),
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
