@@ -416,6 +416,32 @@ PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # -- The warm dark ramp -------------------------------------------------
+    # The step that separates a card from the canvas. Small on purpose: the previous ramp
+    # relied on darkness for separation, this one relies on the step plus --sc-border.
+    (r"raised is ([\d.]+):1 over surface",
+     "dark", [("exact", [("--sc-surface-raised", "--sc-surface")])]),
+    # A bound over three pairings rather than three equalities: the raised surface is the
+    # thing being chosen, so what matters is that none of the three inks falls below it.
+    (r"all keep past ([\d.]+):1 on it",
+     "dark",
+     [("floor", [("--sc-text-muted", "--sc-surface-raised"),
+                 ("--sc-link", "--sc-surface-raised"),
+                 ("--sc-link-hover", "--sc-surface-raised")])]),
+    # The two ratios that fail when --sc-surface-overlay is lifted off raised. Registered so
+    # the reason overlay is pinned stays checkable rather than becoming folklore.
+    (r"drops --sc-text-muted to ([\d.]+):1 and --sc-link to\s+([\d.]+):1 on it",
+     "dark",
+     [("exact", [("--sc-text-muted", "#4c3e2e")]),
+      ("exact", [("--sc-link", "#4c3e2e")])]),
+    (r"field text ([\d.]+):1, placeholder ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-field-text", "--sc-field-bg")]),
+      ("exact", [("--sc-field-placeholder", "--sc-field-bg")])]),
+    (r"focus on surface ([\d.]+):1, on raised ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-focus-ring", "--sc-surface")]),
+      ("exact", [("--sc-focus-ring", "--sc-surface-raised")])]),
     # The active-rail marker, and the link blue it had to be lightened away from. Both are
     # token pairings now that the marker is a token, so both are re-derived rather than
     # trusted: the 2.43:1 is the reason the 3.10:1 exists, and a comment that keeps the
@@ -443,7 +469,7 @@ CLAIMS = [
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
-    (r"measured\s+([\d.]+):1 on #2f323a and ([\d.]+):1 on #1b1d23",
+    (r"measured\s+([\d.]+):1 on #453a2d and ([\d.]+):1 on #2a2219",
      "dark",
      [("exact", [("--sc-text", "--sc-fnd-table-row-hover")]),
       ("exact", [("--sc-text", "--sc-fnd-table-stripe-hover")])]),
@@ -594,21 +620,11 @@ CLAIMS = [
      "dark", [("exact", [("#1779ba", "--sc-surface")])]),
 
     # -- Layer 2, dark ------------------------------------------------------
-    # Why Anthracite is not a surface: the three failing ratios on #53575c.
-    (r"all land under 4\.5:1 on it \(([\d.]+) / ([\d.]+) / ([\d.]+)\)",
-     "dark",
-     [("exact", [("--sc-text-muted", "#53575c")]),
-      ("exact", [("--sc-link", "#53575c")]),
-      ("exact", [("--sc-link-hover", "#53575c")])]),
-
-    (r"keeps all\s+three past ([\d.]+):1",
-     "dark",
-     [("floor", [("--sc-text-muted", "--sc-surface-raised"),
-                 ("--sc-link", "--sc-surface-raised"),
-                 ("--sc-link-hover", "--sc-surface-raised")])]),
-
-    (r"Cards read as lifted by ([\d.]+):1",
-     "dark", [("exact", [("--sc-surface-raised", "--sc-surface")])]),
+    # Three claims stood here describing the blue-black ramp: why Anthracite (#53575c) could
+    # not be a surface, how far the ink had to be lifted to clear it, and how much a card
+    # read as raised. The warm ramp replaced that reasoning wholesale -- #53575c is not in
+    # this palette at all -- so the claims are retired with the comments they verified
+    # rather than left pointing at prose that no longer exists.
 
     (r"Contrast vs --sc-surface: text ([\d.]+):1, muted ([\d.]+):1, link ([\d.]+):1,\s+"
      r"link-hover ([\d.]+):1",
@@ -620,24 +636,24 @@ CLAIMS = [
 
     # The comment asserts overlay and field-bg carry the raised value, so each
     # number is checked against all three backgrounds rather than just raised.
-    (r"Vs --sc-surface-raised \(the value --sc-surface-overlay\s+and --sc-field-bg also "
-     r"carry\): text ([\d.]+):1, muted ([\d.]+):1, link ([\d.]+):1,\s+link-hover ([\d.]+):1",
+    # --sc-field-bg dropped out of this set with the warm palette: it now sits one step above
+    # the canvas rather than matching raised, so it carries its own numbers. Overlay is still
+    # checked here, and holding it equal to raised is load-bearing -- see the note on the
+    # declaration for the ratios that fail when it is lifted.
+    (r"Vs --sc-surface-raised \(the value --sc-surface-overlay also "
+     r"carries\):\s+text ([\d.]+):1, muted ([\d.]+):1, link ([\d.]+):1,\s+link-hover ([\d.]+):1",
      "dark",
      [("exact", [("--sc-text", "--sc-surface-raised"),
-                 ("--sc-text", "--sc-surface-overlay"),
-                 ("--sc-text", "--sc-field-bg")]),
+                 ("--sc-text", "--sc-surface-overlay")]),
       ("exact", [("--sc-text-muted", "--sc-surface-raised"),
-                 ("--sc-text-muted", "--sc-surface-overlay"),
-                 ("--sc-text-muted", "--sc-field-bg")]),
+                 ("--sc-text-muted", "--sc-surface-overlay")]),
       ("exact", [("--sc-link", "--sc-surface-raised"),
-                 ("--sc-link", "--sc-surface-overlay"),
-                 ("--sc-link", "--sc-field-bg")]),
+                 ("--sc-link", "--sc-surface-overlay")]),
       ("exact", [("--sc-link-hover", "--sc-surface-raised"),
-                 ("--sc-link-hover", "--sc-surface-overlay"),
-                 ("--sc-link-hover", "--sc-field-bg")])]),
+                 ("--sc-link-hover", "--sc-surface-overlay")])]),
 
-    (r"true Platinum -- ([\d.]+):1 on raised",
-     "dark", [("exact", [("--sc-border-control", "--sc-surface-raised")])]),
+    (r"control on field bg ([\d.]+):1",
+     "dark", [("exact", [("--sc-border-control", "--sc-field-bg")])]),
 
     # -- Foundation summary table, duplicated in the dark and auto blocks ----
     (r"ink on surface \.+\s+([\d.]+):1\s+on-accent on primary \.+\s+([\d.]+):1",
@@ -680,8 +696,9 @@ EXEMPT_RATIOS = [
     (r"well past the (3):1 that", "SC 1.4.11 floor, not a measurement"),
     (r"comfortably past the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"short of the (3):1 non-text floor", "SC 1.4.11 floor, not a measurement"),
-    (r"all land under (4\.5):1 on it", "SC 1.4.3 floor, not a measurement"),
-    (r"luminance to clear (4\.5):1", "SC 1.4.3 floor, not a measurement"),
+    # Both waived floors belonged to the blue-black ramp's reasoning -- the Anthracite note
+    # and the "how light may a dark surface be" cap that #609ace imposed. The warm palette
+    # uses neither colour, so the prose and its waivers retire together.
     (r"held to the (4\.5):1 SC 1\.4\.3 asks", "SC 1.4.3 floor, not a measurement"),
     (r"even the (3):1 of 1\.4\.11", "SC 1.4.11 floor, not a measurement"),
     (r"under the (4\.5):1 floor of SC 1\.4\.3", "SC 1.4.3 floor, not a measurement"),

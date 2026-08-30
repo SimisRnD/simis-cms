@@ -368,7 +368,7 @@
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
      once, here, and deliberately never redefined for dark: those fills keep their
      light values in dark mode, so the text on them has to stay dark or it lands
-     light-on-light (1.70:1 on warning, 1.66:1 on success). The mirror of
+     light-on-light (1.68:1 on warning, 1.64:1 on success). The mirror of
      --sc-fnd-on-accent, which stays light because its fills stay dark. */
   --sc-fnd-ink-on-accent: #0a0a0a;
 
@@ -433,63 +433,84 @@
    in dark mode rather than being auto-relit. The fresh-install default is
    Anthracite (#53575c): white text on it is 7.3:1, comfortably past the
    4.5:1 floor, on the light page every site starts on. It is NOT verified
-   against the dark *page* background (#17191e) -- a button sitting
+   against the dark *page* background (#241e17) -- a button sitting
    directly on bare dark-mode page (no white card under it) only reaches
-   2.4:1 there, short of the 3:1 non-text floor. The old default
+   2.27:1 there, short of the 3:1 non-text floor. The old default
    (Foundation's #1779ba) had the same shape of gap, just less severe
-   (3.75:1) -- this was never solved for every combination, only judged
+   (3.52:1) -- this was never solved for every combination, only judged
    good enough for the common case. Accents are left to the theme.
    ========================================================================== */
 
 :root[data-theme="dark"] {
-  --sc-surface: #17191e;
-  /* Ink lifted a quarter of the way toward Anthracite (#53575c). Anthracite
-     itself is a brand ACCENT, not a surface -- --sc-text-muted, --sc-link and
-     --sc-link-hover all land under 4.5:1 on it (2.64 / 2.43 / 3.16), so every
-     .card, .reveal, table and input painted with it fails 1.4.3 for secondary
-     text and links. This is the lightest point on that line that keeps all
-     three past 4.9:1. Cards read as lifted by 1.19:1 plus their --sc-border,
-     which is how this file carries elevation anyway (see the shadow note). */
-  --sc-surface-raised: #26282e;
-  --sc-surface-sunken: #101115;
-  --sc-surface-overlay: #26282e;
+  /* Warm dark. These were a blue-black ramp (#17191e / #26282e / #101115), which read as
+     severe -- a switched-off screen rather than a dim room. The replacement is the Crema
+     dark ground from mockup L, carried onto Direction F's layout: same job, warmer hue,
+     and materially lighter. #241e17 sits at 0.0137 relative luminance against the old
+     #17191e's 0.0096, and its red channel leads rather than its blue.
 
-  /* Contrast vs --sc-surface: text 16.12:1, muted 6.37:1, link 5.87:1,
-     link-hover 7.63:1. Vs --sc-surface-raised (the value --sc-surface-overlay
-     and --sc-field-bg also carry): text 13.51:1, muted 5.34:1, link 4.92:1,
-     link-hover 6.39:1. Lightened from the raw palette the same way the
-     light-mode values were darkened, see the light-mode block's note.
-     --sc-link is what caps how light a dark surface may be: at #609ace,
-     anything these tokens sit on has to stay at or under 0.0279 relative
-     luminance to clear 4.5:1. */
-  --sc-text: #f4f5f7;
-  --sc-text-muted: #979ca4;
-  --sc-text-inverse: #17191e;
-  --sc-link: #609ace;
-  /* dark, brand text on surface 5.86:1 -- the light value is far too dark here. */
+     Lighter is the point, not a side effect. The previous ramp's darkness was doing the
+     work of separating surfaces; here the separation comes from the step between them
+     (raised is 1.28:1 over surface) plus --sc-border, which is how this file carries
+     elevation anyway. */
+  --sc-surface: #241e17;
+  --sc-surface-raised: #3a3025;
+  --sc-surface-sunken: #1c1710;
+  --sc-surface-overlay: #3a3025;
+
+  /* Ink and link, warmed to match the ground. The link moves from a blue (#609ace) to the
+     teal that carries the informational layer -- a blue link on a warm brown ground reads
+     as a leftover from the previous palette, and the teal is the one hue in this scheme
+     that is neither the amber (which means "attention") nor the terracotta (which means
+     "wrong"), so it can mean "go here" without collision.
+
+     Contrast vs --sc-surface: text 14.88:1, muted 6.29:1, link 6.85:1, link-hover 8.72:1.
+     Vs --sc-surface-raised (the value --sc-surface-overlay also carries):
+     text 11.63:1, muted 4.91:1, link 5.35:1, link-hover 6.82:1. Raised is chosen so that
+     muted, link and link-hover all keep past 4.9:1 on it -- a bound over the three rather
+     than three separate targets, since it is the raised surface that moves, not the inks.
+
+     --sc-surface-overlay is held equal to raised deliberately. Lifting it to its own
+     lighter value (#4c3e2e was tried) drops --sc-text-muted to 3.93:1 and --sc-link to
+     4.28:1 on it -- both under the floor, on the surface dropdowns and tooltips use.
+     --sc-field-bg is the one that legitimately differs; its own numbers are recorded
+     with it below. */
+  --sc-text: #f5f3ef;
+  --sc-text-muted: #ac9e89;
+  --sc-text-inverse: #241e17;
+  --sc-link: #6fb3ac;
+  /* dark, brand text on surface 5.50:1 -- the light value is far too dark here. */
   --sc-brand-text: #e8734f;
-  --sc-link-hover: #7fb0d9;
+  --sc-link-hover: #8fc7c1;
 
-  /* State, dark. Same contract: the strong value reads as text on its own tint.
-     dark, strong on its own tint: success 4.93:1, warning 4.91:1, danger 4.97:1, info 4.96:1 */
-  --sc-success: #24c762;
-  --sc-success-light: #22432f;
-  --sc-warning: #ea9e00;
-  --sc-warning-light: #463b24;
-  --sc-danger: #e39c91;
-  --sc-danger-light: #57322d;
-  --sc-info: #7eb3e1;
-  --sc-info-light: #293e50;
+  /* State, dark. Same contract: the strong value reads as text on its own tint. The tints
+     are warmed to sit on the new ground -- a blue-grey state tint on a brown surface reads
+     as a stain rather than a state. Info takes the teal so it does not compete with the
+     amber, which this scheme reserves for attention.
+     dark, strong on its own tint: success 6.85:1, warning 6.12:1, danger 5.65:1, info 5.66:1 */
+  --sc-success: #7fc98f;
+  --sc-success-light: #25321f;
+  --sc-warning: #e0a63f;
+  --sc-warning-light: #3a2e18;
+  --sc-danger: #e5897d;
+  --sc-danger-light: #3a2420;
+  --sc-info: #6fb3ac;
+  --sc-info-light: #1f3130;
 
-  --sc-border: rgba(244, 245, 247, 0.12);
-  --sc-border-control: #d9dce1; /* true Platinum -- 10.72:1 on raised, no darkening needed here */
+  --sc-border: rgba(245, 243, 239, 0.13);
+  /* Warm platinum. The cool #d9dce1 was calibrated against a blue-black ground; on this one
+     it is the only cold edge on the screen. control on field bg 7.89:1. */
+  --sc-border-control: #c9bda1;
 
-  --sc-field-bg: #26282e;
-  --sc-field-text: #f4f5f7;
-  --sc-field-placeholder: #979ca4;
-  --sc-field-disabled-bg: #26282e;
+  /* Fields sit one step above the canvas rather than matching the raised surface, so an
+     input still reads as an input on a card. field text 13.25:1, placeholder 6.26:1. */
+  --sc-field-bg: #2f271e;
+  --sc-field-text: #f5f3ef;
+  --sc-field-placeholder: #b3a894;
+  --sc-field-disabled-bg: #2f271e;
 
-  --sc-focus-ring: #609ace;
+  /* The focus ring is the one place amber is used for something other than attention, and
+     that is deliberate: a focus ring IS attention. focus on surface 7.04:1, on raised 5.50:1. */
+  --sc-focus-ring: #e09b4a;
 
   /* Shadows read as noise on a dark page; lean on borders instead. */
   --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -504,9 +525,9 @@
      rather than a mechanical inversion.
 
      Verified against how Foundation actually pairs these, not in isolation:
-       ink on surface ............. 13.51:1     on-accent on primary ... 4.65:1
-       ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
-       on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
+       ink on surface ............. 11.63:1     on-accent on primary ... 4.65:1
+       ink on the page ............. 14.88:1    menu bars on dark bar .. 16.36:1
+       on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.46:1  */
 
   /* Surfaces darken; text drawn ON a coloured fill must not. A dark
      --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
@@ -547,22 +568,27 @@
 
      Fill and rule move in opposite directions here, which is the whole reason
      --sc-fnd-table-rule was split out of the stripe: the fills sit BELOW the surface
-     they stripe (#101115 against a #26282e body), the rule sits ABOVE it. */
-  --sc-fnd-table-head: #101115;
-  --sc-fnd-table-stripe: #101115;
-  --sc-fnd-table-rule: rgba(244, 245, 247, 0.12);
+     they stripe (#1c1710 against a #3a3025 body), the rule sits ABOVE it.
+
+     Warmed with the rest of the dark palette. Left cool these were the last cold thing on
+     the page, and the admin is mostly tables -- a grey-blue stripe under warm cards reads
+     as two palettes, which is the same complaint that produced the warm table chrome in
+     light mode. */
+  --sc-fnd-table-head: #1c1710;
+  --sc-fnd-table-stripe: #1c1710;
+  --sc-fnd-table-rule: rgba(245, 243, 239, 0.13);
   /* Hover shades step toward the light rather than away from it, so a row lifts under
-     the pointer instead of receding. Text stays --sc-text (#f4f5f7) on both -- measured
-     11.75:1 on #2f323a and 15.44:1 on #1b1d23, so neither hover state comes near the
+     the pointer instead of receding. Text stays --sc-text (#f5f3ef) on both -- measured
+     9.99:1 on #453a2d and 14.13:1 on #2a2219, so neither hover state comes near the
      4.5:1 floor.
 
-     Against their own ground the steps are deliberately small (1.15:1 and 1.12:1). A
+     Against their own ground the steps are deliberately small (1.16:1 and 1.14:1). A
      hover state is transient and pointer-driven, so it carries no meaning on its own and
      has no 3:1 obligation; the previous value carried the opposite problem, being exactly
      equal to the row beneath it and therefore invisible. */
-  --sc-fnd-table-row-hover: #2f323a;
-  --sc-fnd-table-stripe-hover: #1b1d23;
-  --sc-fnd-table-head-hover: #1b1d23;
+  --sc-fnd-table-row-hover: #453a2d;
+  --sc-fnd-table-stripe-hover: #2a2219;
+  --sc-fnd-table-head-hover: #2a2219;
 
   color-scheme: dark;
 }
@@ -575,36 +601,40 @@
    leaves every site running theme.ui.mode=auto on the old, broken value. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --sc-surface: #17191e;
-    --sc-surface-raised: #26282e;
-    --sc-surface-sunken: #101115;
-    --sc-surface-overlay: #26282e;
+    /* Mirrors the explicit dark block above, value for value -- see the notes there for why
+       each moved. A token warmed in only one of the two blocks leaves every
+       theme.ui.mode=auto install on the old blue-black, which is exactly the class of drift
+       the parity check in check-token-contrast.py exists to catch. */
+    --sc-surface: #241e17;
+    --sc-surface-raised: #3a3025;
+    --sc-surface-sunken: #1c1710;
+    --sc-surface-overlay: #3a3025;
 
-    --sc-text: #f4f5f7;
-    --sc-text-muted: #979ca4;
-    --sc-text-inverse: #17191e;
-    --sc-link: #609ace;
-    /* dark, brand text on surface 5.86:1 -- the light value is far too dark here. */
+    --sc-text: #f5f3ef;
+    --sc-text-muted: #ac9e89;
+    --sc-text-inverse: #241e17;
+    --sc-link: #6fb3ac;
+    /* dark, brand text on surface 5.50:1 -- the light value is far too dark here. */
     --sc-brand-text: #e8734f;
-    --sc-link-hover: #7fb0d9;
-    --sc-success: #24c762;
-    --sc-success-light: #22432f;
-    --sc-warning: #ea9e00;
-    --sc-warning-light: #463b24;
-    --sc-danger: #e39c91;
-    --sc-danger-light: #57322d;
-    --sc-info: #7eb3e1;
-    --sc-info-light: #293e50;
+    --sc-link-hover: #8fc7c1;
+    --sc-success: #7fc98f;
+    --sc-success-light: #25321f;
+    --sc-warning: #e0a63f;
+    --sc-warning-light: #3a2e18;
+    --sc-danger: #e5897d;
+    --sc-danger-light: #3a2420;
+    --sc-info: #6fb3ac;
+    --sc-info-light: #1f3130;
 
-    --sc-border: rgba(244, 245, 247, 0.12);
-    --sc-border-control: #d9dce1;
+    --sc-border: rgba(245, 243, 239, 0.13);
+    --sc-border-control: #c9bda1;
 
-    --sc-field-bg: #26282e;
-    --sc-field-text: #f4f5f7;
-    --sc-field-placeholder: #979ca4;
-    --sc-field-disabled-bg: #26282e;
+    --sc-field-bg: #2f271e;
+    --sc-field-text: #f5f3ef;
+    --sc-field-placeholder: #b3a894;
+    --sc-field-disabled-bg: #2f271e;
 
-    --sc-focus-ring: #609ace;
+    --sc-focus-ring: #e09b4a;
 
     --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
     --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
@@ -618,9 +648,9 @@
        rather than a mechanical inversion.
 
        Verified against how Foundation actually pairs these, not in isolation:
-         ink on surface ............. 13.51:1     on-accent on primary ... 4.65:1
-         ink on the page ............. 16.12:1    menu bars on dark bar .. 17.44:1
-         on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.82:1  */
+         ink on surface ............. 11.63:1     on-accent on primary ... 4.65:1
+         ink on the page ............. 14.88:1    menu bars on dark bar .. 16.36:1
+         on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.46:1  */
 
     /* Surfaces darken; text drawn ON a coloured fill must not. A dark
        --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
@@ -655,12 +685,12 @@
 
     /* Mirrors the explicit dark block above -- see the note there for why fill and rule
        had to be split, and for the measured hover ratios. */
-    --sc-fnd-table-head: #101115;
-    --sc-fnd-table-stripe: #101115;
-    --sc-fnd-table-rule: rgba(244, 245, 247, 0.12);
-    --sc-fnd-table-row-hover: #2f323a;
-    --sc-fnd-table-stripe-hover: #1b1d23;
-    --sc-fnd-table-head-hover: #1b1d23;
+    --sc-fnd-table-head: #1c1710;
+    --sc-fnd-table-stripe: #1c1710;
+    --sc-fnd-table-rule: rgba(245, 243, 239, 0.13);
+    --sc-fnd-table-row-hover: #453a2d;
+    --sc-fnd-table-stripe-hover: #2a2219;
+    --sc-fnd-table-head-hover: #2a2219;
 
     color-scheme: dark;
   }

@@ -40,6 +40,22 @@
      The value is mapped through a whitelist rather than written to the attribute directly, so
      a malformed site property can never inject into the markup. --%>
 <c:set var="colorSchemeMode" value="${empty themePropertyMap['theme.ui.mode'] ? 'light' : themePropertyMap['theme.ui.mode']}" />
+<%-- The console may run a different scheme from the public site. theme.ui.mode is stamped onto
+     <html> for EVERY page, so using it to get a dark CMS turns the marketing site dark too --
+     which is a different decision from the one the person setting it is usually making.
+
+     theme.ui.mode.admin overrides it on /admin routes only. Empty means "follow the site", so
+     this is inert until somebody sets it. The override is applied BEFORE the whitelist below
+     rather than writing the attribute directly, so an admin-specific value gets exactly the
+     same mapping -- a malformed property still cannot reach the markup.
+
+     Matched on the route rather than on isAdminConsole (set much further down, after <html>
+     is already written) and deliberately without that variable's designer-route exclusions:
+     those exist to keep the SITE's theme rules off the console, which is a separate concern
+     from which colour scheme the console runs. --%>
+<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin') && !empty themePropertyMap['theme.ui.mode.admin']}">
+  <c:set var="colorSchemeMode" value="${themePropertyMap['theme.ui.mode.admin']}" />
+</c:if>
 <c:choose>
   <c:when test="${colorSchemeMode eq 'dark'}"><c:set var="colorScheme" value="dark" /></c:when>
   <c:when test="${colorSchemeMode eq 'auto' || colorSchemeMode eq 'user'}"><c:set var="colorScheme" value="auto" /></c:when>

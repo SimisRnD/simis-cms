@@ -149,13 +149,13 @@ def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens, tmp_path):
     assert "to clear it:" not in r.stdout
     assert "to clear it:" in run_copy(tool, tokens, "--verbose").stdout
 
-    edit(tokens, "--sc-surface-raised: #26282e;", "--sc-surface-raised: #53575c;")
-    edit(tokens, "--sc-surface-overlay: #26282e;", "--sc-surface-overlay: #53575c;")
-    edit(tokens, "--sc-field-bg: #26282e;", "--sc-field-bg: #53575c;")
-    edit(tokens, "--sc-field-disabled-bg: #26282e;", "--sc-field-disabled-bg: #53575c;")
+    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #53575c;")
+    edit(tokens, "--sc-surface-overlay: #3a3025;", "--sc-surface-overlay: #53575c;")
+    edit(tokens, "--sc-field-bg: #2f271e;", "--sc-field-bg: #53575c;")
+    edit(tokens, "--sc-field-disabled-bg: #2f271e;", "--sc-field-disabled-bg: #53575c;")
     f = run_tool(TOOL, tokens)
     assert f.returncode == 1
-    assert "to clear it: background L <= 0.0279" in out(f)
+    assert "to clear it: background L <= 0.0469" in out(f)
 
 
 def test_self_test_flag_passes():
@@ -182,22 +182,22 @@ def test_missing_token_file_fails(repo):
 def test_a_brand_accent_used_as_a_surface_fails(tokens):
     """Issue #1489 exactly: --sc-surface-raised flattened to Anthracite. The four tokens
     that carry that value must all report, in both the dark and the auto block."""
-    edit(tokens, "--sc-surface-raised: #26282e;", "--sc-surface-raised: #53575c;")
-    edit(tokens, "--sc-surface-overlay: #26282e;", "--sc-surface-overlay: #53575c;")
-    edit(tokens, "--sc-field-bg: #26282e;", "--sc-field-bg: #53575c;")
-    edit(tokens, "--sc-field-disabled-bg: #26282e;", "--sc-field-disabled-bg: #53575c;")
+    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #53575c;")
+    edit(tokens, "--sc-surface-overlay: #3a3025;", "--sc-surface-overlay: #53575c;")
+    edit(tokens, "--sc-field-bg: #2f271e;", "--sc-field-bg: #53575c;")
+    edit(tokens, "--sc-field-disabled-bg: #2f271e;", "--sc-field-disabled-bg: #53575c;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     text = out(r)
-    assert "CONTRAST dark  --sc-text-muted" in text and "2.64:1" in text
-    assert "CONTRAST dark  --sc-link " in text and "2.43:1" in text
+    assert "CONTRAST dark  --sc-text-muted" in text and "2.77:1" in text
+    assert "CONTRAST dark  --sc-link " in text and "3.02:1" in text
     assert "CONTRAST auto  --sc-text-muted" in text
 
 
 def test_a_focus_ring_under_the_non_text_floor_fails(tokens):
     """SC 1.4.11: a focus indicator is held to 3:1, not 4.5:1, and the table must not
     silently promote it to the text floor or demote the text tokens to 3:1."""
-    edit(tokens, "  --sc-focus-ring: #609ace;\n", "  --sc-focus-ring: #2a2d33;\n", 1)
+    edit(tokens, "  --sc-focus-ring: #e09b4a;\n", "  --sc-focus-ring: #2a2d33;\n", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "--sc-focus-ring" in out(r) and "floor 3.0:1" in out(r)
@@ -207,7 +207,7 @@ def test_var_indirection_is_followed_through_two_levels(tokens):
     """--sc-fnd-surface is var(--sc-surface-raised) and --sc-fnd-white is
     var(--sc-fnd-surface); --sc-fnd-ink is var(--sc-text). A resolver that stopped at the
     first var() would silently check the light-mode value in a dark block."""
-    edit(tokens, "--sc-surface-raised: #26282e;", "--sc-surface-raised: #f4f5f7;")
+    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #f4f5f7;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "--sc-fnd-ink" in out(r) and "--sc-fnd-surface" in out(r)
@@ -267,14 +267,14 @@ def test_the_committed_table_carries_no_dead_waivers(tokens):
 def test_a_token_fixed_in_only_the_dark_block_fails(tokens):
     """The whole point: a value corrected in one block leaves every theme.ui.mode=auto
     site on the old one, and both blocks otherwise look individually correct."""
-    edit(tokens, "    --sc-surface-raised: #26282e;", "    --sc-surface-raised: #53575c;")
+    edit(tokens, "    --sc-surface-raised: #3a3025;", "    --sc-surface-raised: #53575c;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "PARITY   --sc-surface-raised" in out(r)
 
 
 def test_a_token_missing_from_the_auto_block_fails(tokens):
-    edit(tokens, "    --sc-field-placeholder: #979ca4;\n", "", 1)
+    edit(tokens, "    --sc-field-placeholder: #b3a894;\n", "", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "PARITY   --sc-field-placeholder" in out(r)
@@ -330,7 +330,7 @@ def test_the_parity_check_is_total_with_no_exemptions_left(tokens):
 
 def test_a_stale_comment_ratio_fails(tokens):
     """The defect's actual signature: the value moved, the comment did not."""
-    edit(tokens, "text 13.51:1, muted 5.34:1", "text 6.67:1, muted 5.01:1")
+    edit(tokens, "text 11.63:1, muted 4.91:1", "text 6.67:1, muted 5.01:1")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     text = out(r)
@@ -347,10 +347,10 @@ def test_a_comment_ratio_is_checked_at_its_own_precision(tokens):
 
 
 def test_a_floor_claim_may_be_exceeded_but_not_missed(tokens):
-    """"keeps all three past 4.9:1" is a bound over three pairings, not an equality."""
-    edit(tokens, "three past 4.9:1", "three past 4.5:1")
+    """"all keep past 4.9:1 on it" is a bound over three pairings, not an equality."""
+    edit(tokens, "all keep past 4.9:1 on it", "all keep past 4.5:1 on it")
     assert run_tool(TOOL, tokens).returncode == 0
-    edit(tokens, "three past 4.5:1", "three past 6.0:1")
+    edit(tokens, "all keep past 4.5:1 on it", "all keep past 6.0:1 on it")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "at least 6.0:1" in out(r)
@@ -359,7 +359,7 @@ def test_a_floor_claim_may_be_exceeded_but_not_missed(tokens):
 def test_the_duplicated_foundation_table_is_checked_in_both_blocks(tokens):
     """That summary block is copied verbatim into the dark and auto blocks; each copy is
     resolved against its own block's tokens, so breaking one copy reports one failure."""
-    edit(tokens, "ink on surface ............. 13.51:1",
+    edit(tokens, "ink on surface ............. 11.63:1",
          "ink on surface ............. 11.11:1", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
@@ -369,7 +369,7 @@ def test_the_duplicated_foundation_table_is_checked_in_both_blocks(tokens):
 def test_a_claim_whose_comment_disappears_fails(tokens):
     """Otherwise deleting a comment silently deletes its verification, and the tool
     reports OK over a file it is no longer really checking."""
-    edit(tokens, "Cards read as lifted by 1.19:1", "Cards look lifted")
+    edit(tokens, "raised is 1.28:1 over surface", "raised is clearly over surface")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "STALE" in out(r)
@@ -380,8 +380,8 @@ def test_a_claim_whose_comment_disappears_fails(tokens):
 def test_a_new_unregistered_ratio_in_a_comment_fails(tokens):
     """A hand-computed number must not enter the file without being tied to a pairing --
     checking only what happens to be registered is how the stale comment survived."""
-    edit(tokens, "  --sc-focus-ring: #609ace;\n",
-         "  /* looks reassuring, means nothing: 9.99:1 */\n  --sc-focus-ring: #609ace;\n", 1)
+    edit(tokens, "  --sc-focus-ring: #e09b4a;\n",
+         "  /* looks reassuring, means nothing: 9.99:1 */\n  --sc-focus-ring: #e09b4a;\n", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "UNCLAIMED" in out(r) and "9.99:1" in out(r)
@@ -400,9 +400,9 @@ def test_a_declaration_inside_a_comment_is_not_a_token(tokens):
     """This file's comments contain text like "--sc-surface: text 16.12:1, ..." which a
     naive declaration regex reads as a real declaration. Comments are blanked first, so a
     colour written inside one has no effect on any verdict."""
-    edit(tokens, "  --sc-focus-ring: #609ace;\n",
+    edit(tokens, "  --sc-focus-ring: #e09b4a;\n",
          "  /* --sc-text-muted: #ff0000; --sc-surface-raised: #ff0000; */\n"
-         "  --sc-focus-ring: #609ace;\n", 1)
+         "  --sc-focus-ring: #e09b4a;\n", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 0, out(r)
 

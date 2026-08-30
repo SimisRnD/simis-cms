@@ -256,12 +256,17 @@ p {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 6px 0 10px;
+  margin: 26px 0 12px;
   text-transform: uppercase;
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
+  /* Size held at 1rem rather than reduced. The mockup sets these labels at ~11px and gets a
+     lot of its precision from that, but small type is the thing this admin's users have
+     specifically asked not to have -- so the label keeps its size and gets its structure
+     from tracking instead. The extra letter-spacing is not decoration: uppercase set tight
+     runs together, and opening it is as much of the legibility win as size would have been. */
   font-size: var(--sc-font-base, 1rem);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   /* --sc-text-muted, not --sc-chrome-raised, even though the #53575c that was here is that
      token's value exactly. Issue 1590 names this pairing as a trap: the value matches, the ROLE
      does not -- --sc-chrome-raised is a raised surface in the admin rail. Binding a dashboard
@@ -295,13 +300,47 @@ p {
   padding-right: 20px;
 }
 
+/* The tinted panel that used to bind each group is gone, and its removal did more for how
+   this page reads than any colour change. A group is a full-width tinted box whatever it
+   holds, so a section with one tile drew a box that was 75% empty -- measured on
+   Deliverability -- and four such boxes stacked made the page read as boxy and dated. The
+   section label already groups the row; the tiles do not also need a container.
+
+   The tiles keep their own card treatment, which is what carries the grouping now: they sit
+   directly on the canvas with a border and a soft shadow, the way every direction in the
+   mockup set does. */
 .platform-dashboard-group {
-  background-color: var(--sc-surface-sunken, #ede9e3);
-  border: 1px solid var(--sc-border, #ddd8cf);
-  border-radius: 10px;
-  padding: 20px;
   margin-top: 10px;
   margin-bottom: 16px;
+}
+
+/* Cards, not cells. The radius and the two-layer shadow are the difference between a panel
+   and a card -- a tight 1px shadow reads as a border, a single wide one reads as a smudge;
+   the pair reads as lift. Both are tokenised so a theme can flatten them. */
+.platform-dashboard-group > .cell > .callout,
+.platform-dashboard-group > .cell.callout {
+  border-radius: 10px;
+  border: 1px solid var(--sc-border, #ddd8cf);
+  box-shadow: var(--sc-shadow-md, 0 1px 3px rgba(23, 25, 30, 0.08));
+}
+
+/* The stat icon as a chip rather than a bare glyph. This is what lets the admin keep Font
+   Awesome Solid and still read as current: at 14px inside a 34px tinted square the chip
+   carries the visual weight, and the difference between a filled glyph and a stroked one
+   stops registering. Tested against the alternative -- Font Awesome Free's Regular set
+   covers only ~163 icons, and switching to it turned most of this admin's icons into
+   missing-glyph boxes. */
+.platform-dashboard-group .cell i.fa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--sc-info-light, #eaf2fa);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  color: var(--sc-info, #286eac);
 }
 
 /* Body */
