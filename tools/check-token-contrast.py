@@ -311,9 +311,11 @@ COMMON = [
     # fills keep their light values in dark mode, so their text must not follow.
     ("--sc-fnd-ink-on-accent", "--sc-fnd-warning", TEXT),
     ("--sc-fnd-ink-on-accent", "--sc-fnd-success", TEXT),
-    # The deprecated role-blind aliases, still used by stylesheets routed
-    # before the split. They resolve through two levels of var().
-    ("--sc-fnd-black", "--sc-fnd-white", TEXT),
+    # What the retired --sc-fnd-black/--sc-fnd-white aliases used to cover. The eight
+    # first-party references now name the role they mean, so the pairing is checked
+    # under the role names instead -- same two values, one fewer level of var() to
+    # resolve, and no name left that invites the role-blind mistake.
+    ("--sc-fnd-ink", "--sc-fnd-surface", TEXT),
 ]
 
 # Pairings that only exist in dark mode. --sc-fnd-on-accent is white text for a
