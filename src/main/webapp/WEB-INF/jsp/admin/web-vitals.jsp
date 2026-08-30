@@ -23,7 +23,7 @@
 <jsp:useBean id="trendDataList" class="java.util.ArrayList" scope="request"/>
 
 <div class="section">
-  <h1><i class="fa fa-tachometer-alt"></i> Core Web Vitals Performance</h1>
+  <h2 class="h1"><i class="fa fa-tachometer-alt"></i> Core Web Vitals Performance</h2>
   <p>Real User Measurement (RUM) data from the last 7 days. P75 percentile shown (75% of visitors experience this performance or better).</p>
 
   <c:if test="${not empty errorMessage}">

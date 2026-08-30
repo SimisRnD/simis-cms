@@ -9,6 +9,7 @@
     generatedId: '{{ event.generatedId }}'
     submitterEmail: '{{ event.submitterEmail }}'
     sendConfirmation: '{{ event.sendConfirmationToSubmitter }}'
+    notificationSubject: '{{ event.notificationSubject }}'
     confirmationSubject: '{{ event.confirmationSubject }}'
     confirmationMessage: '{{ event.confirmationMessage }}'
   workflow:
@@ -17,7 +18,7 @@
       - when: '{{ !empty(emailTo) }}'
       - email:
         to-email: '{{ emailTo }}'
-        subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
+        subject: '{{ notificationSubject }}'
         template: 'cms/admin-form-submitted-notification'
         # At most one notification per submission, however many times this playbook runs. The
         # retry that caused issue 1643 is fixed separately; this makes a repeat send impossible
@@ -27,7 +28,7 @@
       - when: '{{ empty(emailTo) }}'
       - email:
         to-role: 'community-manager'
-        subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
+        subject: '{{ notificationSubject }}'
         template: 'cms/admin-form-submitted-notification'
         # Same notification as the block above, addressed by role instead. Shares the key space so
         # a submission cannot produce one of each.

@@ -137,7 +137,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="content">
-          <html><![CDATA[<h1>Order No. ${request.order-number}</h1>]]></html>
+          <html><![CDATA[<h2 class="h1">Order No. ${request.order-number}</h2>]]></html>
         </widget>
         <widget name="globalMessage">
           <key>orderManagementMessage</key>

@@ -75,6 +75,18 @@
   <label>Success Message
     <input type="text" placeholder="Optional message shown after a successful submission..." name="successMessage" value="<c:out value="${formDefinition.successMessage}"/>">
   </label>
+  <label>Notification Email Subject
+    <input type="text" placeholder="Leave blank for: New Contact Us inquiry - Acme Defense (Sales)" name="notificationSubject" value="<c:out value="${formDefinition.notificationSubject}"/>">
+  </label>
+  <p class="help-text" style="margin-top:-8px">
+    The subject of the email sent to "Email submissions to" above. Leave it blank and every form
+    gets the same readable default -- <em>New &lt;form name&gt; inquiry - &lt;who it is from&gt;
+    (&lt;their dropdown choice&gt;)</em> -- which is usually what you want.
+    Set it to override that for this form. You can include an answer with
+    <code>{{fieldName}}</code>, using the field's Name (not its Label), e.g.
+    <code>RFI: {{organization}}</code>. Values a visitor typed are stripped of line breaks and
+    shortened before they reach the subject.
+  </p>
   <input id="sendConfirmationToSubmitter" type="checkbox" name="sendConfirmationToSubmitter" value="true" <c:if test="${formDefinition.sendConfirmationToSubmitter}">checked</c:if>/><label for="sendConfirmationToSubmitter">Send a confirmation email to the person who submitted this form?</label>
   <p class="help-text" style="margin-top:-8px">
     Only sent if the form has an "Email" type field and the visitor's answer to it is a valid

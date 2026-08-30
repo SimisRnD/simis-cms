@@ -45,6 +45,11 @@ public class FormDefinition extends Entity {
   private boolean enabled = true;
   private boolean showPrivacyNotice = false;
   private boolean sendConfirmationToSubmitter = false;
+  /**
+   * The admin notification's subject, which may carry {{fieldName}} placeholders. Blank keeps the
+   * subject every form sent before this was configurable. See FormNotificationSubjectCommand.
+   */
+  private String notificationSubject = null;
   private String confirmationSubject = null;
   private String confirmationMessage = null;
   private long createdBy = -1;
@@ -165,6 +170,14 @@ public class FormDefinition extends Entity {
 
   public void setSendConfirmationToSubmitter(boolean sendConfirmationToSubmitter) {
     this.sendConfirmationToSubmitter = sendConfirmationToSubmitter;
+  }
+
+  public String getNotificationSubject() {
+    return notificationSubject;
+  }
+
+  public void setNotificationSubject(String notificationSubject) {
+    this.notificationSubject = notificationSubject;
   }
 
   public String getConfirmationSubject() {
