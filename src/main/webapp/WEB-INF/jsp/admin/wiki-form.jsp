@@ -19,8 +19,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <c:choose>
-  <c:when test="${wiki.id eq -1}"><h4>New Wiki</h4></c:when>
-  <c:otherwise><h4>Update Wiki</h4></c:otherwise>
+  <c:when test="${wiki.id eq -1}"><h2 class="h4">New Wiki</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Wiki</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
