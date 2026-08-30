@@ -48,7 +48,7 @@ public class PrototypeWidget extends GenericWidget {
     // The html preference comes from page-layout XML, which content-managers can author, and
     // prototype.jsp renders it unescaped. Sanitize it the same way saved content is.
     context.getRequest().setAttribute("html",
-        HtmlCommand.cleanContent(context.getPreferences().get("html")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("html")));
     context.getRequest().setAttribute("comment", context.getPreferences().get("comment"));
 
     // Show the JSP

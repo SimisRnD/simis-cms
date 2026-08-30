@@ -123,7 +123,7 @@ public class ContentHtmlCommand {
     // content-manager. Without this, every widget that calls this method (content, cards,
     // carousel, gallery, reveal, slider, accordion) renders an unsanitized preference unescaped.
     if (html == null) {
-      html = ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanContent(context.getPreferences().get("html"))));
+      html = ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanStoredContent(context.getPreferences().get("html"))));
     }
 
     // It's possible to have different content injected into this content

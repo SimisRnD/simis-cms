@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -261,5 +263,75 @@ class AllowedIframeHostCommandTest {
     assertTrue(AllowedIframeHostCommand.isAllowed("https://app.vendor.example.com/x", allowed));
     assertFalse(AllowedIframeHostCommand.isAllowed("https://www.youtube.com/embed/x", allowed));
     assertFalse(AllowedIframeHostCommand.isAllowed("https://a.example.com/x", null));
+  }
+
+  // ---- issue 1632: naming the refusal so an author can act on it ----
+
+  @Test
+  void aRefusedHostIsReportedSoTheAuthorCanSeeIt() {
+    // The point of this method. Both enforcement points are silent -- the save path deletes the
+    // element, frame-src blocks the load -- so the author sees an empty area and no reason for it.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<p>jobs</p><iframe src=\"https://simisinc.applytojob.com/apply\"></iframe>");
+      assertEquals(List.of("simisinc.applytojob.com"), refused);
+    }
+  }
+
+  @Test
+  void anAllowedHostIsNotReported() {
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("simisinc.applytojob.com")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://simisinc.applytojob.com/apply\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void aPlatformHostIsNotReported() {
+    // YouTube needs no property entry, so warning about it would be noise an author cannot fix.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://www.youtube.com/embed/abc123\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void contentWithNoIframeIsNotParsedAtAll() {
+    // Every page save runs this, and most pages have no embed.
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn("<p>plain content</p>").isEmpty());
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn(null).isEmpty());
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn("").isEmpty());
+  }
+
+  @Test
+  void eachRefusedHostIsNamedOnceHoweverManyEmbedsUseIt() {
+    // A page with eight embeds from one vendor should not produce an eight-item warning.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://a.example.com/1\"></iframe>"
+              + "<iframe src=\"https://a.example.com/2\"></iframe>"
+              + "<iframe src=\"https://b.example.com/3\"></iframe>");
+      assertEquals(List.of("a.example.com", "b.example.com"), refused);
+    }
+  }
+
+  @Test
+  void aRelativeSourceIsSameOriginAndNotReported() {
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"/embedded/page\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void anUnparseableSourceIsReportedAsItselfRatherThanSkipped() {
+    // Reporting nothing would tell the author their embed is fine when it will not render. The
+    // value reaches the page through <c:out>, so it is escaped there; here it is only abbreviated.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"javascript:alert(1)\"></iframe>");
+      assertEquals(1, refused.size());
+      assertTrue(refused.get(0).startsWith("javascript:"));
+    }
   }
 }

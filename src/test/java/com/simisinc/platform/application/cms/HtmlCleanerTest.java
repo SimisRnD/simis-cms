@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 /**
  * Tests HTML functions
@@ -285,6 +286,60 @@ class HtmlCleanerTest {
       assertFalse(value.contains("evil.example.com"));
       assertTrue(value.contains("player.vimeo.com/video/12345"));
       assertTrue(value.contains("responsive-embed widescreen"));
+    }
+  }
+
+  // ---- issue 1632: the allowlist must not delete content that is already stored ----
+
+  @Test
+  void storedContentKeepsAnIframeFromAHostThatIsNotAllowed() {
+    // The regression this method exists for. ContentHtmlCommand re-cleans a page-layout XML
+    // preference on every render, so applying the allowlist there deleted embeds from pages that
+    // were already published -- silently, on every page view, while the stored XML and the
+    // designer went on showing them. A pilot site lost its jobs listing for two days this way.
+    String html = "<iframe src=\"https://simisinc.applytojob.com/apply\" width=\"100%\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String result = HtmlCommand.cleanStoredContent(html);
+      assertTrue(result.contains("simisinc.applytojob.com"),
+          "an already-stored embed must survive rendering even when its host is not allowed");
+    }
+  }
+
+  @Test
+  void savingTheSameContentStillRefusesThatHost() {
+    // The save path is unchanged: the allowlist still decides what may be stored. Only the
+    // direction changed -- refuse it on the way in, do not delete it on the way out.
+    String html = "<iframe src=\"https://simisinc.applytojob.com/apply\" width=\"100%\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String result = HtmlCommand.cleanContent(html);
+      assertFalse(result.contains("simisinc.applytojob.com"),
+          "the save path must still refuse an iframe from a host the site has not allowed");
+    }
+  }
+
+  @Test
+  void storedContentIsStillSanitized() {
+    // Skipping the host check must not skip anything else. A script tag still goes, and a
+    // javascript: src still loses its src -- that protection is the safelist's protocol rule, not
+    // the host allowlist, so it is unaffected by this change.
+    String html = "<p>ok</p><script>alert(1)</script>"
+        + "<iframe src=\"javascript:alert(1)\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      String result = HtmlCommand.cleanStoredContent(html);
+      assertFalse(result.contains("<script"), "script tags must still be removed on the render path");
+      assertFalse(result.contains("javascript:"), "a javascript: src must still be dropped");
+      assertTrue(result.contains("ok"), "legitimate content must survive");
+    }
+  }
+
+  @Test
+  void renderingStoredContentDoesNotReadTheSiteProperty() {
+    // A side benefit worth locking in: the allowlist lookup hits the database, and it used to run
+    // on every render of every content widget on every page. The render path has no use for it now.
+    String html = "<iframe src=\"https://www.youtube.com/embed/abc123\"></iframe>";
+    try (MockedStatic<LoadSitePropertyCommand> m = siteAllowing("")) {
+      HtmlCommand.cleanStoredContent(html);
+      m.verify(() -> LoadSitePropertyCommand.loadByName(AllowedIframeHostCommand.SITE_PROPERTY), never());
     }
   }
 }
