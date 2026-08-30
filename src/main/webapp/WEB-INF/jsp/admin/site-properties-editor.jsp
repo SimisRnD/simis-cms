@@ -148,6 +148,12 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
+                  <%-- Reveal control (issue #1673): a secret is pasted blind, and a correct paste
+                       and a wrong one look identical afterwards, because the field deliberately
+                       never renders what is stored. Safe by construction for the same reason --
+                       value="" always, so this can only ever show what was just typed, never the
+                       value already on the server. --%>
+                  <span class="secret-field">
                   <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"
                       <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if>
@@ -156,6 +162,10 @@
                       <c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}"> aria-describedby="socialInstagramAccessTokenHelpText"</c:if>
                       />
+                    <button type="button" class="secret-reveal-toggle" data-reveal-secret
+                            aria-pressed="false" aria-label="Show the value while typing"
+                            title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+                  </span>
                   <%-- issue #454: optional expiry, so a credential that's known to expire (e.g. an
                        OAuth token) shows up on the /admin/integrations hub before it lapses --%>
                   <label class="no-gap"><small>Expires (optional)</small>
@@ -908,5 +918,21 @@
   });
   $('#imageBrowserReveal').on('closed.zf.reveal', function () {
     document.getElementById('imageBrowserFrame').removeAttribute('src');
+  });
+</script>
+<script nonce="${cspNonce}">
+  // Delegated, not an inline onclick: inline handlers are blocked by the site-wide CSP.
+  $(document).on('click', '[data-reveal-secret]', function () {
+    var button = $(this);
+    // .first() so the sibling "Expires" date input is never the one retyped.
+    var input = button.closest('.secret-field').find('input').first();
+    var revealed = input.attr('type') === 'text';
+    var label = revealed ? 'Show the value while typing' : 'Hide the value';
+    input.attr('type', revealed ? 'password' : 'text');
+    button.attr('aria-pressed', revealed ? 'false' : 'true');
+    button.attr('aria-label', label);
+    button.attr('title', label);
+    button.find('i').attr('class', revealed ? 'fa fa-eye' : 'fa fa-eye-slash');
+    input.trigger('focus');
   });
 </script>
