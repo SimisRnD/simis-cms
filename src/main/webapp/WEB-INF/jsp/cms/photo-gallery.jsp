@@ -61,7 +61,7 @@
 <div class="platform-content"<c:if test="${isSticky eq 'true'}"> data-sticky-container</c:if>>
   <div<c:if test="${isSticky eq 'true'}"> class="sticky" data-sticky data-anchor="sticky-gallery" data-margin-top="<c:out value="${marginTop}"/>"</c:if>>
     <div class="slider-header text-center" id="slider-header${controlId}">
-      <h4><c:out value="${subFolder.name}" /></h4>
+      <h3 class="h4"><c:out value="${subFolder.name}" /></h3>
     </div>
     <div id="swiper${widgetContext.uniqueId}" class="swiper">
       <div id="photo-gallery" class="swiper-wrapper">
