@@ -661,6 +661,7 @@ EXEMPT_RATIOS = [
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
     (r"has no (3):1 obligation", "SC 1.4.11 floor, not a measurement"),
+    (r"under the (3):1 SC 1\.4\.11 asks of a", "SC 1.4.11 floor, not a measurement"),
 ]
 
 # Ratios measured against the rendered cascade rather than derived from a token
