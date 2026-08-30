@@ -79,8 +79,8 @@ PALETTE = {
     # against a warm surface -- thead, tfoot, the stripe, the rules between rows and the
     # three hover shades. Seeded with Foundation's own values, so routing them changes
     # nothing until someone decides what they should be.
+    # #f1f1f1 is NOT here -- it does two jobs and is split by role below.
     "#f8f8f8": "--sc-fnd-table-head",
-    "#f1f1f1": "--sc-fnd-table-stripe",
     "#f3f3f3": "--sc-fnd-table-head-hover",
     "#f9f9f9": "--sc-fnd-table-row-hover",
     "#ececec": "--sc-fnd-table-stripe-hover",
@@ -95,6 +95,16 @@ SPLIT = {
     ("#0a0a0a", "text"): "--sc-fnd-ink",
     ("#0a0a0a", "surface"): "--sc-fnd-ink-surface",
     ("#0a0a0a", "on-light-accent"): "--sc-fnd-ink-on-accent",
+    # #f1f1f1 is the third colour that inverts, and it inverts the same way $white does.
+    # Foundation spends it on two unrelated jobs: the RULE around tbody/tfoot/thead
+    # (`border:1px solid #f1f1f1`) and the FILL behind tfoot and every even row. In light
+    # mode one pale grey serves both. In dark they part company -- the fill wants to go
+    # darker than the surface it stripes, while the rule has to stay light enough to be
+    # seen against that surface. Left as one token, whichever job you satisfy breaks the
+    # other: the fill was darkened and the rule was not, so `thead` shipped a near-white
+    # #f1f1f1 border in dark mode, which is what led here.
+    ("#f1f1f1", "surface"): "--sc-fnd-table-stripe",
+    ("#f1f1f1", "border"): "--sc-fnd-table-rule",
 }
 
 HEADER = (
@@ -163,21 +173,29 @@ def _selector_for(css: str, pos: int) -> str:
 
 
 def _role_for(css: str, pos: int) -> str:
-    """'text' or 'surface', from the property this colour belongs to.
+    """'text', 'border' or 'surface', from the property this colour belongs to.
 
     Scans back to the start of the declaration and reads its property name. Anything
-    that is not `color` counts as a surface, so borders and shadows follow the surface
-    they sit against rather than the text drawn on it -- except for the handful of
-    selectors in MARK_SELECTORS, where a background paints an icon rather than a panel.
+    that is not `color` counts as a surface, so shadows follow the surface they sit
+    against rather than the text drawn on it -- except for the handful of selectors in
+    MARK_SELECTORS, where a background paints an icon rather than a panel.
+
+    A `border*` property gets its own role because a rule and a fill can need opposite
+    treatment in dark mode (see the #f1f1f1 note on SPLIT). This is additive: a colour
+    with no ('border') entry falls back to its ('surface') one in ``route``, so every
+    colour split before this existed keeps the token it had.
     """
     start = max(css.rfind(";", 0, pos), css.rfind("{", 0, pos), css.rfind("}", 0, pos))
     decl = css[start + 1:pos]
     name, _, _ = decl.partition(":")
-    if name.strip().lower() == "color":
+    lowered = name.strip().lower()
+    if lowered == "color":
         return "text"
     selector = _selector_for(css, pos)
     if any(mark in selector for mark in MARK_SELECTORS):
         return "text"
+    if lowered.startswith("border"):
+        return "border"
     return "surface"
 
 
@@ -209,6 +227,11 @@ def route(css: str) -> tuple[str, int]:
             if role == "text":
                 role = _text_role_for(css, match.start())
             token = SPLIT.get((value, role))
+            if token is None and role == "border":
+                # Only #f1f1f1 distinguishes a rule from a fill. Every other split colour
+                # predates the 'border' role and recorded its borders as surfaces, so fall
+                # back rather than dropping them out of the routing entirely.
+                token = SPLIT.get((value, "surface"))
         if token is None:
             return match.group(0)
         count += 1
