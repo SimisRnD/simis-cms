@@ -216,7 +216,13 @@ public class HtmlCommand {
   }
 
   /**
-   * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks
+   * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks, and
+   * refuses iframes from hosts the site has not allowed.
+   *
+   * <p>
+   * This is the save-time entry point. Use {@link #cleanStoredContent(String)} for content that is
+   * already stored and is being cleaned again on its way out to a page.
+   * </p>
    *
    * @param contentHtml the content to clean
    * @return the cleaned content, or the input unchanged when it is blank
@@ -225,6 +231,47 @@ public class HtmlCommand {
    *         though it were clean
    */
   public static String cleanContent(String contentHtml) {
+    return cleanContent(contentHtml, true);
+  }
+
+  /**
+   * Cleans content that is already stored, on its way out to a page.
+   *
+   * <p>
+   * Identical to {@link #cleanContent(String)} except that the iframe host allowlist is not
+   * applied. Several widgets re-clean a stored value on every render -- {@code ContentHtmlCommand}
+   * does it for a page-layout XML preference, because that preference never passes through a
+   * save-time sanitizer. Running the allowlist there makes it retroactive, which is issue 1632:
+   * shipping the property empty silently deleted embeds that were already published and valid, on
+   * every page view, while the designer went on showing them. The author sees a blank area, the
+   * content looks correct, and re-saving does not help.
+   * </p>
+   *
+   * <p>
+   * Dropping the check here does not admit a frame the site refuses. {@code frame-src} carries the
+   * same allowlist and is what actually stops the browser loading one, so an unlisted embed is a
+   * blocked frame rather than deleted content -- recoverable by adding the host, instead of
+   * requiring the author to notice and re-author. Protocol restrictions are unaffected: a
+   * {@code javascript:} src still loses its src here exactly as before.
+   * </p>
+   *
+   * @param contentHtml the stored content to clean
+   * @return the cleaned content, or the input unchanged when it is blank
+   * @throws IllegalStateException if the document could not be fully processed
+   */
+  public static String cleanStoredContent(String contentHtml) {
+    return cleanContent(contentHtml, false);
+  }
+
+  /**
+   * The shared implementation. {@code enforceAllowedIframeHosts} is the only difference between the
+   * save path and the render path.
+   *
+   * @param contentHtml the content to clean
+   * @param enforceAllowedIframeHosts true to remove iframes whose host is not allowed
+   * @return the cleaned content, or the input unchanged when it is blank
+   */
+  private static String cleanContent(String contentHtml, boolean enforceAllowedIframeHosts) {
     // Validate the input
     if (StringUtils.isBlank(contentHtml)) {
       return contentHtml;
@@ -346,7 +393,7 @@ public class HtmlCommand {
       removeEmptyEnclosingElements(clean, "span");
       removeEmptyEnclosingElements(clean, "div");
       handleVideoTags(clean);
-      handleVideoEmbeds(clean);
+      handleVideoEmbeds(clean, enforceAllowedIframeHosts);
     } catch (Exception e) {
       // Do not fall through with a half-processed document. Everything in the try block runs after
       // the Cleaner and is order-dependent, so an exception in an early mutator silently skips
@@ -436,30 +483,37 @@ public class HtmlCommand {
     }
   }
 
-  private static void handleVideoEmbeds(Document document) {
+  private static void handleVideoEmbeds(Document document, boolean enforceAllowedIframeHosts) {
     Elements e = document.getElementsByTag("iframe");
     if (e == null) {
       return;
     }
     // Drop iframes from hosts the site has not allowed, before any of the wrapping below runs.
     // jsoup's Safelist can restrict an iframe's protocol but not its host, so without this an
-    // author could embed a frame from anywhere and it would be stored, served, and only stopped
-    // at the browser by frame-src -- as a silent blank box with no indication of what happened or
-    // why. Refusing it here means the content never carries an embed the policy will not render.
+    // author could embed a frame from anywhere and it would be stored and served.
+    //
+    // This runs on the save path only (issue 1632). It used to run wherever cleanContent() ran,
+    // which includes the render path -- ContentHtmlCommand re-cleans a stored page-layout XML
+    // preference on every page view. That made the allowlist retroactive: a host absent from the
+    // list, including every host on a site that had never populated the property, had its embeds
+    // deleted from pages that were already published, on every render, while the stored content
+    // and the designer went on showing them. See cleanStoredContent().
     //
     // Determining the list reads a site property, so it can fail where the database cannot be
     // reached. When that happens nothing is removed. Removing content requires knowing that a host
     // is disallowed, and a failed lookup is not that -- it is the absence of an answer. Guessing in
     // the destructive direction would delete an author's embed because of an unrelated outage, and
     // frame-src still refuses the frame at render either way, so nothing is exposed by waiting.
-    List<String> allowed;
-    try {
-      allowed = AllowedIframeHostCommand.allowedHosts();
-    } catch (Exception configException) {
-      LOG.warn("Could not read " + AllowedIframeHostCommand.SITE_PROPERTY
-          + "; leaving iframes in place rather than removing them on incomplete information",
-          configException);
-      allowed = null;
+    List<String> allowed = null;
+    if (enforceAllowedIframeHosts) {
+      try {
+        allowed = AllowedIframeHostCommand.allowedHosts();
+      } catch (Exception configException) {
+        LOG.warn("Could not read " + AllowedIframeHostCommand.SITE_PROPERTY
+            + "; leaving iframes in place rather than removing them on incomplete information",
+            configException);
+        allowed = null;
+      }
     }
     boolean removedAny = false;
     if (allowed != null) {

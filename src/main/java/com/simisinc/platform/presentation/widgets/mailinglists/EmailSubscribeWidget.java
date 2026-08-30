@@ -113,9 +113,9 @@ public class EmailSubscribeWidget extends GenericWidget {
     // section/widget class attributes injectable. Sanitized rather than escaped because these
     // are meant to contain html.
     context.getRequest().setAttribute("introHtml",
-        HtmlCommand.cleanContent(context.getPreferences().get("introHtml")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("introHtml")));
     context.getRequest().setAttribute("footerHtml",
-        HtmlCommand.cleanContent(context.getPreferences().get("footerHtml")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("footerHtml")));
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));

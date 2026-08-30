@@ -105,7 +105,7 @@ public class OrderConfirmationWidget extends GenericWidget {
     // HTML Content
     // Both of these preferences are rendered unescaped by order-confirmation.jsp
     context.getRequest().setAttribute("calloutHtml",
-        HtmlCommand.cleanContent(context.getPreferences().get("calloutHtml")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("calloutHtml")));
     String introHtml = context.getPreferences().get("introHtml");
     if (introHtml != null) {
       introHtml = StringUtils.replace(introHtml, "${email}", order.getEmail());
@@ -113,7 +113,7 @@ public class OrderConfirmationWidget extends GenericWidget {
       // Sanitize AFTER the substitutions, not before: the email address is supplied by the
       // customer, so it is untrusted content being spliced into html that is then rendered
       // unescaped. Cleaning the template alone would leave that injection open.
-      context.getRequest().setAttribute("introHtml", HtmlCommand.cleanContent(introHtml));
+      context.getRequest().setAttribute("introHtml", HtmlCommand.cleanStoredContent(introHtml));
     }
 
     context.setJsp(ORDER_CONFIRMATION_JSP);

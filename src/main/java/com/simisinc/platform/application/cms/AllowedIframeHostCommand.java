@@ -26,6 +26,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
@@ -188,6 +190,55 @@ public class AllowedIframeHostCommand {
     }
     String host = hostOf(value);
     return host != null && allowed.contains(host);
+  }
+
+  /**
+   * The distinct hosts that iframes in this content would load from and which the site has not
+   * allowed, in the order they appear.
+   *
+   * <p>
+   * This exists so a refusal can be shown to the person who caused it. The allowlist is applied
+   * when content is saved and again by {@code frame-src} in the browser, and neither says anything
+   * an author can see: the embed simply does not appear. Issue 1632 is what that costs -- an embed
+   * absent from a published page for two days while the page source still contained it and the
+   * designer still displayed it.
+   * </p>
+   *
+   * <p>
+   * A host that cannot be parsed is reported as the raw src rather than skipped, since an author
+   * looking at a warning needs to recognise what it refers to. A failed property lookup returns an
+   * empty list: not knowing which hosts are allowed is not the same as knowing one is refused, and
+   * warning on incomplete information would be worse than staying quiet.
+   * </p>
+   *
+   * @param html the content to inspect
+   * @return the refused hosts, without duplicates; empty when there are none or when the allowed
+   *         list could not be read
+   */
+  public static List<String> disallowedHostsIn(String html) {
+    if (StringUtils.isBlank(html) || !StringUtils.containsIgnoreCase(html, "<iframe")) {
+      return new ArrayList<>();
+    }
+    List<String> allowed;
+    try {
+      allowed = allowedHosts();
+    } catch (Exception configException) {
+      return new ArrayList<>();
+    }
+    Set<String> refused = new LinkedHashSet<>();
+    for (Element element : Jsoup.parseBodyFragment(html).getElementsByTag("iframe")) {
+      String src = element.attr("src");
+      if (StringUtils.isBlank(src) || isAllowed(src, allowed)) {
+        continue;
+      }
+      String host = hostOf(src);
+      // An unparseable src is reported as itself so the author can recognise it, abbreviated
+      // because a data: URI runs to kilobytes and this ends up in a one-line callout. The value is
+      // author-controlled but reaches the page through <c:out> in global-message.jsp, so the cap
+      // is about readability, not escaping.
+      refused.add(host != null ? host : StringUtils.abbreviate(src.trim(), 120));
+    }
+    return new ArrayList<>(refused);
   }
 
   /** The CSP frame-src source list: 'self' plus every allowed host as an https origin. */
