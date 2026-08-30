@@ -287,7 +287,14 @@
         <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
-            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+            <%-- A required select gets the attribute the same way the input and textarea branches
+                 below do. It was the only control that did not, so a required dropdown was enforced
+                 on the server and nowhere else: the visitor filled the whole form, submitted, and
+                 only then got "Topic is required" back. The placeholder option immediately below
+                 carries value="", which is what lets the browser treat "unchosen" as empty and
+                 refuse the submit. --%>
+            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${formField.required}">required</c:if>>
               <%-- Re-select what was chosen when a same-request validation error redisplays the
                    form. Matched on the option KEY recorded by FormWidget#post, not on userValue,
                    which holds the display label and is not a safe reverse lookup if two options
