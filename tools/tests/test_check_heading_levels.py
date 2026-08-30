@@ -161,6 +161,52 @@ def test_reports_without_strict_but_does_not_fail(repo):
     assert "jumps h1 -> h4" in r.stdout
 
 
+def test_a_level_skip_in_an_admin_widget_jsp_fails(repo):
+    # A widget renders under the page's h1, so its first heading should be an h2. This is the
+    # shape PRs 1663/1664 fixed 45 times over -- #1511 moved widget titles to h2 and what sat
+    # beneath them never moved.
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp="<h2 class=\"widget-title\">Blogs</h2>\n<h4>Detail</h4>\n")
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1
+    assert "jumps h2 -> h4" in r.stdout
+
+
+def test_a_heading_inside_a_wired_dialog_is_not_a_skip(repo):
+    # All 56 Reveal modals carry role=dialog + aria-modal + an accessible name, and .reveal is
+    # display:none, so a closed modal is not in the accessibility tree at all.
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp=('<h2 class="widget-title">Blogs</h2>\n'
+               '<div class="reveal" id="r" role="dialog" aria-modal="true" aria-labelledby="t">\n'
+               '  <h4 id="t">Publish Posts</h4>\n</div>\n'))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_heading_built_inside_a_script_block_is_not_markup(repo):
+    # photo-gallery.jsp does innerHTML = '<h4>' + data.title + '</h4>'. It read as a finding
+    # until the script body was blanked.
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp=('<h2 class="widget-title">Gallery</h2>\n'
+               '<script nonce="x">\n  el.innerHTML = \'<h4>\' + data.title + \'</h4>\';\n</script>\n'))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_heading_inside_an_html_comment_is_not_markup(repo):
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp='<h2 class="widget-title">X</h2>\n<!-- <h5>commented out</h5> -->\n')
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_returning_to_a_shallower_level_in_a_jsp_is_not_a_skip(repo):
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp="<h2>A</h2>\n<h3>A.1</h3>\n<h2>B</h2>\n<h3>B.1</h3>\n")
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
 def test_a_missing_branch_condition_is_reported_not_ignored(repo):
     # The excluded routes are read out of main.jsp. If that condition is rewritten, this tool
     # cannot report accurately -- it must say so rather than silently passing everything.

@@ -83,6 +83,53 @@ JSP_H1_ALLOWED = {
     "css-editor.jsp": "heading specimen in the CSS editor preview",
 }
 
+# Recorded level skips per admin widget JSP -- a RATCHET, not a target.
+#
+# Every admin page already carries the screen-reader h1, so a widget's first heading should be an
+# h2 and nothing below it should jump a level. 60 sites do, in 58 files, and they are not one
+# problem: the largest family by far is a help block ("What this page shows", "Common problems and
+# how to fix them") authored at h5 or h6 directly under an h2, and the rest are first headings that
+# start at h3 or h4.
+#
+# Fixing all 60 at once is exactly the sweep issue 1622 warns against, so they are recorded here
+# instead and the count may only shrink. A file whose count goes UP fails; a file absent from this
+# map may have no skips at all. Same shape as check-inline-handlers.py's ALLOWLIST.
+#
+# Counts BELOW the recorded number are reported, not failed -- PRs 1663 and 1664 lower several of
+# these, and a gate that failed on an improvement would make merge order load-bearing. Lower the
+# number here when that happens; the tool prints the exact line to change.
+JSP_SKIP_BASELINE = {
+    "add-tracking-number.jsp": 1, "allowed-ip-list.jsp": 1, "analytics-retention.jsp": 1,
+    "apis-list.jsp": 1, "apps-list.jsp": 1, "audit-log-list.jsp": 1, "blocked-ip-list.jsp": 1,
+    "blog-form.jsp": 1, "blog-list.jsp": 1, "bot-list.jsp": 1, "cache-management.jsp": 1,
+    "calendar-form.jsp": 1, "calendar-list.jsp": 1, "capability-grants.jsp": 1,
+    "collection-form.jsp": 1, "content-list.jsp": 1, "content-versions-list.jsp": 1,
+    "custom-fields-form-json.jsp": 1, "database-maintenance.jsp": 2, "dataset-schema.jsp": 1,
+    "editorial-calendar.jsp": 1, "folder-file-drop-zone.jsp": 1, "folder-file-form.jsp": 1,
+    "folder-form.jsp": 1, "form-field-form.jsp": 1, "forms.jsp": 1, "groups-list.jsp": 1,
+    "health-dashboard.jsp": 1, "image-browser.jsp": 1, "integration-registry.jsp": 1,
+    "job-queue-dashboard.jsp": 1, "mailing-list-members.jsp": 1, "mfa-enrolled-roles.jsp": 1,
+    "newsletter-send.jsp": 1, "page-template-gallery.jsp": 1, "pricing-rule-form.jsp": 1,
+    "product-category-form.jsp": 1, "product-form.jsp": 1, "role-capabilities-form.jsp": 1,
+    "sales-tax-nexus-address-form.jsp": 1, "seo-overview.jsp": 1, "seo-sitemap.jsp": 1,
+    "shipping-rate-form.jsp": 1, "site-properties-editor.jsp": 1, "sitemap-editor.jsp": 1,
+    "sitemap.jsp": 1, "sub-folder-form.jsp": 1, "theme-editor.jsp": 1, "user-details.jsp": 2,
+    "user-form.jsp": 1, "users-list.jsp": 1, "web-page-list.jsp": 1, "web-redirect-form.jsp": 1,
+    "web-redirects-list.jsp": 1, "webhook-deliveries-list.jsp": 1,
+    "webhook-subscription-form.jsp": 1, "wiki-form.jsp": 1, "wiki-page-list.jsp": 1,
+}
+
+# Blanked before headings are counted, all preserving line numbers. Without the script and HTML
+# comment passes, a JS string that builds markup reads as a heading: photo-gallery.jsp does
+# innerHTML = '<h4>' + data.title + '</h4>', and web-page-designer.jsp assembles the designer's
+# widget prototype the same way. Both looked like real findings until they were read.
+JSP_COMMENT = re.compile(r"<%--.*?--%>", re.S)
+SCRIPT_BLOCK = re.compile(r"<script\b.*?</script>", re.S | re.I)
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+HEADING_PAIR = re.compile(r"<(h[1-6])\b([^>]*)>(.*?)</\1>", re.S)
+STRIP_TAGS = re.compile(r"<[^>]+>")
+REVEAL_CLASS = re.compile(r"class=\"[^\"]*\breveal\b[^\"]*\"")
+
 
 def admin_branch_routes(root: str) -> tuple[str, list[str]]:
     """('/admin', [routes excluded from the admin-console branch]) read from main.jsp."""
@@ -187,6 +234,60 @@ def check_admin_jsps(root: str) -> list[str]:
     return findings
 
 
+def blank_preserving_lines(match) -> str:
+    return re.sub(r"[^\n]", " ", match.group(0))
+
+
+def jsp_skips(path: str) -> list[tuple[int, int, int, str]]:
+    """Level skips in one JSP as (line, from_level, to_level, label).
+
+    A widget renders under the page's h1, so the running level starts at 1 and each heading may
+    be at most one deeper than the last. Headings inside a wired dialog are excluded (a closed
+    Reveal is display:none and an open one is scoped by aria-modal), as are the H1..H5 Header
+    specimens.
+    """
+    with io.open(path, encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    for pattern in (JSP_COMMENT, SCRIPT_BLOCK, HTML_COMMENT):
+        text = pattern.sub(blank_preserving_lines, text)
+
+    found = []
+    previous = 1
+    for m in HEADING_PAIR.finditer(text):
+        before = text[max(0, m.start() - 500):m.start()]
+        if REVEAL_CLASS.search(before) and 'role="dialog"' in before:
+            continue
+        label = STRIP_TAGS.sub("", m.group(3)).strip()
+        if SPECIMEN.match(label):
+            continue
+        level = int(m.group(1)[1])
+        if level > previous + 1:
+            found.append((text.count("\n", 0, m.start()) + 1, previous, level, label))
+        previous = level
+    return found
+
+
+def check_admin_jsp_levels(root: str) -> tuple[list[str], list[str]]:
+    """(failures, notes) -- a count above its baseline fails; below it is only a note."""
+    failures, notes = [], []
+    jsp_dir = os.path.join(root, ADMIN_JSP_DIR)
+    if not os.path.isdir(jsp_dir):
+        return failures, notes
+    for fname in sorted(os.listdir(jsp_dir)):
+        if not fname.endswith(".jsp"):
+            continue
+        skips = jsp_skips(os.path.join(jsp_dir, fname))
+        allowed = JSP_SKIP_BASELINE.get(fname, 0)
+        if len(skips) > allowed:
+            rel = os.path.join(ADMIN_JSP_DIR, fname)
+            for line, frm, to, label in skips[allowed:]:
+                failures.append("%s:%d  jumps h%d -> h%d -- \"%s\"" % (rel, line, frm, to, label[:44]))
+        elif len(skips) < allowed:
+            notes.append("%s is down to %d (baseline says %d) -- lower it: \"%s\": %d,"
+                         % (fname, len(skips), allowed, fname, len(skips)))
+    return failures, notes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", default=".")
@@ -204,7 +305,14 @@ def main() -> int:
         print("FAIL  %s" % exc)
         return 1 if args.strict else 0
 
-    findings = check_layouts(args.root, prefix, excluded) + check_admin_jsps(args.root)
+    level_failures, level_notes = check_admin_jsp_levels(args.root)
+    findings = (check_layouts(args.root, prefix, excluded) + check_admin_jsps(args.root)
+                + level_failures)
+
+    for note in level_notes:
+        print("NOTE  " + note)
+    if level_notes:
+        print()
 
     if findings:
         print("FAIL  %d admin heading problem(s)" % len(findings))
