@@ -305,7 +305,14 @@ jobs:
       # same digest the attestation above is bound to. Purely additive -- the
       # provenance step above is unchanged.
       - name: Generate the CycloneDX SBOM for the application image
-        run: syft "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms.cdx.json
+        # The CycloneDX spec version is pinned, not left to Syft's default. Syft chooses the
+        # newest spec it supports; `trivy sbom` below and actions/attest-sbom have to be able to
+        # read it, and those three are updated independently by Dependabot. Leaving it implicit
+        # made the format an unwritten contract between them, and bumping Syft alone broke it:
+        # "CycloneDX decode error: invalid specification version", which failed the publish and so
+        # stopped delivery without stopping merges (issue 1647). Raise this deliberately, once the
+        # consumers are known to handle the newer spec.
+        run: syft "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" -o cyclonedx-json@1.5=sbom-simis-cms.cdx.json
 
       - name: Attest the application image SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
@@ -424,7 +431,14 @@ jobs:
       # findings the application image does not, so enumerating its contents
       # matters most here. Same additive pattern as the application image above.
       - name: Generate the CycloneDX SBOM for the database image
-        run: syft "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms-db.cdx.json
+        # The CycloneDX spec version is pinned, not left to Syft's default. Syft chooses the
+        # newest spec it supports; `trivy sbom` below and actions/attest-sbom have to be able to
+        # read it, and those three are updated independently by Dependabot. Leaving it implicit
+        # made the format an unwritten contract between them, and bumping Syft alone broke it:
+        # "CycloneDX decode error: invalid specification version", which failed the publish and so
+        # stopped delivery without stopping merges (issue 1647). Raise this deliberately, once the
+        # consumers are known to handle the newer spec.
+        run: syft "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" -o cyclonedx-json@1.5=sbom-simis-cms-db.cdx.json
 
       - name: Attest the database image SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4

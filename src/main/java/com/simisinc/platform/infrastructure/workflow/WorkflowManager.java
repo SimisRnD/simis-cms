@@ -179,6 +179,26 @@ public class WorkflowManager {
     // so throwing on failure here is safe.
     WorkReport report = PlaybookManager.run(playbook, workContext);
     if (report.getStatus() == WorkStatus.FAILED) {
+      // FAILED means two different things here, and telling them apart is the whole point.
+      //
+      // WhenTask returns FAILED when its condition is merely false -- that is how the library
+      // says "skip this block". A playbook that branches on `when` therefore reports FAILED on
+      // its ordinary path. form-submitted has three guarded blocks; a form with an address
+      // configured and confirmation off leaves two of them false, so every successful submission
+      // ended here. Throwing sent the whole playbook back through JobRunr (retries = 1), which
+      // re-ran the block that had already sent, and the notification went out twice -- every
+      // time, not intermittently. That is issue 1643.
+      //
+      // A first-party task that genuinely fails attaches an error (see TaskReports), so an
+      // error-less FAILED is the library declining a guard and must not be retried. The throw is
+      // kept for the real thing, which is what issue 1124 needed it for.
+      if (report.getError() == null) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Workflow stopped early on a declined condition, which is not a failure: "
+              + domainEvent.getDomainEventType());
+        }
+        return;
+      }
       throw new RuntimeException("Workflow failed for event: " + domainEvent.getDomainEventType(), report.getError());
     }
 

@@ -63,14 +63,14 @@ public class WebhookTask implements Work {
     Event event = (Event) workContext.get(EVENT_OBJECT);
     if (event == null) {
       LOG.error("No event found in the work context");
-      return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+      return TaskReports.failure(workContext, "No event found in the work context");
     }
     try {
       DispatchWebhookDeliveriesCommand.dispatch(event);
       return new DefaultWorkReport(WorkStatus.COMPLETED, workContext);
     } catch (Exception e) {
       LOG.error("Webhook dispatch failed for event: " + event.getDomainEventType(), e);
-      return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+      return TaskReports.failure(workContext, "Webhook dispatch failed", e);
     }
   }
 }
