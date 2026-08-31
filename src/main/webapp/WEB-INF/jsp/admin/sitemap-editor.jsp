@@ -28,7 +28,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   This page renames existing entries in the drop-down navigation menu across the top of your site, and changes
   the page they link to -- a <strong>tab</strong> sits in the top bar itself (e.g. "Solutions"), an
   <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it (see the example
@@ -39,7 +39,7 @@
   handles or the arrow buttons. To add a new tab/item or to delete one, use
   <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <strong>Save Site Map Changes saves every visible tab and item at once</strong> -- there's no per-row save, so
   a typo in one field doesn't stop the rest of the page's edits from being saved. As on the Navigation Menu
   Editor page, the first tab (usually "Home") has no editable Name/Link/Icon fields here, for the same reason:

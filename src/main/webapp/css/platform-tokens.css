@@ -1180,6 +1180,54 @@ textarea::placeholder {
   max-width: 60ch;
 }
 
+/* Page documentation, as opposed to a field hint.
+   ----------------------------------------------------------------------------
+   Foundation's .help-text is built for a short hint under one form control: it
+   is 13px, and the max-width above caps it at 60ch, which for a 13px font is
+   487.5px. Under a control that cap never binds, because the hint is a line or
+   two.
+
+   Many admin pages also use .help-text for something structurally different --
+   several paragraphs of prose explaining what the whole page does. There the
+   two properties combine badly: 13px body copy, capped at 487px, sitting under
+   a full-width heading in a 1244px column. The result reads as a narrow ribbon
+   with the rest of the page empty beside it, which is what /admin/sitemap
+   looked like.
+
+   Note the cap is not the bug on its own -- 13px prose running the full 1244px
+   would be ~150 characters a line, which is worse. The mistake is using one
+   class for a hint and for body copy. So this does not relax .help-text; it
+   gives the documentation case its own size and measure, and .help-text stays
+   exactly as it is for the field hints that are the majority of its uses.
+
+   40rem is 640px, which at 15px is ~68 characters a line -- inside the 45-75
+   band that makes prose comfortable to read. It is deliberately absolute rather
+   than the ch unit used above: ch resolves against each element's own font
+   size, so a figure alongside this prose could not be aligned to the same edge
+   without re-deriving the number. One value, reused, keeps the column true.
+
+   Applied as a second class (class="help-text page-help") so the colour, the
+   dark-mode treatment and the margin above all still come from .help-text, and
+   so a page that loses this rule degrades to today's rendering rather than to
+   unstyled text. */
+.page-help {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  max-width: 40rem;
+}
+
+/* An illustration belonging to a .page-help passage -- an example box, a
+   diagram -- sharing its measure so the two line up on both edges. The nested
+   .help-text is that figure's caption: it should stay at hint size, but its own
+   60ch cap would end it ~130px short of the box it sits in, so inside a figure
+   the measure comes from the figure. */
+.page-help-figure {
+  max-width: 40rem;
+}
+.page-help-figure .help-text {
+  max-width: 100%;
+}
+
 /* Foundation renders the select arrow as an embedded SVG data URI in a
    dark ink that disappears on a dark field. */
 :root[data-theme="dark"] select {
