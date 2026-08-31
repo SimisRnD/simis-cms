@@ -122,7 +122,15 @@ public class ContentHtmlCommand {
     // it comes straight from page-layout XML, which /admin/web-page-designer exposes to
     // content-manager. Without this, every widget that calls this method (content, cards,
     // carousel, gallery, reveal, slider, accordion) renders an unsanitized preference unescaped.
-    if (html == null) {
+    // isBlank, not null. A content record whose body is empty resolves to "" above, which is not
+    // null, so a null-only guard skipped this fallback and left html empty -- ContentWidget then
+    // hits its own isBlank check and renders nothing. That turned the section blank permanently:
+    // the inline HTML is still declared in the page XML but could never be reached again. It was
+    // reachable in one step because /content-editor opens EMPTY for a uniqueId that has no record
+    // yet (the page XML supplies the html), so a single Save on that blank editor wrote an empty
+    // record and deleted the section (issue 1689). Treating an empty record like a missing one
+    // restores the declared default, which is exactly what the no-record path already does.
+    if (StringUtils.isBlank(html)) {
       html = ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanStoredContent(context.getPreferences().get("html"))));
     }
 

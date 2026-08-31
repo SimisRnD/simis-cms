@@ -654,4 +654,56 @@ class ContentWidgetTest extends WidgetBase {
       Assertions.assertFalse(json.contains("a11yFindings"), json);
     }
   }
+
+  @Test
+  void anEmptyContentRecordFallsBackToTheInlineHtmlInsteadOfBlankingTheSection() {
+    // The page XML shape that made this destructive: a content widget carrying BOTH a uniqueId and
+    // inline html. Four shipped pages use it (/admin/useful-links, /admin/sticky-footer-links,
+    // /validate-account, /validation-sent), and /content-editor opens EMPTY for such a uniqueId
+    // because no record exists yet, so one Save there stored an empty record. The resolver's
+    // fallback was guarded on html == null; an empty record resolves to "" and skipped it, so the
+    // widget rendered nothing and the inline html could never be reached again (issue 1689).
+    preferences.put("uniqueId", "hello-content");
+    preferences.put("html", "<p>Declared in the page layout</p>");
+
+    Content emptyRecord = new Content();
+    emptyRecord.setUniqueId("hello-content");
+    emptyRecord.setContent("");
+
+    try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
+      staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
+          .thenReturn(emptyRecord);
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.execute(widgetContext);
+    }
+
+    Assertions.assertNotNull(widgetContext, "the widget must still render, not be dropped");
+    String contentHtml = (String) request.getAttribute("contentHtml");
+    Assertions.assertNotNull(contentHtml);
+    Assertions.assertTrue(contentHtml.contains("Declared in the page layout"), contentHtml);
+  }
+
+  @Test
+  void aPopulatedContentRecordStillOverridesTheInlineHtml() {
+    // The other half of the contract: the fallback must only apply when the record has nothing to
+    // show. A saved record is an override and has to keep winning over the page-layout default.
+    preferences.put("uniqueId", "hello-content");
+    preferences.put("html", "<p>Declared in the page layout</p>");
+
+    Content saved = new Content();
+    saved.setUniqueId("hello-content");
+    saved.setContent("<p>Edited in the content editor</p>");
+
+    try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
+      staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
+          .thenReturn(saved);
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.execute(widgetContext);
+    }
+
+    String contentHtml = (String) request.getAttribute("contentHtml");
+    Assertions.assertNotNull(contentHtml);
+    Assertions.assertTrue(contentHtml.contains("Edited in the content editor"), contentHtml);
+    Assertions.assertFalse(contentHtml.contains("Declared in the page layout"), contentHtml);
+  }
 }
