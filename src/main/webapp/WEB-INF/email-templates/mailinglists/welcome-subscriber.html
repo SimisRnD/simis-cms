@@ -135,7 +135,7 @@
                     <tr>
                       <td align="center" valign="top" style="padding: 10px 50px 40px 50px;">
                         <div th:if="${site.logo != null}">
-                          <img src="logo.png" th:src="${site.logo}" width="300" style="max-width: 430px !important; max-height: 150px !important;" alt="Site Name" th:alt="${site.name}" />
+                          <img src="logo.png" th:src="${site.logo}" width="300" style="max-width:430px !important; max-height:150px !important;" alt="Site Name" th:alt="${site.name}" />
                         </div>
                         <div th:if="${site.logo == null}">
                           <h1 style="margin: 0; text-align:center; color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 22px; line-height: 1.5;"><span th:text="${site.name}">Site Name</span></h1>
@@ -143,22 +143,15 @@
                       </td>
                     </tr>
                     <tr>
+                      <td class="template-content" align="center" style="font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; padding: 0; text-align: center;">
+                        <p style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 18px; line-height: 1.5; margin: 0 0 12px; text-align: center;" align="center">Thanks for signing up to stay in contact!</p>
+                        <p style="color: #868e96; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 16px; line-height: 1.5; margin: 0; text-align: center;" align="center">You're subscribed to <span th:text="${mailingList.title}">our updates</span>. We'll be in touch when we publish something worth your time.</p>
+                      </td>
+                    </tr>
+                    <!-- no call to action: the subscription is already active by the time this sends -->
+                    <tr>
                       <td class="template-content" style="font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; padding: 0;">
-                        <p style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 18px; line-height: 1.5; margin: 0;" align="center">
-                          A password reset has been requested for your <span th:text="${site.name}">Site Name</span> account.
-                          If you did not choose to reset your password, then you can disregard this email.
-                          Please click the link below to change your password.
-                        </p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div style="text-align: center !important" align="center"><a class="web-button" target="_blank" href="https://example.com/validate-account" th:href="${validateAccountUrl}" style="-ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; background-color: #c4441f; border: 1px solid #c4441f; border-radius: 4px; color: #f8f9fa; display: inline-block; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 600; padding: 16px 48px; text-decoration: none; margin: 50px 0 20px">Change my password</a></div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <div style="text-align: center !important" align="center"><span th:text="${validateAccountUrl}">https://example.com/validate-account</span></div>
+                        <p style="color: #868e96; font-size: 14px; line-height: 1.5; margin: 30px 0 0; text-align: center;" align="center">Changed your mind? <a th:href="|${site.url}/unsubscribe?token=${member.unsubscribeToken}|" href="https://example.com/unsubscribe" style="color: #a83917;" target="_blank">Unsubscribe</a> at any time.</p>
                       </td>
                     </tr>
                   </table>
