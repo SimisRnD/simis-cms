@@ -42,7 +42,7 @@
          (rather than reusing HttpPostCommand) so it can read both the response status code and
          body for logging; HttpPostCommand.execute() collapses those into a single null on
          failure. Not a generated management-plane client. See PublishEventCachePurgeHandler. -->
-    <azure-identity.version>1.18.4</azure-identity.version>
+    <azure-identity.version>1.18.5</azure-identity.version>
     <azure-core-http-okhttp.version>1.13.6</azure-core-http-okhttp.version>
     <!-- Azure SPN authentication for Postgres (issue #1129): dormant, opt-in
          (DB_AUTH_METHOD=azure-sql-spn); see DatabaseProperties.applyAzureSpnAuthentication() -->
@@ -50,7 +50,7 @@
     <bucket4j.version>8.10.1</bucket4j.version>
     <caffeine.version>3.2.4</caffeine.version>
     <apache-http.version>5.4.3</apache-http.version>
-    <classgraph.version>4.8.193</classgraph.version>
+    <classgraph.version>4.8.194</classgraph.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <commons-collections4.version>4.6.0</commons-collections4.version>
@@ -89,18 +89,18 @@
     <java-mail.version>1.6.2</java-mail.version>
     <jmail.version>2.2.0</jmail.version>
     <jna.version>5.19.1</jna.version>
-    <jobrunr.version>8.8.1</jobrunr.version>
+    <jobrunr.version>8.8.2</jobrunr.version>
     <johnzon.version>1.3.0</johnzon.version>
-    <jsoup.version>1.23.1</jsoup.version>
+    <jsoup.version>1.23.2</jsoup.version>
     <!-- Jakarta JSTL 3.0: the api and the Glassfish implementation version independently -->
     <jstl-api.version>3.0.2</jstl-api.version>
     <jstl.version>3.0.1</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
-    <libphonenumber.version>9.0.37</libphonenumber.version>
+    <libphonenumber.version>9.0.38</libphonenumber.version>
     <lombok.version>1.18.46</lombok.version>
     <playwright.version>1.62.0</playwright.version>
     <postgresql.version>42.7.13</postgresql.version>
-    <rabbitmq.version>5.34.0</rabbitmq.version>
+    <rabbitmq.version>5.35.0</rabbitmq.version>
     <restfb.version>2026.9.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
     <slf4j.version>2.0.18</slf4j.version>
@@ -110,7 +110,7 @@
          to okhttp-jvm), so the jar Maven resolves cannot be vendored into the WAR.
          Revisit: switch the dependency to okhttp-jvm, or Square shipping its own client. -->
     <okhttp.version>4.12.0</okhttp.version>
-    <stripe.version>33.3.0</stripe.version>
+    <stripe.version>33.4.0</stripe.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <thymeleaf.version>3.1.5</thymeleaf.version>
     <timeago.version>4.3.0</timeago.version>
