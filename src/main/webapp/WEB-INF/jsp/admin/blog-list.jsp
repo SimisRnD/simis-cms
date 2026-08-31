@@ -137,7 +137,7 @@
     flagging as a follow-up if the list grows large enough that finding one by scrolling or a filter
     dropdown becomes painful.</li>
 </ul>
-<p class="help-text">
+<p class="help-text page-help">
   Blog and post data lives in the same Postgres database as everything else on the site, covered by
   normal database backup/restore -- there's nothing storage- or search-index-specific to know about
   here.

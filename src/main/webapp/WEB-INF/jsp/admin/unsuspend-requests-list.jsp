@@ -25,7 +25,7 @@
 <c:if test="${!empty title}">
   <h2 class="h1"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Accounts holding an elevated role (community-manager and above) can't be reactivated by one
   administrator acting alone (issue #492) -- a request here must be reviewed and approved by a
   <em>different</em> administrator before the account is restored, and approval immediately

@@ -30,7 +30,7 @@
     <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">This only declares that <c:out value="${collection.name}" /> and the collection you pick below are allowed to link records to each other -- it doesn't link any specific records. That happens later, on an individual item's own page. The relationship is one-directional: it does not automatically make the other collection relate back to this one.</p>
+  <p class="help-text page-help">This only declares that <c:out value="${collection.name}" /> and the collection you pick below are allowed to link records to each other -- it doesn't link any specific records. That happens later, on an individual item's own page. The relationship is one-directional: it does not automatically make the other collection relate back to this one.</p>
   <%-- Form Content --%>
   <select name="relatedCollectionId">
     <option value=""></option>

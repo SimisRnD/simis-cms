@@ -22,7 +22,7 @@
 <div style="margin-top: 2.5rem;">
 <h2 class="h4">MFA status by role</h2>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">Every role in the system and where it stands. <strong>Required</strong> means the role is listed above in
+<p class="help-text page-help">Every role in the system and where it stands. <strong>Required</strong> means the role is listed above in
   &ldquo;Roles that must enroll in MFA&rdquo;. <strong>Enrolled</strong> means at least one member has actually set up a second
   factor &mdash; a role with some but not all members enrolled still counts, since enforcement is per-role, not per-user.
   The two are independent, so a role can be required with nobody enrolled yet, or enrolled without being required.</p>

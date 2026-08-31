@@ -35,7 +35,7 @@
     <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">
+  <p class="help-text page-help">
     <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> This is a single,
     independent event -- there's no way to make it repeat weekly/monthly automatically. A calendar's
     own full page view offers a "Duplicate" button, but that only creates one more standalone copy,

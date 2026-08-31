@@ -31,7 +31,7 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">
+<p class="help-text page-help">
   Prior uploaded versions of <strong><c:out value="${file.title}" /></strong>. Each version's file is kept on the
   server, so restoring makes that version's content the current file again -- a new version entry is recorded for
   the restore itself.

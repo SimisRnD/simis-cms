@@ -45,7 +45,7 @@
   <code>calendar</code>, <code>upcomingCalendarEvents</code>, or <code>calendarSearchResults</code>
   widget.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> Every event is a single,
   independent record -- there's no built-in way to schedule something like "every Monday"
   automatically on any calendar. If you need that, you'll be creating and maintaining each
