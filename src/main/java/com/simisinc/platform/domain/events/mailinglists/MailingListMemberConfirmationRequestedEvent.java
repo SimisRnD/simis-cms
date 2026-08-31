@@ -19,6 +19,8 @@ package com.simisinc.platform.domain.events.mailinglists;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Fired when a public signup path (double opt-in) creates or reactivates a mailing list
@@ -29,13 +31,15 @@ import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
  *
  * @author SimIS Inc.
  */
+@NoArgsConstructor
+@Setter
 public class MailingListMemberConfirmationRequestedEvent extends Event {
 
   public static final String ID = "mailing-list-member-confirmation-requested";
 
-  private final MailingListMember member;
-  private final MailingList mailingList;
-  private final String confirmUrl;
+  private MailingListMember member;
+  private MailingList mailingList;
+  private String confirmUrl;
 
   public MailingListMemberConfirmationRequestedEvent(MailingListMember member, MailingList mailingList, String confirmUrl) {
     this.member = member;

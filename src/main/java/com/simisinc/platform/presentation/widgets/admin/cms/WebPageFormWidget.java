@@ -17,12 +17,16 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.InternalPageAccessCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
 import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
+import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -79,6 +83,22 @@ public class WebPageFormWidget extends GenericWidget {
 
     context.getRequest().setAttribute("sitemapChangeFrequencyMap", SitemapChangeFrequencyOptions.map);
     context.getRequest().setAttribute("solutionTypeMap", SolutionTypeOptions.map);
+
+    // Issue #1688: say what ticking "Internal" will actually do right now, rather than describing the
+    // flag in the abstract. This screen is role="admin,content-manager" while the setting that gives
+    // the flag its teeth lives on /admin/security-properties, which is role="admin" -- so a content
+    // manager can cause the restriction, cannot see or clear the setting behind it, and gets no
+    // symptom of their own because the content-editor tier bypasses the gate.
+    String internalGroupUniqueId = StringUtils
+        .trimToNull(LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP));
+    String internalEffect = "restricts nobody until a group is chosen in Security Settings";
+    if (internalGroupUniqueId != null) {
+      Group internalGroup = GroupRepository.findByUniqueId(internalGroupUniqueId);
+      internalEffect = (internalGroup != null)
+          ? "viewable only by " + internalGroup.getName() + ", plus content editors"
+          : "restricts everyone except content editors -- Security Settings names a group that no longer exists";
+    }
+    context.getRequest().setAttribute("internalEffect", internalEffect);
 
     // Show the editor
     context.setJsp(JSP);

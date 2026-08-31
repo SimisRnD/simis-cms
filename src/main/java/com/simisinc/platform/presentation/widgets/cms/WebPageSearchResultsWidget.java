@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.InternalPageAccessCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
@@ -165,6 +166,10 @@ public class WebPageSearchResultsWidget extends GenericWidget {
         // Confirm the content is in a content widget, and verify the widget will render for this user
         Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, link);
         if (pageRef == null) {
+          continue;
+        }
+        // Internal pages (#1688): keep staff-only pages out of content search results.
+        if (InternalPageAccessCommand.isBlocked(webPage, userSession)) {
           continue;
         }
         if (!WebComponentCommand.allowsUser(pageRef, userSession)) {

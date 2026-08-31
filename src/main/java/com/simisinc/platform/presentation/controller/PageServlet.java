@@ -334,6 +334,15 @@ public class PageServlet extends HttpServlet {
             return;
           }
         }
+        // Internal pages (#1688): refuse here, ahead of the redirect below -- a gate placed after it
+        // would still hand an internal page's redirect target to anyone who asked. Deliberately NOT
+        // wrapped in !validPreviewToken: a preview link is handed to reviewers by design, and letting
+        // it bypass a staff-only gate would turn every preview link into an anonymous handout.
+        if (InternalPageAccessCommand.isBlocked(webPage, userSession)) {
+          controllerSession.clearAllWidgetData();
+          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          return;
+        }
         // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {

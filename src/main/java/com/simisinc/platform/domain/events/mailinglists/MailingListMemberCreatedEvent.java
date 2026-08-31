@@ -20,19 +20,23 @@ import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Event details for when a new mailing list member is created (issue #452).
  *
  * @author SimIS Inc.
  */
+@NoArgsConstructor
+@Setter
 public class MailingListMemberCreatedEvent extends Event {
 
   public static final String ID = "mailing-list-member-created";
 
-  private final MailingListMember member;
-  private final MailingList mailingList;
-  private final User user;
+  private MailingListMember member;
+  private MailingList mailingList;
+  private User user;
 
   public MailingListMemberCreatedEvent(MailingListMember member, MailingList mailingList, User user) {
     this.member = member;

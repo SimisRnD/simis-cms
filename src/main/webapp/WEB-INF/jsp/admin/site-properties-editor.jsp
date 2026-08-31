@@ -277,6 +277,26 @@
                 </div>
               </div>
             </c:when>
+            <c:when test="${siteProperty.type eq 'group'}">
+              <%-- Issue #1688. The stored value is a group's uniqueId, which is what
+                   UserSession.hasGroup matches on -- never the display name. --%>
+              <c:set var="groupValueFound" value="false" />
+              <c:forEach items="${groupList}" var="group">
+                <c:if test="${siteProperty.value eq group.uniqueId}"><c:set var="groupValueFound" value="true" /></c:if>
+              </c:forEach>
+              <select name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
+                <option value="">None &#8212; &quot;Internal&quot; stays a label only</option>
+                <c:forEach items="${groupList}" var="group">
+                  <option value="${html:toHtml(group.uniqueId)}"<c:if test="${siteProperty.value eq group.uniqueId}"> selected</c:if>><c:out value="${group.name}" /></option>
+                </c:forEach>
+                <%-- A stored value that matches no existing group still has to appear, and stay
+                     selected: without this the select falls back to the blank option and the next
+                     save silently clears the restriction without anyone choosing to. --%>
+                <c:if test="${not empty siteProperty.value and not groupValueFound}">
+                  <option value="${html:toHtml(siteProperty.value)}" selected><c:out value="${siteProperty.value}" /> (missing group)</option>
+                </c:if>
+              </select>
+            </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
@@ -292,10 +312,7 @@
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
-            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>
@@ -348,6 +365,7 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}"> aria-describedby="securityIframeAllowedHostsHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -489,6 +507,9 @@
           <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}">
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
+            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
           </c:if>
@@ -619,7 +640,7 @@
             <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Blocking covers both the password sign-in form and the "Stay logged in" remember-me cookie, so a non-admin who ticked that box before you turned this off stops being signed back in automatically. It does not sign anyone out: a non-admin already browsing keeps their session until it times out on its own. Unlike "Allow registrations?", an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.confirmation'}">
             <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
@@ -656,6 +677,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
             <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.internalPages.group'}">
+            <p class="help-text" id="internalPagesGroupHelpText">Members of this group may view pages ticked <strong>Internal</strong> on the <a href="${ctx}/admin/web-pages">Web Pages</a> screen; everyone else gets "not found", and those pages drop out of search, the sitemap and the menus. Leave it blank and <strong>Internal</strong> stays a label that restricts nobody. Two limits worth knowing: content editors can always view internal pages, so this is not a way to keep something from them; and it protects the <em>page</em>, not the content itself, which stays readable through the content API.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
