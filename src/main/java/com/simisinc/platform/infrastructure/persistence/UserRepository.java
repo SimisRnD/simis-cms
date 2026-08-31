@@ -262,6 +262,15 @@ public class UserRepository {
     return records;
   }
 
+  /**
+   * How many accounts are marked break-glass. Used by the user form to warn before the last one is
+   * cleared: with none left, an MFA enforcement policy naming a role every administrator holds can
+   * strand all of them, which is the situation a break-glass account exists to prevent.
+   */
+  public static long countBreakGlassAccounts() {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("break_glass = ?", true));
+  }
+
   public static long countLockedAccounts() {
     return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("locked_until > ?", new Timestamp(System.currentTimeMillis())));
   }
