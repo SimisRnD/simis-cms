@@ -26,7 +26,7 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">
+<p class="help-text page-help">
   Prior published versions of <code><c:out value="${content.uniqueId}" /></code>. Restoring a version
   loads it into the draft slot for review -- it will not go live until it is submitted, approved, and
   published again.

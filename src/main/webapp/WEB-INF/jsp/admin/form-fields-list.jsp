@@ -25,13 +25,13 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Drag the <i class="fa fa-arrows"></i> handle to reorder fields, click <i class="${font:fas()} fa-edit"></i> to edit
   a field, or <i class="fa fa-circle-xmark"></i> to remove it. Reordering is staged in the browser
   only, as you drag -- nothing is saved until you click <strong>Save Field Order</strong> below;
   navigating away first discards it. There's no limit on how many fields a form can have.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   Deleting a field is permanent and immediate (no separate save step) -- but it only affects the
   field definition itself, not anything already submitted through it. Every past submission stores
   its own independent snapshot of each field's label, name, type, and answer at the moment it was

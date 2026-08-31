@@ -27,7 +27,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Every page on the site lives here, in two views of the same underlying records. <strong>In Navigation
   Menu</strong> below mirrors the site's actual top-nav hierarchy (see <a href="${ctx}/admin/sitemap">Navigation
   Menu</a> to change it) -- it isn't searchable or filterable, and its rows aren't bulk-selectable, since it's
@@ -38,7 +38,7 @@
   navigation menu can still show up above with no matching row in this list, unless you switch the Status filter
   to Archived.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <strong>live</strong>/<strong>draft</strong>/<strong>301</strong>/<strong>404</strong>/<strong>archived</strong>
   describe the page itself. <strong>404</strong> means a page record exists (so something links to it) but it
   has no stored content -- a broken link waiting to happen, not evidence anything is actually wrong yet (fixing
