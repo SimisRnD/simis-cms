@@ -1094,6 +1094,15 @@
           <value>Submissions</value>
           <days>30</days>
           <limit>10</limit>
+          <!-- Same windows as the rejected-submissions tile beside it, so the two can be read
+               against each other; submissions and rejections are only meaningful as a pair.
+               Day-based options only, for the same reason given there:
+               findSubmissionCountsByForm reads the interval's number as days. -->
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
