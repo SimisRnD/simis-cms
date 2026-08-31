@@ -620,7 +620,7 @@
             <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Blocking covers both the password sign-in form and the "Stay logged in" remember-me cookie, so a non-admin who ticked that box before you turned this off stops being signed back in automatically. It does not sign anyone out: a non-admin already browsing keeps their session until it times out on its own. Unlike "Allow registrations?", an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.confirmation'}">
             <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
