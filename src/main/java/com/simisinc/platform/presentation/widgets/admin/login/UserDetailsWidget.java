@@ -88,7 +88,7 @@ public class UserDetailsWidget extends GenericWidget {
     // Password-age warning tier (#492): "warning" past the configurable threshold, "critical" at
     // 2x it (not separately configurable), "ok" otherwise. A never-tracked password (existing
     // account predating this column) is treated as maximally stale, not silently skipped.
-    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("security.password.maxAgeDays"));
     context.getRequest().setAttribute("passwordAgeSeverity", passwordAgeSeverity(user.getLastPasswordChangedAt(), maxAgeDays));
 
     // Maker-checker unsuspend (#492 Phase 3): an elevated-role account can't be reactivated by one

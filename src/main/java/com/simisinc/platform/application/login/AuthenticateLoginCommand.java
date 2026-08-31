@@ -204,14 +204,20 @@ public class AuthenticateLoginCommand {
     }
   }
 
-  /** @return the consecutive-failed-attempt threshold before lockout (site property, default 5). */
+  /**
+   * @return the consecutive-failed-attempt threshold before lockout (site property
+   *         {@code security.lockout.threshold} on /admin/security-properties, default 5).
+   */
   private static int lockoutThreshold() {
-    return parsePositiveInt(LoadSitePropertyCommand.loadByName("account.lockout.threshold"), 5);
+    return parsePositiveInt(LoadSitePropertyCommand.loadByName("security.lockout.threshold"), 5);
   }
 
-  /** @return how long a locked account stays locked, in minutes (site property, default 15). */
+  /**
+   * @return how long a locked account stays locked, in minutes (site property
+   *         {@code security.lockout.durationMinutes} on /admin/security-properties, default 15).
+   */
   private static int lockoutDurationMinutes() {
-    return parsePositiveInt(LoadSitePropertyCommand.loadByName("account.lockout.durationMinutes"), 15);
+    return parsePositiveInt(LoadSitePropertyCommand.loadByName("security.lockout.durationMinutes"), 15);
   }
 
   private static int parsePositiveInt(String value, int defaultValue) {
