@@ -24,6 +24,15 @@
     member: '{{ event.member }}'
     mailingList: '{{ event.mailingList }}'
   workflow:
+    # The subscriber's own welcome. Until this existed the confirmation flow told the ADMINS a
+    # subscription had completed and told the subscriber nothing at all -- the last thing they saw
+    # was an email asking them to confirm. This is also the first place an unsubscribe link belongs:
+    # the confirmation email deliberately has none, because before confirming there is nothing to
+    # unsubscribe from.
+    - email:
+      to-email: '{{ member.emailAddress }}'
+      subject: 'Welcome to {{ mailingList.title }}'
+      template: 'mailinglists/welcome-subscriber'
     - email:
       to-capability: 'community:manage'
       subject: 'New {{ mailingList.title }} subscriber'
