@@ -22,7 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <div class="callout success">
 <c:if test="${!empty successTitle}">
-  <h4><c:out value="${successTitle}" /></h4>
+  <h2 class="h4"><c:out value="${successTitle}" /></h2>
 </c:if>
 <p><c:out value="${successMessage}" /></p>
 </div>

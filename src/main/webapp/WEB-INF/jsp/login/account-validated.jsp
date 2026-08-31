@@ -20,10 +20,10 @@
 <jsp:useBean id="confirmation" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${empty doPassword || doPassword ne 'true'}">
-    <h4 class="text-center">Your account has been validated</h4>
+    <h2 class="text-center h4">Your account has been validated</h2>
   </c:when>
   <c:otherwise>
-    <h5 class="text-center">Please create your password to continue</h5>
+    <h2 class="text-center h5">Please create your password to continue</h2>
     <form method="post">
         <%-- Required by controller --%>
       <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

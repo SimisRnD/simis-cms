@@ -16,7 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<h4>This confirmation link is no longer valid</h4>
+<h2 class="h4">This confirmation link is no longer valid</h2>
 <p>
   It may have already been used, or it may have expired. If you still want to subscribe, please
   sign up again from the site to get a fresh confirmation email.

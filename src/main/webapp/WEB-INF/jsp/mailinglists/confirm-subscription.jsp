@@ -17,7 +17,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <div class="callout success">
-  <h4>Subscription confirmed</h4>
+  <h2 class="h4">Subscription confirmed</h2>
   <p>
     <c:choose>
       <c:when test="${not empty mailingList.title}">
