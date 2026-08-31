@@ -47,9 +47,15 @@
           <label>Email
             <input name="email" type="text" placeholder="Email" required>
           </label>
-          <label>Password
-            <input name="password" type="password" placeholder="Password" autocomplete="off" required>
-          </label>
+          <%-- The input sits outside the label rather than inside it: a button nested in a label has
+               its clicks forwarded to the labelled control, which would steal focus from the toggle. --%>
+          <label for="login-password">Password</label>
+          <div class="password-field">
+            <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="off" required>
+            <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                    aria-pressed="false" aria-label="Show the value while typing"
+                    title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+          </div>
           <p class="help-text text-right">
             <a href="${ctx}/forgot-password">Forgot your password?</a>
           </p>
