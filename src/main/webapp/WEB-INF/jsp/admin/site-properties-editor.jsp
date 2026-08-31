@@ -472,6 +472,12 @@
           <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
             <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.threshold'}">
+            <p class="help-text" id="securityLockoutThresholdHelpText">How many consecutive failed logins lock the account itself, recorded on the user record and audited. Distinct from the per-username rate limit above: that one throttles attempts within a rolling window and forgets them as the window slides, while this one latches -- the account stays locked for the duration below no matter where the next attempt comes from, and only a successful login clears the count. Default is 5.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.durationMinutes'}">
+            <p class="help-text" id="securityLockoutDurationMinutesHelpText">How long a locked account stays locked, in minutes, after the threshold above is crossed. The lock expires on its own -- an administrator does not have to unlock the account -- so a long duration is the setting to raise during a brute-force wave, at the cost of locking real users out for that long after that many typos. Note the failed-attempt count is only cleared by a successful login, so once an expired lock lets someone back in, a single further failure re-locks the account. Default is 15 minutes.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}">
             <p class="help-text" id="securityIpRequestRateAlertThresholdHelpText">When the busiest single non-bot IP address exceeds this many page requests in an hour, the "Request Rate Spike" tile on the Site Analytics dashboard turns red. This is a passive dashboard indicator only -- nothing emails, texts, or otherwise pages anyone, so someone has to actually look at the dashboard to notice. Default is 300.</p>
           </c:if>

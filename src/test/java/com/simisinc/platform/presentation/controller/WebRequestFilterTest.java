@@ -18,7 +18,9 @@ package com.simisinc.platform.presentation.controller;
 
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -50,16 +52,20 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DoNotTrackCommand;
+import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
 import com.simisinc.platform.application.cms.LoadWebRedirectCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -946,5 +952,113 @@ class WebRequestFilterTest {
       verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
       verify(chain, never()).doFilter(any(), any());
     }
+  }
+
+  // --- "Show login?" (site.login) and the remember-me cookie ---
+  // LoginWidget.finalizeLogin gates a password sign-in on site.login, but the remember-me restore in
+  // doFilter established a session by calling UserSession.login(user) directly and never consulted the
+  // setting. A non-admin who ticked "Stay logged in" before an admin turned the toggle off therefore kept
+  // getting authenticated sessions from the cookie -- and indefinitely, not for one fortnight, because
+  // each restore re-extends the token row and the cookie by another two weeks.
+
+  /** A request from a browser that holds a remember-me cookie but has no authenticated session yet. */
+  private HttpServletRequest anonymousRequestWithRememberMeCookie(HttpSession session, String token) {
+    UserSession userSession = new UserSession();
+    Assertions.assertFalse(userSession.isLoggedIn());
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    return loggedInRequest(session, new Cookie[] { new Cookie(CookieConstants.USER_TOKEN, token) });
+  }
+
+  private User userWithRoles(long id, String... roleCodes) {
+    User user = new User();
+    user.setId(id);
+    user.setEmail("user" + id + "@example.com");
+    List<Role> roleList = new ArrayList<>();
+    for (String code : roleCodes) {
+      roleList.add(new Role("Title", code));
+    }
+    user.setRoleList(roleList);
+    return user;
+  }
+
+  /**
+   * Runs one remember-me restore against a given site.login value and reports whether the filter
+   * established an authenticated session for the token's user.
+   *
+   * @return true when the cookie was honored and the user ended up logged in
+   */
+  private boolean rememberMeRestoreLogsIn(User user, String siteLoginValue, boolean expectCookieCleared)
+      throws Exception {
+    String token = "remember-me-token-" + user.getId();
+    HttpSession session = mock(HttpSession.class);
+    HttpServletRequest request = anonymousRequestWithRememberMeCookie(session, token);
+    UserSession userSession = (UserSession) session.getAttribute(SessionConstants.USER);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class);
+        MockedStatic<SaveVisitorCommand> visitors = mockStatic(SaveVisitorCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<BreakGlassAlertCommand> breakGlass = mockStatic(BreakGlassAlertCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString()))
+          .thenReturn(TEST_ZONE.getId());
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn(siteLoginValue);
+      // The remember-me token itself is valid and resolves to a live, enabled account -- the setting
+      // is the only thing under test here
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(token)).thenReturn(user);
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(user.getId())).thenReturn(user);
+      mfa.when(() -> MfaEnforcementCommand.requiresEnrollment(any(), eq(user))).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      // Whichever way the gate falls, the request itself is served rather than redirected
+      verify(chain).doFilter(request, response);
+      logout.verify(() -> LogoutCommand.logout(request, response), never());
+
+      // A refused restore must not quietly revoke the credential: the token stays valid in the
+      // database and the browser keeps its cookie, so re-enabling the setting restores these users
+      auth.verify(() -> AuthenticateLoginCommand.extendTokenExpiration(eq(token), anyInt()),
+          userSession.isLoggedIn() ? times(1) : never());
+      verify(response, expectCookieCleared ? times(1) : never()).addCookie(argThat(
+          cookie -> CookieConstants.USER_TOKEN.equals(cookie.getName()) && cookie.getMaxAge() == 0));
+
+      return userSession.isLoggedIn();
+    }
+  }
+
+  @Test
+  void aNonAdminRememberMeCookieIsRefusedWhileSignInsAreDisabled() throws Exception {
+    Assertions.assertFalse(rememberMeRestoreLogsIn(userWithRoles(60L), "false", false),
+        "A non-admin's remember-me cookie must not establish a session while site.login is off");
+  }
+
+  @Test
+  void aNonAdminRememberMeCookieStillWorksWhileSignInsAreEnabled() throws Exception {
+    // Guards the other direction: the gate must not break the ordinary remember-me path
+    Assertions.assertTrue(rememberMeRestoreLogsIn(userWithRoles(61L), "true", false),
+        "A non-admin's remember-me cookie must still work while site.login is on");
+  }
+
+  @Test
+  void anAdminRememberMeCookieStillWorksWhileSignInsAreDisabled() throws Exception {
+    // Mirrors LoginWidget.finalizeLogin's admin exemption, so a misconfigured toggle can never lock
+    // the site owner out of their own site
+    Assertions.assertTrue(rememberMeRestoreLogsIn(userWithRoles(62L, "admin"), "false", false),
+        "An admin's remember-me cookie must still work while site.login is off");
   }
 }
