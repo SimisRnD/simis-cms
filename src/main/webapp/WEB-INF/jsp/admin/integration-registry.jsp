@@ -21,7 +21,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">Browse and install third-party integrations. Installing saves the
+<p class="help-text page-help">Browse and install third-party integrations. Installing saves the
   credential(s) below and, for a webhook-based integration, creates a subscription so it starts
   receiving the events you select. <a href="${ctx}/admin/integrations/secrets">View secret
   rotation &amp; expiry audit &rarr;</a></p>

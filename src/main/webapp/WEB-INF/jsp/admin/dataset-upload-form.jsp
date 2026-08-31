@@ -29,7 +29,7 @@
     <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">Creates a new Dataset: give it a name, supply a source URL or upload a file, and pick the matching Dataset Type. Once it's created, the source, sync schedule, and field mappings are configured on its own tabs.</p>
+  <p class="help-text page-help">Creates a new Dataset: give it a name, supply a source URL or upload a file, and pick the matching Dataset Type. Once it's created, the source, sync schedule, and field mappings are configured on its own tabs.</p>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
     <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${dataset.name}"/>" required>

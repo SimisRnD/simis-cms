@@ -22,7 +22,7 @@
 </c:if>
 
 <p class="help-text"><a href="${ctx}/admin/integrations">&larr; Back to Integrations</a></p>
-<p class="help-text">Every integration credential the platform can store, in one place. Values are
+<p class="help-text page-help">Every integration credential the platform can store, in one place. Values are
   encrypted at rest and never shown here -- rotate a value from its own settings page (linked
   below); this view is read-only. Rows with no link are provisioned directly in the database and
   not editable from any admin screen, by design.</p>

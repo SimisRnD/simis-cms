@@ -53,4 +53,4 @@
     </c:if>
   </tbody>
 </table>
-<p class="help-text">These links show as icons in the site footer, in the order set above; the icon for each is picked automatically from the platform name.</p>
+<p class="help-text page-help">These links show as icons in the site footer, in the order set above; the icon for each is picked automatically from the platform name.</p>

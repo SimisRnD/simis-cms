@@ -43,7 +43,7 @@
     </c:if>
   </c:when>
   <c:otherwise>
-    <p class="help-text">Each row is a host a candidate policy would have refused, and how many times. Add the ones
+    <p class="help-text page-help">Each row is a host a candidate policy would have refused, and how many times. Add the ones
       that belong to services this site genuinely uses to the matching directive, then re-test. Rows shown as
       <code>'inline'</code> or <code>'eval'</code> are not hosts &mdash; they mean the policy would have blocked
       inline or evaluated code on that page.</p>
@@ -83,7 +83,7 @@
       <input type="hidden" name="token" value="${userSession.formToken}"/>
       <button type="submit" class="button small secondary radius"><i class="${font:fas()} fa-trash"></i> Clear collected reports</button>
     </form>
-    <p class="help-text">Clear these once the policy has been updated from them, so the next round of testing starts
+    <p class="help-text page-help">Clear these once the policy has been updated from them, so the next round of testing starts
       from a clean slate. At most <c:out value="${maxDistinctViolations}"/> distinct directive/host pairs are ever stored; past that,
       counts keep rising but new hosts are refused.</p>
   </c:otherwise>
