@@ -281,6 +281,10 @@
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
                     <c:if test="${siteProperty.value eq 'true'}"> checked</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if>
@@ -344,10 +348,6 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
