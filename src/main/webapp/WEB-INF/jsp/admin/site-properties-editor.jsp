@@ -292,10 +292,7 @@
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
-            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>
@@ -348,6 +345,7 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}"> aria-describedby="securityIframeAllowedHostsHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -482,6 +480,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}">
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
+            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
