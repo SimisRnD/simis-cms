@@ -18,7 +18,7 @@
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
-<h4>Wiki Has Not Been Setup</h4>
+<h2 class="h4">Wiki Has Not Been Setup</h2>
 <hr />
 <div class="platform-content-container">
   <div class="platform-content">

@@ -17,7 +17,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <div class="callout success">
-  <h4>You've been unsubscribed</h4>
+  <h2 class="h4">You've been unsubscribed</h2>
   <p>You won't receive any more emails from this mailing list.</p>
 </div>
 <p>

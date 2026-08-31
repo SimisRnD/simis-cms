@@ -17,9 +17,9 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
-<h4>
+<h2 class="h4">
   An error occurred
-</h4>
+</h2>
 <p>
   This account may have already been validated, or the request expired.
   If you have trouble logging into your account then you can request another
