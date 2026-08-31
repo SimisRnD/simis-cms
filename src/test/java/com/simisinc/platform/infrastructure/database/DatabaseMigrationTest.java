@@ -269,6 +269,26 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void cspReportOnlyPropertySeedsOnAFreshInstall() throws SQLException {
+    // Issue #1430: security.csp.reportOnly was inserted only by
+    // UPGRADE_20260827.1100__csp_report_only_property.sql, so it existed on upgraded deployments
+    // and not on fresh installs -- SchemaInstallUpgradeParityTest compares CREATE TABLE statements
+    // and would never have caught a missing site_properties row (the csp_violation table itself
+    // WAS mirrored, which is what made the gap look closed). The missing row is not just a missing
+    // default: SitePropertiesEditorWidget renders and saves only the rows
+    // SitePropertyRepository.findAllByPrefix("security") returns, so with no row there is no field
+    // on /admin/security-properties and saving that page cannot create one -- leaving CSP
+    // report-only mode and the /csp-report collector unreachable. Asserting the empty string rather
+    // than just non-null pins both halves: the row exists, and it still seeds blank so
+    // CspPolicyCommand.reportOnlyPolicy() returns null and no header is sent until an administrator
+    // sets a policy.
+    assertEquals("", sitePropertyValue("security.csp.reportOnly"),
+        "security.csp.reportOnly is missing on a fresh install -- /admin/security-properties will "
+            + "render no field for it, so report-only CSP cannot be enabled at all");
+    assertEquals("text", sitePropertyType("security.csp.reportOnly"));
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage
