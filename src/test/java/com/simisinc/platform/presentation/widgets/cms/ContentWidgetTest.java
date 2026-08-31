@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,6 +81,78 @@ class ContentWidgetTest extends WidgetBase {
     Assertions.assertTrue(widgetContext.hasJsp());
     Assertions.assertEquals(ContentWidget.JSP, widgetContext.getJsp());
     Assertions.assertNotNull(request.getAttribute("contentHtml"));
+  }
+
+  /**
+   * Issue: the optional "Last updated" line. The record's own timestamp is exposed only when the
+   * record's html is what ends up on screen.
+   */
+  @Test
+  void aContentRecordExposesItsOwnModifiedDate() {
+    preferences.put("uniqueId", "hello-content");
+    preferences.put("showLastUpdated", "true");
+
+    Content content = new Content();
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Hello</p>");
+    Timestamp modified = Timestamp.valueOf("2026-08-14 09:30:00");
+    content.setModified(modified);
+
+    try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
+      staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
+          .thenReturn(content);
+      widgetContext = new ContentWidget().execute(widgetContext);
+    }
+    Assertions.assertEquals(modified, request.getAttribute("contentModified"),
+        "the record supplied the html, so its own date is the one to report");
+    Assertions.assertEquals("true", request.getAttribute("showLastUpdated"));
+  }
+
+  /**
+   * The empty-record fallback (issue 1689): the record exists but is blank, so the html on screen
+   * comes from the page XML instead. Reporting the record's date here would put a date on the page
+   * that has nothing to do with when that html was last edited, so it must be cleared -- the JSP
+   * then falls through to the page's own modified date.
+   */
+  @Test
+  void anEmptyRecordDoesNotLendItsDateToTheInlineHtmlThatReplacesIt() {
+    preferences.put("uniqueId", "hello-content");
+    preferences.put("showLastUpdated", "true");
+    preferences.put("html", "<p>Inline from the page XML</p>");
+
+    Content emptyRecord = new Content();
+    emptyRecord.setUniqueId("hello-content");
+    emptyRecord.setContent("");
+    emptyRecord.setModified(Timestamp.valueOf("2020-01-01 00:00:00"));
+
+    try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
+      staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
+          .thenReturn(emptyRecord);
+      widgetContext = new ContentWidget().execute(widgetContext);
+    }
+    String contentHtml = (String) request.getAttribute("contentHtml");
+    Assertions.assertTrue(contentHtml.contains("Inline from the page XML"),
+        "precondition: the inline html is what is being rendered");
+    Assertions.assertNull(request.getAttribute("contentModified"),
+        "the record did not supply the html, so its date must not be reported for it");
+  }
+
+  @Test
+  void theLastUpdatedLineIsOffUnlessThePageAsksForIt() {
+    preferences.put("uniqueId", "hello-content");
+
+    Content content = new Content();
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Hello</p>");
+    content.setModified(Timestamp.valueOf("2026-08-14 09:30:00"));
+
+    try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
+      staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
+          .thenReturn(content);
+      widgetContext = new ContentWidget().execute(widgetContext);
+    }
+    Assertions.assertNull(request.getAttribute("showLastUpdated"),
+        "no preference means no line -- existing pages must not sprout a date they did not ask for");
   }
 
   @Test

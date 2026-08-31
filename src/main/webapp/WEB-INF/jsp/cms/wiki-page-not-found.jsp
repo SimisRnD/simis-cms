@@ -20,7 +20,7 @@
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
-<h4><c:out value="${wikiPage.title}" /></h4>
+<h2 class="h4"><c:out value="${wikiPage.title}" /></h2>
 <hr />
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty wikiPage.uniqueId}">

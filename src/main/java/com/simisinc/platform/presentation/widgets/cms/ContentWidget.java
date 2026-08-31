@@ -64,6 +64,11 @@ public class ContentWidget extends GenericWidget {
     // Preferences
     context.getRequest().setAttribute("videoBackgroundUrl", context.getPreferences().get("videoBackgroundUrl"));
 
+    // Opt-in "Last updated" line. Off unless a page asks for it: it is wanted on the pages where
+    // currency is the point -- a policy, a certification, a published standard -- and is noise on a
+    // marketing panel or a call-to-action block, which is most of them.
+    context.getRequest().setAttribute("showLastUpdated", context.getPreferences().get("showLastUpdated"));
+
     // Use the final html
     context.getRequest().setAttribute("contentHtml", html);
 

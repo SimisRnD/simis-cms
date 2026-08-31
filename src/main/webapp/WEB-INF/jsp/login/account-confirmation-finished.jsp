@@ -16,9 +16,9 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<h4>
+<h2 class="h4">
   Your account is now setup
-</h4>
+</h2>
 <p>
   <a href="${ctx}/login" class="button success radius no-gap">Login <i class="fa fa-angle-right"></i></a>
 </p>
