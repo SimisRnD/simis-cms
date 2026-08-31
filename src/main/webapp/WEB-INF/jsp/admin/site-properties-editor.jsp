@@ -292,10 +292,7 @@
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
-            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>
@@ -348,6 +345,7 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}"> aria-describedby="securityIframeAllowedHostsHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -474,6 +472,12 @@
           <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
             <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.threshold'}">
+            <p class="help-text" id="securityLockoutThresholdHelpText">How many consecutive failed logins lock the account itself, recorded on the user record and audited. Distinct from the per-username rate limit above: that one throttles attempts within a rolling window and forgets them as the window slides, while this one latches -- the account stays locked for the duration below no matter where the next attempt comes from, and only a successful login clears the count. Default is 5.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.durationMinutes'}">
+            <p class="help-text" id="securityLockoutDurationMinutesHelpText">How long a locked account stays locked, in minutes, after the threshold above is crossed. The lock expires on its own -- an administrator does not have to unlock the account -- so a long duration is the setting to raise during a brute-force wave, at the cost of locking real users out for that long after that many typos. Note the failed-attempt count is only cleared by a successful login, so once an expired lock lets someone back in, a single further failure re-locks the account. Default is 15 minutes.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}">
             <p class="help-text" id="securityIpRequestRateAlertThresholdHelpText">When the busiest single non-bot IP address exceeds this many page requests in an hour, the "Request Rate Spike" tile on the Site Analytics dashboard turns red. This is a passive dashboard indicator only -- nothing emails, texts, or otherwise pages anyone, so someone has to actually look at the dashboard to notice. Default is 300.</p>
           </c:if>
@@ -482,6 +486,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}">
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
+            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>

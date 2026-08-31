@@ -115,7 +115,7 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute("mfaFilter", mfaFilter);
 
     // "1" is the only supported value today (a simple on/off toggle); the threshold itself comes
-    // from the configurable password.maxAgeDays site property, not a request parameter.
+    // from the configurable security.password.maxAgeDays site property, not a request parameter.
     boolean agingPasswordFilter = "1".equals(context.getParameter("agingPasswordFilter"));
     context.getRequest().setAttribute("agingPasswordFilter", agingPasswordFilter ? "1" : "");
 
@@ -328,7 +328,7 @@ public class UsersListWidget extends GenericWidget {
       specification.setIsMfaEnabled(false);
     }
     if (agingPasswordFilter) {
-      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("security.password.maxAgeDays"));
       specification.setPasswordOlderThanDays(maxAgeDays);
     }
     return specification;

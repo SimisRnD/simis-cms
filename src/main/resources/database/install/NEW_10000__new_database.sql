@@ -190,7 +190,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password age warning threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 -- Only applies to form_data rows that have reached a terminal state (processed or dismissed by an
 -- admin) -- rows still awaiting review are never deleted by this, regardless of age. See
@@ -325,6 +324,13 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum password length', 'security.password.minLength', '15', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require password complexity?', 'security.password.requireComplexity', 'true', 'boolean');
+-- Issue #492: the /admin/users password-age warning threshold. Seeded under the "security"
+-- prefix so it appears on /admin/security-properties alongside the other password policy rows
+-- and inherits their step-up-auth gate; UPGRADE_20260831.1100 renames the original
+-- password.maxAgeDays row on existing deployments, which was seeded under a prefix that no
+-- admin page registers and so had no field anywhere. The UI's "red/expired" tier is computed
+-- as 2x this value, not separately stored.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Password age warning threshold (days)', 'security.password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Additional iframe embed hosts', 'security.iframe.allowedHosts', '', 'text');
 
 CREATE TABLE lookup_role (
