@@ -311,6 +311,7 @@
                     <c:if test="${siteProperty.name eq 'mail.starttls'}"> aria-describedby="mailStartTlsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'security.contentApi.enforcePageAccess'}"> aria-describedby="contentApiEnforceHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
@@ -681,6 +682,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
             <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.contentApi.enforcePageAccess'}">
+            <p class="help-text" id="contentApiEnforceHelpText">Makes <code>GET /api/content/{uniqueId}</code> check who is asking: the caller must be able to open at least one web page that renders the content. <strong>Leave this on.</strong> With it off, any holder of an app key can read any content record by its unique id -- including content that only appears on a page restricted by role, group, or the <strong>Internal</strong> flag -- and an app key is designed to be shared. Turn it off only for a deployment whose existing integrations read content anonymously and that has accepted that exposure knowingly. Content on no page at all is always readable: there is no page whose access rules it could inherit.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'security.internalPages.group'}">
             <p class="help-text" id="internalPagesGroupHelpText">Members of this group may view pages ticked <strong>Internal</strong> on the <a href="${ctx}/admin/web-pages">Web Pages</a> screen; everyone else gets "not found", and those pages drop out of search, the sitemap and the menus. Leave it blank and <strong>Internal</strong> stays a label that restricts nobody. Two limits worth knowing: content editors can always view internal pages, so this is not a way to keep something from them; and it protects the <em>page</em>, not the content itself, which stays readable through the content API.</p>
