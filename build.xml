@@ -438,9 +438,13 @@
 
   <target name="checkstyle" depends="check-jdk-version,prepare">
     <mkdir dir="${target.dir}/checkstyle"/>
+    <!-- Two formatters on purpose. The xml one is the machine-readable report; the plain one echoes
+         each violation to the console, because without it a failing run prints only the summary count
+         ("Got N errors and 0 warnings") and CI logs never say which file or line tripped the check. -->
     <checkstyle config="checkstyle.xml"
                 failureProperty="checkstyle.failure"
                 failOnViolation="true">
+      <formatter type="plain"/>
       <formatter type="xml" tofile="${target.dir}/checkstyle/checkstyle_report.xml"/>
       <fileset dir="${src.dir}" includes="**/*.java"/>
     </checkstyle>
