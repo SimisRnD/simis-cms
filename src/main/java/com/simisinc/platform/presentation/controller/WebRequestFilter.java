@@ -491,7 +491,30 @@ public class WebRequestFilter implements Filter {
       // Attempt to login the user
       if (cookieUserToken != null) {
         User user = AuthenticateLoginCommand.getAuthenticatedUser(cookieUserToken);
-        if (user != null) {
+        // "Show login?" (site.login) is enforced here as well as in LoginWidget.finalizeLogin.
+        // Restoring a remember-me cookie is a sign-in by this codebase's own reckoning -- it emits
+        // authentication.login.success, raises the break-glass alert, and writes a user_logins row --
+        // so leaving it ungated let a non-admin who ticked "Stay logged in" before the toggle was
+        // turned off keep minting authenticated sessions from the cookie. Not merely for the
+        // fortnight the cookie was issued for, either: every restore re-extends both the token row
+        // and the cookie by another two weeks (below), so visiting once a fortnight renewed the
+        // bypass indefinitely. Evaluating the CURRENT setting at restore time rather than freezing
+        // it at issue time matches how this same block already re-checks MFA enrollment.
+        // Deliberately NOT the same as revoking the token: the cookie and its user_tokens row are
+        // left intact, so flipping the setting back on restores these users without a fresh sign-in.
+        // The admin exemption mirrors finalizeLogin so a misconfigured toggle can never lock the
+        // site owner out. An already-established HttpSession is out of scope by design -- site.login
+        // governs becoming authenticated, not staying so (compare site.online, which PageServlet
+        // explicitly exempts logged-in users from) -- so a live session persists until it times out.
+        boolean signInsDisabled = user != null && !user.hasRole("admin")
+            && !"true".equals(LoadSitePropertyCommand.loadByName("site.login"));
+        if (signInsDisabled) {
+          // The enclosing isCookieChecked() guard runs this at most once per HttpSession, so the
+          // refusal is audited once per session rather than on every request
+          SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", user.getId(),
+              user.getEmail(), ipAddress, userSession.getSessionId(), "Sign-ins are currently disabled");
+        }
+        if (user != null && !signInsDisabled) {
           // Let the request know an authenticated user was retrieved
           userVerifiedThisRequest = true;
           // Log the user in
@@ -537,7 +560,7 @@ public class WebRequestFilter implements Filter {
           cookie.setPath("/");
           cookie.setMaxAge(twoWeeksSecondsInt);
           ((HttpServletResponse) servletResponse).addCookie(cookie);
-        } else {
+        } else if (user == null) {
           // Cleanup the cookie since the token is no longer valid
           Cookie cookie = new Cookie(CookieConstants.USER_TOKEN, "");
           if (request.isSecure()) {

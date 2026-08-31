@@ -612,9 +612,6 @@
           <c:if test="${siteProperty.name eq 'site.registrations'}">
             <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Shows or hides the Login link in the site header. This only hides the link -- it doesn't disable the /login page itself, so a direct link still works for anyone who has it.</p>
-          </c:if>
           <c:if test="${siteProperty.name eq 'site.confirmation'}">
             <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
           </c:if>
@@ -658,7 +655,7 @@
             <p class="help-text" id="siteOnlineHelpText">Turning this off swaps the homepage to a "coming soon" splash, hides the main nav menu, and blocks guest (keyless) API access and /sitemap.xml. It does not take other pages offline -- a web page, blog post, wiki page, or item reached by direct URL still renders normally for anonymous visitors while this is off.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Blocking covers both the password sign-in form and the "Stay logged in" remember-me cookie, so a non-admin who ticked that box before you turned this off stops being signed back in automatically. It does not sign anyone out: a non-admin already browsing keeps their session until it times out on its own. Unlike "Allow registrations?", an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.header.page'}">
             <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page.</p>
