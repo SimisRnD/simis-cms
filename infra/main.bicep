@@ -75,8 +75,8 @@ param dbUser string = 'simiscmsadmin'
 @description('CMS_TRUSTED_PROXIES value. A Java regular expression -- NOT CIDR -- matching the immediate peer (the App Service front ends) when the edge tier (#245) fronts the app.')
 param trustedProxies string = ''
 
-@description('CMS_CLIENT_IP_HEADER value. Set to X-Azure-ClientIP when Front Door fronts the app; empty keeps X-Forwarded-For. See issue #1675.')
-param clientIpHeader string = ''
+@description('CMS_CLIENT_IP_HEADER value. Defaults to X-Azure-ClientIP because this template always deploys Front Door in front of the app, so X-Forwarded-For resolution can never be correct here -- it stops at the Front Door node and reports that as the visitor (issue #1675). Override only for an ingress that publishes the client elsewhere; empty restores X-Forwarded-For.')
+param clientIpHeader string = 'X-Azure-ClientIP'
 
 @description('Public URL of the site (CMS_URL). Empty means the App Service default hostname; the custom domain replaces it at cutover.')
 param customUrl string = ''

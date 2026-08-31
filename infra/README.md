@@ -222,9 +222,10 @@ deployment rather than a change to the VNet's subnet list.
    Service as a *pending* private endpoint connection; approve it once
    (`az network private-endpoint-connection approve`). Until then the edge serves
    502s — the app has no other ingress by design.
-2. **Set `clientIpHeader` (CMS_CLIENT_IP_HEADER) to `X-Azure-ClientIP`, and
-   `trustedProxies` (CMS_TRUSTED_PROXIES) to a regex matching the App Service front
-   ends.** The proxy-aware handling shipped in #166/#182; these values activate it.
+2. **Set `trustedProxies` (CMS_TRUSTED_PROXIES) to a regex matching the App Service
+   front ends.** `clientIpHeader` now defaults to `X-Azure-ClientIP` and needs no
+   action -- this template always fronts the app with Front Door, so that is the only
+   correct value. The proxy-aware handling shipped in #166/#182; these values activate it.
    Without them, `getRemoteAddr()`/`isSecure()` see the proxy rather than the client,
    degrading the Secure-cookie flag, the IP firewall, rate limiting, and the audit
    source IP. Note `trustedProxies` is a **Java regex, not CIDR** — a CIDR value
