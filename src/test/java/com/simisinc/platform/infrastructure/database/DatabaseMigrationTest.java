@@ -289,6 +289,30 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void accountLockoutPropertiesSeedOnAFreshInstall() throws SQLException {
+    // Issue #295 / PR #318 shipped the durable account lockout reading its two thresholds through
+    // LoadSitePropertyCommand and calling them "site property" in javadoc, but no migration ever
+    // inserted a row -- not in install/ and not in upgrade/, so this is the same shape as the
+    // security.csp.reportOnly gap above with both halves missing instead of one. Lockout still
+    // worked, because AuthenticateLoginCommand falls back to 5 attempts / 15 minutes on a blank
+    // value; what did not work was changing either number, since SitePropertiesEditorWidget
+    // renders and saves only the rows SitePropertyRepository.findAllByPrefix(prefix) returns, so a
+    // property with no row has no field on any settings page and saving cannot create one.
+    // Asserting the exact values, not just non-null, pins the part that matters for existing
+    // sites: seeding these rows must not change what the login flow already enforces.
+    assertEquals("5", sitePropertyValue("security.lockout.threshold"),
+        "security.lockout.threshold is missing or not defaulted to 5 on a fresh install -- "
+            + "/admin/security-properties will render no field for it, so the lockout threshold "
+            + "cannot be changed without a code change");
+    assertEquals("text", sitePropertyType("security.lockout.threshold"));
+    assertEquals("15", sitePropertyValue("security.lockout.durationMinutes"),
+        "security.lockout.durationMinutes is missing or not defaulted to 15 on a fresh install -- "
+            + "/admin/security-properties will render no field for it, so the lockout duration "
+            + "cannot be changed without a code change");
+    assertEquals("text", sitePropertyType("security.lockout.durationMinutes"));
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage

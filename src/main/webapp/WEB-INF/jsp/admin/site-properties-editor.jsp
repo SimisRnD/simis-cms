@@ -281,6 +281,10 @@
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
                     <c:if test="${siteProperty.value eq 'true'}"> checked</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if>
@@ -344,10 +348,6 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -474,6 +474,12 @@
           <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
             <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.threshold'}">
+            <p class="help-text" id="securityLockoutThresholdHelpText">How many consecutive failed logins lock the account itself, recorded on the user record and audited. Distinct from the per-username rate limit above: that one throttles attempts within a rolling window and forgets them as the window slides, while this one latches -- the account stays locked for the duration below no matter where the next attempt comes from, and only a successful login clears the count. Default is 5.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.durationMinutes'}">
+            <p class="help-text" id="securityLockoutDurationMinutesHelpText">How long a locked account stays locked, in minutes, after the threshold above is crossed. The lock expires on its own -- an administrator does not have to unlock the account -- so a long duration is the setting to raise during a brute-force wave, at the cost of locking real users out for that long after that many typos. Note the failed-attempt count is only cleared by a successful login, so once an expired lock lets someone back in, a single further failure re-locks the account. Default is 15 minutes.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}">
             <p class="help-text" id="securityIpRequestRateAlertThresholdHelpText">When the busiest single non-bot IP address exceeds this many page requests in an hour, the "Request Rate Spike" tile on the Site Analytics dashboard turns red. This is a passive dashboard indicator only -- nothing emails, texts, or otherwise pages anyone, so someone has to actually look at the dashboard to notice. Default is 300.</p>
           </c:if>
@@ -571,7 +577,7 @@
             <p class="help-text" id="siteImageHelpText">The default image shown when a page is shared on social media (Open Graph and Twitter Card), used on any page without its own. Enter a site-relative path (for example /images/share.png) rather than a full URL -- it's combined with the Site URL above to form the complete address.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.online'}">
-            <p class="help-text" id="siteOnlineHelpText">When off, anonymous visitors are blocked from viewing the site -- logged-in users, including admins, can still get in, so this is safe to use for maintenance without locking yourself out. The XML sitemap also stops generating while offline, independent of the Sitemap toggle below (both must be on for the sitemap to work).</p>
+            <p class="help-text" id="siteOnlineHelpText">When off, the site is closed to the public: the homepage is replaced by a "coming soon" splash and every other page redirects to it, so a web page, blog post, wiki page, or item reached by a direct URL is no longer readable by an anonymous visitor. The main nav menu is hidden, and guest (keyless) API access, /sitemap.xml, /llms.txt, and the RSS feed are all blocked. Admins and content managers -- plus anyone following a valid draft-preview link -- keep browsing the whole site normally, so this is safe to use for maintenance without locking yourself out; a signed-in member holding neither of those two roles is redirected like any other visitor. The guest-facing auth pages (/login, /register, /forgot-password) stay reachable so a guest can still sign in. The sitemap needs this and the Sitemap toggle below both on.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.api'}">
             <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API.</p>
@@ -613,7 +619,7 @@
             <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Shows or hides the Login link in the site header. This only hides the link -- it doesn't disable the /login page itself, so a direct link still works for anyone who has it.</p>
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.confirmation'}">
             <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
@@ -653,12 +659,6 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.online'}">
-            <p class="help-text" id="siteOnlineHelpText">Turning this off swaps the homepage to a "coming soon" splash, hides the main nav menu, and blocks guest (keyless) API access and /sitemap.xml. It does not take other pages offline -- a web page, blog post, wiki page, or item reached by direct URL still renders normally for anonymous visitors while this is off.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.header.page'}">
             <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page.</p>
