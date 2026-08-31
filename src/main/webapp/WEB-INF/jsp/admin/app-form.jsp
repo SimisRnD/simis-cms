@@ -33,7 +33,7 @@
     <label>Client ID
       <input type="text" class="no-gap" readonly value="<c:out value="${app.publicKey}"/>" aria-describedby="appClientIdHelpText" onclick="this.select();">
     </label>
-    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity -- most endpoints also require an authenticated user via Basic or Bearer auth on top of it. Not sensitive on its own; safe to share with anyone building against this app's API, or to embed directly in client-side scripts. There is deliberately no "Client Secret" shown anywhere for this App -- it isn't a credential to look for or rely on.</p>
+    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity. Not sensitive on its own; safe to share with anyone building against this app's API, or to embed directly in client-side scripts. Know what it does grant, though: while the site is online, a key alone is enough to make a <strong>read</strong> request as a guest -- writes require an authenticated user via Basic or Bearer auth on top of it. Guest reads see only what a guest could see by visiting the site, so restrict content by restricting the page it appears on. There is deliberately no "Client Secret" shown anywhere for this App -- it isn't a credential to look for or rely on.</p>
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>

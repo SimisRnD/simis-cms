@@ -311,10 +311,11 @@ def test_a_dark_auto_divergence_outside_the_exempt_set_still_fails(tokens):
 
 def test_the_parity_check_is_total_with_no_exemptions_left(tokens):
     """PR #1492 converged md and lg, PR #1503 converged sm, so both exemption sets are empty
-    and every token declared in one block must match the other. Diverging any of the three
-    shadows must now fail -- previously each was excused by name."""
+    and every token declared in one block must match the other. Diverging either remaining
+    shadow must now fail -- previously each was excused by name. (--sc-shadow-sm was the
+    third case until issue 1590 removed the token as unconsumed.)"""
     original = (tokens / CSS).read_text(encoding="utf-8")
-    for token in ("--sc-shadow-sm", "--sc-shadow-md", "--sc-shadow-lg"):
+    for token in ("--sc-shadow-md", "--sc-shadow-lg"):
         hits = list(re.finditer(rf"{re.escape(token)}:\s*[^;]+;", original))
         assert len(hits) >= 3, f"expected light, dark and auto declarations of {token}"
         last = hits[-1]  # the auto block's copy

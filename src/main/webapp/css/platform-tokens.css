@@ -240,13 +240,12 @@
      Foundation's own components. These are the product's, so a palette change retunes
      them without editing vendored CSS.
 
-     strong on its own tint: success 4.79:1, warning 4.78:1, danger 4.77:1, info 4.74:1 */
-  --sc-success: #167a3c;
-  --sc-success-light: #dbf8e6;
-  --sc-warning: #906100;
-  --sc-warning-light: #fff0cf;
+     strong on its own tint: info 4.74:1
+
+     The success, warning and danger tints were removed in issue 1590 -- nothing consumed them,
+     and Foundation already supplies those colours to the components that need them. --sc-danger
+     stays: platform.css uses it as text, never on a tint of its own, so it has no pairing here. */
   --sc-danger: #ba4230;
-  --sc-danger-light: #faefed;
   --sc-info: #286eac;
   --sc-info-light: #eaf2fa;
 
@@ -286,7 +285,6 @@
   /* Elevation - kept deliberately light: thin borders carry most of the
      separation, shadows are a subtle assist rather than a floating-card
      effect. */
-  --sc-shadow-sm: 0 1px 2px rgba(23, 25, 30, 0.06);
   --sc-shadow-md: 0 1px 3px rgba(23, 25, 30, 0.08);
   --sc-shadow-lg: 0 2px 6px rgba(23, 25, 30, 0.10);
   /* One step above -lg, for a card that should read as an object sitting on the workspace
@@ -300,13 +298,10 @@
      escalating scale, to read as crisp/structured rather than soft. */
   --sc-radius-sm: 4px;
   --sc-radius-md: 4px;
-  --sc-radius-lg: 4px;
   --sc-radius-pill: 999px;
 
   --sc-space-1: 0.25rem;
   --sc-space-2: 0.5rem;
-  --sc-space-3: 0.75rem;
-  --sc-space-4: 1rem;
   --sc-space-5: 1.5rem;
   --sc-space-6: 2rem;
 
@@ -501,13 +496,8 @@
      are warmed to sit on the new ground -- a blue-grey state tint on a brown surface reads
      as a stain rather than a state. Info takes the teal so it does not compete with the
      amber, which this scheme reserves for attention.
-     dark, strong on its own tint: success 6.85:1, warning 6.12:1, danger 5.65:1, info 5.66:1 */
-  --sc-success: #7fc98f;
-  --sc-success-light: #25321f;
-  --sc-warning: #e0a63f;
-  --sc-warning-light: #3a2e18;
+     dark, strong on its own tint: info 5.66:1 */
   --sc-danger: #e5897d;
-  --sc-danger-light: #3a2420;
   --sc-info: #6fb3ac;
   --sc-info-light: #1f3130;
 
@@ -528,7 +518,6 @@
   --sc-focus-ring: #e09b4a;
 
   /* Shadows read as noise on a dark page; lean on borders instead. */
-  --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
   --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
   --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
   --sc-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 16px -8px rgba(0, 0, 0, 0.6);
@@ -633,12 +622,7 @@
     /* dark, brand text on surface 5.50:1 -- the light value is far too dark here. */
     --sc-brand-text: #e8734f;
     --sc-link-hover: #8fc7c1;
-    --sc-success: #7fc98f;
-    --sc-success-light: #25321f;
-    --sc-warning: #e0a63f;
-    --sc-warning-light: #3a2e18;
     --sc-danger: #e5897d;
-    --sc-danger-light: #3a2420;
     --sc-info: #6fb3ac;
     --sc-info-light: #1f3130;
 
@@ -652,7 +636,6 @@
 
     --sc-focus-ring: #e09b4a;
 
-    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
     --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
     --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
     --sc-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 16px -8px rgba(0, 0, 0, 0.6);
