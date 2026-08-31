@@ -181,7 +181,7 @@
           </label>
         </div>
       </label>
-      <label>Internal page? <small class="subheader">(employee/staff-only -- lets other admins hide these from the main web pages list)</small>
+      <label>Internal page? <small class="subheader">(employee/staff-only; hides the page from the main web pages list -- currently <c:out value="${internalEffect}" />)</small>
         <div class="switch large">
           <input class="switch-input" id="internal-yes-no" type="checkbox" name="internal" value="true"<c:if test="${webPage.internal}"> checked</c:if>>
           <label class="switch-paddle" for="internal-yes-no">

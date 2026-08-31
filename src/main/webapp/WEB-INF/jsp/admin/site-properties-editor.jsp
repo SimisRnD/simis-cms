@@ -277,6 +277,26 @@
                 </div>
               </div>
             </c:when>
+            <c:when test="${siteProperty.type eq 'group'}">
+              <%-- Issue #1688. The stored value is a group's uniqueId, which is what
+                   UserSession.hasGroup matches on -- never the display name. --%>
+              <c:set var="groupValueFound" value="false" />
+              <c:forEach items="${groupList}" var="group">
+                <c:if test="${siteProperty.value eq group.uniqueId}"><c:set var="groupValueFound" value="true" /></c:if>
+              </c:forEach>
+              <select name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
+                <option value="">None &#8212; &quot;Internal&quot; stays a label only</option>
+                <c:forEach items="${groupList}" var="group">
+                  <option value="${html:toHtml(group.uniqueId)}"<c:if test="${siteProperty.value eq group.uniqueId}"> selected</c:if>><c:out value="${group.name}" /></option>
+                </c:forEach>
+                <%-- A stored value that matches no existing group still has to appear, and stay
+                     selected: without this the select falls back to the blank option and the next
+                     save silently clears the restriction without anyone choosing to. --%>
+                <c:if test="${not empty siteProperty.value and not groupValueFound}">
+                  <option value="${html:toHtml(siteProperty.value)}" selected><c:out value="${siteProperty.value}" /> (missing group)</option>
+                </c:if>
+              </select>
+            </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
@@ -581,7 +601,11 @@
             <p class="help-text" id="siteOnlineHelpText">When off, the site is closed to the public: the homepage is replaced by a "coming soon" splash and every other page redirects to it, so a web page, blog post, wiki page, or item reached by a direct URL is no longer readable by an anonymous visitor. The main nav menu is hidden, and guest (keyless) API access, /sitemap.xml, /llms.txt, and the RSS feed are all blocked. Admins and content managers -- plus anyone following a valid draft-preview link -- keep browsing the whole site normally, so this is safe to use for maintenance without locking yourself out; a signed-in member holding neither of those two roles is redirected like any other visitor. The guest-facing auth pages (/login, /register, /forgot-password) stay reachable so a guest can still sign in. The sitemap needs this and the Sitemap toggle below both on.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.api'}">
-            <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API.</p>
+            <%-- The second sentence is a live caveat, not background: see issue #1701. ContentService.get()
+                 applies no access check of any kind, and RestRequestFilter admits a GET on an app key alone
+                 while the site is online, so this toggle is the only thing standing between a key holder and
+                 any content record. Remove this wording when #1701 is fixed, not before. --%>
+            <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API. <strong>Before turning this on:</strong> the API can currently read a content record by its unique id without checking who is allowed to see the page that content appears on, and while the site is online that read needs only an app key, not a signed-in user. Content placed only on a page restricted by role or group is therefore readable by anyone holding a key -- and the key is designed to be shared. Leave this off until you need the API, and treat the API as public-readable when you do.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.sitemap.xml'}">
             <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
@@ -657,6 +681,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
             <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.internalPages.group'}">
+            <p class="help-text" id="internalPagesGroupHelpText">Members of this group may view pages ticked <strong>Internal</strong> on the <a href="${ctx}/admin/web-pages">Web Pages</a> screen; everyone else gets "not found", and those pages drop out of search, the sitemap and the menus. Leave it blank and <strong>Internal</strong> stays a label that restricts nobody. Two limits worth knowing: content editors can always view internal pages, so this is not a way to keep something from them; and it protects the <em>page</em>, not the content itself, which stays readable through the content API.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
@@ -921,19 +948,5 @@
     document.getElementById('imageBrowserFrame').removeAttribute('src');
   });
 </script>
-<script nonce="${cspNonce}">
-  // Delegated, not an inline onclick: inline handlers are blocked by the site-wide CSP.
-  $(document).on('click', '[data-reveal-secret]', function () {
-    var button = $(this);
-    // .first() so the sibling "Expires" date input is never the one retyped.
-    var input = button.closest('.secret-field').find('input').first();
-    var revealed = input.attr('type') === 'text';
-    var label = revealed ? 'Show the value while typing' : 'Hide the value';
-    input.attr('type', revealed ? 'password' : 'text');
-    button.attr('aria-pressed', revealed ? 'false' : 'true');
-    button.attr('aria-label', label);
-    button.attr('title', label);
-    button.find('i').attr('class', revealed ? 'fa fa-eye' : 'fa fa-eye-slash');
-    input.trigger('focus');
-  });
-</script>
+<%-- The reveal toggle is handled by platform-password-reveal.js, shared with the auth forms.
+     The markup below is unchanged; only the handler moved. --%>

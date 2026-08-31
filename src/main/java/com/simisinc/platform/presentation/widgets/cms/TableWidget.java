@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * P5.4: Data Table Widget — Inline-editable table for structured data
  *
- * Renders accessible tables with proper <th scope> and ARIA labels.
+ * Renders accessible tables with proper {@code <th scope>} and ARIA labels.
  * In edit mode, cells are click-to-edit with keyboard navigation.
  * Table data stored as JSON: {headers: [...], rows: [[...], ...]}
  *

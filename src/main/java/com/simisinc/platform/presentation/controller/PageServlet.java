@@ -334,6 +334,15 @@ public class PageServlet extends HttpServlet {
             return;
           }
         }
+        // Internal pages (#1688): refuse here, ahead of the redirect below -- a gate placed after it
+        // would still hand an internal page's redirect target to anyone who asked. Deliberately NOT
+        // wrapped in !validPreviewToken: a preview link is handed to reviewers by design, and letting
+        // it bypass a staff-only gate would turn every preview link into an anonymous handout.
+        if (InternalPageAccessCommand.isBlocked(webPage, userSession)) {
+          controllerSession.clearAllWidgetData();
+          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          return;
+        }
         // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {
@@ -1744,12 +1753,12 @@ public class PageServlet extends HttpServlet {
   /**
    * Jackson's JSON escaping only guarantees syntactically valid JSON (quotes, backslashes,
    * control characters) -- it has no notion of the surrounding HTML, so a value containing
-   * "</script>" passes straight through. The browser's HTML parser looks for that literal byte
-   * sequence regardless of JSON string context, so an unescaped "</script>" inside e.g. a
-   * product name closes the tag early and lets an attacker-controlled payload execute. Escaping
-   * every '<', '>' and '&' to its JSON \\uXXXX form (valid inside a JSON string, and decodes back
-   * to the original character on parse) neutralizes that and any other HTML/comment breakout,
-   * without changing the parsed JSON-LD content.
+   * {@code "</script>"} passes straight through. The browser's HTML parser looks for that literal
+   * byte sequence regardless of JSON string context, so an unescaped {@code "</script>"} inside
+   * e.g. a product name closes the tag early and lets an attacker-controlled payload execute.
+   * Escaping every '<', '>' and '&' to its JSON \\uXXXX form (valid inside a JSON string, and
+   * decodes back to the original character on parse) neutralizes that and any other HTML/comment
+   * breakout, without changing the parsed JSON-LD content.
    */
   static String escapeForInlineScript(String json) {
     if (json == null) {

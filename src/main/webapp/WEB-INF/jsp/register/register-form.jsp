@@ -64,13 +64,21 @@
       <label>Email Address
         <input name="email" type="email" placeholder="Email Address" value="<c:out value="${user.email}"/>" required>
       </label>
-      <label>Password
-        <input name="password" type="password" placeholder="Password" autocomplete="off" required>
-      </label>
+      <label for="register-password">Password</label>
+      <div class="password-field">
+        <input id="register-password" name="password" type="password" placeholder="Password" autocomplete="off" aria-describedby="passwordHelpText" required>
+        <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                aria-pressed="false" aria-label="Show the value while typing"
+                title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+      </div>
       <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
-      <label>Re-Enter Password
-        <input name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
-      </label>
+      <label for="register-password-confirm">Re-Enter Password</label>
+      <div class="password-field">
+        <input id="register-password-confirm" name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
+        <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                aria-pressed="false" aria-label="Show the value while typing"
+                title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+      </div>
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
           <p>
