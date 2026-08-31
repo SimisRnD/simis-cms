@@ -89,3 +89,5 @@ jobs:
       # and the duplicate h1s (issue 1660) were never catalogued at all.
       - name: Fail on a skipped heading level or a duplicate h1 in the admin console
         run: python3 tools/check-heading-levels.py . --strict
+      - name: Fail on a wildcard CORS origin or an unallowlisted printStackTrace
+        run: python3 tools/check-server-hygiene.py . --strict

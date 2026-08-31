@@ -253,4 +253,69 @@ class PageServletSecurityHeadersTest {
     verify(response, times(1)).setHeader(eq("Referrer-Policy"), referrerPolicyValues.capture());
     assertEquals("strict-origin-when-cross-origin", referrerPolicyValues.getValue());
   }
+
+  /** Runs service() with the standard scaffold, optionally with system.ssl configured. */
+  private void serviceWithSsl(HttpServletResponse response, String systemSsl) throws Exception {
+    HttpServletRequest request = mockRequest(mockSession());
+    Page pageRef = unrestrictedShowPage();
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      // Stubbed after the catch-all so this one wins for the key HSTS is gated on.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.ssl")).thenReturn(systemSsl);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+  }
+
+  /**
+   * The three headers that are set unconditionally at the top of service(). They were emitted but
+   * never asserted, so deleting any one of them broke nothing that anyone would notice: no test
+   * failed, and the absence of a header is invisible in a browser unless you go looking.
+   */
+  @Test
+  void serviceSendsTheBaselineSecurityHeadersOnEveryResponse() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, null);
+
+    verify(response, times(1)).setHeader("X-Frame-Options", "SAMEORIGIN");
+    verify(response, times(1)).setHeader("X-Content-Type-Options", "nosniff");
+    verify(response, times(1)).setHeader("X-XSS-Protection", "1; mode=block");
+  }
+
+  /**
+   * HSTS is gated on the system.ssl property rather than the request scheme, deliberately: the
+   * platform runs behind a TLS-terminating proxy, so the request arrives as http and the scheme
+   * would report the wrong answer. Both directions are pinned, because the failure modes are
+   * opposite and both are bad -- a missing header on an HTTPS site loses the protection, and a
+   * header sent from a site that cannot serve HTTPS makes browsers refuse it for a full year.
+   */
+  @Test
+  void serviceSendsHstsWhenTheDeploymentIsConfiguredForSsl() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, "true");
+
+    ArgumentCaptor<String> hsts = ArgumentCaptor.forClass(String.class);
+    verify(response, times(1)).setHeader(eq("Strict-Transport-Security"), hsts.capture());
+    assertEquals("max-age=31536000", hsts.getValue());
+  }
+
+  @Test
+  void serviceSendsNoHstsWhenSslIsNotConfigured() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, null);
+
+    verify(response, never()).setHeader(eq("Strict-Transport-Security"), anyString());
+  }
 }
