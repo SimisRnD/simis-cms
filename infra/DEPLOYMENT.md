@@ -264,15 +264,18 @@ needs no maintenance.
 
 ### 5.2 Set the variables
 
-Both are template parameters (`trustedProxies`, `clientIpHeader`), so set them at deploy — App
-Service settings written by hand are replaced on the next Bicep deployment.
+`clientIpHeader` **defaults to `X-Azure-ClientIP`** and needs no action. This template always
+deploys Front Door in front of the app, so there is no configuration it produces where
+`X-Forwarded-For` resolution would be correct — defaulting it removes a step that was easy to
+forget and whose omission is silent.
 
-```bash
-az webapp config appsettings set \
-  --name «appServiceName» \
-  --resource-group my-simis-rg \
-  --settings "CMS_CLIENT_IP_HEADER=X-Azure-ClientIP"
-```
+`trustedProxies` still has to be supplied, and is a **Java regular expression, not CIDR** (see the
+warning above).
+
+Do not set either by hand in the portal. `siteConfig.appSettings` is replaced wholesale on
+deployment, so a hand-set value survives until the next deploy and then disappears with no error —
+the only symptom is a plausible-looking wrong IP appearing again in emails, audit records and Form
+Data. Both belong in the deployment's parameter values.
 
 Security requirement: the origin must not be reachable except through Front Door, or a client could
 set `X-Azure-ClientIP` itself. The Private Link origin configuration in `infra/README.md` already
