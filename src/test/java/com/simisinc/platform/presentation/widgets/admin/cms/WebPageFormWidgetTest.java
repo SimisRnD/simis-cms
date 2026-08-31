@@ -17,11 +17,15 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.InternalPageAccessCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
+import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -94,13 +98,60 @@ class WebPageFormWidgetTest extends WidgetBase {
 
     addQueryParameter(widgetContext, "webPageId", "42");
 
-    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepository.when(() -> WebPageRepository.findById(42L)).thenReturn(webPage);
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("");
 
       WidgetContext result = new WebPageFormWidget().execute(widgetContext);
 
       Assertions.assertSame(SolutionTypeOptions.map, result.getRequest().getAttribute("solutionTypeMap"));
       Assertions.assertEquals(webPage, result.getRequest().getAttribute("webPage"));
+    }
+  }
+
+  /**
+   * Issue #1688: the form states what ticking "Internal" will actually do, because the setting that
+   * gives the flag its teeth lives on a page (/admin/security-properties, role="admin") that a
+   * content-manager editing this form cannot open -- and they get no symptom of their own either,
+   * since the content-editor tier bypasses the gate.
+   */
+  @Test
+  void executeStatesWhatTheInternalFlagCurrentlyDoes() {
+    WebPage webPage = new WebPage();
+    webPage.setId(42L);
+    webPage.setLink("/employee-handbook");
+    addQueryParameter(widgetContext, "webPageId", "42");
+
+    Group staff = new Group();
+    staff.setUniqueId("all-employees");
+    staff.setName("All Employees");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<GroupRepository> groupRepository = mockStatic(GroupRepository.class)) {
+      webPageRepository.when(() -> WebPageRepository.findById(42L)).thenReturn(webPage);
+      groupRepository.when(() -> GroupRepository.findByUniqueId("all-employees")).thenReturn(staff);
+
+      // Not configured: the flag is a label, and the form has to say so rather than implying access control
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("");
+      Assertions.assertEquals("restricts nobody until a group is chosen in Security Settings",
+          new WebPageFormWidget().execute(widgetContext).getRequest().getAttribute("internalEffect"));
+
+      // Configured and resolvable: name the audience
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("all-employees");
+      Assertions.assertEquals("viewable only by All Employees, plus content editors",
+          new WebPageFormWidget().execute(widgetContext).getRequest().getAttribute("internalEffect"));
+
+      // Configured but the group is gone: this fails closed, so the form must not imply it is fine
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("deleted-group");
+      Assertions.assertEquals(
+          "restricts everyone except content editors -- Security Settings names a group that no longer exists",
+          new WebPageFormWidget().execute(widgetContext).getRequest().getAttribute("internalEffect"));
     }
   }
 

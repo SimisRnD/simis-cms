@@ -48,7 +48,9 @@
   separate, unpublished edit sitting in the governed review pipeline -- the page's own live content (or lack of
   it) is unaffected until that edit is actually published, however that badge reads. An <strong>internal</strong>
   badge means the page has been marked as employee/staff-only in its edit form -- the "Hide Internal Pages"
-  filter below hides these; it does not restrict who can actually view the page.
+  filter below hides these. Whether the badge also restricts who may view the page depends on the
+  <strong>Group allowed to view internal pages</strong> setting on <a href="${ctx}/admin/security-properties">Security
+  Settings</a>: while that is blank the badge is a label only.
 </p>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">

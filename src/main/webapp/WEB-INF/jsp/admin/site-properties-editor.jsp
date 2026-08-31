@@ -277,6 +277,26 @@
                 </div>
               </div>
             </c:when>
+            <c:when test="${siteProperty.type eq 'group'}">
+              <%-- Issue #1688. The stored value is a group's uniqueId, which is what
+                   UserSession.hasGroup matches on -- never the display name. --%>
+              <c:set var="groupValueFound" value="false" />
+              <c:forEach items="${groupList}" var="group">
+                <c:if test="${siteProperty.value eq group.uniqueId}"><c:set var="groupValueFound" value="true" /></c:if>
+              </c:forEach>
+              <select name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
+                <option value="">None &#8212; &quot;Internal&quot; stays a label only</option>
+                <c:forEach items="${groupList}" var="group">
+                  <option value="${html:toHtml(group.uniqueId)}"<c:if test="${siteProperty.value eq group.uniqueId}"> selected</c:if>><c:out value="${group.name}" /></option>
+                </c:forEach>
+                <%-- A stored value that matches no existing group still has to appear, and stay
+                     selected: without this the select falls back to the blank option and the next
+                     save silently clears the restriction without anyone choosing to. --%>
+                <c:if test="${not empty siteProperty.value and not groupValueFound}">
+                  <option value="${html:toHtml(siteProperty.value)}" selected><c:out value="${siteProperty.value}" /> (missing group)</option>
+                </c:if>
+              </select>
+            </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
@@ -650,6 +670,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
             <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.internalPages.group'}">
+            <p class="help-text" id="internalPagesGroupHelpText">Members of this group may view pages ticked <strong>Internal</strong> on the <a href="${ctx}/admin/web-pages">Web Pages</a> screen; everyone else gets "not found", and those pages drop out of search, the sitemap and the menus. Leave it blank and <strong>Internal</strong> stays a label that restricts nobody. Two limits worth knowing: content editors can always view internal pages, so this is not a way to keep something from them; and it protects the <em>page</em>, not the content itself, which stays readable through the content API.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>

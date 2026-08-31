@@ -37,3 +37,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- one -- so report-only mode and the /csp-report collector are unreachable on a fresh install.
 -- Blank keeps the header and that endpoint off until an administrator sets a policy to test.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'CSP report-only policy', 'security.csp.reportOnly', '', 'text');
+
+-- Issue #1688: names the group whose members may view pages ticked "Internal" on /admin/web-page.
+-- Seeded on existing deployments by UPGRADE_20260831.1400__internal_page_group.sql; mirrored here
+-- because a fresh install never runs the upgrade scripts, and SitePropertiesEditorWidget renders
+-- only the rows SitePropertyRepository.findAllByPrefix("security") returns -- saving the page cannot
+-- create one -- so without this row the setting would be unreachable on a fresh install.
+-- Empty means the gate is inert and "internal" stays the label it has always been.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (25, 'Group allowed to view internal pages', 'security.internalPages.group', '', 'group');

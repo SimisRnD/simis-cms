@@ -21,13 +21,16 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
+import com.simisinc.platform.application.cms.InternalPageAccessCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
+import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
@@ -94,6 +97,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // Lets the JSP special-case content (e.g. help text) for one exact settings page without
     // guessing from the display title, and without affecting the other pages that share this widget.
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
 
     // The visual logo-color picker needs real thumbnails for Full color / All white / Mixed --
     // findAllByPrefix("theme") above only returns theme.* rows, not the site.logo* values that
@@ -244,6 +248,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       validateMfaEnforcement(context, siteProperties);
     }
 
+    // Refuse an internal-page group that does not resolve. Unlike the MFA check above this one can
+    // only ever be an inconvenience rather than a lockout -- the content-editor tier always passes
+    // InternalPageAccessCommand -- but a typo would silently restrict every internal page to nobody,
+    // and the operator would see no symptom because they are in the tier that bypasses it.
+    if (context.getErrorMessage() == null) {
+      validateInternalPageGroup(context, siteProperties);
+    }
+
     // If there's an error, pass the form values back
     if (context.getErrorMessage() != null) {
       context.setRequestObject(siteProperties);
@@ -313,6 +325,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
 
     context.getRequest().setAttribute("mailChimpTestResult", MailChimpCommand.testConnection());
 
@@ -364,7 +377,47 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
     context.setJsp(JSP);
+  }
+
+  /** Supplies the group picker for any {@code group}-typed property (issue #1688) with the groups it
+   * can offer. Called from every path that renders the editor JSP -- a fresh load, the MailChimp
+   * connection test, and the step-up re-authentication prompt -- because a picker whose option list
+   * is missing renders as empty, and saving an empty select would silently clear the restriction. */
+  private void attachGroupList(WidgetContext context, List<SiteProperty> siteProperties) {
+    for (SiteProperty siteProperty : siteProperties) {
+      if ("group".equals(siteProperty.getType())) {
+        context.getRequest().setAttribute("groupList", GroupRepository.findAll());
+        return;
+      }
+    }
+  }
+
+  /** Rejects a submitted {@code security.internalPages.group} that names no existing group. Blank is
+   * always accepted: blank is the off switch, and it has to stay reachable even from a state where
+   * the named group has since been deleted. A group with no members saves with a warning rather than
+   * an error -- it is a legitimate intermediate step when setting up staff access. */
+  private void validateInternalPageGroup(WidgetContext context, List<SiteProperty> siteProperties) {
+    String uniqueId = null;
+    for (SiteProperty siteProperty : siteProperties) {
+      if (InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP.equals(siteProperty.getName())) {
+        uniqueId = StringUtils.trimToNull(siteProperty.getValue());
+      }
+    }
+    if (uniqueId == null) {
+      return;
+    }
+    Group group = GroupRepository.findByUniqueId(uniqueId);
+    if (group == null) {
+      context.setErrorMessage("Internal page access was not changed: there is no group \"" + uniqueId
+          + "\". Pick a group from the list, or leave it blank to keep \"Internal\" as a label only.");
+      return;
+    }
+    if (group.getUserCount() == 0) {
+      context.setWarningMessage("Internal pages are now restricted to \"" + group.getName()
+          + "\", which has no members yet. Until someone is added, only content editors can view them.");
+    }
   }
 
   private static boolean isSecuritySensitivePrefix(String prefix) {

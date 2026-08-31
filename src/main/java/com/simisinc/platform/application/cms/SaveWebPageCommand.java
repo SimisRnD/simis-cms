@@ -103,6 +103,21 @@ public class SaveWebPageCommand {
       errorMessages.append("Solution type choice is unavailable");
     }
 
+    // Internal flag (issue #1688). A row shadowing a built-in layout does not supply that page's
+    // markup, so InternalPageAccessCommand exempts it at runtime and ticking the box here would
+    // quietly do nothing. Saying so is better than accepting a setting that has no effect.
+    //
+    // The other runtime exemption -- the MFA enrollment page -- is deliberately NOT mirrored here.
+    // Checking it means reading a site property, and this command is exercised by POJO tests with no
+    // datasource; containsPage is an in-memory lookup and costs nothing. The runtime exemption is
+    // what actually keeps that page reachable, and web-page-form.jsp already states the flag's
+    // current effect, so the only loss is a nicer message in a rare case.
+    if (webPageBean.isInternal() && StringUtils.isNotBlank(webPageBean.getLink())
+        && WebPageXmlLayoutCommand.containsPage(webPageBean.getLink())) {
+      errorMessages.append("This page is provided by a built-in layout, so marking it internal "
+          + "would have no effect");
+    }
+
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
     }
