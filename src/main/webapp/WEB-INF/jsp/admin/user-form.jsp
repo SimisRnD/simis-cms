@@ -276,6 +276,25 @@
           </div>
         </div>
       </fieldset>
+      <%-- Break-glass, offered only for an account that holds admin. The flag exists so an
+           administrator can get back in when the normal path is broken; on a non-admin it would
+           grant the MFA-enrollment exemption without the access that makes it useful. Rendered
+           from the SAVED user, not the submitted bean, because the value cannot travel through
+           SaveUserCommand -- see UserFormWidget#applyBreakGlass. --%>
+      <c:if test="${user.hasRole('admin')}">
+      <fieldset>
+        <div class="grid-x grid-padding-x callout secondary">
+          <div class="small-3 text-right cell">
+            <label for="breakGlassToggle">Break-glass</label>
+          </div>
+          <div class="small-9 cell">
+            <input id="breakGlassToggle" type="checkbox" name="breakGlassAccount" value="true"<c:if test="${user.breakGlass}"> checked</c:if> aria-describedby="breakGlassHelpText" />
+            <label for="breakGlassToggle">Treat this as a break-glass account</label>
+            <p class="help-text" id="breakGlassHelpText">Every sign-in on this account -- and every failed attempt -- emails all other administrators and is written to the audit log. MFA enforcement never redirects it to the enrollment page, so a policy naming a role it holds cannot strand it. It is <strong>not</strong> exempt from MFA itself: if the account has MFA enrolled, signing in still requires a code. Changing this requires re-entering your own password.</p>
+          </div>
+        </div>
+      </fieldset>
+      </c:if>
       <fieldset>
         <div class="grid-x grid-padding-x callout secondary">
           <div class="small-3 text-right cell">

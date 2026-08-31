@@ -146,6 +146,12 @@
         <c:forEach items="${user.roleList}" var="userRole">
           <span class="label round"><c:out value="${userRole.code}" /></span>
         </c:forEach>
+        <%-- Break-glass had no surface at all until now: nothing on this screen said which account
+             alerts every other administrator when it signs in, or which one an MFA policy will not
+             redirect. A reader could not tell these three admins apart. --%>
+        <c:if test="${user.breakGlass}">
+          <span class="label round alert" title="Break-glass: sign-ins and failed attempts alert every other administrator, and MFA enforcement never redirects this account to enrollment">break-glass</span>
+        </c:if>
       </td>
       <td class="text-center">
         <c:choose>

@@ -53,3 +53,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- code-side defaults exactly, so no site changes behaviour.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Failed attempts before account lockout', 'security.lockout.threshold', '5', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'Account lockout duration (minutes)', 'security.lockout.durationMinutes', '15', 'text');
+
+-- Issue #1701: requires a caller of GET /api/content/{uniqueId} to have access to at least one web
+-- page that renders the content. Seeded on existing deployments by
+-- UPGRADE_20260831.1600__content_api_page_access.sql; mirrored here because a fresh install never
+-- runs the upgrade scripts, and SitePropertiesEditorWidget renders only rows that already exist.
+-- 'true' is both the seeded value and the behaviour when the row is missing -- this closes a hole
+-- rather than adding a restriction, so the default is the safe side.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Require page access for the content API', 'security.contentApi.enforcePageAccess', 'true', 'boolean');
