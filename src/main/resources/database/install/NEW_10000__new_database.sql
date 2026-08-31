@@ -326,7 +326,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require password complexity?', 'security.password.requireComplexity', 'true', 'boolean');
 -- Issue #492: the /admin/users password-age warning threshold. Seeded under the "security"
 -- prefix so it appears on /admin/security-properties alongside the other password policy rows
--- and inherits their step-up-auth gate; UPGRADE_20260831.1000 renames the original
+-- and inherits their step-up-auth gate; UPGRADE_20260831.1100 renames the original
 -- password.maxAgeDays row on existing deployments, which was seeded under a prefix that no
 -- admin page registers and so had no field anywhere. The UI's "red/expired" tier is computed
 -- as 2x this value, not separately stored.

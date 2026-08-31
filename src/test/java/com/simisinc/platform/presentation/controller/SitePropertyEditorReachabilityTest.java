@@ -158,7 +158,7 @@ class SitePropertyEditorReachabilityTest {
     // The pre-rename name must be gone from the seeds, or a fresh install would create both rows
     // and the upgrade's rename would be skipped.
     assertFalse(seeded.contains("password.maxAgeDays"),
-        "password.maxAgeDays is still seeded -- UPGRADE_20260831.1000 renames it to"
+        "password.maxAgeDays is still seeded -- UPGRADE_20260831.1100 renames it to"
             + " security.password.maxAgeDays, and a seed of the old name would resurrect it");
   }
 
