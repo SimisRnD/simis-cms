@@ -26,3 +26,14 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- row a fresh install falls back to GeneratePreviewLinkCommand's DEFAULT_TTL_HOURS and the setting
 -- never appears on this page for an admin to change.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Draft preview link expiry (hours)', 'security.previewLinkTtlHours', '24', 'text');
+
+-- Issue #1430: the candidate Content-Security-Policy that PageServlet emits as a
+-- Content-Security-Policy-Report-Only header, so the directives that cannot be written by reading
+-- the source (a vendor SDK's runtime endpoints) can be collected from real traffic instead. Seeded
+-- on existing deployments by UPGRADE_20260827.1100__csp_report_only_property.sql; mirrored here
+-- because a fresh install never runs the upgrade scripts. Without this row there is no field on
+-- /admin/security-properties -- SitePropertiesEditorWidget renders only the rows
+-- SitePropertyRepository.findAllByPrefix("security") returns, and saving the page cannot create
+-- one -- so report-only mode and the /csp-report collector are unreachable on a fresh install.
+-- Blank keeps the header and that endpoint off until an administrator sets a policy to test.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'CSP report-only policy', 'security.csp.reportOnly', '', 'text');
