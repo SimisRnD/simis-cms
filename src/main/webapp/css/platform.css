@@ -604,6 +604,15 @@ body.admin-console a:not(.button):focus {
 .platform-content {
   margin-bottom: 10px;
 }
+/* The opt-in "Last updated" line under a content block. Muted via the semantic token rather than a
+   literal, so it moves with the theme and needs no dark-mode override to keep in parity -- and so
+   it stays above the 4.5:1 the token is chosen to hold, since this is body text, not decoration. */
+.platform-content-last-updated {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  color: var(--sc-text-muted, #656970);
+}
+
 
 @media print, screen and (min-width: 40em) {
   .position-absolute .platform-content {
