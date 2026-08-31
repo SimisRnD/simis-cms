@@ -31,7 +31,7 @@
     <input type="hidden" name="webPage" value="${webPage.link}" />
     <input type="hidden" id="templateId" name="templateId" value="-1" />
     <input type="hidden" id="templateUniqueId" name="templateUniqueId" value="-1" />
-    <h4>Set a web page title for this page</h4>
+    <h2 class="h4">Set a web page title for this page</h2>
     <input type="text" name="title" placeholder="Give it a title..." value="<c:out value="${webPage.title}" />" autofocus="autofocus" />
     <label>Description (optional, shown in search results)
       <input type="text" name="description" placeholder="Describe it..." value="<c:out value="${webPage.description}" />" />
@@ -39,7 +39,7 @@
     <p class="help-text">
       Once this page is saved, add it to the <a href="${ctx}/admin/sitemap">Navigation Menu</a> so visitors can find it -- a page isn't linked from anywhere, or included in on-site search results, until it's added there.
     </p>
-    <h4>Choose a template for this page</h4>
+    <h2 class="h4">Choose a template for this page</h2>
     <c:if test="${empty webPageTemplateList}">
       <p>No templates were found.</p>
     </c:if>
@@ -51,7 +51,7 @@
           </div>
         </c:if>
         <c:set var="categoryOpen" scope="request" value="true"/>
-        <h5 class="margin-top-30"><c:out value="${fn:toUpperCase(template.category)}" /></h5>
+        <h3 class="h5 margin-top-30"><c:out value="${fn:toUpperCase(template.category)}" /></h3>
         <div class="grid-x grid-margin-x">
       </c:if>
       <div class="small-6 medium-4 large-3 cell">
