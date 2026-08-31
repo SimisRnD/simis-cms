@@ -89,6 +89,55 @@ body {
 
    Scoped to body.admin-console so the public site, and the page-editing screens that deliberately
    render in site chrome, are untouched. */
+/* Console chrome, sitting on the token retune.
+
+   The tokens gave the rail its navy; these are the parts that are geometry and depth rather
+   than colour, and they are what separates "the palette changed" from "this looks designed".
+
+   The header is the one that matters most. It is site chrome, not console chrome, so the admin
+   scoping deliberately leaves it alone -- which is how the warm-dark attempt ended up with a
+   warm console under a cool header and read as bolted-on. Restyling it here, and only under
+   body.admin-console, closes that seam without touching the public site, where the header keeps
+   whatever theme.header.* says.
+
+   The gradients are built from the chrome tokens rather than fresh literals, so the header can
+   never drift away from the rail it sits above. */
+body.admin-console .sticky {
+  background: linear-gradient(180deg,
+    var(--sc-chrome-raised, #1f2a39) 0%,
+    var(--sc-chrome, #18202d) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+body.admin-console .admin-menu {
+  background: linear-gradient(180deg,
+    var(--sc-chrome-raised, #1f2a39) 0%,
+    var(--sc-chrome, #18202d) 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 13px in a rail this long is the readability complaint, not the contrast: the labels measured
+   7.95:1 before this and the difficulty was size and density. A point larger with room to
+   breathe, which costs nothing since the rail scrolls anyway. */
+body.admin-console .admin-menu nav a {
+  font-size: 0.875rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Tiles as objects on the workspace rather than outlines drawn on it. Now reachable from here:
+   until the tile markup stopped shipping its own <style> block, an inline rule outranked this
+   stylesheet. */
+body.admin-console .platform-dashboard-group > .cell {
+  border-radius: var(--sc-radius-md, 4px);
+  box-shadow: var(--sc-shadow-raised, 0 1px 2px rgba(23, 25, 30, 0.05), 0 6px 16px -8px rgba(23, 25, 30, 0.16));
+}
+
+body.admin-console .statistic-card-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
 body.admin-console .help-text {
   font-style: normal;
   color: var(--sc-text-muted, #656970);
