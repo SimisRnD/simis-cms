@@ -37,3 +37,19 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- one -- so report-only mode and the /csp-report collector are unreachable on a fresh install.
 -- Blank keeps the header and that endpoint off until an administrator sets a policy to test.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'CSP report-only policy', 'security.csp.reportOnly', '', 'text');
+
+-- Issue #295: the durable account-lockout thresholds AuthenticateLoginCommand enforces -- how many
+-- consecutive failed logins lock an account, and for how long. PR #318 shipped the enforcement
+-- reading these as site properties but never seeded a row in either install/ or upgrade/, so the
+-- code-side defaults (5 attempts / 15 minutes) were the only values any site could ever have:
+-- SitePropertiesEditorWidget renders and saves only the rows
+-- SitePropertyRepository.findAllByPrefix(prefix) returns, and saving a page cannot create one.
+-- Seeded under "security" rather than the original "account" prefix so they land on the existing
+-- /admin/security-properties page beside the security.rateLimit.* settings they interact with, and
+-- so editing them requires step-up auth like the other security-sensitive prefixes -- raising the
+-- threshold weakens a control. There is no "account" prefix registered in admin-layout.xml, so the
+-- original names had no page to appear on at all. property_order 22/23 places them immediately
+-- after the per-username rate limit (20/21), the closest sibling behaviour. Values match the
+-- code-side defaults exactly, so no site changes behaviour.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Failed attempts before account lockout', 'security.lockout.threshold', '5', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'Account lockout duration (minutes)', 'security.lockout.durationMinutes', '15', 'text');
