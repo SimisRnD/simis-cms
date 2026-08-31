@@ -1105,6 +1105,15 @@
           <value>Rejections</value>
           <days>30</days>
           <limit>10</limit>
+          <!-- 30 stays the rendered default (the <days> above); the tabs re-query the same report
+               over a different window without a page load. Only day-based options belong here:
+               findFailureCountsByReason takes the interval's NUMBER and always reads it as days,
+               so an option like "12h" would silently report 12 days. -->
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <!--
