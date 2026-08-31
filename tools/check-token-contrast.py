@@ -462,10 +462,21 @@ CLAIMS = [
       ("exact", [("--sc-chrome-ink", "--sc-chrome-raised")]),
       ("exact", [("--sc-chrome-ink-muted", "--sc-chrome")]),
       ("exact", [("--sc-chrome-ink-muted", "--sc-chrome-raised")])]),
-    (r"selected ink on selected ([\d.]+):1, selected fill vs rail ([\d.]+):1",
+    # Re-based when the rail went navy. Crema's dove fill carried the selected state on its
+    # own; Slate signals it with the marker bar and white ink and tints the row only faintly,
+    # so the fill is decorative and is claimed as such -- the marker entry below is the one
+    # that has to hold. A fill bright enough to carry the non-text floor against a navy rail
+    # unaided would be a mid-slate slab, which is what issue 1489 removed.
+    (r"selected ink on selected ([\d.]+):1, ink on selected ([\d.]+):1,\s*\n\s*selected fill vs rail ([\d.]+):1",
      "light",
      [("exact", [("--sc-chrome-ink-selected", "--sc-chrome-selected")]),
+      ("exact", [("--sc-chrome-ink", "--sc-chrome-selected")]),
       ("exact", [("--sc-chrome-selected", "--sc-chrome")])]),
+    # The signal itself: the marker against the rail it sits on, and against the fill beside it.
+    (r"at ([\d.]+):1 on the rail and ([\d.]+):1 across the fill",
+     "light",
+     [("exact", [("--sc-chrome-active-marker", "--sc-chrome")]),
+      ("exact", [("--sc-chrome-active-marker", "--sc-chrome-selected")])]),
     # Dark table hover shades. Both numbers are re-derivable from a token pair, so they are
     # claims rather than rendered measurements: if either hover value or --sc-text moves, CI
     # recomputes these and the comment cannot drift away from the declaration.
@@ -728,9 +739,6 @@ EXEMPT_RATIOS = [
 # to CLAIMS. Entries here are held to the same staleness check as the others: an
 # entry matching no comment is reported and must be dropped.
 RENDERED_RATIOS = [
-    (r"sat only ([\d.]+):1 off the rail",
-     "the Anthracite accent #53575c against the old rail #17191e -- neither is a token any "
-     "more, so no pairing can express it; recorded because it is why the rail was changed"),
     (r"border\s+stands on a #fefefe field at ([\d.]+):1",
      "Foundation's factory field border #cdc9c3 on its own #fefefe field -- neither is a token, "
      "so no pairing can express it; this is what light mode ships before the rule above"),

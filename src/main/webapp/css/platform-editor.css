@@ -63,7 +63,7 @@
   left: 0;
   right: 0;
   height: 44px;
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border-bottom: 2px solid var(--sc-chrome-accent, #0056b3);
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@
    #sc-widget-picker keeps its #ccc: that is a container edge, not a control
    boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   border-color: var(--sc-border-control, #838589);
 }
 
@@ -149,7 +149,7 @@
 }
 
 #sc-editor-toolbar-title {
-  color: var(--sc-chrome-ink-subtle, #9ea3ab);
+  color: var(--sc-chrome-ink-subtle, #8e9cae);
   font-size: var(--sc-font-xs, 0.75rem);
   font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.04em;
@@ -158,7 +158,7 @@
 }
 
 #sc-editor-status {
-  color: var(--sc-chrome-ink-subtle, #9ea3ab);
+  color: var(--sc-chrome-ink-subtle, #8e9cae);
   font-size: var(--sc-font-xs, 0.75rem);
   margin-left: auto;
   white-space: nowrap;
@@ -268,7 +268,7 @@ a.sc-editor-handle:hover {
 /* Floating inline toolbar (appears above the content block) */
 #sc-inline-toolbar {
   position: absolute;
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 3px 6px;
@@ -285,7 +285,7 @@ a.sc-editor-handle:hover {
 #sc-inline-toolbar button {
   background: transparent;
   border: none;
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   padding: 3px 7px;
   cursor: pointer;
   border-radius: 3px;
@@ -454,7 +454,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-discard-draft-btn {
   margin-bottom: 0;
   font-size: var(--sc-font-xs, 0.75rem);
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   border-color: var(--sc-border-control, #838589);
 }
 
@@ -479,7 +479,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-box {
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border: 1px solid #444;
   border-radius: 6px;
   padding: 1.25rem 1.5rem;
@@ -490,7 +490,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-msg {
-  color: var(--sc-chrome-ink, #f5f3ef);
+  color: var(--sc-chrome-ink, #e8eef6);
   font-size: var(--sc-font-md, 0.875rem);
   margin-bottom: 1rem;
   line-height: var(--sc-leading-relaxed, 1.5);
@@ -525,13 +525,13 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-cancel {
-  background: var(--sc-chrome-control, #2a2c31);
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  background: var(--sc-chrome-control, #243040);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   border: 1px solid var(--sc-border-control, #838589) !important;
 }
 
 #sc-confirm-cancel:hover {
-  background: var(--sc-chrome-control-hover, #383a3f);
+  background: var(--sc-chrome-control-hover, #293648);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -588,7 +588,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 #sc-width-picker {
   position: absolute;
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -606,9 +606,9 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-width-preset-btn {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   padding: 5px 4px;
   cursor: pointer;
   border-radius: 3px;
@@ -621,7 +621,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 .sc-width-preset-btn:hover {
   border-color: var(--sc-chrome-accent, #0056b3);
   color: var(--sc-fnd-on-accent, #fefefe);
-  background: var(--sc-chrome-control-hover, #383a3f);
+  background: var(--sc-chrome-control-hover, #293648);
 }
 
 .sc-width-preset-btn.sc-active {
@@ -637,9 +637,9 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 #sc-width-custom-input {
   flex: 1;
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink, #f5f3ef);
+  color: var(--sc-chrome-ink, #e8eef6);
   padding: 3px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -738,7 +738,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-panel {
   position: absolute;
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -774,7 +774,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-pref-field label {
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
 }
@@ -782,7 +782,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="text"],
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
   color: #eee;
   padding: 4px 6px;
@@ -807,15 +807,15 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
   height: 26px;
   border: 1px solid var(--sc-border-control, #838589);
   border-radius: 3px;
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   padding: 2px;
   box-sizing: border-box;
 }
 
 .sc-pref-field textarea {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink, #f5f3ef);
+  color: var(--sc-chrome-ink, #e8eef6);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -832,7 +832,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-prefs-empty {
-  color: var(--sc-chrome-ink-subtle, #9ea3ab);
+  color: var(--sc-chrome-ink-subtle, #8e9cae);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
   margin: 4px 0;
@@ -845,7 +845,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-header span {
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-weight: var(--sc-weight-semibold, 600);
   text-transform: uppercase;
@@ -855,7 +855,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-prefs-close {
   background: transparent;
   border: none;
-  color: var(--sc-chrome-ink-subtle, #9ea3ab);
+  color: var(--sc-chrome-ink-subtle, #8e9cae);
   font-size: var(--sc-font-base, 1rem);
   cursor: pointer;
   padding: 0 2px;
@@ -867,9 +867,9 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-textarea {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink, #f5f3ef);
+  color: var(--sc-chrome-ink, #e8eef6);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -902,9 +902,9 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-reset {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink-muted, #aea38d);
+  color: var(--sc-chrome-ink-muted, #a9b6c6);
   padding: 3px 10px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -914,7 +914,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  background: var(--sc-chrome-control-hover, #383a3f);
+  background: var(--sc-chrome-control-hover, #293648);
 }
 
 #sc-prefs-apply {
@@ -935,7 +935,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
-  background: var(--sc-chrome, #1c1917);
+  background: var(--sc-chrome, #18202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 6px 8px;
@@ -947,9 +947,9 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt input[type="text"] {
-  background: var(--sc-chrome-control, #2a2c31);
+  background: var(--sc-chrome-control, #243040);
   border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink, #f5f3ef);
+  color: var(--sc-chrome-ink, #e8eef6);
   padding: 3px 6px;
   font-size: var(--sc-font-xs, 0.75rem);
   border-radius: 3px;
@@ -967,7 +967,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt button.sc-cancel {
-  background: var(--sc-chrome-raised, #211d1a);
+  background: var(--sc-chrome-raised, #1f2a39);
 }
 
 /* ── Widget picker ─────────────────────────────────────────────────────────── */
