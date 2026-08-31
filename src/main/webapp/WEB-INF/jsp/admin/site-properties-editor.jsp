@@ -948,19 +948,5 @@
     document.getElementById('imageBrowserFrame').removeAttribute('src');
   });
 </script>
-<script nonce="${cspNonce}">
-  // Delegated, not an inline onclick: inline handlers are blocked by the site-wide CSP.
-  $(document).on('click', '[data-reveal-secret]', function () {
-    var button = $(this);
-    // .first() so the sibling "Expires" date input is never the one retyped.
-    var input = button.closest('.secret-field').find('input').first();
-    var revealed = input.attr('type') === 'text';
-    var label = revealed ? 'Show the value while typing' : 'Hide the value';
-    input.attr('type', revealed ? 'password' : 'text');
-    button.attr('aria-pressed', revealed ? 'false' : 'true');
-    button.attr('aria-label', label);
-    button.attr('title', label);
-    button.find('i').attr('class', revealed ? 'fa fa-eye' : 'fa fa-eye-slash');
-    input.trigger('focus');
-  });
-</script>
+<%-- The reveal toggle is handled by platform-password-reveal.js, shared with the auth forms.
+     The markup below is unchanged; only the handler moved. --%>
