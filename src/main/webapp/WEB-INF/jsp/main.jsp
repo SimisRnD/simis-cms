@@ -541,6 +541,9 @@
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
     <script src="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.js"></script>
+    <%-- Unconditional: password fields appear on the public auth forms and on admin screens alike,
+         and the handler is delegated, so it costs nothing on a page that has none. --%>
+    <script src="${ctx}/javascript/platform-password-reveal.js?v=<%= VERSION %>"></script>
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>

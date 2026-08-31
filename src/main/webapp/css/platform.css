@@ -604,6 +604,15 @@ body.admin-console a:not(.button):focus {
 .platform-content {
   margin-bottom: 10px;
 }
+/* The opt-in "Last updated" line under a content block. Muted via the semantic token rather than a
+   literal, so it moves with the theme and needs no dark-mode override to keep in parity -- and so
+   it stays above the 4.5:1 the token is chosen to hold, since this is body text, not decoration. */
+.platform-content-last-updated {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  color: var(--sc-text-muted, #656970);
+}
+
 
 @media print, screen and (min-width: 40em) {
   .position-absolute .platform-content {
@@ -1673,6 +1682,25 @@ a.read-more {
   line-height: 1;
   cursor: pointer;
   color: inherit;
+}
+
+/* The same reveal control on a full-width form field (sign in, register, set password), where the
+   admin's inline-flex wrapper would shrink the input to its content. Block-level flex instead, with
+   the input taking the free space and the button sitting on the end of the row.
+
+   Foundation gives an input a bottom margin; that margin moves to the wrapper so the row keeps the
+   spacing the form had before the button was added, and the button stays vertically centred on the
+   input rather than on the input-plus-margin. No colour is set for the same reason as the rule
+   above -- the button inherits its surrounding ink and needs no dark-mode pair to keep in parity. */
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 1rem;
+}
+.password-field input {
+  flex: 1 1 auto;
+  margin: 0;
 }
 .no-gap-all, .no-gap-all .platform-container, .no-gap-all .platform-content, .no-gap-all p, .no-gap-all img, .no-gap-all .button, .no-gap-all input[type="checkbox"], .no-gap-all input[type="text"], .no-gap-all input[type="search"], .no-gap-all select {
   margin: 0;

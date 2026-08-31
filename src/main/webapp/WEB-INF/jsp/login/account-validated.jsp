@@ -35,12 +35,22 @@
       <small>&nbsp;</small>
       <div class="grid-x grid-padding-x align-center">
         <div class="small-12 medium-10 cell">
-          <label>New Password
-            <input name="password" type="password" placeholder="Password" autocomplete="off" required>
-          </label>
-          <label>Re-Enter Password
-            <input name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
-          </label>
+          <%-- Both fields get a toggle, not just the first: the whole purpose of the re-enter field
+               is catching a typo, and being able to compare the two is what makes that possible. --%>
+          <label for="new-password">New Password</label>
+          <div class="password-field">
+            <input id="new-password" name="password" type="password" placeholder="Password" autocomplete="off" required>
+            <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                    aria-pressed="false" aria-label="Show the value while typing"
+                    title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+          </div>
+          <label for="new-password-confirm">Re-Enter Password</label>
+          <div class="password-field">
+            <input id="new-password-confirm" name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
+            <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                    aria-pressed="false" aria-label="Show the value while typing"
+                    title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+          </div>
           <div class="button-container">
             <input type="submit" class="button radius success expanded" value="Create Password"/>
           </div>
