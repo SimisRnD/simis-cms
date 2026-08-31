@@ -20,6 +20,8 @@ import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Event details for when an existing mailing list member's subscription status changes (issue
@@ -29,15 +31,17 @@ import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
  *
  * @author SimIS Inc.
  */
+@NoArgsConstructor
+@Setter
 public class MailingListMemberUpdatedEvent extends Event {
 
   public static final String ID = "mailing-list-member-updated";
 
-  private final MailingListMember member;
-  private final MailingList mailingList;
-  private final User user;
-  private final String changeType;
-  private final boolean previouslySubscribed;
+  private MailingListMember member;
+  private MailingList mailingList;
+  private User user;
+  private String changeType;
+  private boolean previouslySubscribed;
 
   public MailingListMemberUpdatedEvent(MailingListMember member, MailingList mailingList, User user,
       String changeType, boolean previouslySubscribed) {

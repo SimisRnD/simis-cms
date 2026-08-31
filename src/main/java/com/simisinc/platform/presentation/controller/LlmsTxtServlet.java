@@ -65,7 +65,7 @@ import java.util.Map;
  *
  * @author SimIS Inc.
  */
-@WebServlet(name = "LlmsTxtServlet", urlPatterns = {"/llms.txt"})
+@WebServlet(name = "LlmsTxtServlet", urlPatterns = "/llms.txt")
 public class LlmsTxtServlet extends HttpServlet {
 
   private static final Log LOG = LogFactory.getLog(LlmsTxtServlet.class);
