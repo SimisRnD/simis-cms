@@ -27,14 +27,14 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   This page designs the drop-down navigation menu shown across the very top of every page on your website --
   not an XML sitemap and not a visual map of your pages. Adding or removing a tab, and reordering tabs or items,
   only takes effect once you click <strong>Save Site Map Changes</strong> below -- nothing is live, and nothing is
   lost if you leave the page, until then. Adding a submenu item under an existing tab is the one exception: its own
   <strong>Add Item</strong> button saves immediately, the same as it always has.
 </p>
-<div class="callout radius" style="max-width:460px;">
+<div class="callout radius page-help-figure">
   <p style="margin-bottom:8px;"><strong>Example: what a tab and its items look like to a visitor</strong></p>
   <div style="border:1px solid #ccc;border-radius:4px;overflow:hidden;font-size:0.9rem;">
     <div style="background:#2c2c2c;color:#fff;padding:8px 14px;display:flex;gap:20px;">
@@ -54,7 +54,7 @@
     its own page instead of opening a drop-down at all (that's what "Home" and "Contact Us" are above).
   </p>
 </div>
-<p class="help-text">
+<p class="help-text page-help">
   Add a tab above, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> handles to reorder tabs
   and items, or click <i class="fa fa-circle-xmark"></i> to remove a tab or item -- click
   <strong>Save Site Map Changes</strong> below when you're happy with the result, or <strong>Cancel</strong> to
@@ -62,7 +62,7 @@
   to rename an existing tab/item or change where it links, use
   <a href="${ctx}/admin/sitemap-editor">Navigation Menu Editor - Edit Links</a> instead.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   The first tab shown below (usually "Home") has no delete icon, no drag handle, and no "Add Item" box --
   that's not a display bug. Whichever tab's link is exactly <code>/</code> is automatically pinned back to the
   very first position every time you save a reorder here or on the Edit Links page, so it can never actually be

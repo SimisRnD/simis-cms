@@ -102,7 +102,13 @@ body {
 
    The gradients are built from the chrome tokens rather than fresh literals, so the header can
    never drift away from the rail it sits above. */
-body.admin-console .sticky {
+/* nav .sticky, not .sticky. Foundation's Sticky plugin puts the class on ANY element it makes
+   sticky, and it adds it at runtime -- so it is not visible by reading the markup. Several admin
+   screens use a sticky side panel (the "Add a user group" form on /admin/groups is one), and the
+   broader selector painted the chrome gradient onto those panels while their text stayed the
+   light-mode ink. Dark on dark, unreadable. Only the header's sticky lives inside nav; the
+   content panels are inside main. */
+body.admin-console nav .sticky {
   background: linear-gradient(180deg,
     var(--sc-chrome-raised, #1f2a39) 0%,
     var(--sc-chrome, #18202d) 100%);
