@@ -558,8 +558,9 @@ public class UserRepository {
   private static final int DEFAULT_PASSWORD_MAX_AGE_DAYS = 90;
 
   /**
-   * Parses the configurable password.maxAgeDays site property, falling back to the default on a
-   * blank or unparseable value -- mirrors AuditLogRepository.resolveRetentionDays's shape (#492).
+   * Parses the configurable security.password.maxAgeDays site property, falling back to the
+   * default on a blank or unparseable value -- mirrors AuditLogRepository.resolveRetentionDays's
+   * shape (#492).
    */
   public static int resolvePasswordMaxAgeDays(String value) {
     if (StringUtils.isBlank(value)) {
