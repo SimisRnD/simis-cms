@@ -28,6 +28,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -179,6 +180,10 @@ public class UserFormWidget extends GenericWidget {
       return context;
     }
 
+    // Break-glass, applied after the save because it cannot travel through it -- see
+    // applyBreakGlass. Only reached once the step-up above is satisfied.
+    applyBreakGlass(context, user);
+
     // Record the change with the effective roles and groups
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, eventType, AuditEventCommand.SUCCESS,
         "user", String.valueOf(user.getId()), user.getEmail(), AuditEventCommand.describeRolesAndGroups(user));
@@ -188,6 +193,53 @@ public class UserFormWidget extends GenericWidget {
     context.setRedirect("/admin/user-details?userId=" + user.getId());
     return context;
 
+  }
+
+  /**
+   * Applies the break-glass checkbox, if it changed.
+   *
+   * <p>
+   * Deliberately not routed through {@code SaveUserCommand}: that command copies an explicit
+   * allowlist of fields onto a fresh {@link User}, and {@code break_glass} is in neither that list
+   * nor the repository's insert/update column set. Only {@code updateBreakGlass} writes it. That is
+   * why {@code BeanUtils.populate} setting {@code breakGlass} from a crafted parameter has never
+   * reached the database, and this method keeps it that way -- the flag moves only on an explicit,
+   * admin-scoped, step-up-gated call.
+   * </p>
+   *
+   * <p>
+   * Offered for admin accounts only, checked against the SAVED roles rather than the submitted
+   * form: the role list is filtered for escalation above, so what the editor asked for and what the
+   * account ends up holding are not always the same thing.
+   * </p>
+   */
+  private void applyBreakGlass(WidgetContext context, User user) {
+    if (!user.hasRole("admin")) {
+      // The form does not render the toggle for a non-admin, so a value here was not offered.
+      return;
+    }
+    boolean requested = "true".equals(context.getParameter("breakGlassAccount"));
+    if (requested == user.getBreakGlass()) {
+      return;
+    }
+
+    if (!requested && UserRepository.countBreakGlassAccounts() <= 1) {
+      // Allowed, not refused: refusing would leave no way to clear the flag without marking another
+      // account first, and the warning is the part that actually helps. Said before the write so the
+      // message is accurate whether or not the update then succeeds.
+      context.setWarningMessage("Break-glass was cleared on " + user.getEmail()
+          + ", and no break-glass account remains. If MFA enforcement is turned on for a role every"
+          + " administrator holds, there is now no account exempt from the enrollment redirect.");
+    }
+
+    if (UserRepository.updateBreakGlass(user, requested) == null) {
+      LOG.error("Could not update break_glass for user " + user.getId());
+      context.setWarningMessage("The account was saved, but the break-glass setting could not be changed.");
+      return;
+    }
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT,
+        requested ? "user.break-glass.set" : "user.break-glass.cleared", AuditEventCommand.SUCCESS,
+        "user", String.valueOf(user.getId()), user.getEmail(), null);
   }
 
   /**
