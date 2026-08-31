@@ -99,8 +99,12 @@
    its #555 already was.
 
    Still literal below: the state colours (green, red, amber, purple, teal), which cannot take
-   --sc-success and its siblings because those flip between modes while these fills do not, and the
-   #444 container edges, which want a chrome border token that does not exist yet. */
+   semantic state tokens because those flip between modes while these fills do not, and the
+   #444 container edges, which want a chrome border token that does not exist yet.
+
+   (This was written against --sc-success and its siblings. Issue 1590 then removed them: this
+   was the only place that might have consumed them, and it had already declined to, for the
+   reason above. The reasoning stands for any future state token.) */
 
 /* Control boundaries in the editor chrome, issue 1518.
 

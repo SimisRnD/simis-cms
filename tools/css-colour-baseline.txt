@@ -6,7 +6,5 @@
 24 src/main/webapp/css/platform-editor.css
 7 src/main/webapp/css/platform-leaderboard.css
 7 src/main/webapp/css/platform-sitemap-editor.css
-3 src/main/webapp/css/platform-subnav.css
-3 src/main/webapp/css/platform-subnavheroheader.css
 8 src/main/webapp/css/platform-todo-list.css
 38 src/main/webapp/css/platform.css
