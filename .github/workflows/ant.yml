@@ -37,6 +37,13 @@ jobs:
         # setup-java v2+ requires an explicit distribution (v1 did not)
         distribution: 'temurin'
         java-version: 21
+    - name: Check the code style
+      # The checkstyle target has existed (failOnViolation="true", checkstyle.xml, the vendored
+      # lib/style/checkstyle-10.12.5-all.jar) since long before this step, but nothing in CI ever
+      # invoked it -- so violations accumulated on main and only anyone running `ant checkstyle`
+      # by hand ever saw them. Source analysis only, no compile needed, so it runs first and fails
+      # in seconds. See issue #1702.
+      run: ant -noinput -buildfile build.xml checkstyle
     - name: Compile the source
       run: ant -noinput -buildfile build.xml clean compile
     - name: Precompile the JSPs

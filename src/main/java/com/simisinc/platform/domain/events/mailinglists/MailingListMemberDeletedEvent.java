@@ -20,6 +20,8 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Event details for when a mailing list member is removed (issue #452). {@code member} is the
@@ -28,13 +30,15 @@ import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
  *
  * @author SimIS Inc.
  */
+@NoArgsConstructor
+@Setter
 public class MailingListMemberDeletedEvent extends Event {
 
   public static final String ID = "mailing-list-member-deleted";
 
-  private final MailingListMember member;
-  private final MailingList mailingList;
-  private final User user;
+  private MailingListMember member;
+  private MailingList mailingList;
+  private User user;
 
   public MailingListMemberDeletedEvent(MailingListMember member, MailingList mailingList, User user) {
     this.member = member;
