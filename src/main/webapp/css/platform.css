@@ -95,6 +95,22 @@ body.admin-console .help-text {
   line-height: 1.5;
 }
 
+/* Dashboard statistic tiles.
+
+   These rules used to be emitted by the tile JSPs themselves, inside a <style> block rendered
+   once per tile. The colour rule in there was per-instance and had to be, but the size rules
+   were global and identical, so a dashboard with fourteen tiles shipped the same declaration
+   fourteen times -- and, being inline, it outranked this stylesheet, so the tiles could not be
+   restyled from here at all.
+
+   The per-instance icon colour moved to a style attribute on the icon, which is what a
+   one-off value should have been in the first place. */
+.statistic-card-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 body.admin-console h1,
 body.admin-console h2,
 body.admin-console h3,

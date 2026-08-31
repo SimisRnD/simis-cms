@@ -25,22 +25,10 @@
 <jsp:useBean id="label1" class="java.lang.String" scope="request"/>
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
 <jsp:useBean id="iconColor" class="java.lang.String" scope="request"/>
-<style>
-    <c:if test="${!empty iconColor}">
-    .statistic-card-icon${widgetContext.uniqueId} {
-        color: <c:out value="${iconColor}" />;
-    }
-    </c:if>
-    .statistic-card-value {
-        font-size: 40px;
-        font-weight: bold;
-        line-height: 1;
-    }
-</style>
 <div class="grid-x align-middle text-middle">
   <c:if test="${!empty icon}">
     <div class="small-5 cell">
-      <i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon${widgetContext.uniqueId}"></i>
+      <i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon"<c:if test="${!empty iconColor}"> style="color:<c:out value="${iconColor}" />"</c:if>></i>
     </div>
   </c:if>
   <div class="auto cell">
