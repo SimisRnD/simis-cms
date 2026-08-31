@@ -92,6 +92,10 @@ public class ContentHtmlCommand {
       Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
       if (content != null) {
         html = toHtml(content.getContent(), content.getContentFormat());
+        // The record's own timestamp, for the optional "last updated" line (content.jsp). Set here
+        // rather than in the widget because only this method knows whether the html on screen came
+        // from the record or fell back to the page XML -- and it is cleared below when it does.
+        context.getRequest().setAttribute("contentModified", content.getModified());
         // Look for draft content
         if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
           if (content.getDraftContent() != null) {
@@ -131,6 +135,10 @@ public class ContentHtmlCommand {
     // record and deleted the section (issue 1689). Treating an empty record like a missing one
     // restores the declared default, which is exactly what the no-record path already does.
     if (StringUtils.isBlank(html)) {
+      // Falling back to the page XML's html, so the record's timestamp is no longer describing what
+      // is on screen. Clearing it lets the JSP fall through to the page's own modified date, which
+      // is the one that actually moves when this inline html is edited.
+      context.getRequest().removeAttribute("contentModified");
       html = ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(HtmlCommand.cleanStoredContent(context.getPreferences().get("html"))));
     }
 
