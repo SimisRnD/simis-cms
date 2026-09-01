@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -134,16 +135,38 @@ class SessionBotTrafficRepositoryTest {
     List<StatisticsData> realSeries = SessionRepository.findDailySessionsByBotStatus(7, 'd', false);
 
     assertEquals(8, botSeries.size(), "7 days plus today, inclusive, zero-filled");
-    StatisticsData todaysBotEntry = botSeries.get(botSeries.size() - 1);
-    assertEquals("2", todaysBotEntry.getValue(), "expected 2 bot sessions today: " + botSeries);
+    assertEquals(8, realSeries.size(), "7 days plus today, inclusive, zero-filled");
 
-    StatisticsData todaysRealEntry = realSeries.get(realSeries.size() - 1);
-    assertEquals("1", todaysRealEntry.getValue(), "expected 1 real session today: " + realSeries);
+    // Deliberately not asserted as the *last* bucket. The rows land in the bucket for the date they
+    // were written, while the series' last day comes from NOW() at query time -- if local midnight
+    // falls in between, they sit one bucket to the left and an index-based assertion fails for a
+    // reason that has nothing to do with zero-filling (issue #1738). What this test is about is
+    // that exactly one bucket carries the count and every other day is present and zero rather
+    // than dropped, which holds whichever calendar day the query runs on.
+    assertCountInASingleZeroFilledSeries(botSeries, "2");
+    assertCountInASingleZeroFilledSeries(realSeries, "1");
+  }
 
-    // Every earlier day must be zero-filled, not dropped, for both series
-    for (int i = 0; i < botSeries.size() - 1; i++) {
-      assertEquals("0", botSeries.get(i).getValue(), "expected a zero-filled day at index " + i + ": " + botSeries);
-    }
+  /**
+   * Asserts the series carries its whole count in exactly one bucket, with every other bucket
+   * present and explicitly "0" -- the zero-fill guarantee, stated without depending on which
+   * calendar day the query happens to run on. A dropped day would fail the size assertion at the
+   * call site; a day zero-filled as null or absent would show up here.
+   */
+  private static void assertCountInASingleZeroFilledSeries(List<StatisticsData> series, String expectedCount) {
+    List<String> populatedDays = series.stream()
+        .map(StatisticsData::getValue)
+        .filter(value -> !"0".equals(value))
+        .toList();
+
+    // StatisticsData has no toString(), so render the series by hand -- otherwise a failure prints
+    // a list of object hashes and says nothing about which day went wrong.
+    String rendered = series.stream()
+        .map(data -> data.getLabel() + "=" + data.getValue())
+        .collect(Collectors.joining(", ", "[", "]"));
+
+    assertEquals(List.of(expectedCount), populatedDays,
+        "expected every day zero-filled except exactly one holding " + expectedCount + ": " + rendered);
   }
 
   @Test
