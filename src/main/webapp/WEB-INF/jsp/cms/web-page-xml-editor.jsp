@@ -39,6 +39,24 @@
 <c:if test="${empty webPage.pageXml}">
   <p class="subheader">Page layout does not exist! Choose a template or design the page yourself...</p>
 </c:if>
+<%-- Issue #1725: a widget can declare inline html AND reference a saved content record. The
+     record always wins, so that inline html is inert -- editing it here changes nothing on the
+     page. Nothing said so before, which made it look as though the editor was not saving. --%>
+<c:if test="${!empty overriddenInlineDefaults}">
+  <div class="callout warning radius">
+    <p style="margin-bottom:6px"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+      <strong>Some inline HTML below is not what visitors see.</strong></p>
+    <p style="margin-bottom:6px">These content blocks have saved content, which takes priority over
+      the <code>&lt;html&gt;</code> written into the layout. Editing that inline HTML here will not
+      change the page &mdash; edit the block on the page itself, or through Content.</p>
+    <ul style="margin-bottom:0">
+      <c:forEach items="${overriddenInlineDefaults}" var="overriddenUniqueId">
+        <li><code><c:out value="${overriddenUniqueId}"/></code></li>
+      </c:forEach>
+    </ul>
+  </div>
+</c:if>
+
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
