@@ -309,6 +309,17 @@ class WebContainerCommandTest {
   }
 
   @Test
+  void elearningPropertyMapSurvivesThePerWidgetReset() {
+    // Issue #1763: main.jsp's admin menu hides the xAPI Statements row when elearning.enabled is
+    // false, which means it reads elearningPropertyMap in EL after the whole widget walk is done.
+    // This is the same trap cspNonce fell into above -- PageServlet publishes the attribute before
+    // the walk, so without this exemption the first widget's reset wipes it, EL sees an empty map,
+    // and the gate's `empty ... || ... eq 'true'` fail-open branch quietly keeps the row visible on
+    // every site. The bug would look like "the gate does nothing" rather than an error.
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("elearningPropertyMap"));
+  }
+
+  @Test
   void existingControllerMasterAndRequestPrefixedAttributesStillSurvive() {
     // Unchanged pre-existing behavior -- must not regress with the new exemption added alongside it.
     Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("controllerShowMainMenu"));
