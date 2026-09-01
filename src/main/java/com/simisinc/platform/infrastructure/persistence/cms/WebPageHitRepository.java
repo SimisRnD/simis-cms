@@ -373,6 +373,7 @@ public class WebPageHitRepository {
             "EXTRACT(EPOCH FROM (LEAD(hit_date) OVER (PARTITION BY session_id ORDER BY hit_date) - hit_date)) AS seconds_to_next " +
             "FROM web_page_hits " +
             "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            NON_PAGE_PATH_EXCLUSION +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)" +
             ") hit_deltas " +
             "WHERE seconds_to_next IS NOT NULL " +
@@ -401,6 +402,26 @@ public class WebPageHitRepository {
 
   // A floor so a page with only 1-4 hits (whose "average" dwell time is based on almost no
   // samples) cannot dominate either ranking below as noise -- see findTrafficEngagementRanking.
+  /**
+   * Paths that are not pages, and so must not appear in a report that ranks pages.
+   *
+   * Browser-requested assets are the reason this exists: /web-content/images/favicon.png was the
+   * top row of "High Traffic, Low Engagement" with a 77-second average, which is a meaningless
+   * number for an icon a browser fetches on its own. Admin, login and JSON routes are excluded for
+   * the same reason -- they are traffic, but not pages anyone chose to read.
+   *
+   * Written once and shared rather than repeated per query. It previously lived inline in
+   * findTopPaths alone, which is exactly how the ranking reports came to be missing it.
+   */
+  private static final String NON_PAGE_PATH_EXCLUSION =
+      "AND page_path NOT LIKE '/admin%' " +
+          "AND page_path NOT LIKE '/assets/%' " +
+          "AND page_path NOT LIKE '/web-content/%' " +
+          "AND page_path NOT LIKE '/json/%' " +
+          "AND page_path NOT LIKE '%/*' " +
+          "AND page_path <> '/content-editor' " +
+          "AND page_path <> '/login' ";
+
   private static final int MIN_HITS_FOR_ENGAGEMENT_RANKING = 5;
 
   /**
@@ -432,6 +453,7 @@ public class WebPageHitRepository {
             "EXTRACT(EPOCH FROM (LEAD(hit_date) OVER (PARTITION BY session_id ORDER BY hit_date) - hit_date)) AS seconds_to_next " +
             "FROM web_page_hits " +
             "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            NON_PAGE_PATH_EXCLUSION +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)" +
             ") hit_deltas " +
             "WHERE seconds_to_next IS NOT NULL " +
@@ -586,13 +608,7 @@ public class WebPageHitRepository {
         "SELECT page_path, count(page_path) AS path_count " +
             "FROM web_page_hits " +
             "WHERE hit_date > NOW() - INTERVAL '" + value + " " + DB.intervalUnit(intervalType) + "' " +
-            "AND page_path NOT LIKE '/admin%' " +
-            "AND page_path NOT LIKE '/assets/%' " +
-            "AND page_path NOT LIKE '/web-content/%' " +
-            "AND page_path NOT LIKE '/json/%' " +
-            "AND page_path NOT LIKE '%/*' " +
-            "AND page_path <> '/content-editor' " +
-            "AND page_path <> '/login' " +
+            NON_PAGE_PATH_EXCLUSION +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
             "GROUP BY page_path " +
             "ORDER BY path_count desc " +
