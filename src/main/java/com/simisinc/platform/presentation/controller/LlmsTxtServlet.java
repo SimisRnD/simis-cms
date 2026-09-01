@@ -228,6 +228,23 @@ public class LlmsTxtServlet extends HttpServlet {
               String itemName = StringUtils.isNotBlank(menuItem.getName()) ? menuItem.getName() : menuItem.getLink();
               sb.append("  - [").append(escapeMarkdownText(itemName)).append("](")
                   .append(escapeMarkdownUrl(siteUrl + menuItem.getLink())).append(")\n");
+              // Third navigation level (issue #1728). Omitting it here would defeat the point of the
+              // feature: the pages that gained a nav route are exactly the ones -- contract vehicles,
+              // product pages -- that most need to be discoverable. Same anonymous access check as
+              // every level above, so a restricted page is no more exposed here than in the menu.
+              if (menuItem.getMenuItemList() != null) {
+                for (MenuItem subMenuItem : menuItem.getMenuItemList()) {
+                  if (subMenuItem == null || StringUtils.isBlank(subMenuItem.getLink())
+                      || !ValidateUserAccessToWebPageCommand.hasAccess(subMenuItem.getLink(), anonymousSession)) {
+                    continue;
+                  }
+                  String subItemName = StringUtils.isNotBlank(subMenuItem.getName())
+                      ? subMenuItem.getName()
+                      : subMenuItem.getLink();
+                  sb.append("    - [").append(escapeMarkdownText(subItemName)).append("](")
+                      .append(escapeMarkdownUrl(siteUrl + subMenuItem.getLink())).append(")\n");
+                }
+              }
             }
           }
         }
