@@ -321,4 +321,120 @@ class SaveMailingListCommandTest {
       repository.verify(() -> MailingListRepository.save(argThat(saved -> "newsletter-2".equals(saved.getUniqueId()))));
     }
   }
+
+
+  // mailing_lists.name and mailing_lists.title are both VARCHAR(200). Before these checks an
+  // over-length entry was refused by Postgres instead of by the form: MailingListRepository logs
+  // the SQLException and returns null, and MailingListFormWidget turns that null into "Your
+  // information could not be saved due to a system error" -- which names neither the field nor the
+  // limit, for what is only a too-long entry.
+  private static final String AT_LIMIT = "x".repeat(200);
+  private static final String OVER_LIMIT = "x".repeat(201);
+
+  @Test
+  void anOverLongNameIsRejectedInsteadOfReachingTheDatabase() {
+    MailingList bean = new MailingList();
+    bean.setName(OVER_LIMIT);
+    bean.setTitle("Newsletter");
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals("Please check the form and try again:\nA name can be up to 200 characters",
+          exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void anOverLongTitleIsRejectedInsteadOfReachingTheDatabase() {
+    MailingList bean = new MailingList();
+    bean.setName("Newsletter");
+    bean.setTitle(OVER_LIMIT);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals("Please check the form and try again:\nA title can be up to 200 characters",
+          exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void anOverLongNameAndTitleReportBothInOneMessage() {
+    // the same "; " join the blank-field messages use -- a length message must not run into the one
+    // before it either
+    MailingList bean = new MailingList();
+    bean.setName(OVER_LIMIT);
+    bean.setTitle(OVER_LIMIT);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals(
+          "Please check the form and try again:\nA name can be up to 200 characters; "
+              + "A title can be up to 200 characters",
+          exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void aBlankNameWithAnOverLongTitleStillReportsBoth() {
+    // the name arm is an if/else -- a blank name reports "required", never "too long", and the
+    // title's length message still has to be joined onto it
+    MailingList bean = new MailingList();
+    bean.setTitle(OVER_LIMIT);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals(
+          "Please check the form and try again:\nA name is required; A title can be up to 200 characters",
+          exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void aNameAndTitleExactlyAtTheLimitAreAccepted() throws DataException {
+    // the column holds 200, so 200 must save -- an off-by-one here would reject a legitimate entry
+    MailingList bean = new MailingList();
+    bean.setName(AT_LIMIT);
+    bean.setTitle(AT_LIMIT);
+    bean.setCreatedBy(42L);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      repository.when(() -> MailingListRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveMailingListCommand.saveMailingList(bean);
+
+      repository.verify(() -> MailingListRepository.save(argThat(saved -> saved.getName().length() == 200
+          && saved.getTitle().length() == 200)));
+    }
+  }
+
+  @Test
+  void trailingWhitespaceDoesNotPushAValueOverTheLimit() throws DataException {
+    // MailingListRepository trims name and title before writing them, so 200 characters plus
+    // whitespace is 200 characters as stored -- measuring the raw string would refuse a save the
+    // database would have accepted
+    MailingList bean = new MailingList();
+    bean.setName(AT_LIMIT + "   ");
+    bean.setTitle(AT_LIMIT + "   ");
+    bean.setCreatedBy(42L);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      repository.when(() -> MailingListRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveMailingListCommand.saveMailingList(bean);
+
+      repository.verify(() -> MailingListRepository.save(any()));
+    }
+  }
 }
