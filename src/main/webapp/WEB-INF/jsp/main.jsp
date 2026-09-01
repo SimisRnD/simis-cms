@@ -704,6 +704,20 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bot-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/bot-list"><i class="${font:far()} fa-robot fa-fw"></i> <span>Bot User Agents</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/role-capabilities')}"> class="is-active"</c:if>><a href="${ctx}/admin/role-capabilities"><i class="${font:far()} fa-user-lock fa-fw"></i> <span>Role Capabilities</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
+              <%-- issue #1764: a report of recorded events, not a setting -- it belongs beside the
+                   Audit Log rather than among the configuration forms it used to sit in.
+
+                   Kept behind its own hasRole('admin') test rather than inheriting this section's
+                   wider gate. Every other page here is declared role="admin" capability="admin:manage"
+                   in admin-layout.xml, but /admin/csp-violations is role="admin" only, so without
+                   this an admin:manage holder would be shown a link they cannot open. Widening the
+                   page's capability to match its neighbours is a deliberate authorization decision,
+                   not something a menu reorganization should do on its own.
+
+                   Icon changed from fa-shield-halved, which Blocked IPs already uses four rows up. --%>
+              <c:if test="${userSession.hasRole('admin')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/csp-violations')}"> class="is-active"</c:if>><a href="${ctx}/admin/csp-violations"><i class="${font:far()} fa-triangle-exclamation fa-fw"></i> <span>CSP Violations</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/analytics-retention')}"> class="is-active"</c:if>><a href="${ctx}/admin/analytics-retention"><i class="${font:far()} fa-trash-can fa-fw"></i> <span>Analytics Retention</span></a></li>
             </ul>
           </c:if>
@@ -729,7 +743,6 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-properties"><i class="${font:far()} fa-shield fa-fw"></i> <span>Security</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/csp-violations')}"> class="is-active"</c:if>><a href="${ctx}/admin/csp-violations"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>CSP Violations</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/feature-flags')}"> class="is-active"</c:if>><a href="${ctx}/admin/feature-flags"><i class="${font:far()} fa-flag fa-fw"></i> <span>Feature Flags</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
