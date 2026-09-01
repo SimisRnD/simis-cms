@@ -388,7 +388,9 @@ public class PageServlet extends HttpServlet {
       // (ItemsListWidget) throughout the rest of this request, including inside
       // WebContainerCommand.processWidgets()'s per-widget loop -- their names must stay in sync
       // with WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, which exempts them from that loop's
-      // per-widget request attribute reset.
+      // per-widget request attribute reset. A name published above the walk and left out of that
+      // set is wiped by the first widget and reads as the empty string with no error anywhere
+      // (issue #944); tools/check-page-level-attributes.py fails CI when the two drift apart.
       //
       // pageEditMode must be published unconditionally, like pageLayoutMode below -- leaving it
       // unset on the false path lets JSP EL's implicit page/request/session/application scope
@@ -898,6 +900,10 @@ public class PageServlet extends HttpServlet {
       // Never render a malformed tracking id into the public page's script tags
       AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
       Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
+      // issue #1763: the admin menu hides a module's satellite pages when the module is off, the
+      // way the E-Commerce section already does. Cache-backed (CacheManager), so this is a map
+      // build, not a query, on each request.
+      Map<String, String> elearningPropertyMap = LoadSitePropertyCommand.loadAsMap("elearning");
 
       // Publish these before any widget renders (below), not just for main.jsp/layout.jsp
       // afterward -- a widget JSP (e.g. ActivityListWidget's activity-list.jsp) that reads
@@ -911,6 +917,7 @@ public class PageServlet extends HttpServlet {
       request.setAttribute("socialMediaLinkList", socialMediaLinkList);
       request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
       request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
+      request.setAttribute("elearningPropertyMap", elearningPropertyMap);
 
       // Allow content admins to see a page
       if (pageRef == null &&
