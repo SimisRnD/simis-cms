@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.ecommerce.ProductCategory;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductCategoryRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +31,13 @@ import org.apache.commons.logging.LogFactory;
  * @created 4/10/21 5:30 PM
  */
 public class SaveProductCategoryCommand {
+
+  // The form is product-category-form.jsp, but the table behind it is lookup_product_categories;
+  // product_categories is the product-to-category join and holds none of these fields.
+  // @column lookup_product_categories.name
+  private static final int MAX_NAME_LENGTH = 255;
+  // @column lookup_product_categories.category_unique_id
+  private static final int MAX_UNIQUE_ID_LENGTH = 255;
 
   private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
   private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwxyz0123456789-";
@@ -46,12 +54,16 @@ public class SaveProductCategoryCommand {
 
     if (StringUtils.isBlank(productCategoryBean.getName())) {
       errorMessages.append("A name is required");
+    } else if (FieldLengthCommand.exceedsLimit(productCategoryBean.getName(), MAX_NAME_LENGTH)) {
+      errorMessages.append(FieldLengthCommand.tooLongMessage("A name", MAX_NAME_LENGTH));
     }
 
     // Validate the unique id
     if (StringUtils.isNotBlank(productCategoryBean.getUniqueId())) {
       if (!StringUtils.containsOnly(productCategoryBean.getUniqueId(), allowedFinalChars)) {
         errorMessages.append("The uniqueId contains invalid characters");
+      } else if (FieldLengthCommand.exceedsLimit(productCategoryBean.getUniqueId(), MAX_UNIQUE_ID_LENGTH)) {
+        errorMessages.append(FieldLengthCommand.tooLongMessage("A uniqueId", MAX_UNIQUE_ID_LENGTH));
       }
     }
 

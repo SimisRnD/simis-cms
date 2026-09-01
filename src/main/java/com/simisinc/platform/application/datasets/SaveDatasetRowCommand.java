@@ -54,6 +54,9 @@ import static com.simisinc.platform.application.datasets.DatasetFieldOptionComma
  */
 public class SaveDatasetRowCommand {
 
+  // @column items.name
+  private static final int MAX_ITEM_NAME_LENGTH = 255;
+
   private static Log LOG = LogFactory.getLog(SaveDatasetRowCommand.class);
 
   // Bug fix: a real "Save & Sync" run streams one row at a time into saveRecord()/constructItem()
@@ -342,9 +345,12 @@ public class SaveDatasetRowCommand {
       }
     }
     item.setCategoryIdList(categoryIdList.toArray(new Long[0]));
-    // Restrict the item name length
-    if (item.getName() != null && item.getName().length() > 250) {
-      item.setName(item.getName().substring(0, 250));
+    // Restrict the item name length. Truncating is right here and only here: this is a dataset
+    // import with no user at the keyboard to tell, so refusing the row would lose more than
+    // shortening the name does. It was truncating to 250 against a VARCHAR(255) column, though,
+    // discarding five characters it never needed to (issue #1740).
+    if (item.getName() != null && item.getName().length() > MAX_ITEM_NAME_LENGTH) {
+      item.setName(item.getName().substring(0, MAX_ITEM_NAME_LENGTH));
     }
     return item;
   }

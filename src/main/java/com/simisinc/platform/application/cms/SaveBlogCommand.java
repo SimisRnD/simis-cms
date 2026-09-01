@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
@@ -39,6 +40,11 @@ public class SaveBlogCommand {
   public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveBlogCommand.class);
 
+  // Issue #1740: without this the write reached Postgres, was refused, and surfaced to the
+  // admin as "could not be saved due to a system error" with nothing naming the field.
+  // @column blogs.name
+  private static final int MAX_NAME_LENGTH = 255;
+
   public static Blog saveBlog(Blog blogBean) throws DataException {
 
     // Required dependencies
@@ -50,6 +56,10 @@ public class SaveBlogCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(blogBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      // issue #1740 -- chained onto the blank check, so a name is reported as either missing or too
+      // long, never both, and never as two messages this command has no separator to join
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name", blogBean.getName(), MAX_NAME_LENGTH);
     }
 
     // A mailing list association is optional, but if one was submitted, it must be real -- a
