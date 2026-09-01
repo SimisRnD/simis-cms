@@ -49,7 +49,25 @@
           <ul class="menu vertical nested">
             <li><a href="${ctx}${menuTab.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuTab.name}" /></a></li>
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-              <li<c:if test="${useSmallHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+              <%-- Foundation's drilldown handles arbitrary depth natively: a nested ul becomes
+                   another slide-in panel with its own back link, which is a better fit on a phone
+                   than a hover flyout would be (issue #1728). --%>
+              <c:choose>
+                <c:when test="${!empty menuItem.menuItemList}">
+                  <li>
+                    <a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a>
+                    <ul class="menu vertical nested">
+                      <li<c:if test="${useSmallHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                      <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                        <li<c:if test="${useSmallHighlight eq 'true' && subMenuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.name}" /></a></li>
+                      </c:forEach>
+                    </ul>
+                  </li>
+                </c:when>
+                <c:otherwise>
+                  <li<c:if test="${useSmallHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+                </c:otherwise>
+              </c:choose>
             </c:forEach>
           </ul>
         </li>

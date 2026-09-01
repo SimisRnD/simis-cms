@@ -45,11 +45,21 @@
     </c:otherwise>
   </c:choose>
 </c:if>
+<%-- Issue #1726: sticky widgets in the body renderer anchor their bottom to #platform-footer, but
+     that id is emitted by layout-footer-renderer.jspf alone -- so only when the footer block below
+     runs *and* the footer theme is "custom". Anchoring to an element that is not on the page makes
+     Foundation's Sticky._parsePoints call .offset() on an empty jQuery set and throw a TypeError,
+     which is what /admin saw: no footer is rendered there at all. Both facts are decided here, once,
+     so the anchor and the footer cannot drift apart. Set before the body renderer because that is
+     what writes the anchor. container-layout.jsp includes the same renderer and sets neither: an
+     unset flag is false, which is right, since it renders no footer either. --%>
+<c:set var="renderPageFooter" scope="request" value="${(controllerShowMainMenu eq 'true' && !fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/content-editor') || pageRenderInfo.name eq '/admin/theme-properties'}"/>
+<c:set var="platformFooterAnchorExists" scope="request" value="${renderPageFooter && 'custom' eq themePropertyMap['theme.footer.style']}"/>
 <%-- Widget Renderer --%>
 <c:set var="rendererClass" scope="request">platform-body</c:set>
 <%@ include file="layout-body-renderer.jspf" %>
 <%-- Footer --%>
-<c:if test="${(controllerShowMainMenu eq 'true' && !fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/content-editor') || pageRenderInfo.name eq '/admin/theme-properties'}">
+<c:if test="${renderPageFooter}">
   <c:choose>
     <c:when test="${'none' eq themePropertyMap['theme.footer.style']}">
 
