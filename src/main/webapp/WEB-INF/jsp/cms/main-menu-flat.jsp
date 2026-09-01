@@ -54,6 +54,13 @@
           <ul class="menu vertical">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
               <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+              <%-- This view is a flat list by design -- it is used where a hover or drilldown makes
+                   no sense, such as a sitemap-style block. Nested items are listed inline rather
+                   than as another level, so a third-level page is still reachable here and does not
+                   silently disappear from the one view that is meant to show everything (#1728). --%>
+              <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                <li class="site-map-nested-item<c:if test="${useHighlight eq 'true' && subMenuItem.link eq pagePath}"> active</c:if>" style="padding-left:16px"><a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.name}" /></a></li>
+              </c:forEach>
             </c:forEach>
           </ul>
         </li>
