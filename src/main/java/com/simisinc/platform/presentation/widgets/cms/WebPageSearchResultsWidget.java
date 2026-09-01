@@ -20,7 +20,6 @@ import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.InternalPageAccessCommand;
-import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.application.items.ItemDateFacetCommand;
@@ -99,12 +98,6 @@ public class WebPageSearchResultsWidget extends GenericWidget {
           FacetUrlCommand.buildClearFilterUrl(context, "dateFacet")));
     }
     context.getRequest().setAttribute("activeFilters", activeFilters);
-
-    // Load the menu tabs, these are the directly linkable web pages
-    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllActiveIncludeMenuItemList();
-
-    // Load the table of contents
-    List<TableOfContents> tableOfContentsList = TableOfContentsRepository.findAll(null, null);
 
     // Search the content and figure out the matching web pages
     ContentSpecification contentSpecification = new ContentSpecification();
@@ -195,12 +188,17 @@ public class WebPageSearchResultsWidget extends GenericWidget {
                 String value = widget.getPreferences().get(key);
                 LOG.debug("Pref: " + key + "=" + value);
                 if (("uniqueId".equals(key) && value.contains(contentUniqueId)) || (value.contains("${uniqueId:" + contentUniqueId + "}"))) {
-                  // Page was found, but we only want to show results for linked pages, to avoid hidden pages
-                  if (isPageInTheNavigation(context, link, menuTabList, tableOfContentsList)) {
-                    addTheSearchResult(webPage, link, content, resultsMap);
-                    // No need to show more web pages which have the same repeated contentId
-                    continue contentLoop;
-                  }
+                  // Issue #1744: this used to require the page to be reachable from a menu tab, a
+                  // menu item or a table of contents, which silently dropped every page that was
+                  // searchable but simply not linked -- 27 of 54 pages on the pilot, including the
+                  // ones with the most commercial value. Whether a page should be findable is
+                  // already answered above, by the searchable flag and the draft filter, and by the
+                  // per-page/section/column/widget access checks; a second, cruder test on the
+                  // navigation contradicted the admin's own setting. The privileged bypass hid it:
+                  // an admin testing search saw results a visitor never would.
+                  addTheSearchResult(webPage, link, content, resultsMap);
+                  // No need to show more web pages which have the same repeated contentId
+                  continue contentLoop;
                 }
               }
             }
@@ -212,37 +210,12 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     return finishRequest(context, resultsMap);
   }
 
-  // Mirrors isPageInTheNavigation's privileged bypass below.
+  // Admins and content managers still search unpublished and non-searchable pages, which is
+  // the one privileged bypass that remains after issue #1744 removed the navigation gate.
   static boolean shouldRestrictToPublishedSearchableWebPages(WidgetContext context) {
     return !context.hasRole("admin") && !context.hasRole("content-manager");
   }
 
-  private boolean isPageInTheNavigation(WidgetContext context, String link, List<MenuTab> menuTabList, List<TableOfContents> tableOfContentsList) {
-    // Allow the admin to see results for any page
-    if (context.hasRole("admin") || context.hasRole("content-manager")) {
-      return true;
-    }
-    // Determine if the link is in the navigation... like menu tabs, menu items, table of contents
-    for (MenuTab menuTab : menuTabList) {
-      if (menuTab.getLink().equals(link)) {
-        return true;
-      }
-      for (MenuItem menuItem : menuTab.getMenuItemList()) {
-        if (menuItem.getLink().equals(link)) {
-          return true;
-        }
-      }
-    }
-    // Determine if the link is in the table of contents
-    for (TableOfContents tableOfContents : tableOfContentsList) {
-      for (TableOfContentsLink tableOfContentsLink : tableOfContents.getEntries()) {
-        if (link.equals(tableOfContentsLink.getLink())) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
 
   private void addTheSearchResult(WebPage webPage, String link, Content content, Map<String, SearchResult> resultsMap) {
     // Add the search result
