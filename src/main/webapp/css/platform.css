@@ -2856,6 +2856,18 @@ div.item-image-large img {
   border-radius: var(--sc-radius-md, 4px);
   box-shadow: var(--sc-shadow-md, 0 1px 3px rgba(23, 25, 30, 0.08));
   text-align: center;
+  /* Paired with the fill above, and pinned (issue #1777). The card sets its own light surface but
+     sat on the page's inherited ink, so on a dark-themed site the message came out light-on-light
+     at 1.10:1 -- invisible, not merely low. A site's page-level paragraph rule routinely carries
+     three classes (`body:not(:has(.x)) .sub-page > .cell p` on the site that surfaced this) and
+     beats a two-class component rule, and it is not wrong to: it cannot know a component with its
+     own fill is nested inside it. Same shape as the .callout ink bug in issue #1757.
+
+     A token is pinned here, never a colour, so this is not the .button.box mistake from issue
+     #1589 where a fixed ink outlived a repainted fill and landed at 2.89:1. The escape hatch is
+     the designed one: redefine --sc-surface and --sc-text* together and fill and ink move as a
+     pair. Style the card's tokens, not its descendants from outside. */
+  color: var(--sc-text, #2c2925) !important;
 }
 
 .platform-subscription-result > :first-child {
@@ -2866,12 +2878,15 @@ div.item-image-large img {
 .platform-subscription-result h2,
 .platform-subscription-result h3 {
   margin-bottom: var(--sc-space-2, 0.5rem);
-  color: var(--sc-text, #2c2925);
+  color: var(--sc-text, #2c2925) !important;
 }
 
 .platform-subscription-result p {
   margin-bottom: var(--sc-space-5, 1.5rem);
-  color: var(--sc-text-muted, #656970);
+  /* The one that actually broke: the site rule targets `p`, so the heading above kept its own
+     colour at 13.06:1 while the message dropped to 1.10:1. A half-styled card reads as a design
+     choice, which is why nobody spotted it until someone subscribed and saw nothing. */
+  color: var(--sc-text-muted, #656970) !important;
   line-height: var(--sc-leading-relaxed, 1.5);
 }
 
