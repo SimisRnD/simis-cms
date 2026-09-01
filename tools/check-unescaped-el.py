@@ -39,6 +39,9 @@ unallowlisted finding. CI runs it with ``--strict``: the sweep that produced
 this fixed 29 injection points and classified the remainder, so every site that
 still renders unescaped carries an entry below explaining why it is safe.
 
+Exit codes: 0 = nothing unallowlisted (or report-only), 1 = an unallowlisted
+finding under --strict, 2 = bad usage, or the JSP tree this check reads is missing.
+
 This is a read-only reporter. It changes no files.
 """
 from __future__ import annotations
@@ -464,6 +467,17 @@ EL = re.compile(r"\$\{[^}]+\}")
 TEMPLATE_LITERAL = re.compile(r"`[^`]*`", re.S)
 
 
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- a gate whose JSP tree has
+    been moved out from under it must be visibly broken rather than reported as a
+    clean sweep or confused with a real unescaped-EL finding.
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def _blank(match) -> str:
     """Replace a span with spaces so byte offsets, and thus line numbers, survive."""
     return " " * len(match.group(0))
@@ -539,7 +553,7 @@ def main() -> int:
 
     base = os.path.join(args.root, JSP_ROOT)
     if not os.path.isdir(base):
-        sys.exit("error: %s not found (run from the repository root)" % base)
+        fail("%s not found (run from the repository root)" % base)
 
     findings: list[tuple[str, int, str, str]] = []
     allowed: collections.Counter = collections.Counter()

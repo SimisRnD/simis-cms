@@ -288,3 +288,32 @@ def test_a_cve_addendum_still_requires_every_package_to_be_covered(monkeypatch, 
     ])
     assert [s["status"] for s in got] == ["under_investigation"]
     assert gen.CVE_ADDENDUM[cve] not in got[0]["impact_statement"]
+
+
+# --- Unreachable input ----------------------------------------------------------------
+# The write guards above refuse with exit 1 after looking at the alerts. Failing to reach
+# the alerts at all is a different fact and gets its own code, so a broken `gh` in a
+# regeneration run cannot be mistaken for a deliberate refusal to overwrite.
+
+def test_unreachable_alert_source_exits_two(monkeypatch):
+    class Failed:
+        returncode = 1
+        stdout = ""
+        stderr = "gh: could not authenticate"
+
+    monkeypatch.setattr(gen.subprocess, "run", lambda *a, **k: Failed())
+    with pytest.raises(SystemExit) as excinfo:
+        gen.fetch_alerts()
+    assert excinfo.value.code == 2
+
+
+def test_a_refused_write_does_not_use_the_unreachable_input_code(tmp_path):
+    # The other side of the same contract. A refusal raises SystemExit carrying a message
+    # string, which the interpreter renders as exit 1 -- deliberately not the 2 that means
+    # "never reached the alerts at all". A refusal is a decision about the document; an
+    # unreachable input is a broken run.
+    p = seed(tmp_path, 3)
+    with pytest.raises(SystemExit) as excinfo:
+        gen.write_document(doc(0), str(p))
+    assert isinstance(excinfo.value.code, str), "a refusal should carry its explanation"
+    assert excinfo.value.code != 2

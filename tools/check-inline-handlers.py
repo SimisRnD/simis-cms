@@ -41,6 +41,10 @@ Report-only by default. ``--strict`` (or ``STRICT=1``) exits 1 on any file whose
 live inline-handler count exceeds its allowlisted number, or on any un-allowlisted
 file with handlers. CI runs it with ``--strict``.
 
+Exit codes: 0 = every file within its allowlisted budget (or report-only), 1 = an
+over-budget or un-allowlisted file under --strict, 2 = bad usage, or the JSP tree
+this check reads is missing or too small to be the real one.
+
 This is a read-only reporter. It changes no files.
 """
 from __future__ import annotations
@@ -114,6 +118,17 @@ ALLOWLIST: dict[str, int] = {
 }
 
 
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- a gate whose JSP tree has
+    been moved out from under it must be visibly broken rather than reported as a
+    clean sweep or confused with a real inline-handler finding.
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def _blank(match: "re.Match[str]") -> str:
     """Replace a matched region with spaces, preserving newlines so that blanking
     comments and scripts never shifts the line numbers of later code."""
@@ -168,7 +183,7 @@ def main() -> int:
 
     base = os.path.join(args.root, JSP_ROOT)
     if not os.path.isdir(base):
-        sys.exit("error: %s not found (run from the repository root)" % base)
+        fail("%s not found (run from the repository root)" % base)
 
     counts: "dict[str, list[tuple[int, str]]]" = {}
     js_url_hits: "dict[str, list[tuple[int, str]]]" = {}
@@ -189,7 +204,7 @@ def main() -> int:
 
     # Guard against a path/regex change silently turning this into a no-op.
     if scanned < 50:
-        sys.exit("error: scanned only %d JSP files under %s -- check the path" % (scanned, JSP_ROOT))
+        fail("scanned only %d JSP files under %s -- check the path" % (scanned, JSP_ROOT))
 
     total = sum(len(h) for h in counts.values())
     print("Inline event-handler (on*=) report  (%d files under %s)" % (scanned, JSP_ROOT))

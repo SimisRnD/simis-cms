@@ -388,7 +388,9 @@ public class PageServlet extends HttpServlet {
       // (ItemsListWidget) throughout the rest of this request, including inside
       // WebContainerCommand.processWidgets()'s per-widget loop -- their names must stay in sync
       // with WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, which exempts them from that loop's
-      // per-widget request attribute reset.
+      // per-widget request attribute reset. A name published above the walk and left out of that
+      // set is wiped by the first widget and reads as the empty string with no error anywhere
+      // (issue #944); tools/check-page-level-attributes.py fails CI when the two drift apart.
       //
       // pageEditMode must be published unconditionally, like pageLayoutMode below -- leaving it
       // unset on the false path lets JSP EL's implicit page/request/session/application scope
