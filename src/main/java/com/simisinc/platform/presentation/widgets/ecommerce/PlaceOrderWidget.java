@@ -230,7 +230,16 @@ public class PlaceOrderWidget extends GenericWidget {
           emailBean.setCreatedBy(context.getUserId());
           emailBean.setModifiedBy(context.getUserId());
         }
-        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean);
+        // Issue #1724: keep this failure local. The card has already been charged and the
+        // /order-confirmation redirect already set by the time this runs, but the enclosing
+        // DataException handler redirects back to /checkout/payment-method with an order error --
+        // a newsletter list that no longer resolves must not tell a paying customer their order
+        // failed, and must not send them back to pay again.
+        try {
+          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean);
+        } catch (DataException de) {
+          LOG.warn("Order placed, but the newsletter opt-in could not be saved: " + de.getMessage());
+        }
       }
 
     } catch (AccountException ae) {
