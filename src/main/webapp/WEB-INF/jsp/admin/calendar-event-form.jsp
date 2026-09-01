@@ -43,7 +43,7 @@
   </p>
   <%-- Form Content --%>
   <label>Name
-    <input type="text" placeholder="Name of event" name="title" value="<c:out value="${calendarEvent.title}"/>">
+    <input type="text" placeholder="Name of event" name="title" maxlength="255" value="<c:out value="${calendarEvent.title}"/>">
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${calendarEvent.summary}"/>">

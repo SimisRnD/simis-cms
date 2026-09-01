@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -37,6 +38,21 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
  * @created 4/8/18 9:36 PM
  */
 public class SaveUserCommand {
+
+  // These are the narrowest human-typed columns reached from an admin form: 100 characters is well
+  // within what someone can put in a name or job title, particularly when pasting (issue #1740).
+  // This command throws on the first problem rather than accumulating, so these follow that shape.
+  // @column users.first_name
+  private static final int MAX_FIRST_NAME_LENGTH = 100;
+  // @column users.last_name
+  private static final int MAX_LAST_NAME_LENGTH = 100;
+  // @column users.title
+  private static final int MAX_TITLE_LENGTH = 100;
+  // @column users.organization
+  private static final int MAX_ORGANIZATION_LENGTH = 100;
+  // @column users.email
+  private static final int MAX_EMAIL_LENGTH = 255;
+
 
   private static Log LOG = LogFactory.getLog(SaveUserCommand.class);
 
@@ -53,6 +69,21 @@ public class SaveUserCommand {
         StringUtils.isBlank(userBean.getLastName()) ||
         StringUtils.isBlank(userBean.getEmail())) {
       throw new DataException("Please check the fields and try again");
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getFirstName(), MAX_FIRST_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A first name", MAX_FIRST_NAME_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getLastName(), MAX_LAST_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A last name", MAX_LAST_NAME_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getTitle(), MAX_TITLE_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A title", MAX_TITLE_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getOrganization(), MAX_ORGANIZATION_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("An organization", MAX_ORGANIZATION_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getEmail(), MAX_EMAIL_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("An email address", MAX_EMAIL_LENGTH));
     }
 
     if (!userBean.getEmail().equals(userBean.getUsername())) {

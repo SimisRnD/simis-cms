@@ -68,7 +68,7 @@
             <label for="firstName" class="text-right middle">First Name <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="firstName" name="firstName" value="<c:out value="${user.firstName}" />" required />
+            <input type="text" id="firstName" name="firstName" maxlength="100" value="<c:out value="${user.firstName}" />" required />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -76,7 +76,7 @@
             <label for="lastName" class="text-right middle">Last Name <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="lastName" name="lastName" value="<c:out value="${user.lastName}" />" required />
+            <input type="text" id="lastName" name="lastName" maxlength="100" value="<c:out value="${user.lastName}" />" required />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -84,7 +84,7 @@
             <label for="title" class="text-right middle">Title</label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="title" name="title" value="<c:out value="${user.title}" />" />
+            <input type="text" id="title" name="title" maxlength="100" value="<c:out value="${user.title}" />" />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -92,7 +92,7 @@
             <label for="organization" class="text-right middle">Organization</label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="organization" name="organization" value="<c:out value="${user.organization}" />" />
+            <input type="text" id="organization" name="organization" maxlength="100" value="<c:out value="${user.organization}" />" />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -129,7 +129,7 @@
             <label for="email" class="text-right middle">Email <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="email" name="email" value="<c:out value="${user.email}" />" required />
+            <input type="text" id="email" name="email" maxlength="255" value="<c:out value="${user.email}" />" required />
           </div>
         </div>
       </fieldset>
