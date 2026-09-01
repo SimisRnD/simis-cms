@@ -12,6 +12,7 @@ catches it automatically -- and the shapes that must NOT be reported, since a ga
 cries wolf gets switched off.
 """
 
+import re
 from conftest import run_tool, write
 
 TOOL = "check-admin-nav-permissions.py"
@@ -266,6 +267,12 @@ def test_real_repository_tree_is_clean(repo):
     r = run_tool(TOOL, root, "--strict")
     assert r.returncode == 0, r.stdout + r.stderr
     assert "0 dead link(s), 0 undetermined" in r.stdout
-    # A row count that can be eyeballed against main.jsp; if this drops toward zero the
-    # parser has stopped matching even though the exit code stays 0.
-    assert "Summary: 7" in r.stdout, r.stdout
+    # Guard the same thing the pinned count guarded -- a parser that has stopped matching
+    # while the exit code stays 0 -- without pinning a number that any legitimate menu edit
+    # invalidates. This was "Summary: 7", which failed the moment issue #1765 moved sixteen
+    # settings rows onto their own page and took the total from 72 to 57: a real change, a
+    # green gate, and a red test. A floor still catches the failure mode (a broken parser
+    # reports 0, not 40) and does not train people to bump a magic number.
+    match = re.search(r"Summary: (\d+) menu row\(s\) checked", r.stdout)
+    assert match, r.stdout
+    assert int(match.group(1)) >= 40, f"only {match.group(1)} rows matched; has the parser broken?"
