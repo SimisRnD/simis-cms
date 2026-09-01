@@ -78,7 +78,10 @@ public class MenuItemRepository {
     DataResult result = DB.selectAllFrom(
         TABLE_NAME,
         new SqlUtils()
-            .add("menu_tab_id = ?", menuTab.getId()),
+            .add("menu_tab_id = ?", menuTab.getId())
+            // Top level only. Without this, a nested item would be returned alongside its own
+            // parent and render as a direct dropdown entry -- the third level flattened back out.
+            .add("parent_menu_item_id IS NULL"),
         new DataConstraints().setDefaultColumnToSortBy("item_order, menu_item_id").setUseCount(false),
         MenuItemRepository::buildRecord);
     return (List<MenuItem>) result.getRecords();
@@ -90,12 +93,60 @@ public class MenuItemRepository {
             "FROM menu_items " +
             "WHERE draft = ? AND enabled = ? " +
             "AND menu_tab_id = ? " +
+            // Top level only -- see findAllByMenuTab for why.
+            "AND parent_menu_item_id IS NULL " +
             "ORDER BY item_order, menu_item_id";
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
     pst.setBoolean(1, false);
     pst.setBoolean(2, true);
     pst.setLong(3, menuTab.getId());
     return pst;
+  }
+
+  /**
+   * The items nested beneath a given item (issue #1728). Kept separate from the by-tab lookups so
+   * the two-level callers are untouched: they still ask for a tab's top-level items and get exactly
+   * what they got before nesting existed.
+   */
+  public static List<MenuItem> findAllByParent(MenuItem parentMenuItem) {
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME,
+        new SqlUtils()
+            .add("parent_menu_item_id = ?", parentMenuItem.getId()),
+        new DataConstraints().setDefaultColumnToSortBy("item_order, menu_item_id").setUseCount(false),
+        MenuItemRepository::buildRecord);
+    return (List<MenuItem>) result.getRecords();
+  }
+
+  private static PreparedStatement createPreparedStatementAllActiveByParent(Connection connection, MenuItem parentMenuItem)
+      throws SQLException {
+    String SQL_QUERY =
+        "SELECT * " +
+            "FROM menu_items " +
+            "WHERE draft = ? AND enabled = ? " +
+            "AND parent_menu_item_id = ? " +
+            "ORDER BY item_order, menu_item_id";
+    PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+    pst.setBoolean(1, false);
+    pst.setBoolean(2, true);
+    pst.setLong(3, parentMenuItem.getId());
+    return pst;
+  }
+
+  /** Active children of an item, applying the same draft/enabled rules as every other menu query. */
+  public static List<MenuItem> findAllActiveByParent(MenuItem parentMenuItem) {
+    List<MenuItem> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = createPreparedStatementAllActiveByParent(connection, parentMenuItem);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        records.add(buildRecord(rs));
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
   }
 
   public static List<MenuItem> findAllActiveByMenuTab(MenuTab menuTab) {
@@ -131,7 +182,9 @@ public class MenuItemRepository {
         .add("page_description", StringUtils.trimToNull(record.getPageDescription()))
         .add("draft", record.isDraft())
         .add("enabled", record.isEnabled())
-        .add("comments", StringUtils.trimToNull(record.getComments()));
+        .add("comments", StringUtils.trimToNull(record.getComments()))
+        // -1 writes SQL NULL, i.e. "directly under the tab" -- the pre-nesting behaviour.
+        .add("parent_menu_item_id", record.getParentMenuItemId() == null ? -1L : record.getParentMenuItemId(), -1L);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -151,7 +204,9 @@ public class MenuItemRepository {
         .add("page_description", StringUtils.trimToNull(record.getPageDescription()))
         .add("draft", record.isDraft())
         .add("enabled", record.isEnabled())
-        .add("comments", StringUtils.trimToNull(record.getComments()));
+        .add("comments", StringUtils.trimToNull(record.getComments()))
+        // -1 writes SQL NULL, i.e. "directly under the tab" -- the pre-nesting behaviour.
+        .add("parent_menu_item_id", record.getParentMenuItemId() == null ? -1L : record.getParentMenuItemId(), -1L);
     SqlUtils where = new SqlUtils()
         .add("menu_item_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -208,6 +263,10 @@ public class MenuItemRepository {
       record.setEnabled(rs.getBoolean("enabled"));
 //    record.setRoleIdList(rs.getString("role_id_list"));
       record.setComments(rs.getString("comments"));
+      // NULL means "directly under the tab", which is every row predating nesting; -1 keeps that
+      // meaning in the model rather than leaking a null Long into callers (issue #1728).
+      long parentMenuItemId = rs.getLong("parent_menu_item_id");
+      record.setParentMenuItemId(rs.wasNull() ? -1L : parentMenuItemId);
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
