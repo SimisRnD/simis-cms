@@ -2756,3 +2756,45 @@ div.item-image-large img {
     transform: none;
   }
 }
+
+/* Mailing-list end states: subscription confirmed, unsubscribed, an expired confirmation link,
+   and the inline signup success message. These are the last thing a subscriber sees, and each was
+   a bare Foundation callout -- a stock green box sitting on an otherwise branded page, matching
+   neither the site around it nor the branded emails that led the reader here.
+
+   Built from the semantic tokens rather than a fixed palette, so each site's own theme carries
+   through and the platform is not imposing one. Deliberately no invented success-green: there is
+   no --sc-success token to reach for, and the outcome is already unambiguous from the wording, so
+   colour would be decoration rather than information. */
+.platform-subscription-result {
+  max-width: 34rem;
+  margin: var(--sc-space-6, 2rem) auto;
+  padding: var(--sc-space-6, 2rem);
+  background: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  border-radius: var(--sc-radius-md, 4px);
+  box-shadow: var(--sc-shadow-md, 0 1px 3px rgba(23, 25, 30, 0.08));
+  text-align: center;
+}
+
+.platform-subscription-result > :first-child {
+  margin-top: 0;
+}
+
+.platform-subscription-result h1,
+.platform-subscription-result h2,
+.platform-subscription-result h3 {
+  margin-bottom: var(--sc-space-2, 0.5rem);
+  color: var(--sc-text, #2c2925);
+}
+
+.platform-subscription-result p {
+  margin-bottom: var(--sc-space-5, 1.5rem);
+  color: var(--sc-text-muted, #656970);
+  line-height: var(--sc-leading-relaxed, 1.5);
+}
+
+/* The action row is last; without this the card carries a stray gap under its buttons. */
+.platform-subscription-result > :last-child {
+  margin-bottom: 0;
+}

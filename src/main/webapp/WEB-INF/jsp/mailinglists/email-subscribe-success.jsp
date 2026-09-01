@@ -20,7 +20,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<div class="callout success">
+<div class="platform-subscription-result">
 <c:if test="${!empty successTitle}">
   <h2 class="h4"><c:out value="${successTitle}" /></h2>
 </c:if>
