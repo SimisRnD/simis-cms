@@ -35,7 +35,7 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Name
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${category.name}"/>">
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${category.name}"/>">
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${category.description}"/>">

@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.events.cms.WebPagePublishedEvent;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
@@ -39,6 +40,16 @@ import java.util.Date;
  */
 public class SaveWebPageCommand {
 
+  // The SEO metadata an admin types on /admin/web-page. All three feed the page's tsvector, so an
+  // over-length one is refused here rather than surfacing as "could not be saved" (issue #1740).
+  // @column web_pages.page_title
+  private static final int MAX_PAGE_TITLE_LENGTH = 255;
+  // @column web_pages.page_keywords
+  private static final int MAX_PAGE_KEYWORDS_LENGTH = 255;
+  // @column web_pages.page_description
+  private static final int MAX_PAGE_DESCRIPTION_LENGTH = 255;
+
+
   private static Log LOG = LogFactory.getLog(SaveWebPageCommand.class);
 
   public static WebPage saveWebPage(WebPage webPageBean) throws DataException {
@@ -48,6 +59,12 @@ public class SaveWebPageCommand {
     if (StringUtils.isBlank(webPageBean.getLink())) {
       errorMessages.append("A link is required");
     }
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A page title",
+        webPageBean.getTitle(), MAX_PAGE_TITLE_LENGTH);
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "Page keywords",
+        webPageBean.getKeywords(), MAX_PAGE_KEYWORDS_LENGTH);
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A page description",
+        webPageBean.getDescription(), MAX_PAGE_DESCRIPTION_LENGTH);
 
     // Link requirements
     if (StringUtils.isNotBlank(webPageBean.getLink())) {
