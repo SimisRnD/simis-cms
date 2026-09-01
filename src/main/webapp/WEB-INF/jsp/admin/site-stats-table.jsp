@@ -33,7 +33,7 @@
 <c:if test="${!empty optionsList}">
   <ul class="tabs" id="tabs${widgetContext.uniqueId}">
     <c:forEach items="${optionsList}" var="option" varStatus="status">
-      <li id="val<c:out value="${option.value}"/>" class="tabs-title<c:if test="${(empty currentValue and status.first) or option.value eq currentValue}"> is-active</c:if>"><a href="#" class="js-updateStats${widgetContext.uniqueId}" data-value="<c:out value="${option.value}"/>"><c:out value="${option.key}"/></a></li>
+      <li id="val<c:out value="${option.value}"/>-${widgetContext.uniqueId}" class="tabs-title<c:if test="${(empty currentValue and status.first) or option.value eq currentValue}"> is-active</c:if>"><a href="#" class="js-updateStats${widgetContext.uniqueId}" data-value="<c:out value="${option.value}"/>"><c:out value="${option.key}"/></a></li>
     </c:forEach>
   </ul>
 </c:if>
@@ -134,9 +134,11 @@
   }
 
   function update${widgetContext.uniqueId}(value) {
-    // Update the highlighted tab class
+    // Update the highlighted tab class. The tab ids carry the widget's unique id because an admin
+    // page renders several of these tables side by side offering the same ranges -- without the
+    // suffix every one of them emits its own "val30d" into the same document.
     $("#tabs${widgetContext.uniqueId} li").each(function(idx, li) {
-      if (li.id === 'val' + value) {
+      if (li.id === 'val' + value + '-${widgetContext.uniqueId}') {
         if (!li.matches('.is-active')) {
           li.className = li.className + ' is-active';
           currentValue = value;
