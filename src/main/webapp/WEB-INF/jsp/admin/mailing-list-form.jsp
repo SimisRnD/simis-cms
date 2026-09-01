@@ -33,6 +33,7 @@
     <label>Basic Name <span class="required">*</span>
       <input type="text" placeholder="What kind is this..." name="name" value="<c:out value="${mailingList.name}"/>">
     </label>
+  <p class="help-text">This is the key signup forms are pointed at, not a label &mdash; a page's Email Subscription widget names the list it subscribes to with its <code>mailingList</code> preference. Renaming it here breaks every form still naming the old value: the form stops rendering until the preference is updated to match. Rename <strong>Title</strong> instead when you just want the wording visitors see to change.</p>
   <label>Title <span class="required">*</span>
     <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>">
   </label>
