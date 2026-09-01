@@ -1942,7 +1942,17 @@ a.read-more {
 /* For legible text inside a content widget placed on a dark section background -- content-widget
    HTML is sanitized on save and strips inline style= attributes, so a class is the only way to
    set this from page content (see .text-brand above, same restriction). */
-.text-white { color: #ffffff; }
+/* Doubled on purpose (issue #1784). The .callout ink guard above declares
+   `color: inherit !important` at (0,1,1); a plain `.text-white` is (0,1,0) and loses outright,
+   so white text an author asked for inside a callout came out as the callout's dark ink -- 1.22:1
+   on a dark panel, which is invisible rather than merely low. Adding !important alone does not
+   help: both declarations are then !important and specificity still decides. Doubling the class
+   takes this to (0,2,0).
+
+   Deliberately not scoped to `.callout .text-white`. A utility says what the author wants and
+   should win wherever it is used, so the next guard written at (0,1,1) cannot silently kill it
+   the way that one did. */
+.text-white.text-white { color: #ffffff !important; }
 
 /* Padding and Margins */
 
