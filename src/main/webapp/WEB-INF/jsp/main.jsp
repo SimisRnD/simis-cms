@@ -32,6 +32,7 @@
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="analyticsPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="ecommercePropertyMap" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="elearningPropertyMap" class="java.util.HashMap" scope="request"/>
 <%-- Color scheme. The site property theme.ui.mode selects it:
        light  forced light, and no toggle (the default, so an existing site is unchanged)
        dark   forced dark, and no toggle
@@ -734,9 +735,27 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/integrations')}"> class="is-active"</c:if>><a href="${ctx}/admin/integrations"><i class="${font:far()} fa-puzzle-piece fa-fw"></i> <span>Integrations</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
+              <%-- issue #1763: same gate as the E-Commerce section above, so the module's settings
+                   page does not outlive the section it configures. Safe to hide because
+                   ecommerce.enabled is seeded property_type='disabled' -- site-properties-editor.jsp
+                   renders it as a disabled input, so this page could not turn the module back on
+                   even if an admin reached it. The test is deliberately byte-identical to the
+                   section's, including its fail-closed form: if the two ever disagreed the menu
+                   would show a settings row for a section that is not there. --%>
+              <c:if test="${!empty ecommercePropertyMap['ecommerce.enabled'] && ecommercePropertyMap['ecommerce.enabled'] eq 'true'}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
+              </c:if>
               <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-properties'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>
-              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-statements'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-statements"><i class="${font:far()} fa-list fa-fw"></i> <span>xAPI Statements</span></a></li>
+              <%-- issue #1763: a statement log for a module that may not be running. E-learning
+                   Settings above is deliberately NOT gated -- elearning.enabled is an editable
+                   boolean, and that page is the only place in the UI that can switch it back on,
+                   so hiding it would leave an admin no way to undo their own change. This test
+                   fails open, unlike the e-commerce one above, because it has no section gate to
+                   stay consistent with -- a site missing the property row keeps today's menu
+                   rather than silently losing a page. --%>
+              <c:if test="${empty elearningPropertyMap['elearning.enabled'] || elearningPropertyMap['elearning.enabled'] eq 'true'}">
+                <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-statements'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-statements"><i class="${font:far()} fa-list fa-fw"></i> <span>xAPI Statements</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mail-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mail-properties"><i class="${font:far()} fa-cogs fa-fw"></i> <span>Email Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-list-properties"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing List Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/maps')}"> class="is-active"</c:if>><a href="${ctx}/admin/maps-properties"><i class="${font:far()} fa-map fa-fw"></i> <span>Maps Settings</span></a></li>

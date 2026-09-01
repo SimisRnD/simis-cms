@@ -73,7 +73,7 @@ public class WebContainerCommand implements Serializable {
   private static final Set<String> PAGE_LEVEL_ATTRIBUTE_NAMES = Set.of(
       "pageEditMode", "pageLayoutMode", "hasDraft", "previewingDraft", "widgetLibraryJson", "widgetSchemaJson", "cspNonce",
       "systemPropertyMap", "sitePropertyMap", "themePropertyMap", "socialPropertyMap",
-      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap");
+      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap", "elearningPropertyMap");
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
