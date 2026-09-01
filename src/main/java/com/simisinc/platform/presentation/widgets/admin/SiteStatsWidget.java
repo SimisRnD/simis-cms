@@ -141,6 +141,13 @@ public class SiteStatsWidget extends GenericWidget {
 
     // Use the preferences
     String report = context.getPreferences().get("report");
+    if (report == null) {
+      // A report preference is required. execute() makes the same check for the rendered path;
+      // this one used to be reached only because action() ended by calling execute()
+      LOG.error("DEV: A report preference was not specified");
+      context.setJson("[]");
+      return context;
+    }
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "10"));
 
     // Base the option value on the request (7d, 1y, ...), falling back to the widget's own default
@@ -165,7 +172,12 @@ public class SiteStatsWidget extends GenericWidget {
       }
     }
     context.setJson(json);
-    return execute(context);
+    // The response is the JSON above and nothing else: WebContainerCommand returns as soon as it
+    // sees hasJson(), before any JSP include, so execute()'s request attributes and setJsp() would
+    // never be read. Calling it here only ran the report a second time -- with the widget's
+    // configured default window rather than the one just asked for -- and threw that result away.
+    // Every other widget's action() returns the context directly (see WebVitalsWidget)
+    return context;
   }
 
   /**
