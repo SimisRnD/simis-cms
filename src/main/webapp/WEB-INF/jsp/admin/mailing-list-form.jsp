@@ -34,7 +34,7 @@
       <input type="text" placeholder="What kind is this..." name="name" value="<c:out value="${mailingList.name}"/>">
     </label>
   <label>Title <span class="required">*</span>
-    <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>">
+    <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${mailingList.description}"/>">
