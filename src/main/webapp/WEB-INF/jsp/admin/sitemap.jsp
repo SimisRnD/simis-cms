@@ -147,6 +147,24 @@
                 <div>
                   <c:out value="${menuItem.name}" />
                 </div>
+                <%-- Third level, read-only (issue #1728). Shown so this screen matches the live
+                     menu; reordering and renaming nested items happens in the Edit Links editor,
+                     which is the surface that owns item content. Rendering them as draggable here
+                     would mean a second copy of the drag and serialise machinery in a file that
+                     already duplicates much of that editor. --%>
+                <c:if test="${!empty menuItem.menuItemList}">
+                  <ul class="site-map-subitem-readonly no-bullet" style="margin:4px 0 0 18px">
+                    <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                      <li>
+                        <small>
+                          <i class="fa fa-level-up fa-rotate-90" aria-hidden="true"></i>
+                          <c:out value="${subMenuItem.name}" />
+                          <a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.link}" /></a>
+                        </small>
+                      </li>
+                    </c:forEach>
+                  </ul>
+                </c:if>
               </div>
             </c:forEach>
           </div>
