@@ -41,7 +41,7 @@
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Give it a name..." name="name" aria-describedby="uniqueNameHelpText" value="<c:out value="${group.name}"/>" required>
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="100" aria-describedby="uniqueNameHelpText" value="<c:out value="${group.name}"/>" required>
   </label>
     <p class="help-text" id="uniqueNameHelpText">Must be unique among groups when creating a new one;
       editing an existing group does not re-check this, so it's possible (if unwise) to rename one

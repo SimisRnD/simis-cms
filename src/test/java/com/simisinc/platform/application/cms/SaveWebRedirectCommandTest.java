@@ -104,6 +104,30 @@ class SaveWebRedirectCommandTest {
   }
 
   @Test
+  void anOverLongFromPathIsRejectedByTheServerNotJustByMaxlength() {
+    // issue #1740 called this form the shape to avoid: the input already carried maxlength="500",
+    // which stops a browser user and nothing else. A POST from anything that is not a browser walked
+    // past it and hit web_redirects.from_path VARCHAR(500), and the admin saw a generic system error.
+    WebRedirect bean = bean(-1L, "/" + "x".repeat(500), "/target", 301, true);
+    try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {
+      DataException e = assertThrows(DataException.class, () -> SaveWebRedirectCommand.save(bean));
+      assertTrue(e.getMessage().contains("The from path can be up to 500 characters"), e.getMessage());
+      repository.verify(() -> WebRedirectRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aFromPathExactlyAtTheLimitIsAccepted() throws DataException {
+    // the column holds 500, so 500 must save
+    WebRedirect bean = bean(-1L, "/" + "x".repeat(499), "/target", 301, true);
+    try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {
+      repository.when(() -> WebRedirectRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+      SaveWebRedirectCommand.save(bean);
+      repository.verify(() -> WebRedirectRepository.save(any()));
+    }
+  }
+
+  @Test
   void aFromPathNotStartingWithASlashIsRejected() {
     WebRedirect bean = bean(-1L, "old-page", "/target", 301, true);
     try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {

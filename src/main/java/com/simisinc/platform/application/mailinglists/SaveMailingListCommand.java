@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.mailinglists;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -44,7 +45,9 @@ public class SaveMailingListCommand {
    * Checking up front makes it the form's normal field-level message instead, the way
    * SaveEmailCommand already does for emails.email VARCHAR(255).
    */
+  // @column mailing_lists.name
   private static final int MAX_NAME_LENGTH = 200;
+  // @column mailing_lists.title
   private static final int MAX_TITLE_LENGTH = 200;
 
   public static MailingList saveMailingList(MailingList mailingListBean) throws DataException {
@@ -65,10 +68,10 @@ public class SaveMailingListCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(mailingListBean.getName())) {
       errorMessages.append("A name is required");
-    } else if (trimmedLength(mailingListBean.getName()) > MAX_NAME_LENGTH) {
+    } else if (FieldLengthCommand.exceedsLimit(mailingListBean.getName(), MAX_NAME_LENGTH)) {
       // before the duplicate check, so an over-length name does not cost a findByName lookup it
       // can only fail behind
-      errorMessages.append("A name can be up to " + MAX_NAME_LENGTH + " characters");
+      errorMessages.append(FieldLengthCommand.tooLongMessage("A name", MAX_NAME_LENGTH));
     } else if (isNameTakenByAnotherList(existingRecord, mailingListBean.getName())) {
       errorMessages.append("Another mailing list already uses that name");
     }
@@ -86,11 +89,11 @@ public class SaveMailingListCommand {
         errorMessages.append("; ");
       }
       errorMessages.append("A title is required");
-    } else if (trimmedLength(mailingListBean.getTitle()) > MAX_TITLE_LENGTH) {
+    } else if (FieldLengthCommand.exceedsLimit(mailingListBean.getTitle(), MAX_TITLE_LENGTH)) {
       if (errorMessages.length() > 0) {
         errorMessages.append("; ");
       }
-      errorMessages.append("A title can be up to " + MAX_TITLE_LENGTH + " characters");
+      errorMessages.append(FieldLengthCommand.tooLongMessage("A title", MAX_TITLE_LENGTH));
     }
 
     if (errorMessages.length() > 0) {
@@ -140,13 +143,5 @@ public class SaveMailingListCommand {
     return clash != null && (existingRecord == null || !clash.getId().equals(existingRecord.getId()));
   }
 
-  /**
-   * The length that actually reaches the column. MailingListRepository trims name and title on the
-   * way in, so a value of exactly the maximum followed by whitespace still fits -- measuring the
-   * raw string would reject an entry the database would have stored happily.
-   */
-  private static int trimmedLength(String value) {
-    return StringUtils.trimToEmpty(value).length();
-  }
 
 }

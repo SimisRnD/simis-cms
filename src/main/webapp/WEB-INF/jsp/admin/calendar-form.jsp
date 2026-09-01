@@ -50,7 +50,7 @@
   </p>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Events, Holidays, etc." name="name" value="<c:out value="${calendar.name}"/>" required>
+    <input type="text" placeholder="Events, Holidays, etc." name="name" maxlength="255" value="<c:out value="${calendar.name}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${calendar.description}"/>">
