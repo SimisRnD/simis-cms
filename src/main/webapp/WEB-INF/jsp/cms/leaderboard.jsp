@@ -33,8 +33,8 @@
       <th style="text-align: left;" width="100%">Player</th>
       <th style="text-align: right;">
       <c:if test="${!empty optionsList}">
-        <form id="leaderboardForm" method="get">
-          <select name="filter" id="filter" style="width: 160px;">
+        <form id="leaderboardForm${widgetContext.uniqueId}" method="get">
+          <select name="filter" id="filter${widgetContext.uniqueId}" style="width: 160px;">
             <c:forEach items="${optionsList}" var="option" varStatus="status">
               <option value="<c:out value="${option.value}"/>"<c:if test="${selectedFilter eq option.value}"> selected</c:if>><c:out value="${option.key}" /></option>
             </c:forEach>
@@ -63,7 +63,7 @@
   </tbody>
 </table>
 <script nonce="${cspNonce}">
-  document.getElementById("filter").onchange = function() {
-    document.getElementById("leaderboardForm").submit();
+  document.getElementById("filter${widgetContext.uniqueId}").onchange = function() {
+    document.getElementById("leaderboardForm${widgetContext.uniqueId}").submit();
   }
 </script>
