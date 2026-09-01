@@ -31,12 +31,15 @@
 <p class="help-text page-help">
   This page renames existing entries in the drop-down navigation menu across the top of your site, and changes
   the page they link to -- a <strong>tab</strong> sits in the top bar itself (e.g. "Solutions"), an
-  <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it (see the example
+  <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it, and a
+  <strong>sub-item</strong> sits under an item as a third level (see the example
   on the <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> page if that distinction isn't clear). Link
   must start with / (e.g. /solutions); if you leave off the leading slash it's added for you rather than
   rejected. Existing page paths are suggested as you type, but the field still accepts any value. Reorder
   tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> drag
-  handles or the arrow buttons. To add a new tab/item or to delete one, use
+  handles or the arrow buttons; the same handles move a sub-item between items.
+  <strong>Sub-items are added here</strong>, using the "New sub-item" box under the item they belong
+  to. To add a new tab or a new item, or to delete anything, use
   <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
 </p>
 <p class="help-text page-help">
@@ -165,6 +168,11 @@
                            placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value=""/>
                     <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemLink"
                            placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks"/>
+                           <p class="help-text" style="margin-top:4px;margin-bottom:0;">
+                             Adds a third-level entry under <strong><c:out value="${menuItem.name}"/></strong>, shown when a
+                             visitor opens this item. Name is required; the link is optional and is derived from the name when
+                             left blank. Saved with the button at the bottom of the page.
+                           </p>
                   </div>
                 </c:if>
               </div>
