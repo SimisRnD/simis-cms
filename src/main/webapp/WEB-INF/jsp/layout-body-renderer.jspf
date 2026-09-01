@@ -71,7 +71,7 @@
             <div id="<c:out value="${columnId}"/>" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-column="${sectionStatus.index}-${columnStatus.index}"</c:if>>
           </c:otherwise>
         </c:choose>
-        <c:if test="${section.sticky && column.sticky}"><div class="sticky" data-sticky data-sticky-on="medium" data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>:top" data-btm-anchor="platform-footer"></c:if>
+        <c:if test="${section.sticky && column.sticky}"><div class="sticky" data-sticky data-sticky-on="medium" data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>:top"<c:if test="${platformFooterAnchorExists}"> data-btm-anchor="platform-footer"</c:if>></c:if>
         <c:forEach items="${column.widgetRenderInfoList}" var="widget" varStatus="widgetStatus">
           <c:if test="${widget.hr}">
             <hr />
@@ -81,12 +81,12 @@
               ${widget.content}
             </c:when>
             <c:when test="${!empty widget.cssClass}">
-              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
+              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>"<c:if test="${platformFooterAnchorExists}"> data-btm-anchor="platform-footer"</c:if></c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:when>
             <c:otherwise>
-              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
+              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>"<c:if test="${platformFooterAnchorExists}"> data-btm-anchor="platform-footer"</c:if></c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:otherwise>
