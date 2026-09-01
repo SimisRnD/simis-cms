@@ -40,6 +40,21 @@ public class SaveMailingListCommand {
     if (StringUtils.isBlank(mailingListBean.getName())) {
       errorMessages.append("A name is required");
     }
+    // Issue #1734: the form marks Title required and mailing_lists.title is NOT NULL, but NOT NULL
+    // permits '', so nothing stopped a blank title being saved through the normal admin form.
+    // Title is what nearly every surface displays -- the /admin/mailing-lists row link, the
+    // newsletter-send dropdown, the blog form and blog editor dropdowns, /my-email-preferences
+    // checkboxes -- where a blank one renders as an empty link, an empty option and an unnamed
+    // checkbox. confirm-subscription.jsp guards the display with an `empty` test; this is where
+    // the blank stops being written in the first place.
+    // No migration backfills a title that is already blank: this check asks for one the next time
+    // that list is edited, which is a prompt to the admin rather than a value guessed for them.
+    if (StringUtils.isBlank(mailingListBean.getTitle())) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append("; ");
+      }
+      errorMessages.append("A title is required");
+    }
 
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
