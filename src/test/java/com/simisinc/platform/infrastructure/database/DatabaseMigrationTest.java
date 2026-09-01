@@ -313,6 +313,24 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void theSeededNewsletterMailingListHasItsUniqueIdOnAFreshInstall() throws SQLException {
+    // Issue #1724 and its follow-up. NEW_50040 seeds a /subscribe page whose emailSubscribe widget
+    // carries <mailingListUniqueId>newsletter</mailingListUniqueId>, and the widget refuses to
+    // render when that doesn't resolve -- so if NEW_10070 (the column) or NEW_10071 (the row and
+    // its id) drifted from the upgrade path, a fresh install would ship a /subscribe page with no
+    // signup form on it and nothing but a log line to say why. The literal value is asserted, not
+    // just presence: it is named in seeded page XML, so it is part of the contract, not a detail.
+    assertTrue(columnExists("mailing_lists", "unique_id"),
+        "mailing_lists.unique_id is missing - MailingListRepository.buildRecord() reads this column "
+            + "unconditionally, and the emailSubscribe widget's mailingListUniqueId preference has "
+            + "nothing to resolve against without it");
+    assertEquals("newsletter", mailingListUniqueId("Newsletter"),
+        "the seeded Newsletter mailing list has no 'newsletter' unique id - NEW_50040's /subscribe "
+            + "page points its emailSubscribe widget at that id, and the widget renders nothing "
+            + "when it does not resolve");
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage
@@ -334,6 +352,17 @@ class DatabaseMigrationTest {
             "SELECT to_regclass('public." + name + "') IS NOT NULL AS present")) {
       assertNotNull(rs);
       return rs.next() && rs.getBoolean("present");
+    }
+  }
+
+  private static String mailingListUniqueId(String name) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "SELECT unique_id FROM mailing_lists WHERE name = ?")) {
+      pst.setString(1, name);
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next() ? rs.getString("unique_id") : null;
+      }
     }
   }
 

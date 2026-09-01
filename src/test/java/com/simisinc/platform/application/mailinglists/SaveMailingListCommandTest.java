@@ -162,45 +162,115 @@ class SaveMailingListCommandTest {
     }
   }
 
+  // ---------------------------------------------------------------------------------------------
+  // Issue #1724 follow-up: unique_id, and the duplicate names that made resolving a list by name
+  // non-deterministic in the first place.
+  // ---------------------------------------------------------------------------------------------
+
+  private static MailingList list(long id, String uniqueId, String name) {
+    MailingList mailingList = new MailingList();
+    mailingList.setId(id);
+    mailingList.setUniqueId(uniqueId);
+    mailingList.setName(name);
+    return mailingList;
+  }
+
   @Test
-  void aMissingTitleIsRejectedOnAnEditToo() {
-    // clearing the title of a list that already has one must be refused the same way -- the widget
-    // populates the bean from the submitted form only, so an omitted field arrives as null
-    MailingList existing = new MailingList();
-    existing.setId(1L);
-    existing.setName("Newsletter");
-    existing.setTitle("Our Newsletter");
+  void aNewListIsAssignedAUniqueIdFromItsName() throws DataException {
+    MailingList bean = new MailingList();
+    bean.setName("Product Announcements");
+    bean.setCreatedBy(42L);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      repository.when(() -> MailingListRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveMailingListCommand.saveMailingList(bean);
+
+      repository.verify(() -> MailingListRepository
+          .save(argThat(saved -> "product-announcements".equals(saved.getUniqueId()))));
+    }
+  }
+
+  @Test
+  void renamingAListDoesNotChangeItsUniqueId() throws DataException {
+    // The reason the column exists: page configuration points at the uniqueId, so a rename that
+    // regenerated it would break every page naming this list -- the failure #1724 is about
+    MailingList existing = list(1L, "newsletter", "Newsletter");
 
     MailingList bean = new MailingList();
     bean.setId(1L);
-    bean.setName("Newsletter");
+    bean.setName("Company Announcements");
+    bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
-      // stubbed so the record is found either way -- the message below is then the title's, and
-      // stays the title's if validation ever moves after the lookup
       repository.when(() -> MailingListRepository.findById(1L)).thenReturn(existing);
+      repository.when(() -> MailingListRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-      DataException exception = assertThrows(DataException.class,
-          () -> SaveMailingListCommand.saveMailingList(bean));
+      SaveMailingListCommand.saveMailingList(bean);
 
-      assertEquals("Please check the form and try again:\nA title is required", exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(argThat(saved -> "newsletter".equals(saved.getUniqueId()))));
+    }
+  }
+
+  @Test
+  void aNewListCannotTakeAnExistingListsName() {
+    // mailing_lists.name has no unique constraint and signup forms still resolve by it, so two
+    // lists under one name means subscribers split between them with nothing to say which one a
+    // signup reaches
+    MailingList bean = new MailingList();
+    bean.setName("Newsletter");
+    bean.setCreatedBy(42L);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      repository.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(list(1L, "newsletter", "Newsletter"));
+
+      DataException e = assertThrows(DataException.class, () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals(true, e.getMessage().contains("Another mailing list already uses that name"));
       repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
     }
   }
 
   @Test
-  void aBlankNameAndTitleReportBothInOneMessage() {
-    // the errorMessages pattern this command already uses joins with "; " -- appending without a
-    // separator would read "A name is requiredA title is required"
+  void renamingAListOntoAnotherListsNameIsRefused() {
+    MailingList existing = list(2L, "product-news", "Product News");
+
     MailingList bean = new MailingList();
+    bean.setId(2L);
+    bean.setName("newsletter"); // the check is case-insensitive, like findByName
+    bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
-      DataException exception = assertThrows(DataException.class,
-          () -> SaveMailingListCommand.saveMailingList(bean));
+      repository.when(() -> MailingListRepository.findById(2L)).thenReturn(existing);
+      repository.when(() -> MailingListRepository.findByName("newsletter")).thenReturn(list(1L, "newsletter", "Newsletter"));
 
-      assertEquals("Please check the form and try again:\nA name is required; A title is required",
-          exception.getMessage());
+      assertThrows(DataException.class, () -> SaveMailingListCommand.saveMailingList(bean));
+
       repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void aListThatAlreadySharesItsNameWithAnotherStaysEditable() throws DataException {
+    // A site that ran the auto-creating signup form may already hold duplicates, and nothing here
+    // can merge them. Blocking every save of the second one would leave an admin unable to fix its
+    // title or description either -- so only a save that *changes* the name is checked.
+    MailingList existing = list(2L, "newsletter-2", "Newsletter");
+
+    MailingList bean = new MailingList();
+    bean.setId(2L);
+    bean.setName("Newsletter");
+    bean.setTitle("Newsletter (duplicate, being cleaned up)");
+    bean.setCreatedBy(42L);
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      repository.when(() -> MailingListRepository.findById(2L)).thenReturn(existing);
+      repository.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(list(1L, "newsletter", "Newsletter"));
+      repository.when(() -> MailingListRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveMailingListCommand.saveMailingList(bean);
+
+      repository.verify(() -> MailingListRepository.save(argThat(saved -> "newsletter-2".equals(saved.getUniqueId()))));
     }
   }
 }

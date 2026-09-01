@@ -30,9 +30,16 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-    <label>Basic Name <span class="required">*</span>
-      <input type="text" placeholder="What kind is this..." name="name" value="<c:out value="${mailingList.name}"/>">
+  <c:if test="${mailingList.id ne -1}">
+    <label>Unique Id
+      <input type="text" value="<c:out value="${mailingList.uniqueId}"/>" aria-describedby="mailingListUniqueIdHelpText" readonly>
     </label>
+    <p class="help-text" id="mailingListUniqueIdHelpText">Generated from the name when this list was created, and never changed after that &mdash; renaming the list below does not affect it. Point a page's Email Subscription widget here with its <code>mailingListUniqueId</code> preference and the form keeps working however the list is later renamed.</p>
+  </c:if>
+    <label>Basic Name <span class="required">*</span>
+      <input type="text" placeholder="What kind is this..." name="name" aria-describedby="mailingListNameHelpText" value="<c:out value="${mailingList.name}"/>">
+    </label>
+  <p class="help-text" id="mailingListNameHelpText">Older pages point a form at this list by name, using the Email Subscription widget's <code>mailingList</code> preference, so renaming it here stops any such form rendering until its preference is updated to match. Use <strong>Unique Id</strong> above in new page configuration instead &mdash; it does not change. Rename <strong>Title</strong> when you just want the wording visitors see to change.</p>
   <label>Title <span class="required">*</span>
     <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>" required>
   </label>
