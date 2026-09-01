@@ -97,3 +97,13 @@ jobs:
         run: python3 tools/check-column-length-limits.py . --strict
       - name: Fail on a wildcard CORS origin or an unallowlisted printStackTrace
         run: python3 tools/check-server-hygiene.py . --strict
+      # PageServlet publishes a dozen values before the section/column/widget walk, and
+      # WebContainerCommand clears every request attribute between widgets. A name missing from
+      # PAGE_LEVEL_ATTRIBUTE_NAMES is removed by the FIRST widget on the page, so main.jsp's EL
+      # and every later widget read it as the empty string -- no exception, no log line, a 200
+      # with a correct-looking body. That shipped as issue 944: every nonce="${cspNonce}"
+      # rendered as nonce="" and matched no nonce in the CSP header. The two halves of the
+      # invariant are one line each in two different files, which is exactly the pairing a
+      # reviewer misses; issue 1763 needed the same pair again for elearningPropertyMap.
+      - name: Fail on a page-level request attribute the per-widget reset wipes
+        run: python3 tools/check-page-level-attributes.py . --strict
