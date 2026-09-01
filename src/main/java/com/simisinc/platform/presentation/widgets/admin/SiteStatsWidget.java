@@ -96,8 +96,9 @@ public class SiteStatsWidget extends GenericWidget {
 
     // Different kinds of stats and preferences...
     String outputType = context.getPreferences().get("type");
-    int intervalValue = Integer.parseInt(context.getPreferences().getOrDefault("days", "7"));
-    char intervalType = 'd';
+    Interval interval = configuredInterval(context);
+    int intervalValue = interval.value;
+    char intervalType = interval.type;
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "10"));
 
     // Determine the Chart preference (reports can override)
@@ -141,16 +142,13 @@ public class SiteStatsWidget extends GenericWidget {
     // Use the preferences
     String report = context.getPreferences().get("report");
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "10"));
-    int intervalValue = Integer.parseInt(context.getPreferences().getOrDefault("days", "7"));
-    char intervalType = 'd';
 
-    // Base the option value on the request
-    String value = context.getParameter("value");
-    if (StringUtils.isNotBlank(value)) {
-      // 7d,1y
-      intervalValue = Integer.parseInt(value.substring(0, value.length() - 1));
-      intervalType = value.charAt(value.length() - 1);
-    }
+    // Base the option value on the request (7d, 1y, ...), falling back to the widget's own default
+    // when the parameter is absent or malformed -- this is a user-supplied query parameter, and the
+    // previous Integer.parseInt on it turned any junk value into a 500 rather than a chart
+    Interval interval = Interval.parse(context.getParameter("value"), configuredInterval(context));
+    int intervalValue = interval.value;
+    char intervalType = interval.type;
 
     // Output JSON
     String json = "[]";
@@ -168,6 +166,68 @@ public class SiteStatsWidget extends GenericWidget {
     }
     context.setJson(json);
     return execute(context);
+  }
+
+  /**
+   * A report's time window -- how far back, in which unit. Widget preferences and the report
+   * drop-down's option values share one syntax for this ("7d", "2w", "6m", "1y"), so both parse
+   * through {@link #parse(String, Interval)}.
+   */
+  static class Interval {
+    /** Widget default when no preference and no parameter say otherwise. */
+    static final Interval DEFAULT = new Interval(7, 'd');
+    /** Matches SessionRepository.resolveRetentionDays' ceiling, so a report cannot outrun retention by orders of magnitude. */
+    static final int MAX_VALUE = 3650;
+
+    final int value;
+    final char type;
+
+    Interval(int value, char type) {
+      this.value = value;
+      this.type = type;
+    }
+
+    /**
+     * Parses "7d"/"2w"/"6m"/"1y"/"12h", or a bare number meaning days (which is what a plain
+     * &lt;days&gt; preference has always meant). Anything else -- blank, junk, a negative or
+     * absurd count -- yields {@code defaultInterval} rather than an exception, because one of the
+     * two callers is parsing a user-supplied query parameter.
+     */
+    static Interval parse(String text, Interval defaultInterval) {
+      if (StringUtils.isBlank(text)) {
+        return defaultInterval;
+      }
+      String trimmed = text.trim();
+      char type = 'd';
+      String number = trimmed;
+      char last = Character.toLowerCase(trimmed.charAt(trimmed.length() - 1));
+      if ("hdwmy".indexOf(last) > -1) {
+        type = last;
+        number = trimmed.substring(0, trimmed.length() - 1);
+      }
+      int value;
+      try {
+        value = Integer.parseInt(number);
+      } catch (NumberFormatException e) {
+        return defaultInterval;
+      }
+      if (value < 1 || value > MAX_VALUE) {
+        return defaultInterval;
+      }
+      return new Interval(value, type);
+    }
+  }
+
+  /**
+   * The window this widget was configured with. &lt;interval&gt; carries the unit explicitly
+   * ("12m"); the older &lt;days&gt; is still honoured and still means days.
+   */
+  private static Interval configuredInterval(WidgetContext context) {
+    String configured = context.getPreferences().get("interval");
+    if (StringUtils.isBlank(configured)) {
+      configured = context.getPreferences().get("days");
+    }
+    return Interval.parse(configured, Interval.DEFAULT);
   }
 
   private String runReport(WidgetContext context, String report, String JSP, int intervalValue, char intervalType, int limit) {
@@ -256,11 +316,11 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("daily-sessions".equalsIgnoreCase(report)) {
-      List<StatisticsData> statisticsDataList = WebPageHitRepository.findDailySessions(30);
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findDailySessions(intervalValue, intervalType);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("monthly-sessions".equalsIgnoreCase(report)) {
-      List<StatisticsData> statisticsDataList = WebPageHitRepository.findMonthlySessions(12);
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findMonthlySessions(intervalValue, intervalType);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("total-sessions-today".equalsIgnoreCase(report)) {
@@ -292,11 +352,11 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("numberValue", String.valueOf(percentage));
       return CARD_JSP;
     } else if ("daily-real-sessions".equalsIgnoreCase(report)) {
-      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, false);
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(intervalValue, intervalType, false);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("daily-bot-sessions".equalsIgnoreCase(report)) {
-      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, true);
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(intervalValue, intervalType, true);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
     } else if ("bot-traffic-by-identity".equalsIgnoreCase(report)) {

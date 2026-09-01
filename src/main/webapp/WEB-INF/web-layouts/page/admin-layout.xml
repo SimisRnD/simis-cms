@@ -854,6 +854,12 @@
           <label>Sessions</label>
           <report>daily-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -862,6 +868,12 @@
           <label>Sessions</label>
           <report>monthly-sessions</report>
           <type>line</type>
+          <interval>12m</interval>
+          <options>
+            <option name="6 Months" value="6m" />
+            <option name="12 Months" value="12m" />
+            <option name="24 Months" value="24m" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -870,6 +882,12 @@
           <label>Real Sessions</label>
           <report>daily-real-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -878,6 +896,12 @@
           <label>Bot Sessions</label>
           <report>daily-bot-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
     </section>

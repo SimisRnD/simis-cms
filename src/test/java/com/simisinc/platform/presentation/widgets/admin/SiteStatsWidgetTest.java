@@ -1583,6 +1583,148 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
   }
 
+  // --- Time-range control on the session charts (these four reports previously ignored the
+  // widget's interval entirely and queried a hardcoded 30-day / 12-month window) ---
+
+  @Test
+  void executeDailySessionsUsesTheConfiguredWindow() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Daily Sessions</title>\n" +
+            "  <report>daily-sessions</report>\n" +
+            "  <days>90</days>\n" +
+            "</widget>");
+    List<StatisticsData> data = List.of(statistic("2026-08-01", "5"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepository.when(() -> WebPageHitRepository.findDailySessions(90, 'd')).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeMonthlySessionsUsesTheConfiguredWindowInMonths() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Monthly Sessions</title>\n" +
+            "  <report>monthly-sessions</report>\n" +
+            "  <interval>24m</interval>\n" +
+            "</widget>");
+    List<StatisticsData> data = List.of(statistic("2026-08-01", "50"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepository.when(() -> WebPageHitRepository.findMonthlySessions(24, 'm')).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeDailyRealAndBotSessionsUseTheConfiguredWindow() {
+    for (String report : List.of("daily-real-sessions", "daily-bot-sessions")) {
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"siteStats\" class=\"stats card\">\n" +
+              "  <report>" + report + "</report>\n" +
+              "  <days>90</days>\n" +
+              "</widget>");
+      boolean isBot = "daily-bot-sessions".equals(report);
+      List<StatisticsData> data = List.of(statistic("2026-08-01", "3"));
+      try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+        sessionRepository.when(() -> SessionRepository.findDailySessionsByBotStatus(90, 'd', isBot)).thenReturn(data);
+
+        setRoles(widgetContext, ADMIN);
+        new SiteStatsWidget().execute(widgetContext);
+      }
+      Assertions.assertEquals(data, request.getAttribute("statisticsDataList"), report);
+    }
+  }
+
+  @Test
+  void executePublishesTheRenderedWindowSoTheRightTabHighlights() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <report>monthly-sessions</report>\n" +
+            "  <interval>12m</interval>\n" +
+            "  <options>\n" +
+            "    <option name=\"6 Months\" value=\"6m\" />\n" +
+            "    <option name=\"12 Months\" value=\"12m\" />\n" +
+            "  </options>\n" +
+            "</widget>");
+    try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepository.when(() -> WebPageHitRepository.findMonthlySessions(12, 'm')).thenReturn(List.of());
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+    Assertions.assertEquals("12m", request.getAttribute("currentValue"));
+    Assertions.assertNotNull(request.getAttribute("optionsList"));
+  }
+
+  @Test
+  void actionUsesTheRequestedWindow() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <report>daily-sessions</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+    addQueryParameter(widgetContext, "value", "7d");
+    try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepository.when(() -> WebPageHitRepository.findDailySessions(7, 'd'))
+          .thenReturn(List.of(statistic("2026-08-01", "5")));
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().action(widgetContext);
+    }
+    Assertions.assertEquals("[{\"label\":\"2026-08-01\",\"value\":\"5\"}]", widgetContext.getJson());
+  }
+
+  @Test
+  void actionFallsBackToTheWidgetDefaultRatherThanFailingOnAJunkWindow() {
+    // "value" is a user-supplied query parameter; it used to go straight into Integer.parseInt
+    for (String junk : List.of("abc", "d", "-5d", "99999999d", "7x")) {
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"siteStats\" class=\"stats card\">\n" +
+              "  <report>daily-sessions</report>\n" +
+              "  <days>30</days>\n" +
+              "</widget>");
+      addQueryParameter(widgetContext, "value", junk);
+      try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+        webPageHitRepository.when(() -> WebPageHitRepository.findDailySessions(30, 'd'))
+            .thenReturn(List.of(statistic("2026-08-01", "5")));
+
+        setRoles(widgetContext, ADMIN);
+        Assertions.assertDoesNotThrow(() -> new SiteStatsWidget().action(widgetContext), junk);
+      }
+      Assertions.assertEquals("[{\"label\":\"2026-08-01\",\"value\":\"5\"}]", widgetContext.getJson(), junk);
+    }
+  }
+
+  @Test
+  void intervalParsesTheDropDownSyntaxAndFallsBackOnAnythingElse() {
+    SiteStatsWidget.Interval fallback = new SiteStatsWidget.Interval(7, 'd');
+    Assertions.assertEquals(90, SiteStatsWidget.Interval.parse("90d", fallback).value);
+    Assertions.assertEquals('d', SiteStatsWidget.Interval.parse("90d", fallback).type);
+    Assertions.assertEquals('w', SiteStatsWidget.Interval.parse("2w", fallback).type);
+    Assertions.assertEquals('m', SiteStatsWidget.Interval.parse("6M", fallback).type, "case-insensitive");
+    Assertions.assertEquals('y', SiteStatsWidget.Interval.parse("1y", fallback).type);
+    Assertions.assertEquals('h', SiteStatsWidget.Interval.parse("12h", fallback).type);
+
+    // A bare number keeps <days>' historical meaning
+    SiteStatsWidget.Interval bare = SiteStatsWidget.Interval.parse("30", fallback);
+    Assertions.assertEquals(30, bare.value);
+    Assertions.assertEquals('d', bare.type);
+
+    for (String bad : List.of("", "   ", "abc", "d", "-5d", "0d", "99999999d", "7x")) {
+      SiteStatsWidget.Interval parsed = SiteStatsWidget.Interval.parse(bad, fallback);
+      Assertions.assertEquals(7, parsed.value, bad);
+      Assertions.assertEquals('d', parsed.type, bad);
+    }
+    Assertions.assertEquals(7, SiteStatsWidget.Interval.parse(null, fallback).value);
+  }
+
   private static StatisticsData statistic(String label, String value) {
     StatisticsData data = new StatisticsData();
     data.setLabel(label);
