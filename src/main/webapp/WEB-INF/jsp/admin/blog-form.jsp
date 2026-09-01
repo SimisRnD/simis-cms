@@ -52,7 +52,7 @@
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Blog, News, Press Releases..." name="name" aria-describedby="blogNameHelpText" value="<c:out value="${blog.name}"/>" required>
+    <input type="text" placeholder="Blog, News, Press Releases..." name="name" maxlength="255" aria-describedby="blogNameHelpText" value="<c:out value="${blog.name}"/>" required>
   </label>
   <p class="help-text" id="blogNameHelpText">Also generates this category's Unique Id (shown in the
     blog list, and used in every post's URL) the first time it's saved -- see the warning above
