@@ -35,12 +35,24 @@ public class LoadMenuTabsCommand {
 
   private static Log LOG = LogFactory.getLog(LoadMenuTabsCommand.class);
 
+  /**
+   * The cached active menu. Builds the full three-level tree (issue #1728).
+   *
+   * The tree rather than the flat list, and deliberately in this method rather than behind a second
+   * cache key: MENU_TAB_LIST is already invalidated in four places across the two menu editors, and
+   * a parallel key would need every one of those to remember it. Missing one would leave a third
+   * level that is stale after an edit and correct after a restart, which is the hardest kind of bug
+   * to notice.
+   *
+   * The tree is a superset of what the two-level callers ask for -- they simply never read an
+   * item's own child list -- so nothing changes for them.
+   */
   public static List<MenuTab> loadActiveIncludeMenuItemList() {
     List<MenuTab> menuTabList = (List<MenuTab>) CacheManager.getFromObjectCache(CacheManager.MENU_TAB_LIST);
     if (menuTabList != null) {
       return menuTabList;
     }
-    menuTabList = findAllActiveIncludeMenuItemList();
+    menuTabList = findAllActiveIncludeMenuItemTree();
     if (menuTabList != null) {
       CacheManager.addToObjectCache(CacheManager.MENU_TAB_LIST, menuTabList);
     }

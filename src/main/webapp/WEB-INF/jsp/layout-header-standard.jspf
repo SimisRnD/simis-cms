@@ -105,7 +105,23 @@
                 </c:choose>
                 <ul class="menu vertical">
                   <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                    <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                    <%-- An item with children becomes a nested submenu. Foundation's dropdown renders the
+                         extra level natively via is-dropdown-submenu-parent plus a vertical ul, so this is
+                         markup only -- no new JS and no new CSS (issue #1728). --%>
+                    <c:choose>
+                      <c:when test="${!empty menuItem.menuItemList}">
+                        <li class="is-dropdown-submenu-parent"><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a>
+                          <ul class="menu vertical">
+                            <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                              <li><a href="<c:out value="${ctx}${subMenuItem.link}"/>"><c:out value="${subMenuItem.name}" /></a></li>
+                            </c:forEach>
+                          </ul>
+                        </li>
+                      </c:when>
+                      <c:otherwise>
+                        <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                      </c:otherwise>
+                    </c:choose>
                   </c:forEach>
                 </ul>
               </li>
@@ -253,7 +269,23 @@
                             </c:choose>
                             <ul class="menu vertical">
                               <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                                <li><i class="fa fa-angle-right"></i><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                                <%-- An item with children becomes a nested submenu. Foundation's dropdown renders the
+                                     extra level natively via is-dropdown-submenu-parent plus a vertical ul, so this is
+                                     markup only -- no new JS and no new CSS (issue #1728). --%>
+                                <c:choose>
+                                  <c:when test="${!empty menuItem.menuItemList}">
+                                    <li class="is-dropdown-submenu-parent"><i class="fa fa-angle-right"></i><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a>
+                                      <ul class="menu vertical">
+                                        <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                                          <li><i class="fa fa-angle-right"></i><a href="<c:out value="${ctx}${subMenuItem.link}"/>"><c:out value="${subMenuItem.name}" /></a></li>
+                                        </c:forEach>
+                                      </ul>
+                                    </li>
+                                  </c:when>
+                                  <c:otherwise>
+                                    <li><i class="fa fa-angle-right"></i><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                                  </c:otherwise>
+                                </c:choose>
                               </c:forEach>
                             </ul>
                           </li>
@@ -374,7 +406,23 @@
                 </c:choose>
                 <ul class="menu vertical">
                   <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                    <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                    <%-- An item with children becomes a nested submenu. Foundation's dropdown renders the
+                         extra level natively via is-dropdown-submenu-parent plus a vertical ul, so this is
+                         markup only -- no new JS and no new CSS (issue #1728). --%>
+                    <c:choose>
+                      <c:when test="${!empty menuItem.menuItemList}">
+                        <li class="is-dropdown-submenu-parent"><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a>
+                          <ul class="menu vertical">
+                            <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                              <li><a href="<c:out value="${ctx}${subMenuItem.link}"/>"><c:out value="${subMenuItem.name}" /></a></li>
+                            </c:forEach>
+                          </ul>
+                        </li>
+                      </c:when>
+                      <c:otherwise>
+                        <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                      </c:otherwise>
+                    </c:choose>
                   </c:forEach>
                 </ul>
               </li>
@@ -475,7 +523,23 @@
                       </c:choose>
                       <ul class="menu vertical">
                         <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                          <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                          <%-- An item with children becomes a nested submenu. Foundation's dropdown renders the
+                               extra level natively via is-dropdown-submenu-parent plus a vertical ul, so this is
+                               markup only -- no new JS and no new CSS (issue #1728). --%>
+                          <c:choose>
+                            <c:when test="${!empty menuItem.menuItemList}">
+                              <li class="is-dropdown-submenu-parent"><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a>
+                                <ul class="menu vertical">
+                                  <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                                    <li><a href="<c:out value="${ctx}${subMenuItem.link}"/>"><c:out value="${subMenuItem.name}" /></a></li>
+                                  </c:forEach>
+                                </ul>
+                              </li>
+                            </c:when>
+                            <c:otherwise>
+                              <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                            </c:otherwise>
+                          </c:choose>
                         </c:forEach>
                       </ul>
                     </li>
@@ -531,7 +595,23 @@
                       </c:choose>
                       <ul class="menu vertical">
                         <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                          <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                          <%-- An item with children becomes a nested submenu. Foundation's dropdown renders the
+                               extra level natively via is-dropdown-submenu-parent plus a vertical ul, so this is
+                               markup only -- no new JS and no new CSS (issue #1728). --%>
+                          <c:choose>
+                            <c:when test="${!empty menuItem.menuItemList}">
+                              <li class="is-dropdown-submenu-parent"><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a>
+                                <ul class="menu vertical">
+                                  <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                                    <li><a href="<c:out value="${ctx}${subMenuItem.link}"/>"><c:out value="${subMenuItem.name}" /></a></li>
+                                  </c:forEach>
+                                </ul>
+                              </li>
+                            </c:when>
+                            <c:otherwise>
+                              <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
+                            </c:otherwise>
+                          </c:choose>
                         </c:forEach>
                       </ul>
                     </li>
