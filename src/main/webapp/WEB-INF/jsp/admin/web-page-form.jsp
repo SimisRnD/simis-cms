@@ -102,13 +102,13 @@
         <input type="text" placeholder="Why does this redirect exist? Is it still needed?" name="redirectNotes" value="<c:out value="${webPage.redirectNotes}"/>">
       </label>
       <label>Title
-        <input type="text" placeholder="Give it a title..." name="title" value="<c:out value="${webPage.title}"/>">
+        <input type="text" placeholder="Give it a title..." name="title" maxlength="255" value="<c:out value="${webPage.title}"/>">
       </label>
       <label>Keywords
-        <input type="text" placeholder="Comma-separated keywords..." name="keywords" value="<c:out value="${webPage.keywords}"/>">
+        <input type="text" placeholder="Comma-separated keywords..." name="keywords" maxlength="255" value="<c:out value="${webPage.keywords}"/>">
       </label>
       <label>Description
-        <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${webPage.description}"/>">
+        <input type="text" placeholder="Describe it..." name="description" maxlength="255" value="<c:out value="${webPage.description}"/>">
       </label>
       <label>Solution Type
         <select name="solutionType">

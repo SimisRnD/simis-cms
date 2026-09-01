@@ -39,7 +39,7 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Folder Name <span class="required">*</span>
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${folder.name}"/>" required>
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${folder.name}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${folder.summary}"/>">

@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.events.cms.CalendarEventRescheduledEvent;
 import com.simisinc.platform.domain.events.cms.CalendarEventScheduledEvent;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -36,6 +37,10 @@ import static com.simisinc.platform.application.cms.GenerateCalendarEventUniqueI
  */
 public class SaveCalendarEventCommand {
 
+  // @column calendar_events.title
+  private static final int MAX_TITLE_LENGTH = 255;
+
+
   public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveCalendarEventCommand.class);
 
@@ -53,6 +58,9 @@ public class SaveCalendarEventCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(calendarEventBean.getTitle())) {
       errorMessages.append("A title is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A title",
+          calendarEventBean.getTitle(), MAX_TITLE_LENGTH);
     }
     if (calendarEventBean.getStartDate() != null && calendarEventBean.getEndDate() != null && calendarEventBean.getEndDate().before(calendarEventBean.getStartDate())) {
       if (errorMessages.length() > 0) {
