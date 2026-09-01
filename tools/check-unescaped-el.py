@@ -360,6 +360,8 @@ ALLOWLIST: dict[str, str] = {
         "SaveMenuTabCommand enforces a leading '/' or '#' prefix, blocking javascript: and protocol-relative targets; relative/anchor URLs cannot carry executable markup.",
     "${menuItem.link}":
         "SaveMenuTabCommand.updateMenuItemLink() enforces a leading '/' prefix on save -- all stored links are relative internal paths.",
+    "${subMenuItem.link}":
+        "Identical to ${menuItem.link}: a nested menu item is a row in the same menu_items table, edited through the same menuItem<id>link form field and saved by the same SaveMenuTabCommand.updateMenuItemLink(), which enforces a leading '/' prefix. Nesting changes only parent_menu_item_id, not how the link is validated or stored.",
     "${webPage.link}":
         "SaveWebPageCommand rejects all external URLs via UrlCommand.isUrlValid() check (error if external) -- all stored web-page links are relative internal paths with no HTML metacharacters.",
     "${webPage.showInSitemap}":

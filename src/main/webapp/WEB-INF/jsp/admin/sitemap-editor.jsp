@@ -63,6 +63,7 @@
   <input type="hidden" name="method" value="sitemap-editor"/>
   <input type="hidden" id="menuTabOrder" name="menuTabOrder" value=""/>
   <input type="hidden" id="menuItemOrder" name="menuItemOrder" value=""/>
+  <input type="hidden" id="menuSubItemOrder" name="menuSubItemOrder" value=""/>
   <div id="site-map-container" class="site-map-container">
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
       <div id="site-map-menu-tab-container-${status.first ? 0 : menuTab.id}" class="site-map-menu-tab">
@@ -122,6 +123,30 @@
                 <div>
                   <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" style="margin-bottom:0"/>
                   <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0" list="webPageLinks"/>
+                </div>
+                <%-- Third level (issue #1728). The container is rendered whether or not it has
+                     children, because dragula needs a drop target to exist before anything can be
+                     dragged into it -- an item with no sub-items yet would otherwise be the one
+                     place you could never create one. --%>
+                <div id="site-map-subitem-container-${menuItem.id}" class="site-map-subitem-container">
+                  <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                    <div id="site-map-menu-subitem-${subMenuItem.id}" class="site-map-subitem">
+                      <div class="float-left">
+                        <small class="subheader">
+                          <i class="fa fa-arrows site-map-subitem-drag-handle" aria-hidden="true"></i>
+                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item up"
+                                  data-move="subItemUp" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9650;</button>
+                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item down"
+                                  data-move="subItemDown" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9660;</button>
+                        </small>
+                      </div>
+                      <div class="clear-float"></div>
+                      <div>
+                        <input type="text" name="menuItem${subMenuItem.id}name" value="<c:out value="${subMenuItem.name}" />" title="Sub-item name shown in the menu" style="margin-bottom:0"/>
+                        <input type="text" name="menuItem${subMenuItem.id}link" value="<c:out value="${subMenuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /rhtt-robotic-human-type-targets" style="margin-bottom:0" list="webPageLinks"/>
+                      </div>
+                    </div>
+                  </c:forEach>
                 </div>
               </div>
             </c:forEach>
@@ -201,12 +226,24 @@
     }
   });
 
+  // Third level (issue #1728). Collected at runtime rather than emitted per item by the JSP: there
+  // is one container per menu item, and querySelectorAll keeps that list correct without a nested
+  // loop in the markup. Passing every container to a single dragula instance is what makes an item
+  // draggable from one parent to another, exactly as the level-2 instance above does across tabs.
+  var menuSubItems = dragula(
+    Array.prototype.slice.call(document.querySelectorAll('.site-map-subitem-container')), {
+      moves: function (el, container, handle) {
+        return handle.classList.contains('site-map-subitem-drag-handle');
+      }
+    });
+
   function checkSiteMapOrder() {
     // Check the main tabs
     var menuTabContainer = document.getElementById("site-map-container");
     var menuTabList = menuTabContainer.querySelectorAll(".site-map-menu-tab");
     var menuTabOrder = "";
     var menuItemOrder = "";
+    var menuSubItemOrder = "";
     for (var i = 0; i < menuTabList.length; i++) {
       var menuTab = menuTabList[i];
       if (i > 0) {
@@ -221,6 +258,18 @@
           menuItemOrder += "|";
         }
         menuItemOrder += (menuTab.id + "," + menuItem.id);
+        // ...and any sub-items nested under this item. Same parentId,childId shape, read from live
+        // DOM position, so an item dragged to a different parent reports its new one.
+        var subItemContainer = menuItem.querySelector(".site-map-subitem-container");
+        if (subItemContainer) {
+          var subItemList = subItemContainer.querySelectorAll(".site-map-subitem");
+          for (var k = 0; k < subItemList.length; k++) {
+            if (menuSubItemOrder.length > 0) {
+              menuSubItemOrder += "|";
+            }
+            menuSubItemOrder += (menuItem.id + "," + subItemList[k].id);
+          }
+        }
       }
     }
     var menuTabOrderField = document.getElementById("menuTabOrder");
@@ -228,6 +277,9 @@
 
     var menuItemOrderField = document.getElementById("menuItemOrder");
     menuItemOrderField.value = menuItemOrder;
+
+    var menuSubItemOrderField = document.getElementById("menuSubItemOrder");
+    menuSubItemOrderField.value = menuSubItemOrder;
 
     return true;
   }
@@ -263,7 +315,9 @@
       tabLeft: moveTabLeft,
       tabRight: moveTabRight,
       itemUp: moveItemUp,
-      itemDown: moveItemDown
+      itemDown: moveItemDown,
+      subItemUp: moveItemUp,
+      subItemDown: moveItemDown
     };
     document.querySelectorAll('[data-move]').forEach(function (button) {
       button.addEventListener('click', function () {

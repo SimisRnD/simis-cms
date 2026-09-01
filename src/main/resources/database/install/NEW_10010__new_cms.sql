@@ -56,9 +56,17 @@ CREATE TABLE menu_items (
   draft BOOLEAN DEFAULT false,
   enabled BOOLEAN DEFAULT true,
   role_id_list VARCHAR(50) DEFAULT NULL,
-  comments TEXT
+  comments TEXT,
+  -- Third navigation level (issue #1728). NULL means this item sits directly under its tab, which
+  -- is every row that existed before nesting; a value means it is a child of that item. Self-
+  -- referencing rather than a separate table so a nested item keeps the same columns -- link,
+  -- title, draft, enabled, role_id_list -- as any other, and the access rules do not fork.
+  -- ON DELETE CASCADE: removing an item removes what hangs off it, which matches the existing
+  -- tab->item behaviour and avoids children stranded under a parent that is gone.
+  parent_menu_item_id BIGINT REFERENCES menu_items(menu_item_id) ON DELETE CASCADE
 );
 CREATE INDEX menu_items_ord_idx ON menu_items(item_order);
+CREATE INDEX menu_items_parent_idx ON menu_items(parent_menu_item_id);
 CREATE INDEX menu_items_act_idx ON menu_items(draft, enabled);
 CREATE INDEX menu_items_tab_idx ON menu_items(menu_tab_id);
 

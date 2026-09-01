@@ -50,7 +50,10 @@ public class SiteMapWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
+    // The tree, so nested items are at least VISIBLE here (issue #1728). They are read-only on
+    // this screen -- editing them lives in the Edit Links editor -- but showing a menu without
+    // its third level would misrepresent the live site to whoever is reordering it.
+    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemTree();
     context.getRequest().setAttribute("menuTabList", menuTabList);
 
     // Standard request items

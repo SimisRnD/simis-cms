@@ -135,6 +135,51 @@ public class SaveMenuTabCommand {
     menuItem.setMenuTabId(menuTabId);
     menuItem.setItemOrder(currentOrderValue);
     MenuItemRepository.update(menuItem);
+    // A top-level item can be dragged to a different tab, and anything nested beneath it travels
+    // with it. Those children carry their own menu_tab_id, so without this they keep pointing at
+    // the tab they came from -- invisible in the menu (which walks parent links) but wrong for any
+    // query that filters by tab, including the editor's own redraw (issue #1728).
+    for (MenuItem childMenuItem : MenuItemRepository.findAllByParent(menuItem)) {
+      if (childMenuItem.getMenuTabId() != menuTabId) {
+        childMenuItem.setMenuTabId(menuTabId);
+        MenuItemRepository.update(childMenuItem);
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Places a menu item beneath another menu item, the third navigation level (issue #1728).
+   *
+   * Mirrors {@link #updateMenuItemOrder} one level down, and additionally keeps the child's
+   * menu_tab_id equal to its parent's so the two can never disagree about which tab they belong to.
+   *
+   * Depth is capped at three: a parent that is itself nested is rejected rather than silently
+   * accepted, because nothing renders a fourth level and a row that deep would simply vanish from
+   * the menu with no error anywhere.
+   */
+  public static boolean updateMenuSubItemOrder(long parentMenuItemId, long menuItemId, int currentOrderValue) {
+    if (parentMenuItemId == menuItemId) {
+      LOG.warn("An item cannot be its own parent: " + menuItemId);
+      return false;
+    }
+    MenuItem parentMenuItem = MenuItemRepository.findById(parentMenuItemId);
+    if (parentMenuItem == null) {
+      return false;
+    }
+    if (parentMenuItem.hasParentMenuItem()) {
+      LOG.warn("Menu nesting is limited to three levels; cannot nest under an already-nested item: "
+          + parentMenuItemId);
+      return false;
+    }
+    MenuItem menuItem = MenuItemRepository.findById(menuItemId);
+    if (menuItem == null) {
+      return false;
+    }
+    menuItem.setParentMenuItemId(parentMenuItemId);
+    menuItem.setMenuTabId(parentMenuItem.getMenuTabId());
+    menuItem.setItemOrder(currentOrderValue);
+    MenuItemRepository.update(menuItem);
     return true;
   }
 

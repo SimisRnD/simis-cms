@@ -48,7 +48,9 @@ public class SiteMapEditorWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
+    // The tree, not the flat list: the editor has to show nested items or they look deleted,
+    // and a third level that cannot be seen cannot be reordered or unnested (issue #1728).
+    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemTree();
     context.getRequest().setAttribute("menuTabList", menuTabList);
 
     List<WebPage> webPageList = WebPageRepository.findAll();
@@ -163,6 +165,30 @@ public class SiteMapEditorWidget extends GenericWidget {
         SaveMenuTabCommand.updateMenuItemOrder(menuTabId, menuItemId, currentOrderValue);
       }
 
+    }
+
+    // Third level (issue #1728): same parentId,childId shape as menuItemOrder, one level down.
+    String menuSubItemOrder = context.getParameter("menuSubItemOrder");
+    if (StringUtils.isNotBlank(menuSubItemOrder)) {
+      String[] strArray = menuSubItemOrder.split("\\|");
+      long lastParentMenuItemId = -1;
+      int currentOrderValue = -1;
+      for (int i = 0; i < strArray.length; i++) {
+        String[] thisItemArray = strArray[i].split(",");
+        if (thisItemArray.length < 2) {
+          continue;
+        }
+        String parent = thisItemArray[0];
+        String item = thisItemArray[1];
+        long parentMenuItemId = Long.parseLong(parent.substring(parent.lastIndexOf("-") + 1));
+        long menuItemId = Long.parseLong(item.substring(item.lastIndexOf("-") + 1));
+        if (parentMenuItemId != lastParentMenuItemId) {
+          currentOrderValue = -1;
+          lastParentMenuItemId = parentMenuItemId;
+        }
+        ++currentOrderValue;
+        SaveMenuTabCommand.updateMenuSubItemOrder(parentMenuItemId, menuItemId, currentOrderValue);
+      }
     }
 
     // Determine the page to return to
