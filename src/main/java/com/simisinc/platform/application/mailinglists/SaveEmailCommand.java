@@ -26,6 +26,7 @@ import java.sql.Timestamp;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
@@ -49,6 +50,12 @@ import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 public class SaveEmailCommand {
 
   private static Log LOG = LogFactory.getLog(SaveEmailCommand.class);
+
+  // This command was the one place that already checked a value against its column width
+  // (issue #1740), but as a bare literal -- so it was the one place the new build check could
+  // not protect. Annotated so a migration that changes emails.email cannot leave it stale.
+  // @column emails.email
+  private static final int MAX_EMAIL_LENGTH = 255;
 
   /** The list a signup path joins when it names none of its own (the checkout newsletter checkbox,
    *  the ajax footer/inline form, and an emailSubscribe widget with no mailingList preference). */
@@ -163,8 +170,8 @@ public class SaveEmailCommand {
     if (!JMail.isValid(emailBean.getEmail())) {
       throw new DataException("Please check the email address and try again");
     }
-    if (emailBean.getEmail().length() > 255) {
-      throw new DataException("Please check the email address and try again");
+    if (FieldLengthCommand.exceedsLimit(emailBean.getEmail(), MAX_EMAIL_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("An email address", MAX_EMAIL_LENGTH));
     }
 
     // Set the GeoIP information if there's an IP
