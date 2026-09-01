@@ -63,6 +63,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FunnelEventRepositor
 import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -1700,6 +1701,49 @@ class SiteStatsWidgetTest extends WidgetBase {
       }
       Assertions.assertEquals("[{\"label\":\"2026-08-01\",\"value\":\"5\"}]", widgetContext.getJson(), junk);
     }
+  }
+
+  @Test
+  void actionQueriesOnlyTheRequestedWindow() {
+    // action() used to end with "return execute(context)", which re-ran the whole report with the
+    // widget's configured window -- so every range-tab click cost two queries, and the extra one
+    // wasn't even the range that was asked for. Its result was discarded: setJson() had already
+    // been called, and WebContainerCommand returns as soon as it sees hasJson()
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <report>daily-sessions</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+    addQueryParameter(widgetContext, "value", "7d");
+    try (MockedStatic<WebPageHitRepository> webPageHitRepository = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepository.when(() -> WebPageHitRepository.findDailySessions(7, 'd'))
+          .thenReturn(List.of(statistic("2026-08-01", "5")));
+
+      setRoles(widgetContext, ADMIN);
+      WidgetContext result = new SiteStatsWidget().action(widgetContext);
+
+      webPageHitRepository.verify(() -> WebPageHitRepository.findDailySessions(7, 'd'));
+      webPageHitRepository.verify(() -> WebPageHitRepository.findDailySessions(30, 'd'), Mockito.never());
+      Assertions.assertSame(widgetContext, result);
+    }
+    Assertions.assertEquals("[{\"label\":\"2026-08-01\",\"value\":\"5\"}]", widgetContext.getJson());
+  }
+
+  @Test
+  void actionWithoutAReportPreferenceStillAnswersWithJson() {
+    // A misconfigured widget used to reach execute()'s "report preference was not specified" guard
+    // by falling through to it; action() makes the check itself now. The response still has to be
+    // JSON -- a targeted request that sets none gets treated as a form post and redirected
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Daily Sessions</title>\n" +
+            "</widget>");
+
+    setRoles(widgetContext, ADMIN);
+    WidgetContext result = new SiteStatsWidget().action(widgetContext);
+
+    Assertions.assertSame(widgetContext, result);
+    Assertions.assertEquals("[]", widgetContext.getJson());
   }
 
   @Test
