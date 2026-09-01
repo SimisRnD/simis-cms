@@ -607,9 +607,26 @@
           <%-- Admin Link --%>
           <ul class="vertical menu">
             <li class="section-title">Admin</li>
-            <li<c:if test="${pageRenderInfo.name eq '/admin'}"> class="is-active"</c:if>><a href="${ctx}/admin"><i class="${font:far()} fa-home fa-fw"></i> <span>Welcome</span></a></li>
+            <%-- Issue #1772: this block opened with no visibility test at all, so its three rows
+                 rendered for anyone who could reach any /admin page -- including four principals the
+                 linked pages deny, who saw the link and were refused on click.
+
+                 Welcome and Activity are narrowed to exactly the roles their pages declare. Neither
+                 was widened instead: /admin's dashboard links onward to ten gated pages, of which
+                 admin:manage can open three, users:manage one and data-manager none, so admitting
+                 them trades three dead rows for a page of dead ends; and /admin/activity is the audit
+                 log, so widening it is a disclosure decision rather than a navigation fix.
+
+                 Documentation is the opposite case and was widened instead -- see admin-layout.xml.
+                 It therefore needs no test here, and because every principal that can render this
+                 menu can now open it, the section can never render as a bare heading (issue #1780). --%>
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('ecommerce-manager')}">
+              <li<c:if test="${pageRenderInfo.name eq '/admin'}"> class="is-active"</c:if>><a href="${ctx}/admin"><i class="${font:far()} fa-home fa-fw"></i> <span>Welcome</span></a></li>
+            </c:if>
             <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/documentation')}"> class="is-active"</c:if>><a href="${ctx}/admin/documentation/wiki/Home"><i class="${font:far()} fa-book fa-fw"></i> <span>Documentation</span></a></li>
-            <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/activity')}"> class="is-active"</c:if>><a href="${ctx}/admin/activity"><i class="${font:far()} fa-exchange-alt fa-fw"></i> <span>Activity</span></a></li>
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('ecommerce-manager')}">
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/activity')}"> class="is-active"</c:if>><a href="${ctx}/admin/activity"><i class="${font:far()} fa-exchange-alt fa-fw"></i> <span>Activity</span></a></li>
+            </c:if>
             <c:if test="${userSession.hasRole('admin')}">
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/health-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/health-dashboard"><i class="${font:far()} fa-heart-pulse fa-fw"></i> <span>System Health</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/job-queue-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/job-queue-dashboard"><i class="${font:far()} fa-list-check fa-fw"></i> <span>Job Queue</span></a></li>
