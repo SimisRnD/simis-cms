@@ -31,6 +31,25 @@ visibility test (the AND of every ``<c:if>`` enclosing it, plus its own), resolv
 row's ``href`` to a ``<page>`` declaration in the layout XML, and compares who each side
 admits.
 
+The settings hub is checked the same way. Issue #1765 moved sixteen Settings rows off the
+menu and onto ``/admin/settings``, a page of cards built by ``SettingsHubWidget``. Those
+destinations are still admin navigation and can still outrun the pages they link to, but a
+card is not an ``<li>`` in main.jsp, so this gate stopped seeing them: the checked count
+fell from 72 to 57 and nothing said so. A card's gate is simply the page the hub widget
+sits on -- there is no per-card ``<c:if>``; a module that is switched off is *marked*, not
+hidden -- so whoever can open that page is shown every card on it, and every card is
+compared against its destination on those terms.
+
+The hub is found the way the application finds it: a ``<page>`` in the layout XML holding a
+``<widget name="settingsHub">``. Its destinations are read out of the widget source. Two
+independent reads guard that: the narrow one that understands ``entry(...)`` and
+``moduleEntry(...)`` calls, and a broad sweep for every ``"/admin/..."`` literal in the same
+file. A literal the narrow read did not account for is reported as UNDETERMINED, so a
+refactor that changes how entries are declared makes this gate fail rather than quietly
+check fewer things. The hub JSP is scanned for hard-coded ``${ctx}/...`` links for the same
+reason -- it renders ``settingsEntry.link`` and nothing else, and a link added beside it
+would be a destination this gate never saw.
+
 The comparison is exact rather than syntactic. Both sides are evaluated over every subset
 of the principal universe -- the roles and capabilities named anywhere in the menu or the
 layout XML, plus the ``guest``/``users`` pseudo-roles. A subset that satisfies the row's
@@ -88,6 +107,37 @@ import xml.etree.ElementTree as ET
 
 MAIN_JSP = "src/main/webapp/WEB-INF/jsp/main.jsp"
 LAYOUT_GLOB = "src/main/webapp/WEB-INF/web-layouts/page/*.xml"
+
+# The settings hub (issue #1765). Discovered through the layout XML rather than hard-coded to
+# a page name, so moving the widget or placing it on a second page keeps its cards checked.
+# The layout name itself comes from widget-library.xml where that file is present, so renaming
+# the widget moves this gate with it instead of leaving the hub quietly unchecked; the literal
+# below is the name it has today and the fallback for a tree without the library.
+HUB_WIDGET = "settingsHub"
+HUB_CLASS_SUFFIX = ".SettingsHubWidget"
+WIDGET_LIBRARY = "src/main/webapp/WEB-INF/widgets/widget-library.xml"
+HUB_SOURCE = ("src/main/java/com/simisinc/platform/presentation/widgets/admin/"
+              "SettingsHubWidget.java")
+JSP_ROOT = "src/main/webapp/WEB-INF/jsp"
+
+# entry("Theme", "/admin/theme-properties", ...) and its moduleEntry(...) sibling. The
+# lookbehind keeps a longer identifier ending in these letters out (`.entry(`, `myEntry(`);
+# requiring a string literal for the first argument keeps the factory's own signature --
+# `SettingsEntry entry(String label, String link, ...)` -- out.
+HUB_ENTRY = re.compile(r'(?<![A-Za-z0-9_.])(?:entry|moduleEntry)\s*\(\s*'
+                       r'"([^"]*)"\s*,\s*"(/[^"]*)"')
+
+# Every /admin/... literal in the widget source. Deliberately broader than HUB_ENTRY: the gap
+# between the two is what turns "the entry regex stopped matching" into a failure instead of a
+# smaller, still-green run. static String JSP = "/admin/settings-hub.jsp" is the one expected
+# non-destination, and is excluded by value rather than by pattern.
+HUB_ADMIN_LITERAL = re.compile(r'"(/admin/[^"]*)"')
+HUB_JSP_FIELD = re.compile(r'\bJSP\s*=\s*"(/[^"]*)"')
+
+# href="${ctx}/admin/thing" in the hub JSP. The real card link is
+# href="${ctx}<c:out value="${settingsEntry.link}"/>", which does not match because a literal
+# path has to follow ${ctx} immediately.
+HUB_JSP_LITERAL_HREF = re.compile(r'href="\$\{ctx\}(/[A-Za-z0-9][^"]*)"')
 
 # The admin off-canvas menu is the region this checks. Rows outside it (the public site
 # header, the user dropdown) are not admin navigation and are not scanned.
@@ -415,17 +465,35 @@ def _operand_expr(chunk: str) -> Expr:
 # ----------------------------------------------------------------------------- main.jsp
 
 class Row:
+    """One admin menu row, gated by the <c:if> blocks enclosing its <li>."""
+
+    kind = "menu row"
+
     def __init__(self, line_no, href, tests, undetermined=None):
+        self.source = MAIN_JSP
         self.line_no = line_no
         self.href = href
+        self.label = None
         self.tests = tests            # list of (line_no, test-text) outermost first
         self.undetermined = undetermined
+        self._expr = None
 
     def expr(self) -> Expr:
         parts = [parse_el(t) for _, t in self.tests]
         if not parts:
             return Expr("free", True)
         return parts[0] if len(parts) == 1 else Expr("and", *parts)
+
+    def prepare(self) -> None:
+        """Read the gate up front, so an unreadable one is reported before anything is judged."""
+        self._expr = self.expr()
+
+    def visible(self, held: frozenset) -> bool:
+        return visible_to(self._expr, held)
+
+    def gate(self) -> str:
+        return " && ".join(t.strip() for _, t in self.tests) \
+            or "(no <c:if> -- shown to everyone who can render the admin menu)"
 
 
 def parse_menu(path: str) -> tuple:
@@ -571,6 +639,204 @@ def locate_page(pages: dict, path: str):
     return None
 
 
+# -------------------------------------------------------------------------- settings hub
+
+class HubCard:
+    """One destination card on the settings hub.
+
+    A card carries no visibility test of its own. The hub lists every settings screen
+    unconditionally -- a switched-off module is marked "Module off", not hidden, because its
+    own settings page is the only place it can be switched back on -- so the gate on a card is
+    the gate on the page the hub widget sits on, and nothing else.
+    """
+
+    kind = "hub card"
+
+    def __init__(self, line_no, href, label, hosts, source=HUB_SOURCE):
+        self.source = source
+        self.line_no = line_no
+        self.href = href
+        self.label = label
+        self.hosts = hosts            # PageDecls of the pages that render the hub widget
+        self.tests = []
+        self.undetermined = None
+
+    def prepare(self) -> None:
+        if not self.hosts:
+            raise Undetermined("the settings hub widget is on no page this parser could read")
+
+    def visible(self, held: frozenset) -> bool:
+        # On any hub page is enough: the card is shown to whoever can open it.
+        return any(host.admits(held) for host in self.hosts)
+
+    def gate(self) -> str:
+        return "(no per-card test -- shown to everyone who can open %s)" % ", ".join(
+            "%s [%s]" % (host.name, host.describe()) for host in self.hosts)
+
+
+def hub_widget_names(root: str) -> set:
+    """The layout name(s) bound to the settings-hub widget class in widget-library.xml."""
+    path = os.path.join(root, WIDGET_LIBRARY)
+    if not os.path.isfile(path):
+        return {HUB_WIDGET}
+    names = {w.get("name") for w in ET.parse(path).getroot().iter("widget")
+             if (w.get("class") or "").endswith(HUB_CLASS_SUFFIX) and w.get("name")}
+    return names or {HUB_WIDGET}
+
+
+def load_hub_hosts(root: str, pages: dict, widget_names: set) -> list:
+    """The <page> declarations whose layout places the settings-hub widget."""
+    hosts = []
+    seen = set()
+    for path in sorted(glob.glob(os.path.join(root, LAYOUT_GLOB))):
+        tree = ET.parse(path)
+        for element in tree.getroot().iter("page"):
+            name = element.get("name")
+            if not name or name in seen:
+                continue
+            if any(w.get("name") in widget_names for w in element.iter("widget")):
+                # Resolve through the same map the row side uses, so the first declaration of a
+                # duplicated page name wins here too.
+                decl = pages.get(name)
+                if decl is not None:
+                    hosts.append(decl)
+                    seen.add(name)
+    return hosts
+
+
+def strip_java_comments(text: str) -> str:
+    """Blank out Java comments, keeping every newline so line numbers still line up.
+
+    Both reads below have to ignore them. A path named in prose is not a destination -- the
+    hub widget's own javadoc cites one -- and a commented-out ``entry(...)`` is not rendered,
+    so counting either would have this gate report links that are not there. String literals
+    are copied through untouched: ``"//not-a-comment"`` is data.
+    """
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        char = text[i]
+        if char in "'\"":
+            j = i + 1
+            while j < n and text[j] != "\n":
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == char:
+                    j += 1
+                    break
+                j += 1
+            out.append(text[i:j])
+            i = j
+            continue
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            out.append(" " * (end - i))
+            i = end
+            continue
+        if text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            end = n if end < 0 else end + 2
+            out.append("".join(c if c == "\n" else " " for c in text[i:end]))
+            i = end
+            continue
+        out.append(char)
+        i += 1
+    return "".join(out)
+
+
+def strip_jsp_comments(text: str) -> str:
+    """The <%-- --%> equivalent, for the same reason and with the same line-count promise."""
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        if text.startswith("<%--", i):
+            end = text.find("--%>", i + 4)
+            end = n if end < 0 else end + 4
+            out.append("".join(c if c == "\n" else " " for c in text[i:end]))
+            i = end
+            continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
+
+
+def parse_hub(root: str, hosts: list) -> tuple:
+    """Return (cards, problems) for the settings hub.
+
+    ``problems`` are (source, line_no, why) triples reported as UNDETERMINED. Every path out
+    of this function either produces a card or records a problem; a hub that is placed on a
+    page but yields no checkable destination is a failure, not a quiet zero.
+    """
+    cards = []
+    problems = []
+    source_path = os.path.join(root, HUB_SOURCE)
+    if not os.path.isfile(source_path):
+        problems.append((HUB_SOURCE, 0,
+                         "the layout places the settings-hub widget on %s, but %s does not "
+                         "exist, so its destinations cannot be checked"
+                         % (", ".join(h.name for h in hosts), HUB_SOURCE)))
+        return cards, problems
+
+    with open(source_path, encoding="utf-8") as fh:
+        text = strip_java_comments(fh.read())
+
+    def line_of(offset: int) -> int:
+        return text.count("\n", 0, offset) + 1
+
+    for match in HUB_ENTRY.finditer(text):
+        label, link = match.group(1), match.group(2)
+        cards.append(HubCard(line_of(match.start()), link, label, hosts))
+
+    jsp_match = HUB_JSP_FIELD.search(text)
+    jsp_value = jsp_match.group(1) if jsp_match else None
+
+    # The broad read. Anything /admin/... in this file that the entry parser did not turn into
+    # a card is a destination this gate would otherwise have skipped in silence.
+    accounted = {card.href for card in cards}
+    if jsp_value:
+        accounted.add(jsp_value)
+    for match in HUB_ADMIN_LITERAL.finditer(text):
+        link = match.group(1)
+        if link in accounted:
+            continue
+        problems.append((HUB_SOURCE, line_of(match.start()),
+                         "%s is named here but is not one of the entry(...) / moduleEntry(...) "
+                         "destinations this parser reads; teach it the new shape rather than "
+                         "letting the link go unchecked" % link))
+        accounted.add(link)
+
+    if not cards:
+        problems.append((HUB_SOURCE, 0,
+                         "the settings hub is on %s but no entry(...) / moduleEntry(...) "
+                         "destination could be read from %s; the hub's links are not being "
+                         "checked" % (", ".join(h.name for h in hosts), HUB_SOURCE)))
+
+    if jsp_value is None:
+        problems.append((HUB_SOURCE, 0,
+                         "no JSP = \"...\" field found, so the hub's own markup could not be "
+                         "scanned for links the entry list does not name"))
+        return cards, problems
+
+    jsp_rel = os.path.join(JSP_ROOT, jsp_value.lstrip("/"))
+    jsp_path = os.path.join(root, jsp_rel)
+    if not os.path.isfile(jsp_path):
+        problems.append((HUB_SOURCE, 0,
+                         "the hub renders %s, which does not exist, so its markup could not be "
+                         "scanned for links the entry list does not name" % jsp_rel))
+        return cards, problems
+
+    with open(jsp_path, encoding="utf-8") as fh:
+        for idx, line in enumerate(strip_jsp_comments(fh.read()).split("\n")):
+            for link in HUB_JSP_LITERAL_HREF.findall(line):
+                problems.append((jsp_rel, idx + 1,
+                                 "hard-coded link %s in the hub markup; it is not one of the "
+                                 "widget's entries, so nothing checks who it is shown to"
+                                 % link))
+    return cards, problems
+
+
 # ----------------------------------------------------------------------------- checking
 
 def principal_universe(rows, pages) -> list:
@@ -610,6 +876,9 @@ def check(root: str):
     except Undetermined as exc:
         return None, None, None, str(exc)
 
+    hub_hosts = load_hub_hosts(root, pages, hub_widget_names(root))
+    cards, hub_problems = parse_hub(root, hub_hosts) if hub_hosts else ([], [])
+
     universe = principal_universe(rows, pages)
     # Every combination of held roles/capabilities, so negation and mixed &&/|| nesting are
     # evaluated rather than approximated. The universe is small (single digits), and the
@@ -634,30 +903,36 @@ def check(root: str):
             "this gate cannot check anything and is not passing")
 
     findings = []
-    undetermined = []
+    undetermined = list(hub_problems)
     baselined = []
+    inventory = []
     checked = 0
+    checked_cards = 0
 
-    for row in rows:
+    for row in rows + cards:
         if row.undetermined:
-            undetermined.append((row.line_no, row.undetermined))
+            undetermined.append((row.source, row.line_no, row.undetermined))
             continue
         page = locate_page(pages, row.href)
         if page is None:
-            undetermined.append((row.line_no,
+            undetermined.append((row.source, row.line_no,
                                  "href %s resolves to no <page> declaration in the layout XML"
                                  % row.href))
             continue
         try:
-            expr = row.expr()
+            row.prepare()
         except Undetermined as exc:
-            undetermined.append((row.line_no, str(exc)))
+            undetermined.append((row.source, row.line_no, str(exc)))
             continue
 
-        checked += 1
+        if row.kind == "hub card":
+            checked_cards += 1
+        else:
+            checked += 1
+        inventory.append((row.source, row.line_no, row.href, row.label))
         leaks = []
         for held in subsets:
-            if visible_to(expr, held) and not page.admits(held):
+            if row.visible(held) and not page.admits(held):
                 leaks.append(held)
         if not leaks:
             continue
@@ -673,17 +948,17 @@ def check(root: str):
         involved = {token(a) for h in minimal for a in h}
         allowed = ALLOWLIST.get(row.href)
         if allowed is not None and involved <= allowed:
-            baselined.append((row.line_no, row.href, named))
+            baselined.append((row, named))
             continue
-        findings.append((row.line_no, row.href, page, named, row.tests,
-                         sorted(involved - (allowed or set()))))
+        findings.append((row, page, named, sorted(involved - (allowed or set()))))
 
     # Allowlist entries whose row no longer leaks, or is gone. Not a failure; a nudge to
     # trim the baseline, matching how check-inline-handlers.py reports stale debt.
-    still_leaking = {href for _, href, _ in baselined} | {f[1] for f in findings}
+    still_leaking = {row.href for row, _ in baselined} | {f[0].href for f in findings}
     stale = sorted(set(ALLOWLIST) - still_leaking)
 
-    return rows, sections, (findings, undetermined, checked, baselined, stale), None
+    return rows, sections, (findings, undetermined, checked, baselined, stale,
+                            checked_cards, hub_hosts, inventory), None
 
 
 # ------------------------------------------------------------------------------- report
@@ -694,6 +969,9 @@ def main() -> int:
     ap.add_argument("root", nargs="?", default=".")
     ap.add_argument("--strict", action="store_true",
                     default=os.environ.get("STRICT") == "1")
+    ap.add_argument("--list", action="store_true", dest="list_checked",
+                    help="print every link that was checked, with the file and line it came "
+                         "from -- the inventory behind the summary count")
     args = ap.parse_args()
 
     rows, sections, result, fatal = check(args.root)
@@ -713,64 +991,89 @@ def main() -> int:
             return 1
         return 0
 
-    findings, undetermined, checked, baselined, stale = result
+    (findings, undetermined, checked, baselined, stale,
+     checked_cards, hub_hosts, inventory) = result
 
-    for line_no, href, page, named, tests, new_principals in findings:
-        lines.append("  DEAD LINK  %s:%d  %s" % (MAIN_JSP, line_no, href))
-        lines.append("             row is shown to: %s" % ", ".join(named))
+    for row, page, named, new_principals in findings:
+        lines.append("  DEAD LINK  %s:%d  %s%s"
+                     % (row.source, row.line_no, row.href,
+                        '  ("%s" card)' % row.label if row.label else ""))
+        lines.append("             %s is shown to: %s" % (row.kind, ", ".join(named)))
         lines.append("             page declares:   %s  (%s)" % (page.describe(), page.source))
-        gate = " && ".join(t.strip() for _, t in tests) \
-            or "(no <c:if> -- shown to everyone who can render the admin menu)"
-        lines.append("             visibility test: %s" % gate)
-        if href in ALLOWLIST:
+        lines.append("             visibility test: %s" % row.gate())
+        if row.href in ALLOWLIST:
             lines.append("             newly leaking to: %s" % ", ".join(new_principals))
     if findings:
         lines.append("")
 
-    for line_no, why in undetermined:
-        lines.append("  UNDETERMINED  %s:%d  %s" % (MAIN_JSP, line_no, why))
+    for source, line_no, why in undetermined:
+        where = "%s:%d" % (source, line_no) if line_no else source
+        lines.append("  UNDETERMINED  %s  %s" % (where, why))
     if undetermined:
         lines.append("")
 
-    for line_no, href, named in baselined:
+    for row, named in baselined:
         lines.append("  known debt  %s:%d  %s  (shown to %s)"
-                     % (MAIN_JSP, line_no, href, ", ".join(named)))
+                     % (row.source, row.line_no, row.href, ", ".join(named)))
     for href in stale:
         lines.append("  stale allowlist entry  %s no longer leaks -- remove it from "
                      "ALLOWLIST" % href)
     if baselined or stale:
         lines.append("")
 
+    if args.list_checked:
+        for source, line_no, href, label in inventory:
+            lines.append("  checked  %s:%d  %s%s"
+                         % (source, line_no, href, "  (%s)" % label if label else ""))
+        lines.append("")
+
     lines.append("Summary: %d menu row(s) checked across %d section(s); "
                  "%d dead link(s), %d undetermined, %d allowlisted."
                  % (checked, sections, len(findings), len(undetermined), len(baselined)))
+    # Printed whenever the layout places the hub, even at zero, so a hub whose destinations
+    # stopped being read shows up as a number rather than as an absence.
+    if hub_hosts:
+        lines.append("Summary: %d settings-hub card(s) checked on %s."
+                     % (checked_cards, ", ".join(h.name for h in hub_hosts)))
     if checked == 0:
         lines.append("Summary: 0 rows checked -- the menu parser matched nothing, "
                      "which is a failure, not a pass.")
+    if hub_hosts and checked_cards == 0:
+        lines.append("Summary: 0 settings-hub cards checked -- the hub is on a page but its "
+                     "destinations were not read, which is a failure, not a pass.")
 
     print("\n".join(lines))
-    _write_step_summary(findings, undetermined, checked, None, baselined)
+    _write_step_summary(findings, undetermined, checked, None, baselined,
+                        checked_cards, hub_hosts)
 
-    failed = bool(findings) or bool(undetermined) or checked == 0
+    failed = (bool(findings) or bool(undetermined) or checked == 0
+              or bool(hub_hosts) and checked_cards == 0)
     if args.strict and failed:
         print()
         if checked == 0:
             print("FAIL: no menu row was checked. Either the menu moved or the parser broke;")
             print("either way this is not a clean run.")
+        if hub_hosts and checked_cards == 0:
+            print("FAIL: the settings hub is placed on a page but none of its destinations were")
+            print("read, so those links are not being checked at all. That is the coverage this")
+            print("gate lost when the rows first moved off the menu; it is not allowed to happen")
+            print("silently a second time.")
         if findings:
-            print("FAIL: a menu row is shown to someone who cannot open the page it links to.")
-            print("They see the link and are denied when they click it. Either narrow the row")
-            print("with its own <c:if>, or widen the page's role=/capability= declaration --")
-            print("widening it is an authorization decision, so make it deliberately.")
+            print("FAIL: an admin link is shown to someone who cannot open the page it goes to.")
+            print("They see the link and are denied when they click it. Either narrow what shows")
+            print("it -- a <c:if> on a menu row, or the gate on the page holding the hub -- or")
+            print("widen the destination's role=/capability= declaration; widening it is an")
+            print("authorization decision, so make it deliberately.")
         if undetermined:
-            print("FAIL: a menu row could not be evaluated. This gate reports what it could not")
+            print("FAIL: an admin link could not be evaluated. This gate reports what it could not")
             print("read rather than skipping it; teach the parser the new shape, or restructure")
             print("the row to the conventional one (a block <c:if> alone on its line).")
         return 1
     return 0
 
 
-def _write_step_summary(findings, undetermined, checked, fatal, baselined=()) -> None:
+def _write_step_summary(findings, undetermined, checked, fatal, baselined=(),
+                        checked_cards=0, hub_hosts=()) -> None:
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary_path:
         return
@@ -780,20 +1083,25 @@ def _write_step_summary(findings, undetermined, checked, fatal, baselined=()) ->
             fh.write("**Could not parse the admin menu:** %s\n" % fatal)
             return
         if findings:
-            fh.write("**%d menu row(s) link to a page the viewer cannot open.**\n\n" % len(findings))
-            fh.write("| Row | Link | Shown to | Page declares |\n|---|---|---|---|\n")
-            for line_no, href, page, named, _, _new in findings:
-                fh.write("| `main.jsp:%d` | `%s` | %s | `%s` |\n"
-                         % (line_no, href, ", ".join(named), page.describe()))
+            fh.write("**%d admin link(s) go to a page the viewer cannot open.**\n\n"
+                     % len(findings))
+            fh.write("| Where | Link | Shown to | Page declares |\n|---|---|---|---|\n")
+            for row, page, named, _new in findings:
+                fh.write("| `%s:%d` | `%s` | %s | `%s` |\n"
+                         % (os.path.basename(row.source), row.line_no, row.href,
+                            ", ".join(named), page.describe()))
             fh.write("\n")
         if undetermined:
-            fh.write("**%d row(s) could not be evaluated.**\n\n" % len(undetermined))
-            for line_no, why in undetermined:
-                fh.write("- `main.jsp:%d` -- %s\n" % (line_no, why))
+            fh.write("**%d link(s) could not be evaluated.**\n\n" % len(undetermined))
+            for source, line_no, why in undetermined:
+                fh.write("- `%s:%d` -- %s\n" % (os.path.basename(source), line_no, why))
             fh.write("\n")
+        counted = "%d menu row(s)" % checked
+        if hub_hosts:
+            counted += " and %d settings-hub card(s)" % checked_cards
         if not findings and not undetermined:
-            fh.write("No new dead links. %d row(s) checked, %d allowlisted as known debt.\n"
-                     % (checked, len(baselined)))
+            fh.write("No new dead links. %s checked, %d allowlisted as known debt.\n"
+                     % (counted, len(baselined)))
 
 
 if __name__ == "__main__":

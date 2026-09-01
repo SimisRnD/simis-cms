@@ -143,6 +143,13 @@ public class SettingsHubWidget extends GenericWidget {
    * The trade-off is that adding a settings page means adding it in two places, this list and
    * {@code main.jsp}; {@code SettingsHubWidgetTest} asserts the two agree so the drift is caught
    * rather than discovered.
+   *
+   * <p>{@code tools/check-admin-nav-permissions.py} reads these {@code entry(...)} and
+   * {@code moduleEntry(...)} calls out of this file to check each card against the page it links
+   * to, the same way it checks a menu row. Declaring a destination some other way does not
+   * quietly drop it from that gate -- the tool also sweeps this file for {@code "/admin/..."}
+   * literals and fails on any it did not account for -- but it does mean teaching the tool the
+   * new shape.
    */
   static final List<SettingsGroup> SETTINGS_GROUPS = Collections.unmodifiableList(Arrays.asList(
       new SettingsGroup("Appearance & Site", "How the site looks and identifies itself", Arrays.asList(

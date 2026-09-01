@@ -10,6 +10,12 @@ is role="admin" only, so writing the row like its neighbours would have shown a 
 every admin:manage holder. PR #1768 caught that by hand. These tests pin the shape that
 catches it automatically -- and the shapes that must NOT be reported, since a gate that
 cries wolf gets switched off.
+
+Issue #1765 then moved sixteen Settings rows onto /admin/settings, a page of cards. The gate
+kept passing while quietly checking sixteen fewer links, which is the failure mode it was
+written to prevent, one level up: not a wrong answer, an unasked question. The hub tests
+below pin both halves -- that a card is judged against the page the hub sits on, and that a
+hub whose destinations stop being readable fails instead of shrinking.
 """
 
 import re
@@ -60,6 +66,58 @@ def page(name: str, role: str = None, capability: str = None) -> str:
 
 ADMIN_OR_MANAGE = "${userSession.hasRole('admin') || userSession.hasPermission('admin:manage')}"
 ADMIN_ONLY = "${userSession.hasRole('admin')}"
+
+HUB_SOURCE = ("src/main/java/com/simisinc/platform/presentation/widgets/admin/"
+              "SettingsHubWidget.java")
+HUB_JSP = "src/main/webapp/WEB-INF/jsp/admin/settings-hub.jsp"
+
+
+def hub_page(name: str = "/admin/settings", role: str = "admin", capability: str = None) -> str:
+    """A <page> that renders the settings-hub widget -- how the tool finds the hub at all."""
+    attrs = ' role="%s"' % role if role is not None else ""
+    if capability is not None:
+        attrs += ' capability="%s"' % capability
+    return ('  <page name="%s"%s title="Settings">\n'
+            "    <section><column>\n"
+            '      <widget name="settingsHub"><title>Settings</title></widget>\n'
+            "    </column></section>\n"
+            "  </page>" % (name, attrs))
+
+
+def hub_source(*entries: str, jsp: str = "/admin/settings-hub.jsp") -> str:
+    """A stand-in for SettingsHubWidget.java carrying the entry calls the tool reads."""
+    return ("package com.simisinc.platform.presentation.widgets.admin;\n"
+            "public class SettingsHubWidget extends GenericWidget {\n"
+            '  static String JSP = "%s";\n'
+            "  static final List<SettingsGroup> SETTINGS_GROUPS = List.of(\n"
+            '      new SettingsGroup("Group", "desc", Arrays.asList(\n'
+            "%s)));\n"
+            "}\n" % (jsp, "\n".join(entries)))
+
+
+def hub_entry(label: str, link: str, module: str = None) -> str:
+    if module is None:
+        return ('          entry("%s", "%s", "fa-thing",\n'
+                '              "What it holds."),' % (label, link))
+    return ('          moduleEntry("%s", "%s", "fa-thing",\n'
+            '              "What it holds.", "%s"),' % (label, link, module))
+
+
+WIDGET_LIBRARY = "src/main/webapp/WEB-INF/widgets/widget-library.xml"
+
+
+def widget_library(name: str = "settingsHub") -> str:
+    return ('<?xml version="1.0" ?>\n<widgets>\n'
+            '  <widget name="%s" class="com.simisinc.platform.presentation.widgets.admin.'
+            'SettingsHubWidget" />\n</widgets>\n' % name)
+
+
+HUB_MARKUP = ('<c:forEach items="${settingsGroupList}" var="settingsGroup">\n'
+              '  <c:forEach items="${settingsGroup.entryList}" var="settingsEntry">\n'
+              '    <a href="${ctx}<c:out value="${settingsEntry.link}"/>">'
+              '<c:out value="${settingsEntry.label}"/></a>\n'
+              "  </c:forEach>\n"
+              "</c:forEach>\n")
 
 
 # --------------------------------------------------------------------- the #1764 shape
@@ -180,6 +238,177 @@ def test_page_declaring_role_and_capability_admits_either(repo):
     assert r.returncode == 0, r.stdout + r.stderr
 
 
+# ------------------------------------------------------------------------ settings hub
+
+def test_hub_destinations_are_checked_like_menu_rows(repo):
+    """The coverage issue #1765 dropped. A card is a nav link with a different gate."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(),
+                              page("/admin/theme-properties", "admin"),
+                              page("/admin/feature-flags", "admin")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties"),
+                                       hub_entry("Feature Flags", "/admin/feature-flags")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "2 settings-hub card(s) checked on /admin/settings" in r.stdout, r.stdout
+
+
+def test_hub_card_wider_than_its_destination_is_a_dead_link(repo):
+    """The #1764 hazard, arriving through the hub instead of the menu.
+
+    Nothing else catches this. SettingsHubWidgetTest pins each destination to role="admin",
+    but the leak is opened from the other side -- by widening the page the hub sits on --
+    and every destination is still exactly what that test demands.
+    """
+    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(capability="admin:manage"),
+                              page("/admin/theme-properties", "admin"),
+                              page("/admin/sso-properties", "admin", "admin:manage")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties"),
+                                       hub_entry("Single Sign-On", "/admin/sso-properties")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "DEAD LINK" in r.stdout
+    assert "/admin/theme-properties" in r.stdout
+    assert "capability admin:manage" in r.stdout
+    # Only the card whose destination is narrower; the one that admits the capability is not.
+    assert r.stdout.count("DEAD LINK") == 1, r.stdout
+
+
+def test_hub_card_narrower_than_its_destination_is_not_a_finding(repo):
+    """Same direction rule as a menu row: hidden-but-reachable is not a broken link."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(),
+                              page("/admin/theme-properties", "admin", "admin:manage")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_switched_off_module_card_is_still_checked(repo):
+    """The hub marks a disabled module rather than hiding it, so its card is still a link.
+
+    Reading moduleEntry as if it were gated would let a dead link through exactly where the
+    menu used to gate one.
+    """
+    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(capability="admin:manage"),
+                              page("/admin/ecommerce-properties", "admin")))
+    write(repo, HUB_SOURCE,
+          hub_source(hub_entry("E-commerce Settings", "/admin/ecommerce-properties",
+                               module="ecommerce.enabled")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "/admin/ecommerce-properties" in r.stdout
+    assert "1 settings-hub card(s) checked" in r.stdout
+
+
+def test_a_hub_destination_cannot_escape_checking(repo):
+    """The regression guard. A destination declared some other way must fail, not vanish.
+
+    This is the shape of the original loss: the links were still there, still shown to
+    admins, and the gate went on reporting a clean run over a smaller set.
+    """
+    escaped = ('          new SettingsEntry("Feature Flags", "/admin/feature-flags",\n'
+               '              "fa-flag", "What it holds.", null),')
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(),
+                              page("/admin/theme-properties", "admin"),
+                              page("/admin/feature-flags", "admin")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties"), escaped))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "UNDETERMINED" in r.stdout
+    assert "/admin/feature-flags is named here" in r.stdout, r.stdout
+
+
+def test_a_hub_that_yields_no_destinations_is_a_failure_not_a_pass(repo):
+    """Zero cards on a hub that exists is the silent-skip this gate refuses to perform."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(), page("/admin/theme-properties", "admin")))
+    write(repo, HUB_SOURCE, hub_source())
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "0 settings-hub card(s) checked" in r.stdout
+    assert "not a pass" in r.stdout
+
+
+def test_a_missing_hub_source_is_a_failure(repo):
+    """The layout places the widget; if its destinations cannot be read, say so."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(), page("/admin/theme-properties", "admin")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "UNDETERMINED" in r.stdout
+    assert "does not exist" in r.stdout
+
+
+def test_a_hard_coded_link_in_the_hub_markup_is_reported(repo):
+    """The JSP renders settingsEntry.link and nothing else. A link added beside it would be
+    a destination read from neither side, so it is reported rather than assumed harmless."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(), page("/admin/theme-properties", "admin"),
+                              page("/admin/apis", "admin")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties")))
+    write(repo, HUB_JSP, HUB_MARKUP + '<a href="${ctx}/admin/apis">APIs</a>\n')
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "hard-coded link /admin/apis" in r.stdout, r.stdout
+    # And the card the widget does declare is still checked -- one bad link does not
+    # silently take the rest of the hub out of the gate.
+    assert "1 settings-hub card(s) checked" in r.stdout
+
+
+def test_the_hub_widget_name_is_read_from_the_widget_library(repo):
+    """Renaming the widget must move this gate with it, not leave the hub unchecked.
+
+    Discovery is by class, the way the application binds the name, so a rename that updates
+    widget-library.xml and the layout together keeps every card in the gate.
+    """
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, WIDGET_LIBRARY, widget_library("adminSettingsHub"))
+    write(repo, LAYOUT, pages(hub_page().replace('name="settingsHub"',
+                                                 'name="adminSettingsHub"'),
+                              page("/admin/theme-properties", "admin")))
+    write(repo, HUB_SOURCE, hub_source(hub_entry("Theme", "/admin/theme-properties")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "1 settings-hub card(s) checked" in r.stdout, r.stdout
+
+
+def test_commented_out_java_is_not_a_destination(repo):
+    """A path in prose is not a link, and a commented-out entry is not rendered.
+
+    The broad literal sweep would otherwise fail the build over the widget's own javadoc,
+    and a gate that cries wolf gets switched off.
+    """
+    noise = ('  /* See tools/check-admin-nav-permissions.py; it reads "/admin/mentioned". */\n'
+             '  // entry("Retired", "/admin/retired", "fa-x", "Gone."),')
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/settings"))))
+    write(repo, LAYOUT, pages(hub_page(), page("/admin/theme-properties", "admin")))
+    write(repo, HUB_SOURCE, hub_source(noise, hub_entry("Theme", "/admin/theme-properties")))
+    write(repo, HUB_JSP, HUB_MARKUP)
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "1 settings-hub card(s) checked" in r.stdout, r.stdout
+
+
+def test_no_hub_in_the_layout_means_no_hub_clause(repo):
+    """The hub is found through the layout XML, so a tree without one is simply menu-only."""
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/thing"))))
+    write(repo, LAYOUT, pages(page("/admin/thing", "admin")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "settings-hub card(s)" not in r.stdout
+
+
 # ------------------------------------------------------ loud about what it cannot read
 
 def test_unmodelled_user_predicate_is_undetermined_not_skipped(repo):
@@ -276,3 +505,41 @@ def test_real_repository_tree_is_clean(repo):
     match = re.search(r"Summary: (\d+) menu row\(s\) checked", r.stdout)
     assert match, r.stdout
     assert int(match.group(1)) >= 40, f"only {match.group(1)} rows matched; has the parser broken?"
+
+
+def test_every_real_hub_destination_is_checked(repo):
+    """The regression guard against the shipped tree, not a synthetic one.
+
+    A floor on the row count would not have caught issue #1765's loss: sixteen links left the
+    gate's reach and the count stayed comfortably above any floor anyone would have written.
+    So this scrapes the widget source a second time, by a different route -- every
+    "/admin/..." literal in the file, not the entry(...) calls the tool understands -- and
+    demands that each one shows up in what the tool says it checked. The two reads can only
+    agree if the tool is actually reading the destinations.
+    """
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[2]
+    source = root / HUB_SOURCE
+    assert source.is_file(), f"{HUB_SOURCE} is gone; this test and the gate both need updating"
+
+    # Comments are dropped with a plain regex rather than the tool's own stripper, so the two
+    # reads stay genuinely separate. It is cruder than the tool's -- a "//" inside a string
+    # would fool it -- and the direction of that error is safe here: it can only drop a
+    # destination from this side, and dropping one weakens this cross-check without ever
+    # inventing a link that the tool must then explain.
+    text = re.sub(r"/\*.*?\*/|//[^\n]*", "", source.read_text(), flags=re.S)
+    jsp_field = re.search(r'\bJSP\s*=\s*"(/[^"]*)"', text)
+    assert jsp_field, "no JSP field in the hub widget"
+    destinations = {link for link in re.findall(r'"(/admin/[^"]*)"', text)
+                    if link != jsp_field.group(1)}
+    assert destinations, "no /admin/... destination found in the hub widget source"
+
+    r = run_tool(TOOL, root, "--strict", "--list")
+    assert r.returncode == 0, r.stdout + r.stderr
+    listed = set(re.findall(r"^  checked  \S*SettingsHubWidget\.java:\d+  (\S+)",
+                            r.stdout, re.M))
+    missing = sorted(destinations - listed)
+    assert not missing, (
+        "these hub destinations are shown to admins but are not being checked: %s\n%s"
+        % (missing, r.stdout))
+    assert ("Summary: %d settings-hub card(s) checked" % len(destinations)) in r.stdout, r.stdout
