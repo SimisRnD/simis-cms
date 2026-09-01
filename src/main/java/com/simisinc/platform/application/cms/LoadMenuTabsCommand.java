@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuTabRepository;
@@ -58,6 +59,51 @@ public class LoadMenuTabsCommand {
     List<MenuTab> menuTabList = MenuTabRepository.findAll();
     for (MenuTab menuTab : menuTabList) {
       menuTab.setMenuItemList(LoadMenuItemsCommand.findAllByMenuTab(menuTab));
+    }
+    return menuTabList;
+  }
+
+  /**
+   * The full three-level tree including draft and disabled entries, for the admin editor.
+   *
+   * The editor has to show what is there, not what is live -- a draft item that is invisible in the
+   * editor cannot be published, and a nested one would look deleted.
+   */
+  public static List<MenuTab> findAllIncludeMenuItemTree() {
+    List<MenuTab> menuTabList = MenuTabRepository.findAll();
+    for (MenuTab menuTab : menuTabList) {
+      List<MenuItem> menuItemList = LoadMenuItemsCommand.findAllByMenuTab(menuTab);
+      menuTab.setMenuItemList(menuItemList);
+      if (menuItemList == null) {
+        continue;
+      }
+      for (MenuItem menuItem : menuItemList) {
+        menuItem.setMenuItemList(LoadMenuItemsCommand.findAllByParent(menuItem));
+      }
+    }
+    return menuTabList;
+  }
+
+  /**
+   * The full three-level tree: tabs, their items, and any items nested beneath those (issue #1728).
+   *
+   * Deliberately a separate method rather than a change to the two above. Every existing caller --
+   * the header, the public sitemap, the admin editor, llms.txt -- keeps getting exactly the shape it
+   * got before nesting existed, and opts in only when it can actually render a third level. A
+   * renderer that silently received a deeper tree than it understands would drop the extra level
+   * without saying so.
+   */
+  public static List<MenuTab> findAllActiveIncludeMenuItemTree() {
+    List<MenuTab> menuTabList = MenuTabRepository.findAllActive();
+    for (MenuTab menuTab : menuTabList) {
+      List<MenuItem> menuItemList = LoadMenuItemsCommand.findAllActiveByMenuTab(menuTab);
+      menuTab.setMenuItemList(menuItemList);
+      if (menuItemList == null) {
+        continue;
+      }
+      for (MenuItem menuItem : menuItemList) {
+        menuItem.setMenuItemList(LoadMenuItemsCommand.findAllActiveByParent(menuItem));
+      }
     }
     return menuTabList;
   }
