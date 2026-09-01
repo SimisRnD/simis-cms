@@ -10,7 +10,9 @@ where old instances still read the dropped columns.
 Exit codes:
   0 = No unsafe patterns detected
   1 = Unsafe migrations detected
-  2 = Script error
+  2 = Script error -- e.g. the migration directory this check reads is missing.
+      Distinct from 0: a gate that cannot find its input has checked nothing,
+      and must not report success.
 """
 
 import os
@@ -36,6 +38,17 @@ JAVA_REMOVAL_PATTERNS = [
     (re.compile(r'^\s*-\s*(?:public|private|protected)\s+\w+\s+get\w+\(\)'), 'getter removal'),
     (re.compile(r'^\s*-\s*(?:public|private|protected)\s+\w+\s+set\w+\('), 'setter removal'),
 ]
+
+
+def fail(message):
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (unsafe migrations found) and, more importantly, from exit 0:
+    a missing migration directory only warned on stderr and then reported success, so
+    renaming the directory disabled the gate without failing a single build.
+    """
+    print(f"error: {message}", file=sys.stderr)
+    sys.exit(2)
 
 
 def get_migration_version(filename):
@@ -116,8 +129,7 @@ def check_migrations(repo_root):
     # Find all SQL migration files
     migrations_dir = Path(repo_root) / 'src/main/resources/database/upgrade'
     if not migrations_dir.exists():
-        print(f"Migrations directory not found: {migrations_dir}", file=sys.stderr)
-        return violations
+        fail(f"migrations directory not found: {migrations_dir}")
 
     sql_files = sorted(migrations_dir.glob('UPGRADE_*.sql'))
 
