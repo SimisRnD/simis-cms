@@ -35,6 +35,18 @@ public class SaveMailingListCommand {
 
   private static Log LOG = LogFactory.getLog(SaveMailingListCommand.class);
 
+  /**
+   * Both columns are VARCHAR(200) -- see mailing_lists in NEW_10070__new_mailing_lists.sql. Until
+   * they were checked here an over-length name or title travelled all the way to Postgres, which
+   * refused the write: MailingListRepository logs the SQLException and returns null, and
+   * MailingListFormWidget turns that null into "Your information could not be saved due to a system
+   * error" -- naming neither the field nor the limit, for what is an ordinary too-long entry.
+   * Checking up front makes it the form's normal field-level message instead, the way
+   * SaveEmailCommand already does for emails.email VARCHAR(255).
+   */
+  private static final int MAX_NAME_LENGTH = 200;
+  private static final int MAX_TITLE_LENGTH = 200;
+
   public static MailingList saveMailingList(MailingList mailingListBean) throws DataException {
 
     // Load the record being edited up front -- both the duplicate-name check and the uniqueId
