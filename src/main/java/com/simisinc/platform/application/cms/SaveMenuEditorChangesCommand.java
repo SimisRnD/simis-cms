@@ -132,6 +132,18 @@ public class SaveMenuEditorChangesCommand {
           LOG.error("Menu item link update error: " + e.getMessage());
         }
       }
+      // A third-level item added under this one (issue #1728). The form only renders this field for
+      // items that can legally take children, but appendNewSubMenuItem re-checks the depth cap --
+      // the field naming is guessable, so the rule cannot live in the markup alone.
+      String subItemName = context.getParameter("menuItem" + thisMenuItem.getId() + "subItemName");
+      if (StringUtils.isNotBlank(subItemName)) {
+        try {
+          SaveMenuTabCommand.appendNewSubMenuItem(thisMenuItem, subItemName,
+              context.getParameter("menuItem" + thisMenuItem.getId() + "subItemLink"));
+        } catch (DataException e) {
+          LOG.error("Add sub-item error: " + e.getMessage());
+        }
+      }
     }
   }
 

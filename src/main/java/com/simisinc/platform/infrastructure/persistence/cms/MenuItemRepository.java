@@ -224,6 +224,36 @@ public class MenuItemRepository {
     DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("menu_tab_id = ?", record.getId()));
   }
 
+  /**
+   * The next order value within one parent's children (issue #1728). Separate from
+   * getNextTabOrder because a nested item is ordered among its siblings under that parent, not
+   * among every item in the tab -- two parents' children both start at their own beginning.
+   */
+  public static int getNextSubItemOrder(MenuItem parentMenuItem) {
+    int nextOrder = 0;
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = createPreparedStatementNextSubItemOrder(connection, parentMenuItem);
+        ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        nextOrder = rs.getInt(1) + 1;
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return nextOrder;
+  }
+
+  private static PreparedStatement createPreparedStatementNextSubItemOrder(Connection connection,
+      MenuItem parentMenuItem) throws SQLException {
+    String SQL_QUERY =
+        "SELECT max(item_order) " +
+            "FROM menu_items " +
+            "WHERE parent_menu_item_id = ?";
+    PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+    pst.setLong(1, parentMenuItem.getId());
+    return pst;
+  }
+
   private static PreparedStatement createPreparedStatementNextTabOrder(Connection connection, MenuTab menuTab) throws SQLException {
     String SQL_QUERY =
         "SELECT max(item_order) " +

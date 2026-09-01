@@ -183,6 +183,61 @@ public class SaveMenuTabCommand {
     return true;
   }
 
+  /**
+   * Creates a third-level item beneath an existing menu item (issue #1728).
+   *
+   * <p>Until this existed the third level could be stored, reordered, reparented, rendered and
+   * searched, but never created: the only code that set a parent was updateMenuSubItemOrder, reached
+   * from the drag-and-drop wire format, which can only move an item that is nested already. There
+   * was no way to nest the first one short of writing to the database by hand.
+   *
+   * <p>The depth cap is the same rule updateMenuSubItemOrder enforces, checked here too rather than
+   * trusted: nesting is three levels, so an item that is itself nested cannot take children. Both
+   * paths that can set a parent now refuse the fourth level.
+   */
+  public static MenuItem appendNewSubMenuItem(MenuItem parentMenuItem, String menuItemName, String menuItemLink)
+      throws DataException {
+
+    // Validate the required fields
+    StringBuilder errorMessages = new StringBuilder();
+    if (parentMenuItem == null || parentMenuItem.getId() == null || parentMenuItem.getId() < 1) {
+      errorMessages.append("A parent menu item is required");
+    } else if (parentMenuItem.hasParentMenuItem()) {
+      errorMessages.append("Menu nesting is limited to three levels, so this item cannot have sub-items");
+    }
+    if (StringUtils.isBlank(menuItemName)) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append("; ");
+      }
+      errorMessages.append("The sub-item's name is required");
+    }
+
+    if (errorMessages.length() > 0) {
+      throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
+    }
+
+    // Transform the fields and store...
+    MenuItem menuItem = new MenuItem();
+    // The tab comes from the parent, not from the form: a child always belongs to the tab its
+    // parent is in, and letting the two disagree is how an item ends up rendered under one tab and
+    // ordered under another.
+    menuItem.setMenuTabId(parentMenuItem.getMenuTabId());
+    menuItem.setParentMenuItemId(parentMenuItem.getId());
+    menuItem.setName(menuItemName);
+    if (StringUtils.isNotBlank(menuItemLink)) {
+      if (!menuItemLink.startsWith("/")) {
+        menuItemLink = "/" + menuItemLink.trim();
+      }
+      menuItem.setLink(menuItemLink);
+    } else {
+      menuItem.setLink("/" + GenerateLinkFromNameCommand.getLink(menuItemName));
+    }
+    menuItem.setDraft(false);
+    menuItem.setEnabled(true);
+    menuItem.setItemOrder(MenuItemRepository.getNextSubItemOrder(parentMenuItem));
+    return MenuItemRepository.save(menuItem);
+  }
+
   public static MenuItem appendNewMenuItem(MenuTab menuTab, String menuItemName, String menuItemLink) throws DataException {
 
     // Validate the required fields
