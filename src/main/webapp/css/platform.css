@@ -606,11 +606,28 @@ body.admin-console a:not(.button):focus {
 }
 /* The opt-in "Last updated" line under a content block. Muted via the semantic token rather than a
    literal, so it moves with the theme and needs no dark-mode override to keep in parity -- and so
-   it stays above the 4.5:1 the token is chosen to hold, since this is body text, not decoration. */
+   it stays above the 4.5:1 the token is chosen to hold, since this is body text, not decoration.
+
+   Sized here rather than left to inherit. This is a metadata stamp, and it previously took its size
+   from whatever the surrounding site set on `p`, with the inner <small> then taking 80% of that --
+   so on a site with large body copy it rendered as body text, and the actual size varied per site
+   for what should be a consistent platform component. Setting it on the paragraph and having the
+   <small> inherit keeps one predictable size and stops the 80% applying twice.
+
+   Deliberately kept at a single class so a site can still override it: the size is a sane default,
+   not a rule the platform needs to win. No inline padding for the same reason -- the line is a
+   sibling of .platform-content and should stay flush with it, so padding here would misalign the
+   stamp from the content it belongs to on a standard layout. */
 .platform-content-last-updated {
   margin-top: 0.75rem;
   margin-bottom: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
   color: var(--sc-text-muted, #656970);
+}
+
+.platform-content-last-updated small {
+  font-size: inherit;
 }
 
 
