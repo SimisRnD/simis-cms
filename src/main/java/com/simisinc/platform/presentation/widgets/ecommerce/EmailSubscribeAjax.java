@@ -27,6 +27,7 @@ import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
+import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
@@ -124,7 +125,10 @@ public class EmailSubscribeAjax extends GenericWidget {
       // Manage the related cookie
       context.getUserSession().setShowSiteNewsletterSignup(false);
     } catch (DataException e) {
-      context.setJson("[]");
+      // Issue #1724: return the actual reason. This used to answer "[]", which the inline form's
+      // handler renders as its generic "Please re-enter your email address using a proper format."
+      // -- wrong and unactionable for a signup that failed because its mailing list doesn't exist.
+      context.setJson("{\"status\":\"1\",\"message\":\"" + JsonCommand.toJson(e.getMessage()) + "\"}");
       return context;
     }
 
