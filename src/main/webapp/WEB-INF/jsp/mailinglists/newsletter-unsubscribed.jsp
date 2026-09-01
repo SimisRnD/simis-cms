@@ -16,10 +16,10 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<div class="callout success">
+<div class="platform-subscription-result">
   <h2 class="h4">You've been unsubscribed</h2>
   <p>You won't receive any more emails from this mailing list.</p>
+  <p>
+    <a href="${ctx}/" class="button primary radius">Visit Home Page <i class="fa fa-angle-right"></i></a>
+  </p>
 </div>
-<p>
-  <a href="${ctx}/" class="button primary radius">Visit Home Page <i class="fa fa-angle-right"></i></a>
-</p>
