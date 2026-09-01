@@ -28,7 +28,12 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<h3 class="h4"><c:out value="${mailingList.name}" /></h3>
+<%-- Issue #1730: the title, like every other display of a mailing list -- name is the key page
+     configuration matches on (the emailSubscribe widget's mailingList preference), not a label, so
+     showing it here made this heading disagree with the row that was clicked to get here. Falls
+     back to name because SaveMailingListCommand validates only name, so a blank title is reachable
+     through the admin form -- the same guard confirm-subscription.jsp already applies. --%>
+<h3 class="h4"><c:out value="${not empty mailingList.title ? mailingList.title : mailingList.name}" /></h3>
 <button class="button small primary radius float-left" data-open="formReveal"><i class="fa fa-plus"></i> Add Email</button>
 <form id="fileForm" method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
