@@ -30,6 +30,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.presentation.controller.Widget;
+import com.simisinc.platform.presentation.controller.Column;
+import com.simisinc.platform.presentation.controller.Section;
+import com.simisinc.platform.presentation.controller.Page;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
+import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
@@ -192,4 +200,125 @@ class WebPageSearchResultsWidgetTest extends WidgetBase {
       assertEquals(WebPageSearchResultsWidget.JSP, result.getJsp());
     }
   }
+
+  // ---------------------------------------------------------------------------------------------
+  // Issue #1744. The navigation gate is gone, so these pin what still keeps a page out of results:
+  // the searchable flag, the draft filter, and the per-level access checks. The point of the change
+  // was to stop hiding pages an admin had marked searchable -- not to widen what a visitor can see.
+  // ---------------------------------------------------------------------------------------------
+
+  private static Content contentMatching(String uniqueId) {
+    Content content = new Content();
+    content.setUniqueId(uniqueId);
+    content.setHighlight("some ${b}matching${/b} text");
+    return content;
+  }
+
+  private static WebPage pageEmbedding(String link, String contentUniqueId) {
+    WebPage webPage = new WebPage();
+    webPage.setId(1L);
+    webPage.setLink(link);
+    webPage.setTitle("A page");
+    webPage.setPageXml("<page><section><column><widget name=\"content\">"
+        + "<uniqueId>" + contentUniqueId + "</uniqueId></widget></column></section></page>");
+    return webPage;
+  }
+
+  /** Runs the widget for an anonymous visitor against one content match on one page. */
+  private WidgetContext searchAsVisitor(WebPage webPage, Page pageRef) {
+    addQueryParameter(widgetContext, "query", "matching");
+    Content content = contentMatching("block-1");
+    try (MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any()))
+          .thenReturn("America/New_York");
+      contentRepository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any()))
+          .thenReturn(List.of(content));
+      contentRepository.when(() -> ContentRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+      webPageRepository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any()))
+          .thenReturn(List.of(webPage));
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), any())).thenReturn(pageRef);
+      return new WebPageSearchResultsWidget().execute(widgetContext);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static int resultCount(WidgetContext context) {
+    Object list = context.getRequest().getAttribute("searchResultList");
+    return list == null ? 0 : ((java.util.Collection<Object>) list).size();
+  }
+
+  private static Page openPage() {
+    Page page = new Page();
+    Section section = new Section();
+    Column column = new Column();
+    Widget widget = new Widget();
+    widget.setWidgetName("content");
+    widget.getPreferences().put("uniqueId", "block-1");
+    column.getWidgets().add(widget);
+    section.getColumns().add(column);
+    page.getSections().add(section);
+    return page;
+  }
+
+  @Test
+  void anUnlinkedPageNowAppearsInResults() {
+    // the whole point of issue #1744: this page is in no menu and no table of contents, and before
+    // the fix it was dropped even though it is searchable and published
+    WidgetContext result = searchAsVisitor(pageEmbedding("/3d-printing", "block-1"), openPage());
+
+    assertEquals(1, resultCount(result), "an unlinked but searchable page must be findable");
+  }
+
+  @Test
+  void aRoleGatedPageLeaksNothingToAnAnonymousVisitor() {
+    Page page = openPage();
+    page.setRoles(List.of("admin"));
+
+    WidgetContext result = searchAsVisitor(pageEmbedding("/internal", "block-1"), page);
+
+    assertEquals(0, resultCount(result), "a role-gated page must not surface its text in a snippet");
+  }
+
+  @Test
+  void aRoleGatedSectionLeaksNothingToAnAnonymousVisitor() {
+    Page page = openPage();
+    page.getSections().get(0).setRoles(List.of("admin"));
+
+    WidgetContext result = searchAsVisitor(pageEmbedding("/internal", "block-1"), page);
+
+    assertEquals(0, resultCount(result), "a role-gated section must not surface its text in a snippet");
+  }
+
+  @Test
+  void aRoleGatedColumnLeaksNothingToAnAnonymousVisitor() {
+    Page page = openPage();
+    page.getSections().get(0).getColumns().get(0).setRoles(List.of("admin"));
+
+    WidgetContext result = searchAsVisitor(pageEmbedding("/internal", "block-1"), page);
+
+    assertEquals(0, resultCount(result), "a role-gated column must not surface its text in a snippet");
+  }
+
+  @Test
+  void aRoleGatedWidgetLeaksNothingToAnAnonymousVisitor() {
+    Page page = openPage();
+    page.getSections().get(0).getColumns().get(0).getWidgets().get(0).setRoles(List.of("admin"));
+
+    WidgetContext result = searchAsVisitor(pageEmbedding("/internal", "block-1"), page);
+
+    assertEquals(0, resultCount(result), "a role-gated widget must not surface its text in a snippet");
+  }
+
+  @Test
+  void aVisitorSearchIsStillRestrictedToSearchablePublishedPages() {
+    // the filter that replaces the navigation gate: the specification handed to WebPageRepository
+    // must still ask for searchable, non-draft pages for anyone without a privileged role
+    Assertions.assertTrue(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext),
+        "an anonymous visitor must still be restricted to searchable, published pages");
+  }
+
 }
