@@ -24,8 +24,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -35,10 +33,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.DockerClientFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * Drives UPGRADE_20260801.1000__items_order_column.sql (issue #815) through the exact Flyway
@@ -61,89 +55,36 @@ import org.testcontainers.utility.DockerImageName;
  */
 class ItemOrderMigrationTest {
 
-  private static final String DEFAULT_IMAGE = "postgres:15-alpine";
-  private static final int POSTGRES_PORT = 5432;
-  private static final String DB_NAME = "simis_cms_test";
-  private static final String DB_USER = "simis";
-  private static final String DB_PASSWORD = "simis";
 
-  // Just below the migration under test, so baseline() marks nothing as pre-applied and the
-  // migration executes for real, matching an existing (upgrade-path) database that already has
-  // item rows to backfill.
-  private static final String BASELINE_BEFORE_ITEM_ORDER = "20260801.0999";
 
   // The migration under test, passed to Flyway as an upper bound (target()). Without this,
   // outOfOrder(true) plus no ceiling would apply any migration dated after the baseline above --
   // see WebVitalsMigrationTest's LAST_WEB_VITALS_MIGRATION for the precedent and why this matters.
   private static final String ITEM_ORDER_MIGRATION = "20260801.1000";
 
-  private static GenericContainer<?> postgres;
+  private static MigrationTestHarness harness;
   private static MigrateResult migrateResult;
 
   @BeforeAll
   static void migrate() {
-    Assumptions.assumeTrue(isDockerAvailable(),
-        "Docker is not available - skipping the items.item_order migration test");
+    harness = MigrationTestHarness.start("the items.item_order migration test");
 
-    postgres = new GenericContainer<>(DockerImageName.parse(resolveImage()))
-        .withEnv("POSTGRES_USER", DB_USER)
-        .withEnv("POSTGRES_PASSWORD", DB_PASSWORD)
-        .withEnv("POSTGRES_DB", DB_NAME)
-        .withExposedPorts(POSTGRES_PORT)
-        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2)
-            .withStartupTimeout(Duration.ofSeconds(120)));
-    try {
-      postgres.start();
-    } catch (Throwable t) {
-      Assumptions.abort("Unable to start PostgreSQL test container: " + t.getMessage());
-    }
+    // Minimal stand-in for the real items table: only what this migration's ALTER/backfill touches
+    // (item_id, collection_id, name). No FK targets (collections, users) are needed since an
+    // ALTER TABLE ADD COLUMN doesn't require them to exist.
+    harness.execute(
+        "CREATE TABLE items (item_id BIGSERIAL PRIMARY KEY, collection_id BIGINT NOT NULL,"
+            + " name VARCHAR(255) NOT NULL)",
+        // Collection 1: inserted out of alphabetical order (and out of item_id order), so the
+        // backfill's ORDER BY LOWER(name) is what's actually under test, not insertion order.
+        "INSERT INTO items (collection_id, name) VALUES (1, 'Cherry'), (1, 'apple'), (1, 'Banana')",
+        // Collection 2: a second, disjoint collection -- its item_order sequence must restart at 1,
+        // proving the backfill partitions by collection_id rather than numbering globally.
+        "INSERT INTO items (collection_id, name) VALUES (2, 'Zebra'), (2, 'Aardvark')");
 
-    String jdbcUrl = "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(POSTGRES_PORT)
-        + "/" + DB_NAME;
-    Properties properties = new Properties();
-    properties.setProperty("jdbcUrl", jdbcUrl);
-    properties.setProperty("username", DB_USER);
-    properties.setProperty("password", DB_PASSWORD);
-    DataSource.init(properties);
-
-    // Minimal stand-in for the real items table: only what this migration's ALTER/backfill
-    // touches (item_id, collection_id, name). No FK targets (collections, users) are needed since
-    // an ALTER TABLE ADD COLUMN doesn't require them to exist.
-    try (Connection connection = DB.getConnection();
-        Statement statement = connection.createStatement()) {
-      statement.execute("CREATE TABLE items ("
-          + "item_id BIGSERIAL PRIMARY KEY, "
-          + "collection_id BIGINT NOT NULL, "
-          + "name VARCHAR(255) NOT NULL)");
-      // Collection 1: inserted out of alphabetical order (and out of item_id order), so the
-      // backfill's ORDER BY LOWER(name) is what's actually under test, not insertion order.
-      statement.execute("INSERT INTO items (collection_id, name) VALUES "
-          + "(1, 'Cherry'), (1, 'apple'), (1, 'Banana')");
-      // Collection 2: a second, disjoint collection -- its item_order sequence must restart at 1,
-      // proving the backfill partitions by collection_id rather than numbering globally.
-      statement.execute("INSERT INTO items (collection_id, name) VALUES "
-          + "(2, 'Zebra'), (2, 'Aardvark')");
-    } catch (SQLException se) {
-      throw new IllegalStateException("Could not create the items stand-in table", se);
-    }
-
-    // Same Flyway configuration as DatabaseCommand.upgrade(), baselined just before and targeted
-    // just at the migration under test so it's the only one that actually runs.
-    Flyway flyway = Flyway.configure()
-        .table("flyway_history")
-        .validateOnMigrate(false)
-        .sqlMigrationPrefix("UPGRADE_")
-        .repeatableSqlMigrationPrefix("REPEAT_")
-        .dataSource(jdbcUrl, DB_USER, DB_PASSWORD)
-        .locations("com/simisinc/platform/infrastructure/database/upgrade", "classpath:database/upgrade")
-        .placeholderReplacement(false)
-        .outOfOrder(true)
-        .cleanDisabled(true)
-        .baselineVersion(BASELINE_BEFORE_ITEM_ORDER)
-        .target(ITEM_ORDER_MIGRATION)
-        .load();
-    flyway.baseline();
-    migrateResult = flyway.migrate();
+    // The harness derives the baseline from the migration files, so there is no second version
+    // constant here that could drift out of step with the target (issue #1755).
+    migrateResult = harness.applyOnly(ITEM_ORDER_MIGRATION);
   }
 
   @AfterAll
@@ -153,8 +94,8 @@ class ItemOrderMigrationTest {
     } catch (Exception e) {
       // Never initialized when Docker is unavailable
     }
-    if (postgres != null) {
-      postgres.stop();
+    if (harness != null) {
+      harness.close();
     }
   }
 
@@ -242,16 +183,5 @@ class ItemOrderMigrationTest {
     }
   }
 
-  private static boolean isDockerAvailable() {
-    try {
-      return DockerClientFactory.instance().isDockerAvailable();
-    } catch (Throwable t) {
-      return false;
-    }
-  }
 
-  private static String resolveImage() {
-    String image = System.getenv("TEST_POSTGRES_IMAGE");
-    return (image != null && !image.isBlank()) ? image : DEFAULT_IMAGE;
-  }
 }
