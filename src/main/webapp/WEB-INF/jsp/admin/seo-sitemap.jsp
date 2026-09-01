@@ -78,6 +78,19 @@
   </c:otherwise>
 </c:choose>
 
+<c:if test="${pagesMissingDescription > 0}">
+  <h5>Page descriptions</h5>
+  <div class="callout warning radius">
+    <p><i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+      <strong><c:out value="${pagesMissingDescription}" /></strong>
+      <c:choose><c:when test="${pagesMissingDescription == 1}">page has</c:when><c:otherwise>pages have</c:otherwise></c:choose>
+      no description of their own. Those pages still render a <code>&lt;meta name="description"&gt;</code>,
+      but the value falls back to the site-wide description, so they describe the company instead of the
+      page. Search engines may ignore a description that doesn't match the content. The affected rows are
+      marked below; set a description on each from its own page settings.</p>
+  </div>
+</c:if>
+
 <h5>Best practices</h5>
 <div class="callout radius">
   <p>Before relying on this page's green "enabled and being served" status, actually open the
@@ -96,6 +109,7 @@
       <tr>
         <th width="80">In Sitemap?</th>
         <th>Title</th>
+        <th width="120">Description</th>
         <th>Link</th>
         <th>Modified</th>
       </tr>
@@ -112,13 +126,19 @@
                 test="${webPage.showInSitemap}"> checked</c:if> />
           </td>
           <td><label for="showInSitemap_${webPage.id}"><c:out value="${webPage.title}" /></label></td>
+          <%-- Flagged in words as well as colour, so the warning does not depend on colour alone. --%>
+          <td><c:choose>
+            <c:when test="${empty fn:trim(webPage.description)}"><small class="alert-text"><i class="fa fa-exclamation-triangle"
+              aria-hidden="true"></i> Missing</small></c:when>
+            <c:otherwise><small>Set</small></c:otherwise>
+          </c:choose></td>
           <td><a href="${ctx}${fn:escapeXml(webPage.link)}" target="_blank" rel="noopener"><c:out value="${webPage.link}" /></a></td>
           <td><small><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.modified}" /></small></td>
         </tr>
       </c:forEach>
       <c:if test="${empty webPageList}">
         <tr>
-          <td colspan="4">No web pages were found</td>
+          <td colspan="5">No web pages were found</td>
         </tr>
       </c:if>
     </tbody>
