@@ -162,6 +162,48 @@ class SaveMailingListCommandTest {
     }
   }
 
+  @Test
+  void aMissingTitleIsRejectedOnAnEditToo() {
+    // clearing the title of a list that already has one must be refused the same way -- the widget
+    // populates the bean from the submitted form only, so an omitted field arrives as null
+    MailingList existing = new MailingList();
+    existing.setId(1L);
+    existing.setName("Newsletter");
+    existing.setTitle("Our Newsletter");
+
+    MailingList bean = new MailingList();
+    bean.setId(1L);
+    bean.setName("Newsletter");
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      // stubbed so the record is found either way -- the message below is then the title's, and
+      // stays the title's if validation ever moves after the lookup
+      repository.when(() -> MailingListRepository.findById(1L)).thenReturn(existing);
+
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals("Please check the form and try again:\nA title is required", exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void aBlankNameAndTitleReportBothInOneMessage() {
+    // the errorMessages pattern this command already uses joins with "; " -- appending without a
+    // separator would read "A name is requiredA title is required"
+    MailingList bean = new MailingList();
+
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveMailingListCommand.saveMailingList(bean));
+
+      assertEquals("Please check the form and try again:\nA name is required; A title is required",
+          exception.getMessage());
+      repository.verify(() -> MailingListRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Issue #1724 follow-up: unique_id, and the duplicate names that made resolving a list by name
   // non-deterministic in the first place.
@@ -179,6 +221,7 @@ class SaveMailingListCommandTest {
   void aNewListIsAssignedAUniqueIdFromItsName() throws DataException {
     MailingList bean = new MailingList();
     bean.setName("Product Announcements");
+    bean.setTitle("Product Announcements");
     bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
@@ -200,6 +243,7 @@ class SaveMailingListCommandTest {
     MailingList bean = new MailingList();
     bean.setId(1L);
     bean.setName("Company Announcements");
+    bean.setTitle("Company Announcements");
     bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
@@ -219,6 +263,7 @@ class SaveMailingListCommandTest {
     // signup reaches
     MailingList bean = new MailingList();
     bean.setName("Newsletter");
+    bean.setTitle("Newsletter"); // present so the only thing left to reject is the duplicate name
     bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
@@ -238,6 +283,9 @@ class SaveMailingListCommandTest {
     MailingList bean = new MailingList();
     bean.setId(2L);
     bean.setName("newsletter"); // the check is case-insensitive, like findByName
+    // a title, so the refusal below can only be the name check -- a bean missing one would now
+    // throw for the title instead and the test would pass without proving anything
+    bean.setTitle("Product News");
     bean.setCreatedBy(42L);
 
     try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
