@@ -41,6 +41,8 @@ import org.w3c.dom.NodeList;
 
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 
 import jakarta.servlet.ServletContext;
 
@@ -366,6 +368,55 @@ public class ContentUsageCommand {
   /** The text of the first DIRECT child element named {@code childTagName}, or null if absent. Does
    * not search descendants -- matches XMLContainerCommands#addWidgetPreferences, which only reads a
    * widget's immediate child tags as its preferences. */
+  /**
+   * The content blocks on one page whose declared inline html is inert because a saved record has
+   * taken over (issue #1725).
+   *
+   * {@link ContentHtmlCommand#getHtmlFromPreferences} prefers a record loaded by uniqueId and falls
+   * back to the page XML's own {@code <html>} only when that record is blank or missing. So a widget
+   * declaring both is showing whoever opens the designer something no visitor ever sees: editing
+   * that inline html changes nothing on the page.
+   *
+   * Only widgets declaring BOTH are reported. A widget with a uniqueId and no inline html has
+   * nothing to be shadowed, and one with inline html and no record renders exactly what it declares
+   * -- flagging either would be noise on a page where nothing is wrong.
+   *
+   * A blank record deliberately does not count. An empty record falls through to the page XML by
+   * design (issue #1689), so the inline html is live in that case, not overridden.
+   */
+  public static List<String> findOverriddenInlineDefaults(String pageXml) {
+    List<String> overriddenUniqueIds = new ArrayList<>();
+    if (StringUtils.isBlank(pageXml)) {
+      return overriddenUniqueIds;
+    }
+    try {
+      Document document = parseDocument(pageXml);
+      NodeList widgetTags = document.getElementsByTagName("widget");
+      for (int i = 0; i < widgetTags.getLength(); i++) {
+        Element widgetElement = (Element) widgetTags.item(i);
+        if (!CONTENT_WIDGET_NAMES.contains(widgetElement.getAttribute("name"))) {
+          continue;
+        }
+        String uniqueId = StringUtils.trimToNull(directChildText(widgetElement, "uniqueId"));
+        if (uniqueId == null || overriddenUniqueIds.contains(uniqueId)) {
+          continue;
+        }
+        if (StringUtils.isBlank(directChildText(widgetElement, "html"))) {
+          continue;
+        }
+        Content content = ContentRepository.findByUniqueId(uniqueId);
+        if (content != null && StringUtils.isNotBlank(content.getContent())) {
+          overriddenUniqueIds.add(uniqueId);
+        }
+      }
+    } catch (Exception e) {
+      // Advisory only: a page whose XML will not parse is already being reported by the editor
+      // itself, and this notice must never be the thing that stops the designer rendering.
+      LOG.warn("Could not check for overridden inline defaults: " + e.getMessage());
+    }
+    return overriddenUniqueIds;
+  }
+
   private static String directChildText(Element parent, String childTagName) {
     NodeList children = parent.getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {

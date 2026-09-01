@@ -34,6 +34,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepos
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.controller.XMLWebPageTemplateLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.application.cms.ContentUsageCommand;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -198,6 +199,11 @@ public class WebPageDesignerWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute("webPage", webPage);
+    // Warn when a widget's declared inline html is inert because a saved record has taken over
+    // (issue #1725). Editing that html in this editor changes nothing on the page, and until now
+    // there was no sign of it anywhere.
+    context.getRequest().setAttribute("overriddenInlineDefaults",
+        ContentUsageCommand.findOverriddenInlineDefaults(webPage.getPageXml()));
     if (DESIGNER_JSP.equals(context.getJsp())) {
       context.getRequest().setAttribute("widgetSchemaJson", LoadWidgetSchemaCommand.getWidgetSchemaJson(context.getRequest().getServletContext()));
     }
