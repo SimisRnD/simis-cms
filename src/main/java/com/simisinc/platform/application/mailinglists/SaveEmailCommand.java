@@ -50,6 +50,14 @@ public class SaveEmailCommand {
 
   private static Log LOG = LogFactory.getLog(SaveEmailCommand.class);
 
+  /** The list a signup path joins when it names none of its own (the checkout newsletter checkbox,
+   *  the ajax footer/inline form, and an emailSubscribe widget with no mailingList preference). */
+  public static final String DEFAULT_MAILING_LIST_NAME = "Newsletter";
+
+  /** Shown to a visitor when the configured list doesn't resolve -- deliberately the same wording
+   *  the blog-scoped path already uses, so a misconfiguration doesn't leak site setup details. */
+  public static final String LIST_UNAVAILABLE_MESSAGE = "Sorry, this signup isn't available right now.";
+
   public static Email saveEmail(Email emailBean) throws DataException {
     return saveEmail(emailBean, (String) null);
   }
@@ -92,18 +100,23 @@ public class SaveEmailCommand {
     return saveEmail(emailBean, mailingLists, true);
   }
 
-  private static MailingList resolveMailingList(String mailingListName) {
-    if (mailingListName == null) {
-      mailingListName = "Newsletter";
-    }
-    MailingList mailingList = MailingListRepository.findByName(mailingListName);
+  /**
+   * Issue #1724: resolve a mailing list by name, without bringing one into existence. This used to
+   * create the list when the name didn't resolve, but the name arrives from the emailSubscribe
+   * widget's mailingList preference on a public visitor's POST -- so an admin renaming a list in
+   * Admin/Mailing Lists meant the next signup silently recreated a duplicate under the old name,
+   * splitting subscribers across two lists with no error anywhere. A public form must not create
+   * mailing-list records as a side effect of configuration drift. The default name is seeded at
+   * install (NEW_10071 / UPGRADE_20260831.1200), so an untouched site still resolves it; the blog
+   * path resolves by id and the REST API resolves explicitly for the same reason.
+   */
+  private static MailingList resolveMailingList(String mailingListName) throws DataException {
+    String name = StringUtils.defaultIfBlank(mailingListName, DEFAULT_MAILING_LIST_NAME);
+    MailingList mailingList = MailingListRepository.findByName(name);
     if (mailingList == null) {
-      // Create it
-      mailingList = new MailingList();
-      mailingList.setName(mailingListName);
-      mailingList.setTitle(mailingListName);
-      mailingList.setEnabled(true);
-      mailingList = MailingListRepository.save(mailingList);
+      LOG.warn("Mailing list '" + name + "' does not exist -- create it in Admin/Mailing Lists, or point the "
+          + "emailSubscribe widget's mailingList preference at a list that exists");
+      throw new DataException(LIST_UNAVAILABLE_MESSAGE);
     }
     return mailingList;
   }

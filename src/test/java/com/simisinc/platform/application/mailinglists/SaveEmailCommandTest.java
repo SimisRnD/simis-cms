@@ -45,6 +45,7 @@ import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 
 class SaveEmailCommandTest {
@@ -492,6 +493,69 @@ class SaveEmailCommandTest {
       workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
       memberCommand.verify(
           () -> MailingListMemberCommand.triggerEmailSubscriptionProcess(any(), any(), anyBoolean()), never());
+    }
+  }
+
+  /**
+   * Issue #1724: the name arrives from a public visitor's POST (the emailSubscribe widget passes
+   * its mailingList preference straight through), so a name that no longer resolves must fail,
+   * not quietly bring a list into existence under whatever the old configuration said.
+   */
+  @Test
+  void refusesANameThatDoesNotResolveInsteadOfCreatingThatList() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(null);
+
+      DataException exception = assertThrows(DataException.class,
+          () -> SaveEmailCommand.saveEmailRequiringConfirmation(email("subscriber@example.com"), "Newsletter"));
+
+      assertEquals(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE, exception.getMessage());
+      listRepo.verify(() -> MailingListRepository.save(any()), never());
+      emailRepo.verifyNoInteractions();
+      memberRepo.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void resolvesTheDefaultListByNameWhenTheCallerNamesNone() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList newsletter = mailingList(1L, SaveEmailCommand.DEFAULT_MAILING_LIST_NAME);
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(newsletter);
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+
+      SaveEmailCommand.saveEmail(emailBean, (String) null);
+
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, newsletter, false, null));
+      listRepo.verify(() -> MailingListRepository.save(any()), never());
+    }
+  }
+
+  /** A blank preference means "nothing configured", not a list whose name is the empty string --
+   *  which is what the previous auto-create would have created from it. */
+  @Test
+  void treatsABlankNameAsTheDefaultRatherThanLookingUpAnEmptyName() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(null);
+
+      assertThrows(DataException.class,
+          () -> SaveEmailCommand.saveEmailRequiringConfirmation(email("subscriber@example.com"), "   "));
+
+      listRepo.verify(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME));
+      listRepo.verify(() -> MailingListRepository.save(any()), never());
+      emailRepo.verifyNoInteractions();
     }
   }
 }
