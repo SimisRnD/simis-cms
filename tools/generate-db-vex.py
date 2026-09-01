@@ -35,6 +35,11 @@ deliberate. `> the-file` truncates the target before this process even starts, s
 refusal to write cannot protect a file the shell has already emptied -- and the one
 failure this tool must never have is quietly replacing 50-odd suppressions with none.
 Owning the write is what makes the guards in write_document() worth anything.
+
+Exit codes: 0 = a document was written, 1 = a write was refused by the guards in
+write_document(), 2 = the alert source could not be read. A generator that never
+reached its input has not decided anything, and must not be mistaken for one that
+looked at the alerts and refused.
 """
 
 import argparse
@@ -269,6 +274,16 @@ UNDER_INVESTIGATION_NOTE = (
 )
 
 
+def fail(message):
+    """Exit 2: the alert source could not be read.
+
+    Distinct from exit 1 (a deliberate refusal to write) on purpose -- an unreachable
+    input is a broken run, not a triage decision about the document.
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def fetch_alerts():
     """Open Trivy alerts for the db image, from GitHub code scanning."""
     out = subprocess.run(
@@ -276,7 +291,7 @@ def fetch_alerts():
         capture_output=True, text=True,
     )
     if out.returncode != 0:
-        sys.exit("gh api failed: %s" % out.stderr.strip())
+        fail("gh api failed: %s" % out.stderr.strip())
     alerts = []
     for chunk in re.findall(r"\[.*?\](?=\s*\[|\s*$)", out.stdout, re.S) or [out.stdout]:
         try:
