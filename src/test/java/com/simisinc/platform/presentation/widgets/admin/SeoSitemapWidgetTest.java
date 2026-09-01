@@ -54,6 +54,12 @@ class SeoSitemapWidgetTest extends WidgetBase {
     return webPage;
   }
 
+  private static WebPage webPageWithDescription(long id, String link, String title, String description) {
+    WebPage webPage = webPage(id, link, title, true);
+    webPage.setDescription(description);
+    return webPage;
+  }
+
   private static Map<String, String> siteProperties(boolean sitemapEnabled) {
     Map<String, String> properties = new HashMap<>();
     properties.put("site.sitemap.xml", String.valueOf(sitemapEnabled));
@@ -88,6 +94,45 @@ class SeoSitemapWidgetTest extends WidgetBase {
       assertEquals("SEO Sitemap", result.getRequest().getAttribute("title"),
           "the page heading was configured but never rendered because execute() never set this attribute");
       assertEquals("fa-map", result.getRequest().getAttribute("icon"));
+    }
+  }
+
+  @Test
+  void executeCountsPagesWithNoDescriptionOfTheirOwn() {
+    // A blank description is not harmless: main.jsp falls back to the site-wide site.description,
+    // so the page ships with metadata describing the company rather than itself. Blank-but-present
+    // counts the same as null, which is why isBlank and not isEmpty.
+    List<WebPage> webPageList = new ArrayList<>();
+    webPageList.add(webPageWithDescription(1L, "/about", "About", "Who we are and what we do."));
+    webPageList.add(webPageWithDescription(2L, "/services", "Services", null));
+    webPageList.add(webPageWithDescription(3L, "/contact", "Contact", "   "));
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true));
+
+      WidgetContext result = new SeoSitemapWidget().execute(widgetContext);
+
+      assertEquals(2L, result.getRequest().getAttribute("pagesMissingDescription"),
+          "a null and a whitespace-only description both fall back to the site description");
+    }
+  }
+
+  @Test
+  void executeCountsZeroWhenEveryPageHasItsOwnDescription() {
+    List<WebPage> webPageList = new ArrayList<>();
+    webPageList.add(webPageWithDescription(1L, "/about", "About", "Who we are."));
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true));
+
+      WidgetContext result = new SeoSitemapWidget().execute(widgetContext);
+
+      assertEquals(0L, result.getRequest().getAttribute("pagesMissingDescription"),
+          "the warning must stay hidden when there is nothing to warn about");
     }
   }
 
