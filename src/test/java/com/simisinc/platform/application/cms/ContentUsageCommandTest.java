@@ -38,6 +38,8 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 
 import jakarta.servlet.ServletContext;
 
@@ -484,5 +486,99 @@ class ContentUsageCommandTest {
     when(servletContext.getResourceAsStream(eq(filePath))).thenAnswer(invocation ->
         new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8)));
     return servletContext;
+  }
+
+  // --- findOverriddenInlineDefaults (issue #1725) -------------------------------------------
+  //
+  // A content widget can declare inline <html> AND reference a saved record. The record always
+  // wins (ContentHtmlCommand.getHtmlFromPreferences), so that inline html is inert and editing it
+  // in the designer changes nothing on the page. These cover the three states that decide whether
+  // a block is worth warning about.
+
+  private static String pageXmlWith(String widgetName, String uniqueId, String inlineHtml) {
+    StringBuilder sb = new StringBuilder("<page><section><column><widget name=\"")
+        .append(widgetName).append("\">");
+    if (uniqueId != null) {
+      sb.append("<uniqueId>").append(uniqueId).append("</uniqueId>");
+    }
+    if (inlineHtml != null) {
+      sb.append("<html><![CDATA[").append(inlineHtml).append("]]></html>");
+    }
+    return sb.append("</widget></column></section></page>").toString();
+  }
+
+  private static Content contentWith(String html) {
+    Content content = new Content();
+    content.setUniqueId("intro");
+    content.setContent(html);
+    return content;
+  }
+
+  @Test
+  void aSavedRecordOverridingInlineHtmlIsReported() {
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("intro"))
+          .thenReturn(contentWith("<p>what visitors actually see</p>"));
+
+      List<String> overridden = ContentUsageCommand.findOverriddenInlineDefaults(
+          pageXmlWith("content", "intro", "<p>the inert default</p>"));
+
+      assertEquals(List.of("intro"), overridden);
+    }
+  }
+
+  @Test
+  void inlineHtmlWithNoSavedRecordIsNotReported() {
+    // Nothing is shadowing it -- the declared html is exactly what renders.
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("intro")).thenReturn(null);
+
+      assertTrue(ContentUsageCommand.findOverriddenInlineDefaults(
+          pageXmlWith("content", "intro", "<p>the live default</p>")).isEmpty());
+    }
+  }
+
+  @Test
+  void aBlankRecordDoesNotCountAsOverriding() {
+    // An empty record deliberately falls through to the page XML (issue #1689), so the inline html
+    // IS live here. Warning about it would send someone hunting for an override that is not there.
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("intro")).thenReturn(contentWith("   "));
+
+      assertTrue(ContentUsageCommand.findOverriddenInlineDefaults(
+          pageXmlWith("content", "intro", "<p>still live</p>")).isEmpty());
+    }
+  }
+
+  @Test
+  void aWidgetWithNoInlineHtmlIsNotReported() {
+    // The record is the only source; there is no shadowed default to warn about.
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("intro"))
+          .thenReturn(contentWith("<p>the only source</p>"));
+
+      assertTrue(ContentUsageCommand.findOverriddenInlineDefaults(
+          pageXmlWith("content", "intro", null)).isEmpty());
+    }
+  }
+
+  @Test
+  void aNonContentWidgetIsIgnored() {
+    // A <uniqueId> on some other widget family refers to something else entirely and must not be
+    // looked up as a content block.
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      assertTrue(ContentUsageCommand.findOverriddenInlineDefaults(
+          pageXmlWith("tableOfContents", "intro", "<p>not content</p>")).isEmpty());
+      repository.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void unparseablePageXmlIsAdvisoryOnlyAndNeverThrows() {
+    // The editor already reports malformed XML; this notice must never be the thing that stops the
+    // designer rendering.
+    assertTrue(ContentUsageCommand.findOverriddenInlineDefaults("<page><widget unclosed").isEmpty());
+    assertTrue(ContentUsageCommand.findOverriddenInlineDefaults(null).isEmpty());
+    assertTrue(ContentUsageCommand.findOverriddenInlineDefaults("   ").isEmpty());
   }
 }
