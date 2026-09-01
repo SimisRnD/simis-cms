@@ -28,7 +28,7 @@
 <c:if test="${!empty optionsList}">
   <ul class="tabs" id="tabs${widgetContext.uniqueId}">
     <c:forEach items="${optionsList}" var="option" varStatus="status">
-      <li id="val<c:out value="${option.value}"/>" class="tabs-title<c:if test="${(empty currentValue and status.first) or option.value eq currentValue}"> is-active</c:if>"><a href="#" class="js-updateStats${widgetContext.uniqueId}" data-value="<c:out value="${option.value}"/>"><c:out value="${option.key}"/></a></li>
+      <li id="val<c:out value="${option.value}"/>-${widgetContext.uniqueId}" class="tabs-title<c:if test="${(empty currentValue and status.first) or option.value eq currentValue}"> is-active</c:if>"><a href="#" class="js-updateStats${widgetContext.uniqueId}" data-value="<c:out value="${option.value}"/>"><c:out value="${option.key}"/></a></li>
     </c:forEach>
   </ul>
 </c:if>
@@ -106,8 +106,10 @@
   }
 
   function update${widgetContext.uniqueId}(value) {
+    // The tab ids carry the widget's unique id -- this table shares /admin/community/analytics with
+    // the siteStats tables, which offer the same ranges, so an unsuffixed "val30d" would repeat.
     $("#tabs${widgetContext.uniqueId} li").each(function(idx, li) {
-      if (li.id === 'val' + value) {
+      if (li.id === 'val' + value + '-${widgetContext.uniqueId}') {
         if (!li.matches('.is-active')) {
           li.className = li.className + ' is-active';
           currentValue = value;
