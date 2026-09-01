@@ -900,10 +900,6 @@ public class PageServlet extends HttpServlet {
       // Never render a malformed tracking id into the public page's script tags
       AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
       Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
-      // issue #1763: the admin menu hides a module's satellite pages when the module is off, the
-      // way the E-Commerce section already does. Cache-backed (CacheManager), so this is a map
-      // build, not a query, on each request.
-      Map<String, String> elearningPropertyMap = LoadSitePropertyCommand.loadAsMap("elearning");
 
       // Publish these before any widget renders (below), not just for main.jsp/layout.jsp
       // afterward -- a widget JSP (e.g. ActivityListWidget's activity-list.jsp) that reads
@@ -917,7 +913,6 @@ public class PageServlet extends HttpServlet {
       request.setAttribute("socialMediaLinkList", socialMediaLinkList);
       request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
       request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
-      request.setAttribute("elearningPropertyMap", elearningPropertyMap);
 
       // Allow content admins to see a page
       if (pageRef == null &&

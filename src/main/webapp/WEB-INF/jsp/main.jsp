@@ -32,7 +32,6 @@
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="analyticsPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="ecommercePropertyMap" class="java.util.HashMap" scope="request"/>
-<jsp:useBean id="elearningPropertyMap" class="java.util.HashMap" scope="request"/>
 <%-- Color scheme. The site property theme.ui.mode selects it:
        light  forced light, and no toggle (the default, so an existing site is unchanged)
        dark   forced dark, and no toggle
@@ -755,41 +754,13 @@
               <li class="section-title">Settings</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/theme')}"> class="is-active"</c:if>><a href="${ctx}/admin/theme-properties"><i class="${font:far()} fa-palette fa-fw"></i> <span>Theme</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/site-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/site-properties"><i class="${font:far()} fa-rocket fa-fw"></i> <span>Site Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mfa')}"> class="is-active"</c:if>><a href="${ctx}/admin/mfa-properties"><i class="${font:far()} fa-lock fa-fw"></i> <span>MFA Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sso')}"> class="is-active"</c:if>><a href="${ctx}/admin/sso-properties"><i class="${font:far()} fa-id-badge fa-fw"></i> <span>Single Sign-On</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/social')}"> class="is-active"</c:if>><a href="${ctx}/admin/social-media-settings"><i class="${font:far()} fa-thumbs-up fa-fw"></i> <span>Social Media</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-properties"><i class="${font:far()} fa-shield fa-fw"></i> <span>Security</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/feature-flags')}"> class="is-active"</c:if>><a href="${ctx}/admin/feature-flags"><i class="${font:far()} fa-flag fa-fw"></i> <span>Feature Flags</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/integrations')}"> class="is-active"</c:if>><a href="${ctx}/admin/integrations"><i class="${font:far()} fa-puzzle-piece fa-fw"></i> <span>Integrations</span></a></li>
-              <%-- issue #1763: same gate as the E-Commerce section above, so the module's settings
-                   page does not outlive the section it configures. Safe to hide because
-                   ecommerce.enabled is seeded property_type='disabled' -- site-properties-editor.jsp
-                   renders it as a disabled input, so this page could not turn the module back on
-                   even if an admin reached it. The test is deliberately byte-identical to the
-                   section's, including its fail-closed form: if the two ever disagreed the menu
-                   would show a settings row for a section that is not there. --%>
-              <c:if test="${!empty ecommercePropertyMap['ecommerce.enabled'] && ecommercePropertyMap['ecommerce.enabled'] eq 'true'}">
-                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
-              </c:if>
-              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-properties'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>
-              <%-- issue #1763: a statement log for a module that may not be running. E-learning
-                   Settings above is deliberately NOT gated -- elearning.enabled is an editable
-                   boolean, and that page is the only place in the UI that can switch it back on,
-                   so hiding it would leave an admin no way to undo their own change. This test
-                   fails open, unlike the e-commerce one above, because it has no section gate to
-                   stay consistent with -- a site missing the property row keeps today's menu
-                   rather than silently losing a page. --%>
-              <c:if test="${empty elearningPropertyMap['elearning.enabled'] || elearningPropertyMap['elearning.enabled'] eq 'true'}">
-                <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-statements'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-statements"><i class="${font:far()} fa-list fa-fw"></i> <span>xAPI Statements</span></a></li>
-              </c:if>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mail-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mail-properties"><i class="${font:far()} fa-cogs fa-fw"></i> <span>Email Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-list-properties"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing List Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/maps')}"> class="is-active"</c:if>><a href="${ctx}/admin/maps-properties"><i class="${font:far()} fa-map fa-fw"></i> <span>Maps Settings</span></a></li>
-              <%--<li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/email-templates')}"> class="is-active"</c:if>><a href="${ctx}/admin/email-templates"><i class="${font:far()} fa-file-text fa-fw"></i> <span>Email Templates</span></a></li>--%>
+              <%-- issue #1765: the other sixteen rows moved to /admin/settings, a grouped page with
+                   a line under each one saying what it holds. The count was the symptom; the flat
+                   list was the problem -- given "Site Settings", "Security", "Feature Flags" and
+                   "Captcha Settings", the menu cannot tell you which holds the option you want, and
+                   a shorter list of names still cannot. Theme and Site Settings stay here because
+                   they are the daily-use pair and should not cost an extra click. --%>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/settings')}"> class="is-active"</c:if>><a href="${ctx}/admin/settings"><i class="${font:far()} fa-sliders fa-fw"></i> <span>All settings</span></a></li>
             </ul>
           </c:if>
           </nav>

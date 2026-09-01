@@ -311,6 +311,17 @@
     </section>
   </page>
 
+  <page name="/admin/settings" role="admin" title="Settings">
+    <section>
+      <column class="small-12 cell">
+        <widget name="settingsHub">
+          <title>Settings</title>
+          <icon>fa-sliders</icon>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/theme-properties" role="admin" title="Theme Settings">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
