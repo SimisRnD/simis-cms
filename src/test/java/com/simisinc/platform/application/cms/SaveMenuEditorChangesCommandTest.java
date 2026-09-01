@@ -230,4 +230,47 @@ class SaveMenuEditorChangesCommandTest extends WidgetBase {
       saveMenuTabCommand.verify(() -> SaveMenuTabCommand.renameTab(eq(home)), never());
     }
   }
+  // -----------------------------------------------------------------------------------------------
+  // Issue #1728: creating a third-level item. Everything else about nesting already worked -- store,
+  // reorder, reparent, render, search -- but nothing could create the first sub-item, so the feature
+  // could not be used at all through the admin.
+  // -----------------------------------------------------------------------------------------------
+
+  @Test
+  void aPostedSubItemNameCreatesAThirdLevelItemUnderThatItem() {
+    MenuItem parent = item(10L, "Autonomous Solutions", "/autonomous");
+    parent.setMenuTabId(3L);
+    addQueryParameter(widgetContext, "menuItem10subItemName", "USV-FOS");
+    addQueryParameter(widgetContext, "menuItem10subItemLink", "/usv-fos");
+
+    try (MockedStatic<MenuTabRepository> menuTabRepository = mockStatic(MenuTabRepository.class);
+        MockedStatic<MenuItemRepository> menuItemRepository = mockStatic(MenuItemRepository.class);
+        MockedStatic<SaveMenuTabCommand> saveMenuTabCommand = mockStatic(SaveMenuTabCommand.class)) {
+      menuTabRepository.when(MenuTabRepository::findAll).thenReturn(Collections.<MenuTab> emptyList());
+      menuItemRepository.when(MenuItemRepository::findAll).thenReturn(List.of(parent));
+
+      SaveMenuEditorChangesCommand.applyChanges(widgetContext);
+
+      saveMenuTabCommand.verify(() -> SaveMenuTabCommand.appendNewSubMenuItem(parent, "USV-FOS", "/usv-fos"));
+    }
+  }
+
+  @Test
+  void noSubItemIsCreatedWhenTheFieldIsBlank() {
+    // the field renders on every eligible item, so an untouched form posts it empty for all of them
+    MenuItem parent = item(10L, "Autonomous Solutions", "/autonomous");
+    addQueryParameter(widgetContext, "menuItem10subItemName", "");
+
+    try (MockedStatic<MenuTabRepository> menuTabRepository = mockStatic(MenuTabRepository.class);
+        MockedStatic<MenuItemRepository> menuItemRepository = mockStatic(MenuItemRepository.class);
+        MockedStatic<SaveMenuTabCommand> saveMenuTabCommand = mockStatic(SaveMenuTabCommand.class)) {
+      menuTabRepository.when(MenuTabRepository::findAll).thenReturn(Collections.<MenuTab> emptyList());
+      menuItemRepository.when(MenuItemRepository::findAll).thenReturn(List.of(parent));
+
+      SaveMenuEditorChangesCommand.applyChanges(widgetContext);
+
+      saveMenuTabCommand.verify(() -> SaveMenuTabCommand.appendNewSubMenuItem(any(), any(), any()), never());
+    }
+  }
+
 }

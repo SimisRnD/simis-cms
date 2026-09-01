@@ -148,6 +148,25 @@
                     </div>
                   </c:forEach>
                 </div>
+                <%-- Creating the third level (issue #1728). Everything else about a nested item --
+                     storing, reordering, reparenting, rendering, searching -- already worked, but
+                     nothing could create the first one: the only code that set a parent was the
+                     drag-and-drop reorder, which can only move an item that is nested already.
+                     Sits outside the drop container above so an empty container stays a clean drop
+                     target, and renders only for an item that can legally take children -- the
+                     server re-checks that, because the field name is guessable. --%>
+                <%-- Mirrors MenuItem.hasParentMenuItem(): "> 0", because the repository stores -1
+                     for "no parent" rather than null. Written as a property test, not
+                     ${!menuItem.hasParentMenuItem} -- that is a method, not a getter, so EL cannot
+                     resolve it and the JSP compiles clean while failing at request time. --%>
+                <c:if test="${empty menuItem.parentMenuItemId or menuItem.parentMenuItemId le 0}">
+                  <div class="site-map-subitem-add">
+                    <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemName"
+                           placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value=""/>
+                    <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemLink"
+                           placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks"/>
+                  </div>
+                </c:if>
               </div>
             </c:forEach>
           </div>
