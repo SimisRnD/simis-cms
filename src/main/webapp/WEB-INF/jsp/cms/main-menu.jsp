@@ -46,6 +46,13 @@
             <c:if test="${menuItem.link eq pagePath}">
               <c:set var="isParent" scope="request" value="true"/>
             </c:if>
+            <%-- A third-level page has to light its tab up too, or landing on one leaves the whole
+                 menu looking as though nothing is selected (issue #1728). --%>
+            <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+              <c:if test="${subMenuItem.link eq pagePath}">
+                <c:set var="isParent" scope="request" value="true"/>
+              </c:if>
+            </c:forEach>
           </c:forEach>
         </c:if>
         <%-- Display the submenu --%>
@@ -53,7 +60,24 @@
           <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a>
           <ul class="menu vertical">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-              <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+              <%-- An item with children becomes a nested submenu. Foundation's dropdown handles
+                   the extra level natively (is-dropdown-submenu-parent + a vertical ul), so this is
+                   markup only -- no new JS and no new CSS (issue #1728). --%>
+              <c:choose>
+                <c:when test="${!empty menuItem.menuItemList}">
+                  <li class="is-dropdown-submenu-parent<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> active</c:if>">
+                    <a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a>
+                    <ul class="menu vertical">
+                      <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                        <li<c:if test="${useHighlight eq 'true' && subMenuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.name}" /></a></li>
+                      </c:forEach>
+                    </ul>
+                  </li>
+                </c:when>
+                <c:otherwise>
+                  <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+                </c:otherwise>
+              </c:choose>
             </c:forEach>
 
 
