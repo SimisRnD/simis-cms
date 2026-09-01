@@ -31,6 +31,7 @@ public class MailingList extends Entity {
   private Long id = -1L;
   private int order = 100;
 
+  private String uniqueId = null;
   private String name = null;
   private String title = null;
   private String description = null;
@@ -60,6 +61,20 @@ public class MailingList extends Entity {
 
   public void setOrder(int order) {
     this.order = order;
+  }
+
+  /**
+   * The stable key page configuration points at (the emailSubscribe widget's mailingListUniqueId
+   * preference). Generated from the name when the list is first created and never rewritten after
+   * that, so renaming a list cannot orphan the pages naming it -- the counterpart of
+   * {@code Blog#getUniqueId()}. Issue #1724.
+   */
+  public String getUniqueId() {
+    return uniqueId;
+  }
+
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
   }
 
   public String getName() {
