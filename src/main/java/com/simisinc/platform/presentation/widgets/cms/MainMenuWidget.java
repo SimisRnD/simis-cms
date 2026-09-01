@@ -89,6 +89,30 @@ public class MainMenuWidget extends GenericWidget {
                 MenuItem thisMenuItem = new MenuItem();
                 thisMenuItem.setName(menuItem.getName());
                 thisMenuItem.setLink(menuItem.getLink());
+                // The third level has to be copied too (issue #1771). This loop predates nesting,
+                // when name and link were the whole of a menu item, so the children were simply
+                // left behind -- and because the admin branch above passes the tree through
+                // untouched, the one person who could see the third level was the person building
+                // it. Access-checked one by one like their parent, not copied wholesale: dropping
+                // the check here would surface a sub-item pointing at a page this visitor cannot
+                // open, which is the reason this copy loop exists at all.
+                if (menuItem.getMenuItemList() != null) {
+                  List<MenuItem> thisSubMenuItemList = new ArrayList<>();
+                  for (MenuItem subMenuItem : menuItem.getMenuItemList()) {
+                    if (ValidateUserAccessToWebPageCommand.hasAccess(subMenuItem.getLink(), userSession)) {
+                      MenuItem thisSubMenuItem = new MenuItem();
+                      thisSubMenuItem.setName(subMenuItem.getName());
+                      thisSubMenuItem.setLink(subMenuItem.getLink());
+                      thisSubMenuItemList.add(thisSubMenuItem);
+                    }
+                  }
+                  // Left null rather than empty when every child was filtered out, so the renderer
+                  // treats the item as a plain link instead of a submenu parent with nothing in it
+                  // -- an empty flyout would still draw its arrow and open on hover.
+                  if (!thisSubMenuItemList.isEmpty()) {
+                    thisMenuItem.setMenuItemList(thisSubMenuItemList);
+                  }
+                }
                 thisMenuItemList.add(thisMenuItem);
               }
             }
