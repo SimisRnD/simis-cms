@@ -21,7 +21,6 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="playerList" class="java.util.ArrayList" scope="request"/>
-<jsp:useBean id="filterMap" class="java.util.LinkedHashMap" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-leaderboard.css?v=<%= VERSION %>" />
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
