@@ -109,15 +109,16 @@ public class EmailSubscribeWidget extends GenericWidget {
       context.getRequest().setAttribute("onlineMailingLists", onlineMailingLists);
     }
 
-    // Issue #1724: the name-based counterpart of the blogUniqueId check above. The mailingList
-    // preference is a list *name*, and a submit no longer conjures that list into existence when
-    // it doesn't resolve, so once an admin renames or deletes the list this form can only ever
-    // fail -- don't render it, and say so in the log for whoever has to fix the preference. Only
-    // when the name is the form's sole path: a blog-scoped widget subscribes by id and never
-    // reads the name at all, and the per-list checkboxes (issue #598) are a working path in their
-    // own right, so neither is misconfigured just because the fallback name has drifted.
+    // Issue #1724: the counterpart of the blogUniqueId check above, for the list this widget names
+    // itself. A submit no longer conjures a list into existence when the preference doesn't
+    // resolve, so once an admin deletes that list -- or renames one a mailingList *name*
+    // preference still points at -- this form can only ever fail. Don't render it, and say so in
+    // the log for whoever has to fix the preference. Only when the widget's own preference is the
+    // form's sole path: a blog-scoped widget subscribes by the blog's list id and never reads
+    // either preference, and the per-list checkboxes (issue #598) are a working path in their own
+    // right, so neither is misconfigured just because the fallback name has drifted.
     if (StringUtils.isBlank(blogUniqueId) && (onlineMailingLists == null || onlineMailingLists.isEmpty())
-        && !namedMailingListExists(context)) {
+        && configuredMailingList(context) == null) {
       return null;
     }
 
@@ -157,7 +158,6 @@ public class EmailSubscribeWidget extends GenericWidget {
 
     // Determine preferences
     String blogUniqueId = context.getPreferences().get("blogUniqueId");
-    String mailingListName = context.getPreferences().get("mailingList");
     String tags = context.getPreferences().get("tags");
 
     // Populate the fields
@@ -239,7 +239,15 @@ public class EmailSubscribeWidget extends GenericWidget {
           }
           SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, selectedLists);
         } else {
-          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingListName);
+          // Issue #1724: resolve this widget's own configured list -- mailingListUniqueId first,
+          // then the mailingList name preference. Nothing here creates a list that doesn't exist;
+          // a form whose configuration stopped resolving between rendering and submitting fails
+          // the same way the blog-scoped path above does.
+          MailingList mailingList = configuredMailingList(context);
+          if (mailingList == null) {
+            throw new DataException(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE);
+          }
+          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
         }
       }
     } catch (DataException e) {
@@ -253,17 +261,18 @@ public class EmailSubscribeWidget extends GenericWidget {
     return context;
   }
 
-  /** Whether the mailingList name preference (or the default the submit would fall back on) resolves
-   *  to a list that actually exists -- issue #1724. */
-  private boolean namedMailingListExists(WidgetContext context) {
-    String mailingListName = StringUtils.defaultIfBlank(context.getPreferences().get("mailingList"),
-        SaveEmailCommand.DEFAULT_MAILING_LIST_NAME);
-    if (MailingListRepository.findByName(mailingListName) != null) {
-      return true;
-    }
-    LOG.warn("emailSubscribe widget's mailingList '" + mailingListName + "' does not exist -- create it in "
-        + "Admin/Mailing Lists, or point the preference at a list that exists");
-    return false;
+  /**
+   * The list this widget's own preferences name, or null when they resolve to nothing.
+   * <p>
+   * mailingListUniqueId (issue #1724) points at mailing_lists.unique_id, which is assigned when a
+   * list is created and never rewritten, so it survives an admin renaming the list -- the same
+   * guarantee blogUniqueId already gave the blog-scoped path. mailingList is the original
+   * preference and stays supported: it is what every page already published in the wild carries,
+   * and it is a list *name*, which is exactly why it can drift.
+   */
+  private MailingList configuredMailingList(WidgetContext context) {
+    return SaveEmailCommand.findMailingList(context.getPreferences().get("mailingListUniqueId"),
+        context.getPreferences().get("mailingList"));
   }
 
   /** The blog's associated mailing list (issue #601), or null if the blog or association doesn't exist. */

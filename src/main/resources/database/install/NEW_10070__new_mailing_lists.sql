@@ -61,6 +61,11 @@ CREATE INDEX emails_validation_status_idx ON emails(validation_status);
 
 CREATE TABLE mailing_lists (
   list_id BIGSERIAL PRIMARY KEY,
+  -- The stable key page configuration points at. Generated from the name when the list is first
+  -- created and never rewritten afterward, so renaming a list cannot orphan the pages naming it --
+  -- the same role blogs.blog_unique_id plays for the emailSubscribe widget's blogUniqueId
+  -- preference. See UPGRADE_20260831.1800 for the existing-site backfill.
+  unique_id VARCHAR(255) UNIQUE NOT NULL,
   list_order INTEGER DEFAULT 100,
   name VARCHAR(200) NOT NULL,
   title VARCHAR(200) NOT NULL,

@@ -43,6 +43,10 @@
     <tr>
       <td>
         <a href="${ctx}/admin/mailing-list-members?mailingListId=${mailingList.id}"><c:out value="${mailingList.title}" /></a>
+        <%-- The id a page's Email Subscription widget points at with mailingListUniqueId (issue
+             #1724). Shown here so it can be copied without opening the list's edit form -- it is
+             fixed when the list is created and unaffected by any later rename. --%>
+        <br /><small class="subheader"><code><c:out value="${mailingList.uniqueId}" /></code></small>
         <%--
         <c:if test="${!empty mailingList.description}">
           <br /><small class="subheader"><c:out value="${mailingList.description}" /></small>

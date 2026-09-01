@@ -558,4 +558,61 @@ class SaveEmailCommandTest {
       emailRepo.verifyNoInteractions();
     }
   }
+
+  // ---------------------------------------------------------------------------------------------
+  // findMailingList(): what an emailSubscribe widget's own preferences resolve to. unique_id is
+  // assigned once and never rewritten, so it survives the rename that breaks a name preference.
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  void findsAListByItsUniqueIdWithoutConsultingTheNamePreference() {
+    MailingList newsletter = mailingList(1L, "Company Announcements");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByUniqueId("newsletter")).thenReturn(newsletter);
+
+      // The list has been renamed since the page was configured -- which is exactly the case the
+      // uniqueId is for, so the stale name must not be consulted at all
+      assertEquals(newsletter, SaveEmailCommand.findMailingList("newsletter", "Newsletter"));
+
+      listRepo.verify(() -> MailingListRepository.findByName(any()), never());
+    }
+  }
+
+  @Test
+  void aUniqueIdThatDoesNotResolveReturnsNullRatherThanFallingBackToTheName() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByUniqueId("deleted-list")).thenReturn(null);
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(mailingList(1L, "Newsletter"));
+
+      assertEquals(null, SaveEmailCommand.findMailingList("deleted-list", "Newsletter"));
+
+      listRepo.verify(() -> MailingListRepository.findByName(any()), never());
+    }
+  }
+
+  @Test
+  void fallsBackToTheNamePreferenceWhenNoUniqueIdIsConfigured() {
+    // Every emailSubscribe widget already published in the wild carries a name, not a uniqueId
+    MailingList newsletter = mailingList(1L, "Newsletter");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(newsletter);
+
+      assertEquals(newsletter, SaveEmailCommand.findMailingList(null, "Newsletter"));
+      assertEquals(newsletter, SaveEmailCommand.findMailingList("  ", "Newsletter"));
+    }
+  }
+
+  @Test
+  void findsTheDefaultListWhenNeitherPreferenceIsConfigured() {
+    MailingList newsletter = mailingList(1L, SaveEmailCommand.DEFAULT_MAILING_LIST_NAME);
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(newsletter);
+
+      assertEquals(newsletter, SaveEmailCommand.findMailingList(null, null));
+    }
+  }
 }

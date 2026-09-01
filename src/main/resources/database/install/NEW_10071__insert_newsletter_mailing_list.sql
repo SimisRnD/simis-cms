@@ -12,8 +12,12 @@
 -- the next visitor, splitting subscribers across two lists). Seeding the list here is what makes
 -- that removal safe -- without it, first-run signup would fail on every new site.
 --
--- name is the key the emailSubscribe widget's mailingList preference matches on; title is the
--- label an admin can rename freely. show_online stays false so findOnlineLists() is still empty on
--- a fresh install and the per-list checkboxes (issue #598) render exactly as they did before.
-INSERT INTO mailing_lists (name, title, description, enabled, show_online)
-VALUES ('Newsletter', 'Newsletter', 'General news and updates', true, false);
+-- unique_id is the stable key page configuration points at (NEW_50040's /subscribe page uses
+-- mailingListUniqueId=newsletter), assigned once and never rewritten; name is the legacy key the
+-- emailSubscribe widget's mailingList preference still matches on, and title is the label an admin
+-- can rename freely. Spelled out literally rather than derived, because this row's unique_id is
+-- named in seeded page XML -- it has to be 'newsletter' whatever anyone later renames this list to.
+-- show_online stays false so findOnlineLists() is still empty on a fresh install and the per-list
+-- checkboxes (issue #598) render exactly as they did before.
+INSERT INTO mailing_lists (unique_id, name, title, description, enabled, show_online)
+VALUES ('newsletter', 'Newsletter', 'Newsletter', 'General news and updates', true, false);
