@@ -887,6 +887,33 @@
            so nested submenus fail WAI-ARIA's required-owned-elements check for their parent
            menubar. There is no Foundation option to change this; correct it after init. --%>
       $('[data-submenu]').attr('role', 'menu');
+      <%-- Foundation never exposes the open state of a dropdown submenu (issue #1749). Its
+           Nest.Feather sets aria-expanded only for drilldown menus --
+             "drilldown" === i && e.attr({"aria-expanded": false})
+           -- and DropdownMenu's own _show/_hide set no ARIA at all, only classes. So a submenu
+           parent advertises aria-haspopup="true" and then never says whether that popup is open,
+           on any path: hover, click or keyboard.
+
+           Synced from the is-active class rather than from the event arguments, because that class
+           is what Foundation itself maintains: _show adds it before firing show.zf.dropdownMenu and
+           _hide removes it before firing hide.zf.dropdownMenu. Reading it at event time therefore
+           covers every close path -- body click, mouse leave, Escape, keyboard -- without this code
+           needing to know what they are.
+
+           The attribute goes on the anchor, not the li: Feather gives the anchor role="menuitem"
+           and aria-haspopup, and gives the li role="none", so the anchor is the menuitem that owns
+           the popup. --%>
+      (function () {
+        var $menus = $('[data-dropdown-menu]');
+        function syncExpanded() {
+          $menus.find('li.is-dropdown-submenu-parent').each(function () {
+            var $li = $(this);
+            $li.children('a').first().attr('aria-expanded', $li.hasClass('is-active'));
+          });
+        }
+        syncExpanded();
+        $menus.on('show.zf.dropdownMenu hide.zf.dropdownMenu', syncExpanded);
+      })();
       <%--
       $('.card-profile-stats-more-link').click(function(e){
         e.preventDefault();
