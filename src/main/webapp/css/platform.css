@@ -1591,6 +1591,46 @@ a.read-more {
 
 /* Callout */
 
+/* A callout carries its own background, so it must also own the colour of the text on it.
+
+   Without this, any rule that colours text from an outer scope wins over the callout, because a
+   descendant selector rooted at an ancestor out-specifies anything the callout says about itself.
+   A themed panel doing the ordinary thing --
+
+     .some-panel > .cell p { color: <light ink for the dark panel>; }
+
+   -- at (0,3,2) beats `.callout.warning p` at (0,2,1), so the paragraph keeps the panel's light ink
+   while the callout keeps its own light fill. That shipped: the subscribe form's validation and
+   success messages rendered light-on-light at 1.12:1, which is not "hard to read", it is invisible.
+   The panel rule is not wrong -- it simply cannot know a callout is nested inside it.
+
+   `inherit` rather than a colour, and this is the part that matters: the !important on .button.box's
+   ink was removed for good reason (issue 1589) because a fixed ink beat the site, so a repainted
+   fill kept the old ink and landed at 2.89:1. That failure cannot happen here. These declarations
+   pin no colour at all -- they say "whatever this callout's own colour is". Repaint .callout, or any
+   variant of it, and the text follows. The escape hatch is therefore intact and is the correct one:
+   style the callout, not its descendants from outside.
+
+   Links, buttons and labels are deliberately excluded -- they carry their own colour by design. */
+.callout p,
+.callout li,
+.callout dt,
+.callout dd,
+.callout td,
+.callout th,
+.callout blockquote,
+.callout small,
+.callout em,
+.callout strong,
+.callout h1,
+.callout h2,
+.callout h3,
+.callout h4,
+.callout h5,
+.callout h6 {
+  color: inherit !important;
+}
+
 .callout.box {
   background-color: var(--sc-surface, #f5f3ef);
   color: var(--sc-fnd-ink, #2c2925);
