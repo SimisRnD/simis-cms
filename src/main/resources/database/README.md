@@ -40,6 +40,26 @@ the full suite.
 That matters most for migrations that move data rather than only create objects: a backfill that
 quietly updates zero rows looks exactly like a backfill that worked.
 
+**CI now requires the test rather than trusting you to remember.**
+`tools/check-migration-test-coverage.py` fails the build when a migration added or changed in the
+PR contains an `UPDATE`, a `DELETE`, or an `INSERT ... SELECT` and no test mentions its version.
+Reference the version string in the test — `applyOnly("20260801.1000")` is enough for the gate to
+see it.
+
+Pure DDL and `INSERT ... VALUES` seed rows are deliberately **not** required. A `CREATE TABLE` that
+fails is loud on the next deploy, seeds have their own guard in `SchemaInstallUpgradeParityTest`,
+and a gate that fires on every migration becomes noise people learn to route around.
+
+To see where the whole track stands:
+
+```
+python3 tools/check-migration-test-coverage.py --all
+```
+
+At the time the gate was added: 169 migrations, 50 of them transforming data, 39 of those with no
+test. Those 39 are grandfathered — the gate only looks at what a PR changes — and are worth
+chipping away at, oldest-riskiest first.
+
 `MigrationTestHarness` makes this a fixture, a call, and assertions. The worked example is
 `ItemOrderMigrationTest`:
 
