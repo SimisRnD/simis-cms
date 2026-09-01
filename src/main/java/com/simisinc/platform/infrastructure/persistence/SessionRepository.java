@@ -149,15 +149,18 @@ public class SessionRepository {
 
   /**
    * Builds a day-bucketed, zero-filled series of session counts for the given bot status, spanning
-   * {@code daysToLimit} days ago through today (inclusive). Mirrors the generate_series + LEFT JOIN
-   * pattern used by {@link UserRepository#findDailyUserRegistrations(int)}. The is_bot filter lives in
-   * the JOIN condition rather than a WHERE clause so that days with no matching sessions still
-   * zero-fill instead of being dropped by the LEFT JOIN.
+   * {@code intervalValue} {@code intervalType} units ago through today (inclusive). The window is
+   * caller-supplied (the report's drop-down) rather than fixed, so a 90-day and a 3-month request
+   * both resolve here; the series step stays one day either way. Mirrors the generate_series +
+   * LEFT JOIN pattern used by {@link UserRepository#findDailyUserRegistrations(int)}. The is_bot
+   * filter lives in the JOIN condition rather than a WHERE clause so that days with no matching
+   * sessions still zero-fill instead of being dropped by the LEFT JOIN.
    */
-  public static List<StatisticsData> findDailySessionsByBotStatus(int daysToLimit, boolean isBot) {
+  public static List<StatisticsData> findDailySessionsByBotStatus(int intervalValue, char intervalType,
+      boolean isBot) {
     String SQL_QUERY =
         "SELECT DATE_TRUNC('day', day)::VARCHAR(10) AS date_column, COUNT(id) AS daily_count " +
-            "FROM (SELECT generate_series(NOW() - INTERVAL '" + daysToLimit + " days', NOW(), INTERVAL '1 day')::date) d(day) " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + intervalValue + " " + DB.intervalUnit(intervalType) + "', NOW(), INTERVAL '1 day')::date) d(day) " +
             "LEFT JOIN sessions ON DATE_TRUNC('day', created) = DATE_TRUNC('day', day) AND is_bot = " + isBot + " " +
             "GROUP BY d.day " +
             "ORDER BY d.day";
@@ -391,13 +394,7 @@ public class SessionRepository {
     String SQL_QUERY =
         "SELECT referer, count(referer) AS referer_count " +
             "FROM sessions " +
-            "WHERE created > NOW() - INTERVAL '" + value + " " +
-            (intervalType == 'y' ? "years" :
-                (intervalType == 'm' ? "months" :
-                    (intervalType == 'w' ? "weeks" :
-                        (intervalType == 'h' ? "hours" :
-                            "days")))) +
-            "' " +
+            "WHERE created > NOW() - INTERVAL '" + value + " " + DB.intervalUnit(intervalType) + "' " +
             "AND LOWER(referer) NOT LIKE 'http://localhost%' " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +

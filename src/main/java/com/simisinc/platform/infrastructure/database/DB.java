@@ -842,6 +842,27 @@ public class DB {
     return createPreparedStatement(connection, sb.toString(), where);
   }
 
+  /**
+   * Maps a report's one-character interval type ('h', 'd', 'w', 'm', 'y') to the Postgres INTERVAL
+   * unit it names, defaulting to days for anything unrecognized. Reports concatenate the result
+   * straight into an INTERVAL literal, so this deliberately returns one of a fixed set of words --
+   * the caller's char never reaches the SQL text.
+   */
+  public static String intervalUnit(char intervalType) {
+    switch (intervalType) {
+      case 'y':
+        return "years";
+      case 'm':
+        return "months";
+      case 'w':
+        return "weeks";
+      case 'h':
+        return "hours";
+      default:
+        return "days";
+    }
+  }
+
   public static long getLong(ResultSet rs, String field, long valueWhenNull) throws SQLException {
     long value = rs.getLong(field);
     if (rs.wasNull()) {

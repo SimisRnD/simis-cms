@@ -130,8 +130,8 @@ class SessionBotTrafficRepositoryTest {
     seedSession(true, today);
     seedSession(false, today);
 
-    List<StatisticsData> botSeries = SessionRepository.findDailySessionsByBotStatus(7, true);
-    List<StatisticsData> realSeries = SessionRepository.findDailySessionsByBotStatus(7, false);
+    List<StatisticsData> botSeries = SessionRepository.findDailySessionsByBotStatus(7, 'd', true);
+    List<StatisticsData> realSeries = SessionRepository.findDailySessionsByBotStatus(7, 'd', false);
 
     assertEquals(8, botSeries.size(), "7 days plus today, inclusive, zero-filled");
     StatisticsData todaysBotEntry = botSeries.get(botSeries.size() - 1);
@@ -148,10 +148,22 @@ class SessionBotTrafficRepositoryTest {
 
   @Test
   void findDailySessionsByBotStatusOrdersOldestToNewest() throws SQLException {
-    List<StatisticsData> series = SessionRepository.findDailySessionsByBotStatus(7, false);
+    List<StatisticsData> series = SessionRepository.findDailySessionsByBotStatus(7, 'd', false);
     assertTrue(series.size() >= 2);
     assertTrue(series.get(0).getLabel().compareTo(series.get(series.size() - 1).getLabel()) < 0,
         "expected the series ordered oldest to newest: " + series);
+  }
+
+  @Test
+  void findDailySessionsByBotStatusHonoursTheIntervalUnit() throws SQLException {
+    // The report drop-down can ask for "3m" as readily as "90d"; both have to reach the INTERVAL
+    // literal as a real unit rather than silently being read as days
+    List<StatisticsData> threeMonths = SessionRepository.findDailySessionsByBotStatus(3, 'm', false);
+    List<StatisticsData> threeDays = SessionRepository.findDailySessionsByBotStatus(3, 'd', false);
+
+    assertEquals(4, threeDays.size(), "3 days plus today, inclusive");
+    assertTrue(threeMonths.size() > 80,
+        "expected roughly a quarter of daily points for a 3-month window, got " + threeMonths.size());
   }
 
   private void seedSession(boolean isBot, Instant created) throws SQLException {

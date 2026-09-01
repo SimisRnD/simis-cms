@@ -181,11 +181,18 @@ public class WebPageHitRepository {
     return records;
   }
 
-  public static List<StatisticsData> findDailySessions(int daysToLimit) {
+  /**
+   * Daily unique-session counts over a trailing window. The window is caller-supplied (the report's
+   * drop-down), not fixed: {@code intervalType} is one of the report interval characters
+   * ('h','d','w','m','y'), so a 90-day and a 3-month request both resolve here rather than each
+   * needing their own method. Every point is still one day -- only how far back the series starts
+   * changes.
+   */
+  public static List<StatisticsData> findDailySessions(int intervalValue, char intervalType) {
     String SQL_QUERY =
         "SELECT date_value, unique_sessions " +
             "FROM web_page_hit_snapshots " +
-            "WHERE snapshot_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "WHERE snapshot_date > NOW() - INTERVAL '" + intervalValue + " " + DB.intervalUnit(intervalType) + "' " +
             "ORDER BY snapshot_date";
     List<StatisticsData> records = null;
     try (Connection connection = DB.getConnection();
@@ -204,10 +211,16 @@ public class WebPageHitRepository {
     return records;
   }
 
-  public static List<StatisticsData> findMonthlySessions(int monthsLimit) {
+  /**
+   * Unique sessions rolled up per calendar month over a trailing window. Unlike
+   * {@link #findDailySessions(int, char)} the series step is fixed at one month, so the caller's
+   * interval only moves the start of the series -- pass a month-or-longer interval ('m'/'y') or the
+   * chart collapses to two or three points.
+   */
+  public static List<StatisticsData> findMonthlySessions(int intervalValue, char intervalType) {
     String SQL_QUERY =
         "SELECT DATE_TRUNC('month', month)::VARCHAR(10) AS date_column, SUM(unique_sessions) AS monthly_count " +
-            "FROM (SELECT generate_series(NOW() - INTERVAL '" + monthsLimit + " months', NOW(), INTERVAL '1 month')::date) d(month) " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + intervalValue + " " + DB.intervalUnit(intervalType) + "', NOW(), INTERVAL '1 month')::date) d(month) " +
             "LEFT JOIN web_page_hit_snapshots ON DATE_TRUNC('month', snapshot_date) = DATE_TRUNC('month', month) " +
             "GROUP BY d.month " +
             "ORDER BY d.month";
@@ -572,13 +585,7 @@ public class WebPageHitRepository {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +
             "FROM web_page_hits " +
-            "WHERE hit_date > NOW() - INTERVAL '" + value + " " +
-            (intervalType == 'y' ? "years" :
-                (intervalType == 'm' ? "months" :
-                    (intervalType == 'w' ? "weeks" :
-                        (intervalType == 'h' ? "hours" :
-                            "days")))) +
-            "' " +
+            "WHERE hit_date > NOW() - INTERVAL '" + value + " " + DB.intervalUnit(intervalType) + "' " +
             "AND page_path NOT LIKE '/admin%' " +
             "AND page_path NOT LIKE '/assets/%' " +
             "AND page_path NOT LIKE '/web-content/%' " +
