@@ -294,12 +294,16 @@ p {
 }
 
 /* fa-angle-down replaces Foundation's default CSS-triangle dropdown caret
-   (a border-color-trick ::after). Matches Foundation's own selector set
-   exactly -- base, medium/large-horizontal responsive variants, and nested
-   submenus -- so this wins on source order (platform.css loads after
-   foundation.min.css) without needing extra specificity. The theme's
-   arrow-color override in main.jsp switches from border-color to color to
-   match -- see theme.topbar.menu.arrow.color there. */
+   (a border-color-trick ::after), for a menu that drops downward: the base
+   selector and the medium/large-horizontal responsive variants, plus the
+   nested-submenu nudge. The two side-opening variants are a separate block
+   below, because they need a different glyph and Foundation gives them a
+   higher specificity than source order can beat (issue #1775).
+   Winning here does rely on source order -- platform.css loads after
+   foundation.min.css -- so anything added to Foundation's own selector set
+   for these arrows has to be mirrored here or the triangle comes back.
+   The theme's arrow-color override in main.jsp sets color rather than
+   border-color to match -- see theme.topbar.menu.arrow.color there. */
 .dropdown.menu > li.is-dropdown-submenu-parent > a::after,
 .dropdown.menu.medium-horizontal > li.is-dropdown-submenu-parent > a::after,
 .dropdown.menu.large-horizontal > li.is-dropdown-submenu-parent > a::after,
@@ -312,6 +316,43 @@ p {
   height: auto;
   display: inline-block;
   margin-top: -7px;
+}
+
+/* The same replacement for the two side-opening variants (issue #1775). Foundation
+   adds .opens-left / .opens-right from JS at runtime, based on the space available,
+   so they are absent from the markup and easy to miss when matching its selector set
+   by hand -- and they carry a class more than the rule above, so they win the cascade
+   and put the stock blue border-triangle back on any submenu that opens sideways.
+   That stayed invisible until a third menu level existed to open one.
+   The glyph points the way the flyout opens: angle-right / angle-left, not the
+   angle-down used for a menu that drops. Positioning is inherited rather than
+   restated -- .is-dropdown-submenu-parent a::after already places it, and the
+   nested nudge to right:14px comes from the rule above -- except on the left
+   variant, where Foundation's own right:auto/left:5px has to be kept. */
+.dropdown.menu.vertical > li.opens-right > a::after,
+.is-dropdown-submenu .is-dropdown-submenu-parent.opens-right > a::after {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  content: "\f105";
+  border: 0;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-top: -7px;
+}
+
+.dropdown.menu.vertical > li.opens-left > a::after,
+.is-dropdown-submenu .is-dropdown-submenu-parent.opens-left > a::after {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  content: "\f104";
+  border: 0;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-top: -7px;
+  right: auto;
+  left: 5px;
 }
 
 #platform-small-menu .logo { margin-left: auto; margin-right: auto; }
