@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
 import com.simisinc.platform.presentation.controller.SessionConstants;
@@ -194,8 +195,14 @@ public class CaptchaCommand {
     Map<String, String> parameters = new HashMap<>();
     parameters.put("secret", secretKey);
     parameters.put("response", gResponse);
-    if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
-      parameters.put("remoteip", context.getUserSession().getIpAddress());
+    // remoteip is defined by both providers as the address of the visitor making *this* request, so
+    // it has to come from the request rather than from whatever address the session began at
+    // (issue #1791). Neither provider returns an error code for a mismatched value, so a wrong one
+    // is silently unreportable -- which is why this never surfaced.
+    String remoteIpAddress = IpAddressCommand.forAction(context.getRequest(),
+        context.getUserSession() != null ? context.getUserSession().getIpAddress() : null);
+    if (StringUtils.isNotBlank(remoteIpAddress)) {
+      parameters.put("remoteip", remoteIpAddress);
     }
     // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
     // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
@@ -464,8 +471,14 @@ public class CaptchaCommand {
     Map<String, String> parameters = new HashMap<>();
     parameters.put("secret", secretKey);
     parameters.put("response", turnstileResponse);
-    if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
-      parameters.put("remoteip", context.getUserSession().getIpAddress());
+    // remoteip is defined by both providers as the address of the visitor making *this* request, so
+    // it has to come from the request rather than from whatever address the session began at
+    // (issue #1791). Neither provider returns an error code for a mismatched value, so a wrong one
+    // is silently unreportable -- which is why this never surfaced.
+    String remoteIpAddress = IpAddressCommand.forAction(context.getRequest(),
+        context.getUserSession() != null ? context.getUserSession().getIpAddress() : null);
+    if (StringUtils.isNotBlank(remoteIpAddress)) {
+      parameters.put("remoteip", remoteIpAddress);
     }
     // executeWithResponse, not execute: a verification service reports a bad secret in the BODY of
     // a 4xx, and execute() drops the body of any non-2xx. Cloudflare answers a wrong Turnstile
