@@ -17,10 +17,14 @@
 package com.simisinc.platform.presentation.widgets.login;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -37,6 +41,9 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
  * Verifies the self-service forgot-password request is recorded in the audit log (issue #492) --
  * before this, only an admin-initiated reset (UserDetailsWidget) was audited; a visitor requesting
  * their own reset left no trace at all.
+ *
+ * <p>Also covers issue #1791: the per-ip rate limit has to be keyed to the address the reset is
+ * being driven from, not the one the session was created at.
  *
  * @author SimIS Inc.
  */
@@ -95,6 +102,66 @@ class ForgotPasswordWidgetTest extends WidgetBase {
       new ForgotPasswordWidget().post(widgetContext);
 
       audit.verifyNoInteractions();
+    }
+  }
+
+  /** The address the session was created at, hours ago. */
+  private static final String SESSION_IP = "203.0.113.10";
+  /** The address this reset is actually being submitted from. */
+  private static final String REQUEST_IP = "198.51.100.7";
+
+  @Test
+  void postRateLimitsAgainstTheRequestAddressNotTheOneTheSessionBeganAt() {
+    // Issue #1791. UserSession fixes its address in the constructor and web.xml's 60 minute timeout
+    // is an idle one, so a session outlives the address it started at. Keying the per-ip bucket on
+    // that address lets a reset driven from REQUEST_IP be charged to SESSION_IP instead -- which is
+    // both an evasion (rotate the session, never fill a bucket) and a collateral block (everyone
+    // whose session was created by the same upstream scanner or NAT shares one bucket).
+    logout(widgetContext);
+    widgetContext.getUserSession().setIpAddress(SESSION_IP);
+    when(request.getRemoteAddr()).thenReturn(REQUEST_IP);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      // Both the check and the record -- the two the existing-user path reaches
+      rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(eq(REQUEST_IP), anyBoolean()), times(2));
+      rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(eq(SESSION_IP), anyBoolean()), never());
+    }
+  }
+
+  @Test
+  void postFallsBackToTheSessionAddressWhenTheRequestHasNone() {
+    // The fallback is what keeps this at least as safe as before: no request address must never
+    // become an unkeyed (null) bucket. Uses the nonexistent-username path, which is the third
+    // rate-limit call site in the widget.
+    logout(widgetContext);
+    widgetContext.getUserSession().setIpAddress(SESSION_IP);
+    when(request.getRemoteAddr()).thenReturn(null);
+    addQueryParameter(widgetContext, "username", "nobody@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      loadUser.when(() -> LoadUserCommand.loadUser("nobody@example.com")).thenReturn(null);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(eq(SESSION_IP), anyBoolean()), times(2));
+      rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(isNull(), anyBoolean()), never());
     }
   }
 }
