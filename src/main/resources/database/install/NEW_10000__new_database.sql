@@ -64,6 +64,14 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Header link name', 'site.header.link', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Header details page', 'site.header.page', '', 'web-page');
+-- Organization details (issue #1795). Empty by default: nothing is emitted into the structured
+-- data until an administrator fills them in, so a site that never sets them is unchanged.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (33, 'Street address', 'site.address.street', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (34, 'City', 'site.address.city', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (35, 'State or region', 'site.address.state', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (36, 'Postal code', 'site.address.postalCode', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (37, 'Country', 'site.address.country', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (38, 'Year founded', 'site.founded', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Footer line 1', 'site.footer.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (51, 'Footer line 2', 'site.footer.line2', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Show privacy policy link?', 'site.privacy.policy', 'true', 'boolean');

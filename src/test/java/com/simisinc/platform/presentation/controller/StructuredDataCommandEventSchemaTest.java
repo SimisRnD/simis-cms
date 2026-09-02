@@ -36,7 +36,7 @@ import com.simisinc.platform.domain.model.cms.CalendarEvent;
 /**
  * Event schema generation for a single calendar event page (issue #1181).
  */
-class PageServletEventSchemaTest {
+class StructuredDataCommandEventSchemaTest {
 
   private static CalendarEvent event(String title, String uniqueId) {
     CalendarEvent calendarEvent = new CalendarEvent();
@@ -55,14 +55,14 @@ class PageServletEventSchemaTest {
 
   @Test
   void computeEventSchemaReturnsNullWithoutABridgedEvent() {
-    assertNull(PageServlet.computeEventSchema(new PageRenderInfo(), "https://example.org"));
+    assertNull(StructuredDataCommand.computeEventSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
   void computeEventSchemaReturnsNullForAnEventWithNoTitle() {
     // schema.org Event requires a name; emitting one without it would fail validation
     CalendarEvent calendarEvent = event(null, "sea-air-space-2026");
-    assertNull(PageServlet.computeEventSchema(renderInfoFor(calendarEvent), "https://example.org"));
+    assertNull(StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent), "https://example.org"));
   }
 
   @Test
@@ -70,7 +70,7 @@ class PageServletEventSchemaTest {
     CalendarEvent calendarEvent = event("Sea Air Space 2026", "sea-air-space-2026");
     calendarEvent.setSummary("Visit the SimIS booth");
 
-    Map<String, Object> schema = PageServlet.computeEventSchema(renderInfoFor(calendarEvent),
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent),
         "https://example.org");
 
     assertNotNull(schema);
@@ -87,7 +87,7 @@ class PageServletEventSchemaTest {
     CalendarEvent calendarEvent = event("Trade Show", "trade-show");
     calendarEvent.setBody("<p>Meet us at <strong>booth 412</strong></p>");
 
-    Map<String, Object> schema = PageServlet.computeEventSchema(renderInfoFor(calendarEvent),
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent),
         "https://example.org");
 
     assertEquals("Meet us at booth 412", schema.get("description"));
@@ -98,7 +98,7 @@ class PageServletEventSchemaTest {
     // Claiming an attendance mode for an event with no location at all would be inventing data
     CalendarEvent calendarEvent = event("Webinar", "webinar");
 
-    Map<String, Object> schema = PageServlet.computeEventSchema(renderInfoFor(calendarEvent),
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent),
         "https://example.org");
 
     assertFalse(schema.containsKey("location"));
@@ -110,7 +110,7 @@ class PageServletEventSchemaTest {
     CalendarEvent calendarEvent = event("Sea Air Space 2026", "sea-air-space-2026");
     calendarEvent.setLocation("Gaylord National Resort");
 
-    Map<String, Object> schema = PageServlet.computeEventSchema(renderInfoFor(calendarEvent),
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent),
         "https://example.org");
 
     assertEquals("https://schema.org/OfflineEventAttendanceMode", schema.get("eventAttendanceMode"));
@@ -121,7 +121,7 @@ class PageServletEventSchemaTest {
     CalendarEvent calendarEvent = event("Trade Show", "trade-show");
     calendarEvent.setImageUrl("/assets/img/1/booth.png");
 
-    Map<String, Object> schema = PageServlet.computeEventSchema(renderInfoFor(calendarEvent),
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(renderInfoFor(calendarEvent),
         "https://example.org");
 
     assertEquals("https://example.org/assets/img/1/booth.png", schema.get("image"));
@@ -130,7 +130,7 @@ class PageServletEventSchemaTest {
   @Test
   void computeEventLocationReturnsNullWithNeitherNameNorAddress() {
     // An empty Place adds nothing and Google treats it as a validation error
-    assertNull(PageServlet.computeEventLocation(event("Webinar", "webinar")));
+    assertNull(StructuredDataCommand.computeEventLocation(event("Webinar", "webinar")));
   }
 
   @Test
@@ -143,7 +143,7 @@ class PageServletEventSchemaTest {
     calendarEvent.setPostalCode("20745");
     calendarEvent.setCountry("US");
 
-    Map<String, Object> place = PageServlet.computeEventLocation(calendarEvent);
+    Map<String, Object> place = StructuredDataCommand.computeEventLocation(calendarEvent);
 
     assertEquals("Place", place.get("@type"));
     assertEquals("Gaylord National Resort", place.get("name"));
@@ -164,7 +164,7 @@ class PageServletEventSchemaTest {
     CalendarEvent calendarEvent = event("Trade Show", "trade-show");
     calendarEvent.setLocation("Somewhere");
 
-    Map<String, Object> place = PageServlet.computeEventLocation(calendarEvent);
+    Map<String, Object> place = StructuredDataCommand.computeEventLocation(calendarEvent);
 
     assertFalse(place.containsKey("geo"));
   }
@@ -177,7 +177,7 @@ class PageServletEventSchemaTest {
     calendarEvent.setLongitude(-77.0169);
 
     @SuppressWarnings("unchecked")
-    Map<String, Object> geo = (Map<String, Object>) PageServlet.computeEventLocation(calendarEvent).get("geo");
+    Map<String, Object> geo = (Map<String, Object>) StructuredDataCommand.computeEventLocation(calendarEvent).get("geo");
 
     assertEquals("GeoCoordinates", geo.get("@type"));
     assertEquals(38.7817, geo.get("latitude"));
@@ -186,13 +186,13 @@ class PageServletEventSchemaTest {
 
   @Test
   void formatEventDateReturnsNullForAMissingDate() {
-    assertNull(PageServlet.formatEventDate(null, false));
-    assertNull(PageServlet.formatEventDate(null, true));
+    assertNull(StructuredDataCommand.formatEventDate(null, false));
+    assertNull(StructuredDataCommand.formatEventDate(null, true));
   }
 
   @Test
   void formatEventDateEmitsAFullInstantForATimedEvent() {
-    String formatted = PageServlet.formatEventDate(Timestamp.valueOf("2026-09-15 14:00:00"), false);
+    String formatted = StructuredDataCommand.formatEventDate(Timestamp.valueOf("2026-09-15 14:00:00"), false);
     assertTrue(formatted.endsWith("Z"), "expected an ISO-8601 instant, got: " + formatted);
   }
 
@@ -207,7 +207,7 @@ class PageServletEventSchemaTest {
     try (MockedStatic<FormatDateCommand> dates = mockStatic(FormatDateCommand.class)) {
       dates.when(FormatDateCommand::getSiteZoneId).thenReturn(ZoneId.of("America/New_York"));
 
-      assertEquals("2026-09-15", PageServlet.formatEventDate(lateOnTheFifteenth, true));
+      assertEquals("2026-09-15", StructuredDataCommand.formatEventDate(lateOnTheFifteenth, true));
       // and the same instant read as UTC really would land on the 16th
       assertTrue(lateOnTheFifteenth.toInstant().toString().startsWith("2026-09-16"));
     }
