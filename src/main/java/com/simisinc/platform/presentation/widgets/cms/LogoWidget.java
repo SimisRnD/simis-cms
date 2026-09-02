@@ -42,13 +42,6 @@ public class LogoWidget extends GenericWidget {
     // turn. Re-loading and re-setting them made this widget silently authoritative over values
     // main.jsp reads after the walk is over, for no gain (issue #1799).
 
-    // Clear attributes possibly left behind by an earlier logo widget rendered in this same
-    // request (e.g. the header's, before the footer's runs) -- only setting them conditionally
-    // below would otherwise let a blank preference here silently inherit a stale value.
-    context.getRequest().removeAttribute("view");
-    context.getRequest().removeAttribute("logoColorProperty");
-    context.getRequest().removeAttribute("logoColorPropertyDark");
-
     // Check preferences
     String view = context.getPreferences().get("view");
     if (StringUtils.isNotBlank(view)) {
