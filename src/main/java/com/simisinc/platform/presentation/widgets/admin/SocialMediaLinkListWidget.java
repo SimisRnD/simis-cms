@@ -38,7 +38,11 @@ public class SocialMediaLinkListWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
-    context.getRequest().setAttribute("socialMediaLinkList", socialMediaLinkList);
+    // Under its own name rather than "socialMediaLinkList": that name is page-level (PageServlet
+    // publishes it for the footer and it survives the per-widget reset), so setting it here
+    // replaced the footer's copy for the rest of the request. This widget manages the list and
+    // should own its own query rather than share, or borrow, that one (issue #1799).
+    context.getRequest().setAttribute("socialMediaLinkRecordList", socialMediaLinkList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));

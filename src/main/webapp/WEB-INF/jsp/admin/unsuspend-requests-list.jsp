@@ -19,7 +19,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="requestList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="unsuspendRequestList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
@@ -62,7 +62,7 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${requestList}" var="record">
+    <c:forEach items="${unsuspendRequestList}" var="record">
     <tr>
       <td><a href="${ctx}/admin/user-details?userId=${record.targetUserId}"><c:out value="${record.targetEmail}" /></a></td>
       <td><c:out value="${record.requestedByEmail}" /></td>
@@ -97,7 +97,7 @@
       </td>
     </tr>
     </c:forEach>
-    <c:if test="${empty requestList}">
+    <c:if test="${empty unsuspendRequestList}">
       <tr>
         <td colspan="6">No requests were found</td>
       </tr>
