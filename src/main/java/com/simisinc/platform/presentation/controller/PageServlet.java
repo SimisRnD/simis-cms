@@ -1315,6 +1315,15 @@ public class PageServlet extends HttpServlet {
         organization.put("name", sitePropertyMap.get("site.name"));
         organization.put("url", siteUrl);
 
+        // The same site.description that already feeds the meta description, the Open Graph tags,
+        // llms.txt and the feeds -- it was simply never put on the Organization node (issue #1795).
+        // Jackson serialises the graph and escapeForInlineScript handles the script context, so the
+        // admin-entered value goes in as-is rather than being escaped twice.
+        String siteDescription = sitePropertyMap.get("site.description");
+        if (StringUtils.isNotBlank(siteDescription)) {
+          organization.put("description", siteDescription);
+        }
+
         String siteLogo = sitePropertyMap.get("site.image");
         if (StringUtils.isNotBlank(siteLogo)) {
           if (siteLogo.startsWith("/")) {

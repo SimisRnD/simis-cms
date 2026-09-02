@@ -844,4 +844,37 @@ class PageServletTest {
     assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", null));
     assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", new ArrayList<>()));
   }
+
+  @Test
+  void theOrganizationCarriesTheSiteDescription() {
+    // issue #1795: site.description already feeds the meta description, OG tags, llms.txt and the
+    // feeds; the Organization node was the one place it was missing.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.description", "Veteran-owned small business delivering modeling and simulation.");
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertEquals("Organization", organization.get("@type").asText());
+    assertEquals("Veteran-owned small business delivering modeling and simulation.",
+        organization.get("description").asText());
+  }
+
+  @Test
+  void anUnsetSiteDescriptionLeavesTheKeyOffRatherThanEmpty() {
+    // An empty string is worse than an absent key: consumers read it as a description that is blank.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.description", "   ");
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertNull(organization.get("description"));
+  }
 }
