@@ -156,6 +156,7 @@ CIF_CLOSE = re.compile(r"</c:if>")
 
 # <a href="${ctx}/admin/audit-log"> -- the row's target.
 HREF = re.compile(r'<a\s+href="\$\{ctx\}(/[^"]*)"')
+SECTION_TITLE_TEXT = re.compile(r'class="section-title"[^>]*>([^<]*)<')
 
 # Pseudo-roles WebComponentCommand honours on the page side; always part of the universe
 # so a page declaring role="users" is modelled, even though the menu never tests for them.
@@ -494,8 +495,42 @@ class Row:
             or "(no <c:if> -- shown to everyone who can render the admin menu)"
 
 
+class Section:
+    """One `class="section-title"` heading and the rows that fall under it.
+
+    A section carries its own <c:if> stack, which is what decides whether the *heading* renders.
+    The rows beneath carry theirs. When a principal satisfies the heading's test but none of the
+    rows', the menu draws a title with nothing under it (issue #1780).
+    """
+
+    def __init__(self, line_no, title, tests):
+        self.source = MAIN_JSP
+        self.line_no = line_no
+        self.title = title
+        self.tests = tests            # list of (line_no, test-text) outermost first
+        self.rows = []
+        self._expr = None
+
+    def expr(self) -> Expr:
+        parts = [parse_el(t) for _, t in self.tests]
+        if not parts:
+            return Expr("free", True)
+        return parts[0] if len(parts) == 1 else Expr("and", *parts)
+
+    def prepare(self) -> None:
+        self._expr = self.expr()
+
+    def visible(self, held: frozenset) -> bool:
+        return visible_to(self._expr, held)
+
+    def gate(self) -> str:
+        return " && ".join(t.strip() for _, t in self.tests) \
+            or "(no <c:if> -- the heading renders for everyone who can render the admin menu)"
+
+
 def parse_menu(path: str) -> tuple:
-    """Return (rows, section_count). Rows carry their enclosing <c:if> stack."""
+    """Return (rows, sections). Rows carry their enclosing <c:if> stack, and each Section
+    carries its own plus the rows that fall under it (issue #1780)."""
     with open(path, encoding="utf-8") as fh:
         lines = fh.read().split("\n")
 
@@ -513,7 +548,8 @@ def parse_menu(path: str) -> tuple:
 
     rows = []
     stack = []          # (line_no, test) for each open block-level <c:if>
-    sections = 0
+    sections = []
+    current_section = None
     in_comment = False
 
     for idx in range(start, end + 1):
@@ -533,7 +569,11 @@ def parse_menu(path: str) -> tuple:
             continue
 
         if 'class="section-title"' in text:
-            sections += 1
+            title_match = SECTION_TITLE_TEXT.search(text)
+            current_section = Section(line_no,
+                                      title_match.group(1).strip() if title_match else "(untitled)",
+                                      list(stack))
+            sections.append(current_section)
 
         block = BLOCK_IF.match(text)
         if block:
@@ -563,11 +603,17 @@ def parse_menu(path: str) -> tuple:
             # computed. The former is not a link; the latter cannot be resolved.
             if 'class="section-title"' in text or "<a " not in text:
                 continue
-            rows.append(Row(line_no, None, list(stack),
-                            undetermined="row links somewhere this parser cannot read"))
+            unreadable = Row(line_no, None, list(stack),
+                             undetermined="row links somewhere this parser cannot read")
+            rows.append(unreadable)
+            if current_section is not None:
+                current_section.rows.append(unreadable)
             continue
 
-        rows.append(Row(line_no, href_match.group(1), list(stack)))
+        row = Row(line_no, href_match.group(1), list(stack))
+        rows.append(row)
+        if current_section is not None:
+            current_section.rows.append(row)
 
     if stack:
         raise Undetermined("%d unclosed <c:if> block(s) in the menu region of %s "
@@ -950,13 +996,49 @@ def check(root: str):
             continue
         findings.append((row, page, named, sorted(involved - (allowed or set()))))
 
+    # A section heading that renders with nothing under it (issue #1780). The row check above
+    # cannot see this: every row can be correctly gated and the section still come out empty,
+    # because the rows' tests and the heading's are independent. That is not hypothetical --
+    # narrowing the three ungated Admin rows to the roles their pages admit, without touching
+    # the heading, would have left `admin:manage`, `users:manage` and `data-manager` looking at
+    # the word "Admin" and nothing else, with this gate green.
+    empty_sections = []
+    checked_sections = 0
+    for section in sections:
+        try:
+            section.prepare()
+            for row in section.rows:
+                row.prepare()
+        except Undetermined as exc:
+            undetermined.append((section.source, section.line_no,
+                                 "section %r: %s" % (section.title, exc)))
+            continue
+        # Same discipline as the row check: what cannot be read is reported, never skipped.
+        unreadable = [r for r in section.rows if r.undetermined]
+        if unreadable:
+            undetermined.append((section.source, section.line_no,
+                                 "section %r has a row at line %d this parser cannot read, so "
+                                 "whether the heading can render with nothing under it is "
+                                 "undetermined" % (section.title, unreadable[0].line_no)))
+            continue
+        checked_sections += 1
+        bare = [held for held in subsets
+                if section.visible(held) and not any(r.visible(held) for r in section.rows)]
+        if not bare:
+            continue
+        # Minimal sets only, for the reason given on the row check above.
+        minimal = [h for h in bare if not any(other < h for other in bare)]
+        named = sorted(" + ".join(describe_principal(a) for a in sorted(h)) for h in minimal)
+        empty_sections.append((section, named))
+
     # Allowlist entries whose row no longer leaks, or is gone. Not a failure; a nudge to
     # trim the baseline, matching how check-inline-handlers.py reports stale debt.
     still_leaking = {row.href for row, _ in baselined} | {f[0].href for f in findings}
     stale = sorted(set(ALLOWLIST) - still_leaking)
 
     return rows, sections, (findings, undetermined, checked, baselined, stale,
-                            checked_cards, hub_hosts, inventory), None
+                            checked_cards, hub_hosts, inventory,
+                            empty_sections, checked_sections), None
 
 
 # ------------------------------------------------------------------------------- report
@@ -990,7 +1072,7 @@ def main() -> int:
         return 0
 
     (findings, undetermined, checked, baselined, stale,
-     checked_cards, hub_hosts, inventory) = result
+     checked_cards, hub_hosts, inventory, empty_sections, checked_sections) = result
 
     for row, page, named, new_principals in findings:
         lines.append("  DEAD LINK  %s:%d  %s%s"
@@ -1002,6 +1084,15 @@ def main() -> int:
         if row.href in ALLOWLIST:
             lines.append("             newly leaking to: %s" % ", ".join(new_principals))
     if findings:
+        lines.append("")
+
+    for section, named in empty_sections:
+        lines.append("  EMPTY SECTION  %s:%d  %r renders a bare heading for: %s"
+                     % (section.source, section.line_no, section.title, ", ".join(named)))
+        lines.append("                 heading shows when: %s" % section.gate())
+        lines.append("                 rows in section:    %d, none visible to those principals"
+                     % len(section.rows))
+    if empty_sections:
         lines.append("")
 
     for source, line_no, why in undetermined:
@@ -1027,7 +1118,12 @@ def main() -> int:
 
     lines.append("Summary: %d menu row(s) checked across %d section(s); "
                  "%d dead link(s), %d undetermined, %d allowlisted."
-                 % (checked, sections, len(findings), len(undetermined), len(baselined)))
+                 % (checked, len(sections), len(findings), len(undetermined), len(baselined)))
+    # Deliberately separate from the section *count* above, which is cosmetic. This one says how
+    # many sections were actually evaluated for rendering empty, so the check cannot quietly
+    # regress into the number it replaced (issue #1780).
+    lines.append("Summary: %d of %d section(s) checked for empty rendering; %d render a bare "
+                 "heading." % (checked_sections, len(sections), len(empty_sections)))
     # Printed whenever the layout places the hub, even at zero, so a hub whose destinations
     # stopped being read shows up as a number rather than as an absence.
     if hub_hosts:
@@ -1036,6 +1132,9 @@ def main() -> int:
     if checked == 0:
         lines.append("Summary: 0 rows checked -- the menu parser matched nothing, "
                      "which is a failure, not a pass.")
+    if sections and checked_sections == 0:
+        lines.append("Summary: 0 sections checked for empty rendering though the menu has "
+                     "%d -- a failure, not a pass." % len(sections))
     if hub_hosts and checked_cards == 0:
         lines.append("Summary: 0 settings-hub cards checked -- the hub is on a page but its "
                      "destinations were not read, which is a failure, not a pass.")
@@ -1045,7 +1144,8 @@ def main() -> int:
                         checked_cards, hub_hosts)
 
     failed = (bool(findings) or bool(undetermined) or checked == 0
-              or bool(hub_hosts) and checked_cards == 0)
+              or bool(hub_hosts) and checked_cards == 0
+              or bool(empty_sections) or bool(sections) and checked_sections == 0)
     if args.strict and failed:
         print()
         if checked == 0:
@@ -1062,6 +1162,14 @@ def main() -> int:
             print("it -- a <c:if> on a menu row, or the gate on the page holding the hub -- or")
             print("widen the destination's role=/capability= declaration; widening it is an")
             print("authorization decision, so make it deliberately.")
+        if empty_sections:
+            print("FAIL: a menu section renders its heading with no rows under it. The principal")
+            print("sees a category label and nothing to click, which reads as a broken menu rather")
+            print("than as a section they have no access to. Either gate the section's <ul> with")
+            print("the same test that hides its rows, or leave one row in it they can open.")
+        if sections and checked_sections == 0:
+            print("FAIL: the menu has sections but none was checked for empty rendering, so that")
+            print("invariant was not enforced on this run.")
         if undetermined:
             print("FAIL: an admin link could not be evaluated. This gate reports what it could not")
             print("read rather than skipping it; teach the parser the new shape, or restructure")

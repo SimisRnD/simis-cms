@@ -65,6 +65,22 @@ def page(name: str, role: str = None, capability: str = None) -> str:
 
 
 ADMIN_OR_MANAGE = "${userSession.hasRole('admin') || userSession.hasPermission('admin:manage')}"
+def open_section(*rows: str, title: str = "Admin") -> str:
+    """A section whose HEADING carries no <c:if> -- the shape the Admin block has in main.jsp.
+    Its rows can still be gated individually, which is exactly how a heading ends up rendering
+    with nothing under it (issue #1780)."""
+    return ('            <ul class="vertical menu">\n'
+            '              <li class="section-title">%s</li>\n'
+            "%s\n"
+            "            </ul>" % (title, "\n".join(rows)))
+
+
+def gated(test: str, *rows: str) -> str:
+    """Rows wrapped in a block <c:if>, without gating the section heading."""
+    return ('              <c:if test="%s">\n%s\n              </c:if>'
+            % (test, "\n".join(rows)))
+
+
 ADMIN_ONLY = "${userSession.hasRole('admin')}"
 
 HUB_SOURCE = ("src/main/java/com/simisinc/platform/presentation/widgets/admin/"
@@ -156,8 +172,12 @@ def test_row_narrower_than_its_page_is_not_a_finding(repo):
     """Hidden-but-reachable is a discoverability question, not a broken link."""
     guarded = ('            <c:if test="%s">\n%s\n            </c:if>'
                % (ADMIN_ONLY, row("/admin/thing")))
-    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, guarded)))
-    write(repo, LAYOUT, pages(page("/admin/thing", "admin", "admin:manage")))
+    # /admin/open keeps the section non-empty for admin:manage, who passes the section gate but
+    # not the row's. Without it the fixture also trips the empty-section check (issue #1780),
+    # which would be a true finding but not what this test is about.
+    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, guarded, row("/admin/open"))))
+    write(repo, LAYOUT, pages(page("/admin/thing", "admin", "admin:manage"),
+                              page("/admin/open", "admin", "admin:manage")))
     r = run_tool(TOOL, repo, "--strict")
     assert r.returncode == 0, r.stdout + r.stderr
 
@@ -184,8 +204,11 @@ def test_negation_is_evaluated_not_approximated(repo):
     gate = ("${(userSession.hasRole('admin') || userSession.hasRole('community-manager'))"
             " && !userSession.hasRole('admin')}")
     inner = '            <c:if test="%s">\n%s\n            </c:if>' % (gate, row("/admin/thing"))
-    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, inner)))
-    write(repo, LAYOUT, pages(page("/admin/thing", "community-manager")))
+    # As above: a row everyone admitted to the section can see, so this fixture isolates the
+    # negation question rather than also tripping the empty-section check (issue #1780).
+    write(repo, MAIN_JSP, menu(section(ADMIN_OR_MANAGE, inner, row("/admin/open"))))
+    write(repo, LAYOUT, pages(page("/admin/thing", "community-manager"),
+                              page("/admin/open", "admin", "admin:manage")))
     r = run_tool(TOOL, repo, "--strict")
     assert r.returncode == 0, r.stdout + r.stderr
 
@@ -543,3 +566,82 @@ def test_every_real_hub_destination_is_checked(repo):
         "these hub destinations are shown to admins but are not being checked: %s\n%s"
         % (missing, r.stdout))
     assert ("Summary: %d settings-hub card(s) checked" % len(destinations)) in r.stdout, r.stdout
+
+
+# --------------------------------------------------------------- empty sections (issue #1780)
+
+def test_a_section_with_a_row_everyone_can_see_is_not_reported(repo):
+    write(repo, MAIN_JSP, menu(open_section(row("/admin/a"))))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin,data-manager")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "0 render a bare heading" in r.stdout
+
+
+def test_a_heading_whose_rows_are_all_gated_away_is_reported(repo):
+    # The issue's own demonstration: rows correctly narrowed, heading left alone.
+    write(repo, MAIN_JSP, menu(open_section(gated(ADMIN_ONLY, row("/admin/a")))))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin"), page("/admin/other", "data-manager")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1
+    assert "EMPTY SECTION" in r.stdout
+    assert "'Admin'" in r.stdout
+    assert "data-manager" in r.stdout
+    assert "1 render a bare heading" in r.stdout
+
+
+def test_gating_the_heading_with_the_same_test_fixes_it(repo):
+    # section() wraps the whole <ul>, which is the correct shape.
+    write(repo, MAIN_JSP, menu(section(ADMIN_ONLY, row("/admin/a"), title="Admin")))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin"), page("/admin/other", "data-manager")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "EMPTY SECTION" not in r.stdout
+    assert "0 render a bare heading" in r.stdout
+
+
+def test_leaving_one_openable_row_also_fixes_it(repo):
+    # The other legitimate resolution: not everything in the section is admin-only.
+    write(repo, MAIN_JSP, menu(open_section(gated(ADMIN_ONLY, row("/admin/a")),
+                                            row("/admin/b"))))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin"),
+                              page("/admin/b", "admin,data-manager")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "0 render a bare heading" in r.stdout
+
+
+def test_a_row_the_parser_cannot_read_makes_the_section_undetermined_not_clean(repo):
+    # Same discipline as the row check: never silently skip.
+    unreadable = '              <li><a href="${someExpression}"><span>X</span></a></li>'
+    write(repo, MAIN_JSP, menu(open_section(unreadable)))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1
+    assert "UNDETERMINED" in r.stdout
+    assert "0 of 1 section(s) checked" in r.stdout
+
+
+def test_summary_separates_sections_checked_from_sections_counted(repo):
+    # The count in the row summary is cosmetic; this one says what was actually evaluated,
+    # so the check cannot regress into that number.
+    write(repo, MAIN_JSP, menu(open_section(row("/admin/a"), title="One"),
+                               open_section(row("/admin/b"), title="Two")))
+    write(repo, LAYOUT, pages(page("/admin/a", "admin"), page("/admin/b", "admin")))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "across 2 section(s)" in r.stdout
+    assert "2 of 2 section(s) checked for empty rendering" in r.stdout
+
+
+def test_real_repository_tree_has_no_empty_section(repo):
+    """Main must stay clean on this invariant too, or the gate is not enforcing it."""
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[2]
+    r = run_tool(TOOL, root, "--strict")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "0 render a bare heading" in r.stdout
+    match = re.search(r"(\d+) of (\d+) section\(s\) checked", r.stdout)
+    assert match, r.stdout
+    assert match.group(1) == match.group(2), "some sections were not evaluated: " + r.stdout
+    assert int(match.group(2)) >= 5, "only %s sections found; has the parser broken?" % match.group(2)
