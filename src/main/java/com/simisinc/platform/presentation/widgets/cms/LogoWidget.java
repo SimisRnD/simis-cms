@@ -16,7 +16,6 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -37,20 +36,11 @@ public class LogoWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    Map<String, String> systemPropertyMap = LoadSitePropertyCommand.loadAsMap("system");
-    Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
-    Map<String, String> themePropertyMap = LoadSitePropertyCommand.loadAsMap("theme");
-
-    context.getRequest().setAttribute("systemPropertyMap", systemPropertyMap);
-    context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
-    context.getRequest().setAttribute("themePropertyMap", themePropertyMap);
-
-    // Clear attributes possibly left behind by an earlier logo widget rendered in this same
-    // request (e.g. the header's, before the footer's runs) -- only setting them conditionally
-    // below would otherwise let a blank preference here silently inherit a stale value.
-    context.getRequest().removeAttribute("view");
-    context.getRequest().removeAttribute("logoColorProperty");
-    context.getRequest().removeAttribute("logoColorPropertyDark");
+    // system/site/themePropertyMap are not set here. PageServlet publishes all three once per
+    // request, before any widget runs, and WebContainerCommand exempts them from the per-widget
+    // reset precisely so every widget's JSP -- logo.jsp included -- can read them during its own
+    // turn. Re-loading and re-setting them made this widget silently authoritative over values
+    // main.jsp reads after the walk is over, for no gain (issue #1799).
 
     // Check preferences
     String view = context.getPreferences().get("view");

@@ -66,7 +66,11 @@ public class UnsuspendRequestsWidget extends GenericWidget {
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING_URI, "&statusFilter=" + statusFilter);
 
     List<UnsuspendRequest> requestList = UnsuspendRequestRepository.findAll(statusFilter, constraints);
-    context.getRequest().setAttribute("requestList", requestList);
+    // Not "requestList": WebContainerCommand preserves every attribute whose name starts with
+    // "request" across the per-widget reset, a convention meant for page-level values that must
+    // outlive the widget walk. This one is a widget-local list, and the name kept it alive for the
+    // rest of the request by accident (issue #1799).
+    context.getRequest().setAttribute("unsuspendRequestList", requestList);
 
     // Viewer's own highest role level -- lets the JSP hint (never enforce) whether Approve should
     // be offered for a given row; the level guard is always re-checked server-side regardless.

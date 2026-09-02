@@ -18,7 +18,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="socialMediaLinkList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="socialMediaLinkRecordList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
@@ -34,7 +34,7 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${socialMediaLinkList}" var="record">
+    <c:forEach items="${socialMediaLinkRecordList}" var="record">
     <tr>
       <td><i class="fa ${fn:escapeXml(record.iconClass)}"></i></td>
       <td><c:out value="${record.platformName}" /></td>
@@ -46,7 +46,7 @@
       </td>
     </tr>
     </c:forEach>
-    <c:if test="${empty socialMediaLinkList}">
+    <c:if test="${empty socialMediaLinkRecordList}">
       <tr>
         <td colspan="5">No social media links have been added yet</td>
       </tr>
