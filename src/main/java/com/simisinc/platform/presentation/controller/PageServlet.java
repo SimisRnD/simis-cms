@@ -30,6 +30,7 @@ import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -1136,8 +1137,13 @@ public class PageServlet extends HttpServlet {
       // processWidgets so it can see page metadata a content widget (e.g. BlogPostWidget) bridged
       // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
       // the generic item/collection/webPage title & description, never a widget-specific one.
+      // Computed here rather than further down where the nav uses it, because the breadcrumb
+      // trail below needs the same menu the nav gets, gated the same way (issue #1795).
+      boolean siteVisibleToUser = userSession.isLoggedIn()
+          || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage, socialMediaLinkList);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage, socialMediaLinkList,
+            resolveMasterMenuTabList(siteVisibleToUser));
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -1197,7 +1203,6 @@ public class PageServlet extends HttpServlet {
       // MainMenuWidget and LlmsTxtServlet gate this same data the same way. This version shows
       // just the header/branding shell to a guest on these 3 pages, with an empty nav underneath.
       boolean isGuestAuthPage = isGuestAuthPage(pagePath);
-      boolean siteVisibleToUser = userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
       if (siteVisibleToUser || isGuestAuthPage) {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
@@ -1277,10 +1282,24 @@ public class PageServlet extends HttpServlet {
     return siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : new ArrayList<>();
   }
 
+  /**
+   * Without a menu, for callers that have none. The menu only feeds the breadcrumb fallback in
+   * {@link #computeMenuBreadcrumbList}, so omitting it yields exactly the output this method
+   * produced before issue #1795 -- which is what the existing tests assert.
+   */
   static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
                                     Map<String, String> sitePropertyMap,
                                     Item item, Collection collection, WebPage webPage,
                                     List<SocialMediaLink> socialMediaLinkList) {
+    return generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, item, collection,
+        webPage, socialMediaLinkList, null);
+  }
+
+  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
+                                    Map<String, String> sitePropertyMap,
+                                    Item item, Collection collection, WebPage webPage,
+                                    List<SocialMediaLink> socialMediaLinkList,
+                                    List<MenuTab> menuTabList) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> jsonLd = new LinkedHashMap<>();
@@ -1370,6 +1389,13 @@ public class PageServlet extends HttpServlet {
 
       // Add BreadcrumbList schema for pages more than one level deep (issue #403)
       List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection);
+      if (breadcrumbItemList == null || breadcrumbItemList.isEmpty()) {
+        // A flat URL is not a shallow page. Since issue #1728 the navigation carries three
+        // levels, so a product page sits two below a tab while its URL has one segment -- the
+        // URL-segment trail above cannot see that, and returned nothing for every ordinary page
+        // on the site. The menu knows the position; use it when the URL does not (issue #1795).
+        breadcrumbItemList = computeMenuBreadcrumbList(siteUrl, pagePath, menuTabList);
+      }
       if (breadcrumbItemList != null && !breadcrumbItemList.isEmpty()) {
         Map<String, Object> breadcrumbList = new LinkedHashMap<>();
         breadcrumbList.put("@type", "BreadcrumbList");
@@ -1686,6 +1712,76 @@ public class PageServlet extends HttpServlet {
       itemListElement.add(breadcrumbListItem(i + 2, name, siteUrl + pathSoFar));
     }
     return itemListElement;
+  }
+
+  /**
+   * Builds the BreadcrumbList trail from the navigation menu, for a page whose URL cannot supply one
+   * (issue #1795).
+   *
+   * <p>{@link #computeBreadcrumbList} derives the trail from URL path segments and returns null below
+   * two of them. That held while the menu was two levels and a flat URL usually meant a shallow page.
+   * Since issue #1728 the navigation carries three, so a page can sit two levels below a tab and
+   * still have a one-segment URL -- and every ordinary page on a site therefore emitted no breadcrumb
+   * at all.
+   *
+   * <p>Position in the menu is the trail: tab, then item, then sub-item. A page that IS a tab gets
+   * none, matching the existing rule that a single-level trail is redundant with the nav itself.
+   *
+   * <p>The first match wins. A page linked from more than one place in the menu has no one true
+   * trail, and picking the first is both stable and the same answer the nav's own highlighting gives.
+   */
+  static List<Map<String, Object>> computeMenuBreadcrumbList(String siteUrl, String pagePath,
+      List<MenuTab> menuTabList) {
+    if (StringUtils.isBlank(siteUrl) || StringUtils.isBlank(pagePath) || menuTabList == null) {
+      return null;
+    }
+    for (MenuTab menuTab : menuTabList) {
+      if (menuTab.getMenuItemList() == null) {
+        continue;
+      }
+      for (MenuItem menuItem : menuTab.getMenuItemList()) {
+        if (pagePath.equals(menuItem.getLink())) {
+          return menuTrail(siteUrl, menuTab, menuItem, null);
+        }
+        if (menuItem.getMenuItemList() == null) {
+          continue;
+        }
+        for (MenuItem subMenuItem : menuItem.getMenuItemList()) {
+          if (pagePath.equals(subMenuItem.getLink())) {
+            return menuTrail(siteUrl, menuTab, menuItem, subMenuItem);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Home, then each ancestor that is a distinct destination, then the page. A tab whose link is the
+   * same page as the item beneath it is skipped rather than repeated -- a trail that lists the same
+   * URL twice is worse than a shorter one.
+   */
+  private static List<Map<String, Object>> menuTrail(String siteUrl, MenuTab menuTab, MenuItem menuItem,
+      MenuItem subMenuItem) {
+    List<Map<String, Object>> itemListElement = new ArrayList<>();
+    itemListElement.add(breadcrumbListItem(1, "Home", siteUrl));
+    int position = 2;
+    String lastLink = null;
+    if (StringUtils.isNotBlank(menuTab.getLink()) && !"/".equals(menuTab.getLink())) {
+      itemListElement.add(breadcrumbListItem(position++, menuTab.getName(), siteUrl + menuTab.getLink()));
+      lastLink = menuTab.getLink();
+    }
+    if (StringUtils.isNotBlank(menuItem.getLink()) && !menuItem.getLink().equals(lastLink)) {
+      itemListElement.add(breadcrumbListItem(position++, menuItem.getName(), siteUrl + menuItem.getLink()));
+      lastLink = menuItem.getLink();
+    }
+    if (subMenuItem != null && StringUtils.isNotBlank(subMenuItem.getLink())
+        && !subMenuItem.getLink().equals(lastLink)) {
+      itemListElement.add(breadcrumbListItem(position, subMenuItem.getName(), siteUrl + subMenuItem.getLink()));
+    }
+    // Home plus one is a single-level trail, which computeBreadcrumbList already treats as redundant
+    // with the nav; emitting it here would contradict that for no gain.
+    return itemListElement.size() >= 3 ? itemListElement : null;
   }
 
   private static Map<String, Object> breadcrumbListItem(int position, String name, String url) {

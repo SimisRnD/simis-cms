@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.controller;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
@@ -41,6 +42,7 @@ import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -756,5 +758,90 @@ class PageServletTest {
 
     assertTrue(menuTabList instanceof ArrayList, "expected an ArrayList, got " + menuTabList.getClass());
     assertTrue(menuTabList.isEmpty());
+  }
+
+  // --- breadcrumbs from the navigation, for pages whose URL cannot supply one (issue #1795) ---
+
+  private static MenuItem menuItem(String name, String link, MenuItem... children) {
+    MenuItem menuItem = new MenuItem();
+    menuItem.setName(name);
+    menuItem.setLink(link);
+    if (children.length > 0) {
+      menuItem.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(children)));
+    }
+    return menuItem;
+  }
+
+  private static List<MenuTab> threeLevelMenu() {
+    MenuTab menuTab = new MenuTab();
+    menuTab.setName("Solutions");
+    menuTab.setLink("/solutions");
+    menuTab.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(
+        menuItem("Autonomous Solutions", "/autonomous-solutions",
+            menuItem("Human Type Targets (HTT)", "/htt-human-type-targets")),
+        menuItem("Cybersecurity", "/cybersecurity"))));
+    return new ArrayList<>(java.util.Arrays.asList(menuTab));
+  }
+
+  private static List<String> names(List<Map<String, Object>> trail) {
+    List<String> out = new ArrayList<>();
+    for (Map<String, Object> entry : trail) {
+      out.add(String.valueOf(entry.get("name")));
+    }
+    return out;
+  }
+
+  @Test
+  void aThirdLevelPageGetsTheFullTrail() {
+    // The case the whole change exists for: one URL segment, three levels deep in the nav.
+    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+        "https://example.com", "/htt-human-type-targets", threeLevelMenu());
+    assertNotNull(trail);
+    assertEquals(List.of("Home", "Solutions", "Autonomous Solutions", "Human Type Targets (HTT)"),
+        names(trail));
+    assertEquals(1, trail.get(0).get("position"));
+    assertEquals(4, trail.get(3).get("position"));
+    assertEquals("https://example.com/htt-human-type-targets", trail.get(3).get("item"));
+  }
+
+  @Test
+  void aSecondLevelPageGetsHomeTabAndItself() {
+    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+        "https://example.com", "/cybersecurity", threeLevelMenu());
+    assertEquals(List.of("Home", "Solutions", "Cybersecurity"), names(trail));
+  }
+
+  @Test
+  void aPageThatIsItselfATabGetsNoTrail() {
+    // Home + one is a single-level trail, which computeBreadcrumbList already calls redundant with
+    // the nav; this must not contradict that.
+    assertNull(PageServlet.computeMenuBreadcrumbList(
+        "https://example.com", "/solutions", threeLevelMenu()));
+  }
+
+  @Test
+  void aPageNotInTheMenuGetsNoTrail() {
+    assertNull(PageServlet.computeMenuBreadcrumbList(
+        "https://example.com", "/some-orphan-page", threeLevelMenu()));
+  }
+
+  @Test
+  void aTabLinkingToItsOwnItemIsNotRepeated() {
+    // A trail listing the same URL twice is worse than a shorter one.
+    MenuTab menuTab = new MenuTab();
+    menuTab.setName("Data Center");
+    menuTab.setLink("/data-center");
+    menuTab.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(
+        menuItem("Data Center", "/data-center",
+            menuItem("The Facility", "/the-facility")))));
+    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+        "https://example.com", "/the-facility", new ArrayList<>(java.util.Arrays.asList(menuTab)));
+    assertEquals(List.of("Home", "Data Center", "The Facility"), names(trail));
+  }
+
+  @Test
+  void noMenuIsNotAnError() {
+    assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", null));
+    assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", new ArrayList<>()));
   }
 }
