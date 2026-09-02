@@ -64,10 +64,10 @@ class PageServletTest {
 
   @Test
   void escapeForInlineScriptNeutralizesHtmlBreakoutCharacters() {
-    assertEquals("\\u003c/script\\u003e", PageServlet.escapeForInlineScript("</script>"));
-    assertEquals("\\u003c!--", PageServlet.escapeForInlineScript("<!--"));
-    assertEquals("a \\u0026\\u0026 b", PageServlet.escapeForInlineScript("a && b"));
-    assertNull(PageServlet.escapeForInlineScript(null));
+    assertEquals("\\u003c/script\\u003e", StructuredDataCommand.escapeForInlineScript("</script>"));
+    assertEquals("\\u003c!--", StructuredDataCommand.escapeForInlineScript("<!--"));
+    assertEquals("a \\u0026\\u0026 b", StructuredDataCommand.escapeForInlineScript("a && b"));
+    assertNull(StructuredDataCommand.escapeForInlineScript(null));
   }
 
   @Test
@@ -76,7 +76,7 @@ class PageServletTest {
     // \u003c/\u003e/\u0026 are ordinary JSON string escapes, not a different encoding.
     String original = "<script>alert(document.cookie)</script> & \"quoted\"";
     String json = MAPPER.writeValueAsString(original);
-    String escaped = PageServlet.escapeForInlineScript(json);
+    String escaped = StructuredDataCommand.escapeForInlineScript(json);
     JsonNode parsed = MAPPER.readTree(escaped);
     assertEquals(original, parsed.asText());
   }
@@ -121,7 +121,7 @@ class PageServletTest {
       // "/products" isn't a real WebPage link (it's the collection's own segment, with no
       // Collection given here) -- computeBreadcrumbList falls back to loadByLink for it
       loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/products/widget", sitePropertyMap, item, null, null, Collections.emptyList());
+      jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/products/widget", sitePropertyMap, item, null, null, Collections.emptyList());
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
@@ -140,7 +140,7 @@ class PageServletTest {
   void computeArticleSchemaReturnsNullWhenNotABlogPostPage() {
     // articleHeadline is only ever set by a content widget like BlogPostWidget; a plain page
     // (or one whose bridged data hasn't run yet) must not get a fabricated Article entry
-    assertNull(PageServlet.computeArticleSchema(new PageRenderInfo(), "https://example.org"));
+    assertNull(StructuredDataCommand.computeArticleSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
@@ -151,7 +151,7 @@ class PageServletTest {
     pageRenderInfo.setArticleModifiedDate(Timestamp.from(java.time.Instant.parse("2026-07-15T14:30:00Z")));
     pageRenderInfo.setArticleAuthorName("Jane Author");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("NewsArticle", article.get("@type"));
     assertEquals("Launch Announcement", article.get("headline"));
@@ -169,7 +169,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertNull(article.get("author"));
     assertNull(article.get("dateModified"));
@@ -183,7 +183,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setImageUrl("/assets/img/12345-1/banner.png");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     // a relative path is not resolvable by a consumer that only has the JSON-LD
     assertEquals("https://example.org/assets/img/12345-1/banner.png", article.get("image"));
@@ -199,7 +199,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setImageUrl("https://cdn.example.net/banner.png");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("https://cdn.example.net/banner.png", article.get("image"));
   }
@@ -222,7 +222,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(
+      jsonLd = StructuredDataCommand.generateJsonLdData(
           pageRenderInfo, "https://example.org", "/launch-announcement", sitePropertyMap, null, null, null,
           Collections.emptyList());
     }
@@ -237,7 +237,7 @@ class PageServletTest {
 
   @Test
   void computeFaqSchemaReturnsNullWhenThereAreNoQuestions() {
-    assertNull(PageServlet.computeFaqSchema(new PageRenderInfo()));
+    assertNull(StructuredDataCommand.computeFaqSchema(new PageRenderInfo()));
   }
 
   @Test
@@ -256,7 +256,7 @@ class PageServletTest {
     faqQuestionList.add(second);
     pageRenderInfo.addFaqQuestions(faqQuestionList);
 
-    Map<String, Object> faqPage = PageServlet.computeFaqSchema(pageRenderInfo);
+    Map<String, Object> faqPage = StructuredDataCommand.computeFaqSchema(pageRenderInfo);
 
     assertEquals("FAQPage", faqPage.get("@type"));
     @SuppressWarnings("unchecked")
@@ -287,7 +287,7 @@ class PageServletTest {
 
     // "/faq" is a single segment -- computeBreadcrumbList returns null, so @graph stays
     // [Organization, WebPage, FAQPage]
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/faq", sitePropertyMap, null, null, null, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/faq", sitePropertyMap, null, null, null, Collections.emptyList());
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
         "a poisoned question must not be able to close the surrounding <script> tag: " + jsonLd);
@@ -303,7 +303,7 @@ class PageServletTest {
   void computeProductSchemaReturnsNullWhenNotAProductPage() {
     // productName is only ever set by an ecommerce widget like ProductNameWidget; a plain page
     // must not get a fabricated Product entry
-    assertNull(PageServlet.computeProductSchema(new PageRenderInfo(), "https://example.org"));
+    assertNull(StructuredDataCommand.computeProductSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
@@ -316,7 +316,7 @@ class PageServletTest {
     pageRenderInfo.setProductCurrency("USD");
     pageRenderInfo.setProductAvailability("https://schema.org/InStock");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("Product", product.get("@type"));
     assertEquals("Widget", product.get("name"));
@@ -339,7 +339,7 @@ class PageServletTest {
     pageRenderInfo.setProductOfferCount(3);
     pageRenderInfo.setProductCurrency("USD");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> offer = (Map<String, Object>) product.get("offers");
@@ -354,7 +354,7 @@ class PageServletTest {
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
     pageRenderInfo.setProductName("Widget");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     assertNull(product.get("offers"));
   }
@@ -377,7 +377,7 @@ class PageServletTest {
     links.add(linkedIn);
     links.add(twitter);
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, links);
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, links);
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode organization = parsed.get("@graph").get(0);
@@ -396,7 +396,7 @@ class PageServletTest {
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode organization = parsed.get("@graph").get(0);
@@ -416,7 +416,7 @@ class PageServletTest {
     webPage.setPublishAt(Timestamp.from(java.time.Instant.parse("2026-02-01T00:00:00Z")));
     webPage.setModified(Timestamp.from(java.time.Instant.parse("2026-03-15T12:30:00Z")));
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode webPageNode = parsed.get("@graph").get(1);
@@ -437,7 +437,7 @@ class PageServletTest {
     WebPage webPage = new WebPage();
     webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode webPageNode = parsed.get("@graph").get(1);
@@ -457,7 +457,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
       loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/items/staff/jane-doe", sitePropertyMap, null, null, null, Collections.emptyList());
+      jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/items/staff/jane-doe", sitePropertyMap, null, null, null, Collections.emptyList());
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -794,7 +794,7 @@ class PageServletTest {
   @Test
   void aThirdLevelPageGetsTheFullTrail() {
     // The case the whole change exists for: one URL segment, three levels deep in the nav.
-    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
         "https://example.com", "/htt-human-type-targets", threeLevelMenu());
     assertNotNull(trail);
     assertEquals(List.of("Home", "Solutions", "Autonomous Solutions", "Human Type Targets (HTT)"),
@@ -806,7 +806,7 @@ class PageServletTest {
 
   @Test
   void aSecondLevelPageGetsHomeTabAndItself() {
-    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
         "https://example.com", "/cybersecurity", threeLevelMenu());
     assertEquals(List.of("Home", "Solutions", "Cybersecurity"), names(trail));
   }
@@ -815,13 +815,13 @@ class PageServletTest {
   void aPageThatIsItselfATabGetsNoTrail() {
     // Home + one is a single-level trail, which computeBreadcrumbList already calls redundant with
     // the nav; this must not contradict that.
-    assertNull(PageServlet.computeMenuBreadcrumbList(
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList(
         "https://example.com", "/solutions", threeLevelMenu()));
   }
 
   @Test
   void aPageNotInTheMenuGetsNoTrail() {
-    assertNull(PageServlet.computeMenuBreadcrumbList(
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList(
         "https://example.com", "/some-orphan-page", threeLevelMenu()));
   }
 
@@ -834,15 +834,15 @@ class PageServletTest {
     menuTab.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(
         menuItem("Data Center", "/data-center",
             menuItem("The Facility", "/the-facility")))));
-    List<Map<String, Object>> trail = PageServlet.computeMenuBreadcrumbList(
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
         "https://example.com", "/the-facility", new ArrayList<>(java.util.Arrays.asList(menuTab)));
     assertEquals(List.of("Home", "Data Center", "The Facility"), names(trail));
   }
 
   @Test
   void noMenuIsNotAnError() {
-    assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", null));
-    assertNull(PageServlet.computeMenuBreadcrumbList("https://example.com", "/x", new ArrayList<>()));
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList("https://example.com", "/x", null));
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList("https://example.com", "/x", new ArrayList<>()));
   }
 
   @Test
@@ -854,7 +854,7 @@ class PageServletTest {
     sitePropertyMap.put("site.name", "Example Co");
     sitePropertyMap.put("site.description", "Veteran-owned small business delivering modeling and simulation.");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
         null, null, null, new ArrayList<>());
 
     JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
@@ -871,7 +871,7 @@ class PageServletTest {
     sitePropertyMap.put("site.name", "Example Co");
     sitePropertyMap.put("site.description", "   ");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
         null, null, null, new ArrayList<>());
 
     JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
@@ -892,7 +892,7 @@ class PageServletTest {
     sitePropertyMap.put("site.address.country", "US");
     sitePropertyMap.put("site.founded", "2007");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
         null, null, null, new ArrayList<>());
 
     JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
@@ -917,7 +917,7 @@ class PageServletTest {
     sitePropertyMap.put("site.address.country", "US");
     sitePropertyMap.put("site.address.street", "  ");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
         null, null, null, new ArrayList<>());
 
     JsonNode address = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0).get("address");
@@ -936,7 +936,7 @@ class PageServletTest {
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
         null, null, null, new ArrayList<>());
 
     JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
