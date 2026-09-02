@@ -48,7 +48,8 @@
 .product-option-selection input[type=radio] + label {
   display: inline-block;
   margin: -2px;
-  border-color: #ddd;
+  /* A control outline, so it takes the border role rather than a fixed grey (issue #1590). */
+  border-color: var(--sc-border, #ddd8cf);
   margin-right: 0.3rem;
   margin-top: 2px;
   margin-bottom: 10px;
@@ -57,7 +58,9 @@
 
 .product-option-selection input[type=radio]:checked + label {
   background: #b6ddf6;
-  border: 1px solid #1779ba;
+  /* Foundation's own primary, and used here as Foundation uses it -- the selected state of a
+     control. Same value, now following the theme (issue #1590). */
+  border: 1px solid var(--sc-fnd-primary, #1779ba);
   border-radius: 3px;
   color: #3d3d3d;
   font-weight: var(--sc-weight-semibold, 600);
@@ -88,7 +91,10 @@
   float: right;
   font-weight: var(--sc-weight-semibold, 600);
   font-size: var(--sc-font-xl, 1.5rem);
-  color: #4a4a4a;
+  /* Primary content text, not muted -- the sibling .dim-text above took --sc-text-muted for the
+     muted role, so this takes the ordinary one. Darker in light mode, which raises contrast
+     rather than lowering it (issue #1590). */
+  color: var(--sc-text, #2c2925);
 }
 
 .product-details-add-to-cart .quantity {

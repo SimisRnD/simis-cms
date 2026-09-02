@@ -57,7 +57,9 @@
 
 .todo-list-card .card-divider h3, .todo-list-card .card-divider h4 {
   margin-bottom: 0;
-  color: #ffffff;
+  /* Text on the coloured card divider above -- that is exactly --sc-fnd-on-accent's role, so it
+     stays legible if the divider is re-themed (issue #1590). */
+  color: var(--sc-fnd-on-accent, #fefefe);
 }
 
 .todo-list-card .card-divider .close-button {
