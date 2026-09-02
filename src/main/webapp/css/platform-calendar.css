@@ -280,7 +280,8 @@
    event itself gets a solid accent border so it stands out before a reader even reaches the
    badge text. */
 .fc-event.ec-status-expiring {
-  border-left: 3px solid #cc4b37;
+  /* The alert role the comment above already names it by (issue #1590). */
+  border-left: 3px solid var(--sc-fnd-alert, #cb4834);
   background-color: rgba(204, 75, 55, 0.08);
 }
 /* The rule above replaces FullCalendar's solid event chip with an 8% wash but
