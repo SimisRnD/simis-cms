@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.mailinglists.MailingListMemberCommand;
 import com.simisinc.platform.domain.model.User;
@@ -73,7 +74,9 @@ public class MailingListAjax extends GenericWidget {
     String command = context.getParameter("command");
     try {
       if ("subscribe".equals(command)) {
-        MailingListMemberCommand.subscribe(mailingList, user, context.getUserSession());
+        // The address of the request that subscribed, not the one the session began at (issue #1782)
+        MailingListMemberCommand.subscribe(mailingList, user, context.getUserSession(),
+            IpAddressCommand.forAction(context.getRequest(), context.getUserSession().getIpAddress()));
       } else if ("unsubscribe".equals(command)) {
         MailingListMemberCommand.unsubscribe(mailingList, user);
       } else {

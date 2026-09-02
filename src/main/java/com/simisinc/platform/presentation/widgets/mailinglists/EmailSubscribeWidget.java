@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 
 import static java.util.stream.Collectors.toList;
@@ -175,7 +176,10 @@ public class EmailSubscribeWidget extends GenericWidget {
     }
 
     // Populate all the http and session info
-    emailBean.setIpAddress(context.getUserSession().getIpAddress());
+    // The address of the request that subscribed, not the one the session was created at
+    // (issue #1782)
+    emailBean.setIpAddress(IpAddressCommand.forAction(context.getRequest(),
+        context.getUserSession().getIpAddress()));
     emailBean.setSessionId(context.getUserSession().getSessionId());
     emailBean.setReferer(context.getUserSession().getReferer());
     emailBean.setUserAgent(context.getUserSession().getUserAgent());
