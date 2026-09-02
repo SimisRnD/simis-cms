@@ -287,6 +287,24 @@ p {
 #platform-menu .header-item.float-right ul.menu li a {
   font-size: var(--sc-font-base, 1rem);
 }
+/* Foundation resets the anchor of an OPEN top-level tab -- `.dropdown.menu > li.is-active > a
+   { background: initial }` -- so the <li>'s own colour shows through and the menu stays the
+   colour the site painted it. It does nothing equivalent one level down, so a submenu item
+   opened by click or keyboard gets `.menu .is-active > a`'s stock #1779ba laid over whatever
+   the dropdown is themed to (issue #1787). Hovering the same row looked right, so one row had
+   two unrelated open states depending on how it was opened.
+
+   The same reset, one level down. No colour is invented here: with nothing themed the row simply
+   shows the dropdown's own background instead of Foundation blue, and when
+   theme.topbar.menu.text.hoverBackgroundColor is set, main.jsp's rule for the open row outranks
+   this and paints it -- which is what makes hover and open finally agree.
+
+   Specificity (1,2,2) beats Foundation's (0,2,1) without !important, the same way the admin
+   shell's active state does below. */
+#platform-menu .is-dropdown-submenu li.is-active > a {
+  background: initial;
+}
+
 #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
