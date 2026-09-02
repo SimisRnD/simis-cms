@@ -24,11 +24,13 @@ import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -569,4 +571,129 @@ class CaptchaCommandTest {
     }
   }
 
+  /** The address the session was created at, hours ago. */
+  private static final String SESSION_IP = "203.0.113.10";
+  /** The address the captcha is actually being submitted from. */
+  private static final String REQUEST_IP = "198.51.100.7";
+
+  private static final String TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+  private static final String GOOGLE_URL = "https://www.google.com/recaptcha/api/siteverify";
+
+  /**
+   * Both providers define remoteip as the address of the visitor making <em>this</em> request
+   * (Turnstile: "The visitor's IP address"; reCAPTCHA: "Optional. The user's IP address."). Neither
+   * returns an error code for a value that does not match, so sending the session's creation-time
+   * address failed silently and unreportably -- issue #1791.
+   */
+  @Test
+  void validateRequestTurnstileSendsTheRequestAddressAsRemoteip() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("test-sitekey");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn("test-secretkey");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      UserSession userSession = mock(UserSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getUserSession()).thenReturn(userSession);
+      when(userSession.getIpAddress()).thenReturn(SESSION_IP);
+      when(request.getRemoteAddr()).thenReturn(REQUEST_IP);
+      when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(context));
+
+      ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), captor.capture()));
+      Assertions.assertEquals(REQUEST_IP, captor.getValue().get("remoteip"));
+    }
+  }
+
+  @Test
+  void validateRequestGoogleSendsTheRequestAddressAsRemoteip() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("google");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn("a-site-key");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn("a-secret-key");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      UserSession userSession = mock(UserSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getUserSession()).thenReturn(userSession);
+      when(userSession.getIpAddress()).thenReturn(SESSION_IP);
+      when(request.getRemoteAddr()).thenReturn(REQUEST_IP);
+      when(context.getParameter("g-recaptcha-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(eq(GOOGLE_URL), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(context));
+
+      ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(eq(GOOGLE_URL), captor.capture()));
+      Assertions.assertEquals(REQUEST_IP, captor.getValue().get("remoteip"));
+    }
+  }
+
+  @Test
+  void validateRequestFallsBackToTheSessionAddressWhenTheRequestHasNone() {
+    // The value is optional to both providers, so the fallback must keep sending something useful
+    // rather than dropping the field the moment the request has no address.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("test-sitekey");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn("test-secretkey");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      UserSession userSession = mock(UserSession.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getUserSession()).thenReturn(userSession);
+      when(userSession.getIpAddress()).thenReturn(SESSION_IP);
+      when(request.getRemoteAddr()).thenReturn(null);
+      when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(context));
+
+      ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), captor.capture()));
+      Assertions.assertEquals(SESSION_IP, captor.getValue().get("remoteip"));
+    }
+  }
+
+  @Test
+  void validateRequestOmitsRemoteipWhenNeitherTheRequestNorTheSessionHasAnAddress() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpPostCommand> httpPost = mockStatic(HttpPostCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn("turnstile");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey")).thenReturn("test-sitekey");
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey")).thenReturn("test-secretkey");
+
+      WidgetContext context = mock(WidgetContext.class);
+      HttpServletRequest request = mock(HttpServletRequest.class);
+      when(context.getRequest()).thenReturn(request);
+      when(context.getUserSession()).thenReturn(null);
+      when(request.getRemoteAddr()).thenReturn(null);
+      when(context.getParameter("cf-turnstile-response")).thenReturn("a-valid-token");
+
+      httpPost.when(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), anyMap()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(200, "{\"success\": true}"));
+
+      Assertions.assertTrue(CaptchaCommand.validateRequest(context));
+
+      ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
+      httpPost.verify(() -> HttpPostCommand.executeWithResponse(eq(TURNSTILE_URL), captor.capture()));
+      Assertions.assertFalse(captor.getValue().containsKey("remoteip"));
+    }
+  }
 }

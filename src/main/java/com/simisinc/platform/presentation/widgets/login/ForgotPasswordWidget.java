@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.login;
 import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
@@ -73,12 +74,17 @@ public class ForgotPasswordWidget extends GenericWidget {
       return context;
     }
 
-    // Rate limiting
+    // Rate limiting.
+    // The per-ip bucket must be keyed to the address this reset is actually being driven from, not
+    // the one the session happened to start at (issue #1791). execute() above already reads the
+    // request, and every other isIpAllowedRightNow caller in the platform does too -- they all share
+    // one bucket namespace, so keying it two ways from inside the same widget is what breaks it.
+    String ipAddress = IpAddressCommand.forAction(context.getRequest(), context.getUserSession().getIpAddress());
     if (!RateLimitCommand.isUsernameAllowedRightNow(username, false)) {
       context.setWarningMessage(RateLimitCommand.INVALID_ATTEMPTS);
       return context;
     }
-    if (!RateLimitCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), false)) {
+    if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
       context.setWarningMessage(RateLimitCommand.INVALID_ATTEMPTS);
       return context;
     }
@@ -86,7 +92,7 @@ public class ForgotPasswordWidget extends GenericWidget {
     // Locate the user
     User user = LoadUserCommand.loadUser(username);
     if (user == null) {
-      if (!RateLimitCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true)) {
+      if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, true)) {
         context.setWarningMessage(RateLimitCommand.INVALID_ATTEMPTS);
         return context;
       }
@@ -100,7 +106,7 @@ public class ForgotPasswordWidget extends GenericWidget {
     // Limit the number of attempts per username (system(s) attempting the same username)
     // Limit the number of attempts per ip (a system attempting multiple users)
     RateLimitCommand.isUsernameAllowedRightNow(username, true);
-    RateLimitCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true);
+    RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
 
     // Make sure the user has a valid email address
     if (!JMail.isValid(user.getEmail())) {
