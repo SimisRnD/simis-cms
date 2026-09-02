@@ -21,14 +21,25 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -137,6 +148,136 @@ class DatabaseMigrationTest {
     if (postgres != null) {
       postgres.stop();
     }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // The upgrade track (issue #1755).
+  //
+  // Everything above covers the install run. The upgrade track was not executed by anything: a
+  // fresh install baselines flyway_history above every UPGRADE_ file that exists, so they are
+  // recorded as applied without running, and a new one only reached CI if its author hand-wrote a
+  // test. Three of 169 had one. A migration that was syntactically broken, referenced a dropped
+  // object, or silently did nothing passed the whole suite.
+  //
+  // These apply each UPGRADE_*.sql to the installed database inside a transaction that is then
+  // rolled back, so the schema the assertions above depend on is not disturbed and the tests are
+  // order-independent. Replaying against a modern install is not the same as replaying against the
+  // schema of the day -- an upgrade the install track has since caught up with cannot succeed
+  // twice -- so the ones that legitimately cannot replay are listed, with a reason, in
+  // upgrade-replay-exceptions.txt, and the list is checked in both directions.
+  // ---------------------------------------------------------------------------------------------
+
+  // Both are read from the source tree rather than the classpath. compile-test stages only
+  // src/main/resources/database onto the test classpath, and the exceptions list must not be in
+  // there: it is test data, and anything under src/main/resources/database is copied into the WAR.
+  private static final Path EXCEPTIONS_FILE =
+      Paths.get("src/test/resources/database/upgrade-replay-exceptions.txt");
+  private static final Path UPGRADE_DIRECTORY = Paths.get("src/main/resources/database/upgrade");
+
+  @Test
+  void everyUpgradeMigrationEitherReplaysOrIsAKnownException() throws Exception {
+    Map<String, String> exceptions = readExceptions();
+    List<String> unexpectedFailures = new ArrayList<>();
+    int replayed = 0;
+    for (Path file : upgradeMigrations()) {
+      String name = file.getFileName().toString();
+      String failure = replayFailure(file);
+      if (failure == null) {
+        replayed++;
+        continue;
+      }
+      if (!exceptions.containsKey(name)) {
+        unexpectedFailures.add(name + " -- " + failure);
+      }
+    }
+    assertTrue(replayed > 0, "no upgrade migrations were executed at all");
+    assertEquals(List.of(), unexpectedFailures,
+        "these upgrade migrations no longer apply to a freshly installed database. If the cause is "
+            + "that the install track now does the same thing, add the file to "
+            + EXCEPTIONS_FILE + " with that reason. Otherwise it is a defect in the migration: "
+            + unexpectedFailures);
+  }
+
+  @Test
+  void everyListedExceptionStillFails() throws Exception {
+    // The other direction, so the list cannot rot. A migration that starts replaying cleanly --
+    // because the install file it collided with was removed, say -- must lose its line, or the
+    // list slowly becomes a place where real failures could hide.
+    Map<String, String> exceptions = readExceptions();
+    List<String> nowPassing = new ArrayList<>();
+    List<String> notFound = new ArrayList<>(exceptions.keySet());
+    for (Path file : upgradeMigrations()) {
+      String name = file.getFileName().toString();
+      if (!exceptions.containsKey(name)) {
+        continue;
+      }
+      notFound.remove(name);
+      if (replayFailure(file) == null) {
+        nowPassing.add(name);
+      }
+    }
+    // Reported together rather than as two assertions, so a stale entry does not hide a missing
+    // file behind it -- the first assertion to fail would be the only one anyone saw.
+    List<String> stale = new ArrayList<>();
+    nowPassing.forEach(name -> stale.add(name + " (now applies cleanly)"));
+    notFound.forEach(name -> stale.add(name + " (no such migration)"));
+    assertEquals(List.of(), stale,
+        "remove these lines from " + EXCEPTIONS_FILE + " -- an entry that is no longer true is a "
+            + "place a real failure could hide: " + stale);
+  }
+
+  /**
+   * Applies one migration and rolls it back.
+   *
+   * @return null when it applied, or the first line of the database error when it did not
+   */
+  private static String replayFailure(Path file) throws Exception {
+    String sql = Files.readString(file, StandardCharsets.UTF_8);
+    try (Connection connection = DB.getConnection()) {
+      connection.setAutoCommit(false);
+      try (Statement statement = connection.createStatement()) {
+        statement.execute(sql);
+        return null;
+      } catch (SQLException e) {
+        String message = e.getMessage() == null ? e.toString() : e.getMessage().split("\n")[0];
+        return message.length() > 160 ? message.substring(0, 160) : message;
+      } finally {
+        // Nothing this method does may survive: the assertions above run against this same
+        // database, and the migrations are replayed in no particular order.
+        connection.rollback();
+      }
+    }
+  }
+
+  private static List<Path> upgradeMigrations() throws IOException {
+    assertTrue(Files.isDirectory(UPGRADE_DIRECTORY),
+        "upgrade migrations not found at " + UPGRADE_DIRECTORY.toAbsolutePath()
+            + " -- this test reads them from the source tree, so it must run from the project root");
+    try (Stream<Path> walk = Files.walk(UPGRADE_DIRECTORY)) {
+      return walk.filter(path -> path.getFileName().toString().endsWith(".sql"))
+          .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+          .collect(Collectors.toList());
+    }
+  }
+
+  /** @return filename to reason, for every non-comment line of the exceptions list */
+  private static Map<String, String> readExceptions() throws IOException {
+    assertTrue(Files.isRegularFile(EXCEPTIONS_FILE),
+        "missing " + EXCEPTIONS_FILE.toAbsolutePath() + " -- this test runs from the project root");
+    Map<String, String> exceptions = new LinkedHashMap<>();
+    for (String line : Files.readAllLines(EXCEPTIONS_FILE, StandardCharsets.UTF_8)) {
+      String trimmed = line.trim();
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+        continue;
+      }
+      int hash = trimmed.indexOf('#');
+      String name = (hash == -1 ? trimmed : trimmed.substring(0, hash)).trim();
+      String reason = hash == -1 ? "" : trimmed.substring(hash + 1).trim();
+      assertTrue(!reason.isEmpty(),
+          "every entry needs a reason after '#', so the list stays reviewable: " + name);
+      exceptions.put(name, reason);
+    }
+    return exceptions;
   }
 
   @Test
