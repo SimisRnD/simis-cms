@@ -243,13 +243,55 @@
   }
   --%>
 
+  // Issue #1793: one instance owning BOTH container types, because dragula only permits a drop
+  // into a container belonging to the same instance. Two instances -- one per level, keyed on the
+  // handle class -- is why an item could be moved sideways at either level but never between them:
+  // to demote a second-level item you deleted it and re-created it, losing its id and its place.
   var menuItems = dragula([
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
-    document.querySelector('#site-map-submenu-tab-container-${menuTab.id}')<c:if test="${!status.last}">, </c:if>
+    document.querySelector('#site-map-submenu-tab-container-${menuTab.id}'),
     </c:forEach>
-  ], {
+  ].concat(Array.prototype.slice.call(document.querySelectorAll('.site-map-subitem-container'))), {
     moves: function (el, container, handle) {
-      return handle.classList.contains('site-map-submenu-tab-drag-handle');
+      // Either level's handle; which level a row ends up at is decided by where it lands.
+      return handle.classList.contains('site-map-submenu-tab-drag-handle')
+          || handle.classList.contains('site-map-subitem-drag-handle');
+    },
+    accepts: function (el, target) {
+      if (!target.classList.contains('site-map-subitem-container')) {
+        return true;
+      }
+      // Dropping INTO a parent makes this row third-level. Nesting is capped at three -- the same
+      // rule updateMenuSubItemOrder and appendNewSubMenuItem both enforce server-side -- so a row
+      // that has children of its own cannot go there; they would land at a fourth level that
+      // nothing renders. Refused here rather than rejected on save, so the drop simply will not
+      // take and the editor never shows a state the server would not keep.
+      var ownChildren = el.querySelector('.site-map-subitem-container');
+      return !(ownChildren && ownChildren.querySelector('.site-map-subitem'));
+    }
+  });
+
+  // A row keeps its id and its inputs across a level change -- the name/link fields are called
+  // menuItem<id>name at both levels, and the server reads the id off the element id -- so the only
+  // thing to restate is which level it now looks like.
+  menuItems.on('drop', function (el, target) {
+    var nowNested = target.classList.contains('site-map-subitem-container');
+    el.classList.toggle('site-map-subitem', nowNested);
+    el.classList.toggle('site-map-submenu-tab', !nowNested);
+    var handle = el.querySelector('.site-map-submenu-tab-drag-handle, .site-map-subitem-drag-handle');
+    if (handle) {
+      handle.classList.toggle('site-map-subitem-drag-handle', nowNested);
+      handle.classList.toggle('site-map-submenu-tab-drag-handle', !nowNested);
+    }
+    // A nested row cannot take children, so its own add-sub-item control and empty container are
+    // hidden rather than removed -- promoting it back must restore them without a reload.
+    var ownContainer = el.querySelector('.site-map-subitem-container');
+    if (ownContainer) {
+      ownContainer.hidden = nowNested;
+    }
+    var addControl = el.querySelector('.site-map-subitem-add');
+    if (addControl) {
+      addControl.hidden = nowNested;
     }
   });
 
@@ -257,12 +299,19 @@
   // is one container per menu item, and querySelectorAll keeps that list correct without a nested
   // loop in the markup. Passing every container to a single dragula instance is what makes an item
   // draggable from one parent to another, exactly as the level-2 instance above does across tabs.
-  var menuSubItems = dragula(
-    Array.prototype.slice.call(document.querySelectorAll('.site-map-subitem-container')), {
-      moves: function (el, container, handle) {
-        return handle.classList.contains('site-map-subitem-drag-handle');
+
+  // The rows directly inside a container, ignoring anything nested deeper. Identified by carrying
+  // an id, which every rendered row has and no wrapper does, so this stays correct for a row whose
+  // level class was just restated by the drop handler.
+  function directChildRows(container) {
+    var rows = [];
+    for (var i = 0; i < container.children.length; i++) {
+      if (container.children[i].id) {
+        rows.push(container.children[i]);
       }
-    });
+    }
+    return rows;
+  }
 
   function checkSiteMapOrder() {
     // Check the main tabs
@@ -277,8 +326,16 @@
         menuTabOrder += ",";
       }
       menuTabOrder += menuTab.id;
-      // look for menuItems...
-      var menuItemList = menuTab.querySelectorAll(".site-map-submenu-tab");
+      // Which container a row sits in decides its level -- not the classes it carries (issue
+      // #1793). This asked each tab for ".site-map-submenu-tab" DESCENDANTS, which is every row at
+      // both levels once one can be dragged between them: a demoted row would have been reported as
+      // second-level and promoted straight back on save. Direct children only, so a row is counted
+      // once, by where it actually is.
+      var itemContainer = menuTab.querySelector(".site-map-submenu-container");
+      if (!itemContainer) {
+        continue;
+      }
+      var menuItemList = directChildRows(itemContainer);
       for (var j = 0; j < menuItemList.length; j++) {
         var menuItem = menuItemList[j];
         if (menuItemOrder.length > 0) {
@@ -289,7 +346,7 @@
         // DOM position, so an item dragged to a different parent reports its new one.
         var subItemContainer = menuItem.querySelector(".site-map-subitem-container");
         if (subItemContainer) {
-          var subItemList = subItemContainer.querySelectorAll(".site-map-subitem");
+          var subItemList = directChildRows(subItemContainer);
           for (var k = 0; k < subItemList.length; k++) {
             if (menuSubItemOrder.length > 0) {
               menuSubItemOrder += "|";
