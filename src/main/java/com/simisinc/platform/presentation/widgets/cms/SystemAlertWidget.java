@@ -41,7 +41,9 @@ public class SystemAlertWidget extends GenericWidget {
     if (StringUtils.isBlank(sitePropertyMap.get("site.header.line1")) && !context.getUserSession().hasRole("admin")) {
       return context;
     }
-    context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
+    // Not re-published as a request attribute: PageServlet already publishes sitePropertyMap for
+    // the whole request, and system-alert.jsp reads that one (#1799). The local copy above is only
+    // this widget's own visibility gate.
 
     // Show the JSP
     context.setJsp(JSP);

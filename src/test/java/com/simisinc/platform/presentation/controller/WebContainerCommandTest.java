@@ -33,13 +33,17 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -348,6 +352,20 @@ class WebContainerCommandTest {
     return new WebContainerContext(request, response, new ControllerSession(), widgetInstances, null, null);
   }
 
+  /**
+   * A request whose attributes behave like a real one, so the per-widget reset loop actually has
+   * something to iterate. {@link #newGetContext} stubs getAttributeNames() empty, which makes the
+   * loop a no-op -- fine for the render-shape tests, useless for testing the reset itself.
+   */
+  private static HttpServletRequest newRequestWithRealAttributes(Map<String, Object> attributes) {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getAttributeNames()).thenAnswer(i -> Collections.enumeration(new ArrayList<>(attributes.keySet())));
+    when(request.getAttribute(anyString())).thenAnswer(i -> attributes.get(i.getArgument(0, String.class)));
+    doAnswer(i -> attributes.put(i.getArgument(0), i.getArgument(1))).when(request).setAttribute(anyString(), any());
+    doAnswer(i -> attributes.remove(i.getArgument(0, String.class))).when(request).removeAttribute(anyString());
+    return request;
+  }
+
   private static Section sectionWith(Column... columns) {
     Section section = new Section();
     section.setColumns(List.of(columns));
@@ -369,6 +387,68 @@ class WebContainerCommandTest {
   public static class StubWidgetWithNoContent {
     public WidgetContext execute(WidgetContext context) {
       return null;
+    }
+  }
+
+  // The reset loop itself, as opposed to the isPreservedAcrossWidgetReset predicate the three
+  // tests above check. Every one of the platform's widgets depends on this loop actually running:
+  // it is the reason a widget never has to clear its own request attributes, and the reason a
+  // widget's JSP cannot read the widget before it. Nothing asserted it -- the render-shape tests
+  // stub getAttributeNames() to an empty enumeration, so the loop iterates nothing there.
+
+  @Test
+  void theResetLoopRemovesAWidgetsLeftoversBeforeTheNextWidgetRuns() throws Exception {
+    Map<String, Object> attributes = new HashMap<>();
+    // What a widget leaves behind after its own JSP has rendered
+    attributes.put("embedUrl", "https://example.org/from-the-previous-widget");
+    attributes.put("title", "the previous widget's title");
+    HttpServletRequest request = newRequestWithRealAttributes(attributes);
+
+    Column populated = new Column();
+    populated.setWidgets(List.of(new Widget("exampleWidget")));
+    Map<String, Object> widgetInstances = new HashMap<>();
+    widgetInstances.put("exampleWidget", new StubWidget());
+
+    WebContainerCommand.processWidgets(
+        new WebContainerContext(request, mock(HttpServletResponse.class), new ControllerSession(),
+            widgetInstances, null, null),
+        List.of(sectionWith(populated)), new PageRenderInfo(), new HashMap<>(), "", "/test",
+        mock(UserSession.class), new HashMap<>(), false);
+
+    Assertions.assertNull(attributes.get("embedUrl"),
+        "a widget must never see the attribute the widget before it set");
+    Assertions.assertNull(attributes.get("title"));
+  }
+
+  @Test
+  void theResetLoopKeepsThePageLevelAttributesTheWholeRequestNeeds() throws Exception {
+    // The other half, and the one that has shipped broken twice (cspNonce #944, and #1763's
+    // near-miss): these are computed once by PageServlet before any widget runs, and main.jsp's EL
+    // reads them again after the walk is over
+    Map<String, Object> attributes = new HashMap<>();
+    attributes.put("cspNonce", "nonce-value");
+    attributes.put("themePropertyMap", new HashMap<String, String>());
+    attributes.put("sitePropertyMap", new HashMap<String, String>());
+    attributes.put("socialMediaLinkList", new ArrayList<>());
+    attributes.put("masterWebPage", "kept by the master prefix");
+    attributes.put("controllerSomething", "kept by the controller prefix");
+    attributes.put("requestSomething", "kept by the request prefix");
+    HttpServletRequest request = newRequestWithRealAttributes(attributes);
+
+    Column populated = new Column();
+    populated.setWidgets(List.of(new Widget("exampleWidget")));
+    Map<String, Object> widgetInstances = new HashMap<>();
+    widgetInstances.put("exampleWidget", new StubWidget());
+
+    WebContainerCommand.processWidgets(
+        new WebContainerContext(request, mock(HttpServletResponse.class), new ControllerSession(),
+            widgetInstances, null, null),
+        List.of(sectionWith(populated)), new PageRenderInfo(), new HashMap<>(), "", "/test",
+        mock(UserSession.class), new HashMap<>(), false);
+
+    for (String name : new String[] { "cspNonce", "themePropertyMap", "sitePropertyMap",
+        "socialMediaLinkList", "masterWebPage", "controllerSomething", "requestSomething" }) {
+      Assertions.assertNotNull(attributes.get(name), name + " must survive the per-widget reset");
     }
   }
 

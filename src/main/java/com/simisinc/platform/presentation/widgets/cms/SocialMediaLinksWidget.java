@@ -42,7 +42,9 @@ public class SocialMediaLinksWidget extends GenericWidget {
     if (socialMediaLinkList.isEmpty()) {
       return context;
     }
-    context.getRequest().setAttribute("socialMediaLinkList", socialMediaLinkList);
+    // Not re-published: PageServlet loads the same list once per request and it is exempt from the
+    // per-widget reset, so social-media-links.jsp and the footer both read one copy (#1799). The
+    // local list above is only this widget's own "render nothing when empty" gate.
 
     // Preferences
     context.getRequest().setAttribute("iconClass", context.getPreferences().getOrDefault("iconClass", "margin-left-10"));
