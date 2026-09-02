@@ -63,8 +63,8 @@
   left: 0;
   right: 0;
   height: 44px;
-  background: var(--sc-chrome, #18202d);
-  border-bottom: 2px solid var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome, #17202d);
+  border-bottom: 2px solid var(--sc-chrome-accent, #0156b2);
   display: flex;
   align-items: center;
   padding: 0 1rem;
@@ -143,17 +143,17 @@
    #sc-widget-picker keeps its #ccc: that is a container edge, not a control
    boundary, and --sc-border is documented as decorative and 1.4.11-exempt. */
 #sc-editor-toolbar a.button {
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
-  border-color: var(--sc-border-control, #838589);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
+  border-color: var(--sc-border-control, #878581);
 }
 
 #sc-editor-toolbar a.button:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  border-color: var(--sc-border-control, #838589);
+  border-color: var(--sc-border-control, #878581);
 }
 
 #sc-editor-toolbar-title {
-  color: var(--sc-chrome-ink-subtle, #8e9cae);
+  color: var(--sc-chrome-ink-subtle, #8f9cae);
   font-size: var(--sc-font-xs, 0.75rem);
   font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.04em;
@@ -162,7 +162,7 @@
 }
 
 #sc-editor-status {
-  color: var(--sc-chrome-ink-subtle, #8e9cae);
+  color: var(--sc-chrome-ink-subtle, #8f9cae);
   font-size: var(--sc-font-xs, 0.75rem);
   margin-left: auto;
   white-space: nowrap;
@@ -225,7 +225,7 @@ body.page-edit-mode [data-editor-widget]:hover {
 }
 
 .sc-editor-handle-section {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -259,20 +259,20 @@ a.sc-editor-handle:hover {
 
 /* Active editing state */
 .platform-content[contenteditable="true"] {
-  outline: 2px solid var(--sc-chrome-accent, #0056b3);
+  outline: 2px solid var(--sc-chrome-accent, #0156b2);
   outline-offset: 3px;
   min-height: 2em;
   cursor: text;
 }
 
 .platform-content[contenteditable="true"]:focus {
-  outline-color: var(--sc-chrome-accent-deep, #004494);
+  outline-color: var(--sc-chrome-accent-deep, #004592);
 }
 
 /* Floating inline toolbar (appears above the content block) */
 #sc-inline-toolbar {
   position: absolute;
-  background: var(--sc-chrome, #18202d);
+  background: var(--sc-chrome, #17202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 3px 6px;
@@ -289,7 +289,7 @@ a.sc-editor-handle:hover {
 #sc-inline-toolbar button {
   background: transparent;
   border: none;
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   padding: 3px 7px;
   cursor: pointer;
   border-radius: 3px;
@@ -301,7 +301,7 @@ a.sc-editor-handle:hover {
 
 #sc-inline-toolbar button:hover,
 #sc-inline-toolbar button.sc-active {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -334,7 +334,7 @@ a.sc-editor-handle:hover {
 
 /* Dim the editor widget outline while actively editing */
 body.page-edit-mode [data-editor-widget].sc-editing {
-  outline-color: var(--sc-chrome-accent, #0056b3);
+  outline-color: var(--sc-chrome-accent, #0156b2);
 }
 
 /* ── Drag-to-reorder layout ── */
@@ -364,7 +364,7 @@ body.page-edit-mode [data-editor-widget].sc-editing {
 }
 
 .sc-drag-handle-section {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
 }
 
 .sc-drag-handle-widget {
@@ -386,7 +386,7 @@ body.page-edit-mode [data-editor-widget].sc-dragging {
 /* Drop insertion indicator */
 .sc-drop-indicator {
   height: 3px;
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   border-radius: 2px;
   pointer-events: none;
   margin: 0;
@@ -410,7 +410,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 .sc-move-btns button {
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-fnd-on-accent, #fefefe);
   font-size: var(--sc-font-2xs, 0.6875rem);
   padding: 2px 5px;
@@ -421,8 +421,8 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 .sc-move-btns button:hover {
-  background: var(--sc-chrome-accent, #0056b3);
-  border-color: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
+  border-color: var(--sc-chrome-accent, #0156b2);
 }
 
 /* Save Layout button in toolbar */
@@ -458,13 +458,13 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 #sc-discard-draft-btn {
   margin-bottom: 0;
   font-size: var(--sc-font-xs, 0.75rem);
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
-  border-color: var(--sc-border-control, #838589);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
+  border-color: var(--sc-border-control, #878581);
 }
 
 #sc-discard-draft-btn:hover {
   color: var(--sc-fnd-on-accent, #fefefe);
-  border-color: var(--sc-border-control, #838589);
+  border-color: var(--sc-border-control, #878581);
 }
 
 /* Confirm modal overlay */
@@ -483,7 +483,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-modal-box {
-  background: var(--sc-chrome, #18202d);
+  background: var(--sc-chrome, #17202d);
   border: 1px solid #444;
   border-radius: 6px;
   padding: 1.25rem 1.5rem;
@@ -516,7 +516,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 }
 
 #sc-confirm-ok {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -530,8 +530,8 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
 
 #sc-confirm-cancel {
   background: var(--sc-chrome-control, #243040);
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
-  border: 1px solid var(--sc-border-control, #838589) !important;
+  color: var(--sc-chrome-ink-muted, #aab6c6);
+  border: 1px solid var(--sc-border-control, #878581) !important;
 }
 
 #sc-confirm-cancel:hover {
@@ -577,7 +577,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-add:hover {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
 }
 
 .sc-mutate-btn-remove {
@@ -592,7 +592,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 #sc-width-picker {
   position: absolute;
-  background: var(--sc-chrome, #18202d);
+  background: var(--sc-chrome, #17202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -611,8 +611,8 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 
 .sc-width-preset-btn {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  border: 1px solid var(--sc-border-control, #878581);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   padding: 5px 4px;
   cursor: pointer;
   border-radius: 3px;
@@ -623,14 +623,14 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-width-preset-btn:hover {
-  border-color: var(--sc-chrome-accent, #0056b3);
+  border-color: var(--sc-chrome-accent, #0156b2);
   color: var(--sc-fnd-on-accent, #fefefe);
   background: var(--sc-chrome-control-hover, #293648);
 }
 
 .sc-width-preset-btn.sc-active {
-  background: var(--sc-chrome-accent, #0056b3);
-  border-color: var(--sc-border-control, #838589);
+  background: var(--sc-chrome-accent, #0156b2);
+  border-color: var(--sc-border-control, #878581);
   color: var(--sc-fnd-on-accent, #fefefe);
 }
 
@@ -642,7 +642,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-width-custom-input {
   flex: 1;
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-chrome-ink, #e8eef6);
   padding: 3px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -679,12 +679,12 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
    checkbox and colour prefs, the close buttons -- are left to Layer 3a and to
    PR 1504, which is what reaches Foundation's own attribute-selector resets. */
 #sc-width-custom-input:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 #sc-width-custom-apply {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
@@ -713,7 +713,7 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 }
 
 .sc-mutate-btn-style:hover {
-  background: var(--sc-chrome-accent, #0056b3) !important;
+  background: var(--sc-chrome-accent, #0156b2) !important;
 }
 
 .sc-mutate-btn-prefs {
@@ -742,7 +742,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-panel {
   position: absolute;
-  background: var(--sc-chrome, #18202d);
+  background: var(--sc-chrome, #17202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 8px;
@@ -778,7 +778,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-pref-field label {
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
 }
@@ -787,7 +787,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"],
 .sc-pref-field select {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: #eee;
   padding: 4px 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -802,14 +802,14 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-pref-field input[type="number"]:focus-visible,
 .sc-pref-field select:focus-visible,
 .sc-pref-field textarea:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
 .sc-pref-field input[type="color"] {
   width: 100%;
   height: 26px;
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   border-radius: 3px;
   background: var(--sc-chrome-control, #243040);
   padding: 2px;
@@ -818,7 +818,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-pref-field textarea {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-chrome-ink, #e8eef6);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -836,7 +836,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-prefs-empty {
-  color: var(--sc-chrome-ink-subtle, #8e9cae);
+  color: var(--sc-chrome-ink-subtle, #8f9cae);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-family: sans-serif;
   margin: 4px 0;
@@ -849,7 +849,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-header span {
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   font-size: var(--sc-font-2xs, 0.6875rem);
   font-weight: var(--sc-weight-semibold, 600);
   text-transform: uppercase;
@@ -859,7 +859,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-prefs-close {
   background: transparent;
   border: none;
-  color: var(--sc-chrome-ink-subtle, #8e9cae);
+  color: var(--sc-chrome-ink-subtle, #8f9cae);
   font-size: var(--sc-font-base, 1rem);
   cursor: pointer;
   padding: 0 2px;
@@ -872,7 +872,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-textarea {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-chrome-ink, #e8eef6);
   padding: 6px;
   font-size: var(--sc-font-2xs, 0.6875rem);
@@ -888,7 +888,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 /* Focus ring -- see the note on #sc-width-custom-input:focus-visible above. */
 #sc-prefs-textarea:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
@@ -907,8 +907,8 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-prefs-reset {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  border: 1px solid var(--sc-border-control, #878581);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   padding: 3px 10px;
   font-size: var(--sc-font-2xs, 0.6875rem);
   border-radius: 3px;
@@ -922,7 +922,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-prefs-apply {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 10px;
@@ -939,7 +939,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
-  background: var(--sc-chrome, #18202d);
+  background: var(--sc-chrome, #17202d);
   border: 1px solid #444;
   border-radius: 4px;
   padding: 6px 8px;
@@ -952,7 +952,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 #sc-link-prompt input[type="text"] {
   background: var(--sc-chrome-control, #243040);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-chrome-ink, #e8eef6);
   padding: 3px 6px;
   font-size: var(--sc-font-xs, 0.75rem);
@@ -961,7 +961,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 #sc-link-prompt button {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   border: none;
   color: var(--sc-fnd-on-accent, #fefefe);
   padding: 3px 8px;
@@ -1014,7 +1014,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 #sc-widget-search {
   margin: 6px 8px;
   padding: 4px 6px;
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   border-radius: 3px;
   font-size: var(--sc-font-xs, 0.75rem);
   flex-shrink: 0;
@@ -1028,7 +1028,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
    6.98:1 against the light fill but only 1.03:1 in dark mode, where
    platform-tokens gives the field the same dark fill named in that note. */
 #sc-widget-search:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
 }
 
@@ -1159,7 +1159,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item:hover,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-item.ql-selected {
-  color: var(--sc-link, #276caa);
+  color: var(--sc-link, #246caa);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke,
@@ -1170,7 +1170,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
 .sc-quill-editing .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
-  stroke: var(--sc-link, #276caa);
+  stroke: var(--sc-link, #246caa);
 }
 
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -1179,7 +1179,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 .sc-quill-editing .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button:focus .ql-stroke.ql-fill,
 .sc-quill-editing .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
-  fill: var(--sc-link, #276caa);
+  fill: var(--sc-link, #246caa);
 }
 
 /* The link tooltip: Quill paints it #fff and #444 and leaves the anchors to the
@@ -1197,13 +1197,13 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-editing .ql-snow .ql-tooltip input[type=text] {
   background-color: var(--sc-field-bg, #ffffff);
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   color: var(--sc-text, #2c2925);
 }
 
 /* Quill's placeholder is rgba(0,0,0,0.6) -- invisible on a dark editor. */
 .sc-quill-editing .ql-snow .ql-editor.ql-blank::before {
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 .sc-quill-editor-container .ql-editor {
@@ -1220,7 +1220,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-save-btn {
-  background: var(--sc-chrome-accent, #0056b3);
+  background: var(--sc-chrome-accent, #0156b2);
   color: var(--sc-fnd-on-accent, #fefefe);
   border: none;
   border-radius: 3px;
@@ -1230,7 +1230,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 }
 
 .sc-quill-actions .sc-save-btn:hover:not(:disabled) {
-  background: var(--sc-chrome-accent-deep, #004494);
+  background: var(--sc-chrome-accent-deep, #004592);
 }
 
 .sc-quill-actions .sc-save-btn:disabled {
@@ -1240,7 +1240,7 @@ body.page-edit-mode [data-editor-widget].sc-image-armed {
 
 .sc-quill-actions .sc-discard-btn {
   background: transparent;
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
   border: 1px solid #ccc;
   border-radius: 3px;
   padding: 4px 14px;

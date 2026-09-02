@@ -37,7 +37,7 @@
   --sc-surface-sunken: #ede9e3;
   --sc-surface-overlay: #ffffff;
 
-  /* Text - contrast vs --sc-surface: text 13.06:1, muted 4.98:1, link 4.97:1.
+  /* Text - contrast vs --sc-surface: text 13.06:1, muted 5.00:1, link 4.99:1.
      Pewter (#979CA4, 2.76:1 on white / 2.53:1 on frost as text) and
      Platinum (#D9DCE1, 1.37:1 as a control border) both fail AA as given --
      --sc-text-muted uses a darkened "pewter-strong" and --sc-border-control
@@ -51,19 +51,19 @@
      --sc-field-placeholder is a text token and carries a text ratio. */
   --sc-text: #2c2925;
   /* Darkened so it clears the sunken frost surface as well as the white page, not
-     only the page: muted on sunken 4.56:1, muted on surface 4.98:1. The previous
+     only the page: muted on sunken 4.58:1, muted on surface 5.00:1. The previous
      value was derived against white alone and fell short on frost. There is no
      surface-side fix here -- frost is the lighter of the pair, so it would have to
      become white to rescue the old ink, at which point it is not a surface. Light
      tokens never sit on a dark ground, so darkening costs nothing elsewhere.
      Issue 1498. */
-  --sc-text-muted: #656970;
+  --sc-text-muted: #6c6861;
   /* Sidebar chrome on the dark admin rail (#17191e): 6.37:1. Its own token because
      platform.css was reading --sc-field-placeholder for this, which tied unrelated
      things together -- raising the placeholder to clear SC 1.4.3 on a white field
      would have dragged this token's own consumers below that floor on the rail,
      and broken them silently. */
-  --sc-text-subtle: #979ca4;
+  --sc-text-subtle: #a09b93;
 
   /* Admin rail chrome. The rail is not a themed surface -- it is dark in light mode
      and dark in dark mode -- so these are declared once here and deliberately never
@@ -85,11 +85,11 @@
      barely off the rail, so the active item read as a washed grey slab (issue 1489, the same
      mistake one family over in --sc-surface-raised).
 
-     ink on rail 14.02:1, ink on raised 12.42:1, muted on rail 7.94:1, muted on raised 7.04:1 */
-  --sc-chrome: #18202d;
+     ink on rail 14.05:1, ink on raised 12.42:1, muted on rail 7.98:1, muted on raised 7.05:1 */
+  --sc-chrome: #17202d;
   --sc-chrome-raised: #1f2a39;
   --sc-chrome-ink: #e8eef6;
-  --sc-chrome-ink-muted: #a9b6c6;
+  --sc-chrome-ink-muted: #aab6c6;
 
   /* Translucent on purpose, both of them, and taken from the mockup rather than flattened.
      An opaque approximation was the first thing tried here and it is wrong for two
@@ -116,7 +116,7 @@
      That is a deliberate re-base, not an oversight. A fill bright enough to carry the
      non-text floor against a navy rail on its own would need to be around #5a6b80 -- a mid-slate slab,
      which is the washed-out look issue 1489 removed. The marker carries the requirement
-     instead, at 5.84:1 on the rail and 4.12:1 across the fill it sits beside, both clear
+     instead, at 5.85:1 on the rail and 4.12:1 across the fill it sits beside, both clear
      of what a non-text indicator needs. The fill is decoration and is stated as such.
 
      selected ink on selected 11.55:1, ink on selected 9.90:1,
@@ -138,8 +138,8 @@
      and every warm candidate that reads correctly on the rail lands under 4.5:1 on
      --sc-chrome-control. Warming it needs its own contrast pass, not a colour swap.
 
-     subtle on chrome 5.86:1, subtle on control 4.78:1 */
-  --sc-chrome-ink-subtle: #8e9cae;
+     subtle on chrome 5.88:1, subtle on control 4.79:1 */
+  --sc-chrome-ink-subtle: #8f9cae;
 
   /* The page editor's chrome, issue 1590. The editor is theme-invariant dark for the same
      reason the rail is -- it floats over page content whose colour it does not control --
@@ -158,9 +158,9 @@
      the editor's secondary buttons sat under 1.4.11 on a control boundary at rest and
      further under it hovered. Both clear it on these two levels -- see the claims below.
 
-     control fill: ink 11.45:1, muted 6.49:1, border 3.61:1
-     control hover: border 3.31:1
-     border on the raised level: 3.92:1
+     control fill: ink 11.45:1, muted 6.50:1, border 3.63:1
+     control hover: border 3.32:1
+     border on the raised level: 3.94:1
 
      --sc-chrome-accent is the editor's interactive accent -- selection, focus, the active
      widget, primary actions -- seeded at the blue it has always used, so routing it changed
@@ -170,8 +170,8 @@
      #004494 by 0.013 luminance. */
   --sc-chrome-control: #243040;
   --sc-chrome-control-hover: #293648;
-  --sc-chrome-accent: #0056b3;
-  --sc-chrome-accent-deep: #004494;
+  --sc-chrome-accent: #0156b2;
+  --sc-chrome-accent-deep: #004592;
 
   /* The 3px bar marking the active rail item. Kept as its own token -- a marker is a
      distinct role from a fill or an ink, and it was the last hardcoded colour in the rail,
@@ -180,7 +180,7 @@
      It was a lightened link-blue while the active item was a full-bleed grey band with the
      marker inset into it. Crema makes the item an inset pill, which puts the marker in the
      list's gutter against the RAIL instead -- so it is brass, the mockup's --brass-on-dark,
-     at marker on rail 5.84:1. Laid over the dove fill the same brass would have been close
+     at marker on rail 5.85:1. Laid over the dove fill the same brass would have been close
      enough in luminance to disappear, which is what the intermediate step got wrong.
 
      The value does not move between light and dark; the rail is dark in both. */
@@ -193,9 +193,9 @@
      cleared neither -- white on it did not come close to the floor, and it was the
      fill behind 33 buttons.
      brand text on surface 5.81:1, on sunken 5.32:1 */
-  --sc-brand: #c4441f;
-  --sc-brand-hover: #a83917;
-  --sc-brand-text: #a83917;
+  --sc-brand: #c4441e;
+  --sc-brand-hover: #a83918;
+  --sc-brand-text: #a83918;
 
   /* Type scale. Ten steps, derived from what the stylesheets already use rather than
      imposed: 96 font-size declarations across 36 distinct values, of which the great
@@ -225,9 +225,9 @@
   --sc-weight-bold: 700;
   --sc-text-inverse: #ffffff;
   /* Same reasoning as --sc-text-muted above, hue preserved: link on sunken
-     4.56:1, link on surface 4.97:1. Issue 1498. */
-  --sc-link: #276caa;
-  --sc-link-hover: #21598e;
+     4.57:1, link on surface 4.99:1. Issue 1498. */
+  --sc-link: #246caa;
+  --sc-link-hover: #1d5a8d;
 
   /* Semantic state. Each pair is a strong colour and the tint it sits on: the strong
      value is the button fill, the callout's left border AND the callout's text, so it
@@ -240,13 +240,13 @@
      Foundation's own components. These are the product's, so a palette change retunes
      them without editing vendored CSS.
 
-     strong on its own tint: info 4.74:1
+     strong on its own tint: info 4.75:1
 
      The success, warning and danger tints were removed in issue 1590 -- nothing consumed them,
      and Foundation already supplies those colours to the components that need them. --sc-danger
      stays: platform.css uses it as text, never on a tint of its own, so it has no pairing here. */
-  --sc-danger: #ba4230;
-  --sc-info: #286eac;
+  --sc-danger: #ba403e;
+  --sc-info: #266eac;
   --sc-info-light: #eaf2fa;
 
   /* Line height. Three steps; the stylesheets carried twelve distinct values including
@@ -257,15 +257,15 @@
   --sc-leading-relaxed: 1.5;
 
   /* Lines. --sc-border is decorative (1.4.11 exempt), true Platinum.
-     --sc-border-control outlines real controls: 3.34:1 on white (platinum-strong). */
+     --sc-border-control outlines real controls: 3.32:1 on white (platinum-strong). */
   --sc-border: #ddd8cf;
   /* Clears SC 1.4.11 on the sunken surface, which the previous value missed:
-     border on sunken 3.06:1, border on surface 3.34:1. Issue 1498. */
-  --sc-border-control: #838589;
+     border on sunken 3.05:1, border on surface 3.32:1. Issue 1498. */
+  --sc-border-control: #878581;
 
   /* Form fields */
   --sc-field-bg: #ffffff;
-  --sc-field-text: #17191e;
+  --sc-field-text: #1b1914;
   /* Placeholder on the white field below: 4.58:1. The previous value was true
      Pewter, which fails as text on white (see the palette note above), and never
      reached a placeholder in light mode anyway -- Foundation's own #cacaca at
@@ -273,12 +273,12 @@
      --sc-text-muted:
      placeholder text is muted text, and holding them together means one
      re-derivation if the light palette ever moves. */
-  --sc-field-placeholder: #71767d;
-  --sc-field-disabled-bg: #f4f5f7;
+  --sc-field-placeholder: #79756e;
+  --sc-field-disabled-bg: #f6f5f3;
 
-  /* Focus ring - Fixed link blue, 4.97:1 on white, well past the 3:1 that
+  /* Focus ring - Fixed link blue, 4.99:1 on white, well past the 3:1 that
      1.4.11 asks of a focus indicator. */
-  --sc-focus-ring: #276caa;
+  --sc-focus-ring: #246caa;
   --sc-focus-ring-width: 2px;
   --sc-focus-ring-offset: 2px;
 
@@ -378,7 +378,7 @@
   /* Text on a LIGHT accent fill -- Foundation's warning and success buttons. Defined
      once, here, and deliberately never redefined for dark: those fills keep their
      light values in dark mode, so the text on them has to stay dark or it lands
-     light-on-light (1.68:1 on warning, 1.64:1 on success). The mirror of
+     light-on-light (1.67:1 on warning, 1.64:1 on success). The mirror of
      --sc-fnd-on-accent, which stays light because its fills stay dark. */
   --sc-fnd-ink-on-accent: #0a0a0a;
 
@@ -388,13 +388,13 @@
      are 1.799:1 and 1.842:1 (issue 1529). These are hue-preserving darkenings that clear
      the SC 1.4.3 floor, and they double as the border colour, which lifts SC 1.4.11 from
      the same failing ratio to the same passing one:
-       --sc-fnd-success-ink on the light surface .... 4.715:1
-       --sc-fnd-warning-ink on the light surface .... 4.717:1
+       --sc-fnd-success-ink on the light surface .... 4.72:1
+       --sc-fnd-warning-ink on the light surface .... 4.72:1
      The mirror of --sc-fnd-ink-on-accent above: that one is dark ink for a light fill,
      these are dark accents for a light page. Redefined for dark below, where the accent
      itself is legible and Layer 3b already repaints these variants. */
-  --sc-fnd-success-ink: #188441;
-  --sc-fnd-warning-ink: #9b6900;
+  --sc-fnd-success-ink: #168442;
+  --sc-fnd-warning-ink: #9b6901;
 
   /* --sc-fnd-white and --sc-fnd-black used to be defined here, aliased to
      --sc-fnd-surface and --sc-fnd-ink, so that stylesheets routed before the role split
@@ -404,10 +404,10 @@
      split was made to prevent: a name that says "white" reads as safe to use for text
      ON a fill, which inverts the wrong way the moment a theme is applied. */
 
-  --sc-fnd-primary: #1779ba;
+  --sc-fnd-primary: #2677bc;
   --sc-fnd-secondary: #767676;
-  --sc-fnd-success: #3adb76;
-  --sc-fnd-warning: #ffae00;
+  --sc-fnd-success: #3bdb75;
+  --sc-fnd-warning: #feaf0a;
   /* Darkened from Foundation's own #cc4b37, which pairs with --sc-fnd-on-accent at
      4.498:1 -- under the 4.5:1 floor of SC 1.4.3 by 0.002, in both modes and for every
      element type (issue 1527). The fill moves rather than the ink because this token
@@ -429,7 +429,7 @@
      fill and the ink split into separate roles, the way --sc-fnd-on-accent and
      --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
      clear the floor on the light ground and costs the dark case as little as possible. */
-  --sc-fnd-alert: #cb4834;
+  --sc-fnd-alert: #cb4643;
   --sc-fnd-light-gray: #e7e6e3;
   --sc-fnd-medium-gray: #cdc9c3;
   --sc-fnd-dark-gray: #91897b;
@@ -463,9 +463,9 @@
      (raised is 1.28:1 over surface) plus --sc-border, which is how this file carries
      elevation anyway. */
   --sc-surface: #241e17;
-  --sc-surface-raised: #3a3025;
+  --sc-surface-raised: #393025;
   --sc-surface-sunken: #1c1710;
-  --sc-surface-overlay: #3a3025;
+  --sc-surface-overlay: #393025;
 
   /* Ink and link, warmed to match the ground. The link moves from a blue (#609ace) to the
      teal that carries the informational layer -- a blue link on a warm brown ground reads
@@ -473,19 +473,19 @@
      that is neither the amber (which means "attention") nor the terracotta (which means
      "wrong"), so it can mean "go here" without collision.
 
-     Contrast vs --sc-surface: text 14.88:1, muted 6.29:1, link 6.85:1, link-hover 8.72:1.
+     Contrast vs --sc-surface: text 14.91:1, muted 6.31:1, link 6.85:1, link-hover 8.72:1.
      Vs --sc-surface-raised (the value --sc-surface-overlay also carries):
-     text 11.63:1, muted 4.91:1, link 5.35:1, link-hover 6.82:1. Raised is chosen so that
+     text 11.69:1, muted 4.95:1, link 5.37:1, link-hover 6.84:1. Raised is chosen so that
      muted, link and link-hover all keep past 4.9:1 on it -- a bound over the three rather
      than three separate targets, since it is the raised surface that moves, not the inks.
 
      --sc-surface-overlay is held equal to raised deliberately. Lifting it to its own
-     lighter value (#4c3e2e was tried) drops --sc-text-muted to 3.93:1 and --sc-link to
+     lighter value (#4c3e2e was tried) drops --sc-text-muted to 3.94:1 and --sc-link to
      4.28:1 on it -- both under the floor, on the surface dropdowns and tooltips use.
      --sc-field-bg is the one that legitimately differs; its own numbers are recorded
      with it below. */
-  --sc-text: #f5f3ef;
-  --sc-text-muted: #ac9e89;
+  --sc-text: #f6f3ef;
+  --sc-text-muted: #ad9e89;
   --sc-text-inverse: #241e17;
   --sc-link: #6fb3ac;
   /* dark, brand text on surface 5.50:1 -- the light value is far too dark here. */
@@ -496,25 +496,25 @@
      are warmed to sit on the new ground -- a blue-grey state tint on a brown surface reads
      as a stain rather than a state. Info takes the teal so it does not compete with the
      amber, which this scheme reserves for attention.
-     dark, strong on its own tint: info 5.66:1 */
-  --sc-danger: #e5897d;
+     dark, strong on its own tint: info 5.67:1 */
+  --sc-danger: #e58881;
   --sc-info: #6fb3ac;
-  --sc-info-light: #1f3130;
+  --sc-info-light: #1f312f;
 
   --sc-border: rgba(245, 243, 239, 0.13);
   /* Warm platinum. The cool #d9dce1 was calibrated against a blue-black ground; on this one
-     it is the only cold edge on the screen. control on field bg 7.89:1. */
-  --sc-border-control: #c9bda1;
+     it is the only cold edge on the screen. control on field bg 7.90:1. */
+  --sc-border-control: #cebba2;
 
   /* Fields sit one step above the canvas rather than matching the raised surface, so an
-     input still reads as an input on a card. field text 13.25:1, placeholder 6.26:1. */
-  --sc-field-bg: #2f271e;
-  --sc-field-text: #f5f3ef;
-  --sc-field-placeholder: #b3a894;
-  --sc-field-disabled-bg: #2f271e;
+     input still reads as an input on a card. field text 13.32:1, placeholder 6.26:1. */
+  --sc-field-bg: #2e271e;
+  --sc-field-text: #f6f3ef;
+  --sc-field-placeholder: #b5a795;
+  --sc-field-disabled-bg: #2e271e;
 
   /* The focus ring is the one place amber is used for something other than attention, and
-     that is deliberate: a focus ring IS attention. focus on surface 7.04:1, on raised 5.50:1. */
+     that is deliberate: a focus ring IS attention. focus on surface 7.04:1, on raised 5.52:1. */
   --sc-focus-ring: #e09b4a;
 
   /* Shadows read as noise on a dark page; lean on borders instead. */
@@ -530,9 +530,9 @@
      rather than a mechanical inversion.
 
      Verified against how Foundation actually pairs these, not in isolation:
-       ink on surface ............. 11.63:1     on-accent on primary ... 4.65:1
-       ink on the page ............. 14.88:1    menu bars on dark bar .. 16.36:1
-       on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.46:1  */
+       ink on surface ............. 11.69:1     on-accent on primary ... 4.68:1
+       ink on the page ............. 14.91:1    menu bars on dark bar .. 16.36:1
+       on-accent on ink-surface .... 15.05:1    dark-gray on the page .. 5.44:1  */
 
   /* Surfaces darken; text drawn ON a coloured fill must not. A dark
      --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
@@ -556,14 +556,14 @@
      pairing, lifted off the page so it still reads as a chip. The one casualty is
      abbr's dotted underline, which shares this token and is faint here --
      decorative, and not worth breaking every tooltip to rescue. */
-  --sc-fnd-ink-surface: #23262c;
+  --sc-fnd-ink-surface: #2a2520;
 
   /* The grey ramp inverts by role, not by value: "light" stays the subtlest
      against its ground and "dark" the most prominent, so their actual lightness
      swaps over on a dark page. */
-  --sc-fnd-light-gray: #2b2f36;
-  --sc-fnd-medium-gray: #4a4f57;
-  --sc-fnd-dark-gray: #8f959d;
+  --sc-fnd-light-gray: #332e27;
+  --sc-fnd-medium-gray: #544e46;
+  --sc-fnd-dark-gray: #9a938b;
 
   /* Table chrome. These had no dark values at all, which is why the dark theme carried
      five hand-written table overrides further down this file: each one existed to point
@@ -584,16 +584,16 @@
   --sc-fnd-table-rule: rgba(245, 243, 239, 0.13);
   /* Hover shades step toward the light rather than away from it, so a row lifts under
      the pointer instead of receding. Text stays --sc-text (#f5f3ef) on both -- measured
-     9.99:1 on #453a2d and 14.13:1 on #2a2219, so neither hover state comes near the
+     10.05:1 on #453a2d and 14.20:1 on #2a2219, so neither hover state comes near the
      4.5:1 floor.
 
-     Against their own ground the steps are deliberately small (1.16:1 and 1.14:1). A
+     Against their own ground the steps are deliberately small (1.16:1 and 1.13:1). A
      hover state is transient and pointer-driven, so it carries no meaning on its own and
      has no 3:1 obligation; the previous value carried the opposite problem, being exactly
      equal to the row beneath it and therefore invisible. */
-  --sc-fnd-table-row-hover: #453a2d;
-  --sc-fnd-table-stripe-hover: #2a2219;
-  --sc-fnd-table-head-hover: #2a2219;
+  --sc-fnd-table-row-hover: #443a2d;
+  --sc-fnd-table-stripe-hover: #292219;
+  --sc-fnd-table-head-hover: #292219;
 
   color-scheme: dark;
 }
@@ -611,28 +611,28 @@
        theme.ui.mode=auto install on the old blue-black, which is exactly the class of drift
        the parity check in check-token-contrast.py exists to catch. */
     --sc-surface: #241e17;
-    --sc-surface-raised: #3a3025;
+    --sc-surface-raised: #393025;
     --sc-surface-sunken: #1c1710;
-    --sc-surface-overlay: #3a3025;
+    --sc-surface-overlay: #393025;
 
-    --sc-text: #f5f3ef;
-    --sc-text-muted: #ac9e89;
+    --sc-text: #f6f3ef;
+    --sc-text-muted: #ad9e89;
     --sc-text-inverse: #241e17;
     --sc-link: #6fb3ac;
     /* dark, brand text on surface 5.50:1 -- the light value is far too dark here. */
     --sc-brand-text: #e8734f;
     --sc-link-hover: #8fc7c1;
-    --sc-danger: #e5897d;
+    --sc-danger: #e58881;
     --sc-info: #6fb3ac;
-    --sc-info-light: #1f3130;
+    --sc-info-light: #1f312f;
 
     --sc-border: rgba(245, 243, 239, 0.13);
-    --sc-border-control: #c9bda1;
+    --sc-border-control: #cebba2;
 
-    --sc-field-bg: #2f271e;
-    --sc-field-text: #f5f3ef;
-    --sc-field-placeholder: #b3a894;
-    --sc-field-disabled-bg: #2f271e;
+    --sc-field-bg: #2e271e;
+    --sc-field-text: #f6f3ef;
+    --sc-field-placeholder: #b5a795;
+    --sc-field-disabled-bg: #2e271e;
 
     --sc-focus-ring: #e09b4a;
 
@@ -648,9 +648,9 @@
        rather than a mechanical inversion.
 
        Verified against how Foundation actually pairs these, not in isolation:
-         ink on surface ............. 11.63:1     on-accent on primary ... 4.65:1
-         ink on the page ............. 14.88:1    menu bars on dark bar .. 16.36:1
-         on-accent on ink-surface .... 15.03:1    dark-gray on the page .. 5.46:1  */
+         ink on surface ............. 11.69:1     on-accent on primary ... 4.68:1
+         ink on the page ............. 14.91:1    menu bars on dark bar .. 16.36:1
+         on-accent on ink-surface .... 15.05:1    dark-gray on the page .. 5.44:1  */
 
     /* Surfaces darken; text drawn ON a coloured fill must not. A dark
        --sc-fnd-on-accent would turn 32 button captions dark-on-dark, which is
@@ -674,23 +674,23 @@
        pairing, lifted off the page so it still reads as a chip. The one casualty is
        abbr's dotted underline, which shares this token and is faint here --
        decorative, and not worth breaking every tooltip to rescue. */
-    --sc-fnd-ink-surface: #23262c;
+    --sc-fnd-ink-surface: #2a2520;
 
     /* The grey ramp inverts by role, not by value: "light" stays the subtlest
        against its ground and "dark" the most prominent, so their actual lightness
        swaps over on a dark page. */
-    --sc-fnd-light-gray: #2b2f36;
-    --sc-fnd-medium-gray: #4a4f57;
-    --sc-fnd-dark-gray: #8f959d;
+    --sc-fnd-light-gray: #332e27;
+    --sc-fnd-medium-gray: #544e46;
+    --sc-fnd-dark-gray: #9a938b;
 
     /* Mirrors the explicit dark block above -- see the note there for why fill and rule
        had to be split, and for the measured hover ratios. */
     --sc-fnd-table-head: #1c1710;
     --sc-fnd-table-stripe: #1c1710;
     --sc-fnd-table-rule: rgba(245, 243, 239, 0.13);
-    --sc-fnd-table-row-hover: #453a2d;
-    --sc-fnd-table-stripe-hover: #2a2219;
-    --sc-fnd-table-head-hover: #2a2219;
+    --sc-fnd-table-row-hover: #443a2d;
+    --sc-fnd-table-stripe-hover: #292219;
+    --sc-fnd-table-head-hover: #292219;
 
     color-scheme: dark;
   }
@@ -900,7 +900,7 @@ input[type="radio"] {
    Pointing it at the text token rather than darkening the neutral is deliberate: --sc-fnd-dark-gray
    also draws borders, which are held to the 3:1 that SC 1.4.11 asks, and a darker value would
    weight every rule in the product. One token cannot serve both roles well, so the text case takes
-   a text token: subheader muted on raised 5.51:1, on surface 4.98:1. */
+   a text token: subheader muted on raised 5.54:1, on surface 5.00:1. */
 .subheader {
   color: var(--sc-text-muted, #656970);
 }
@@ -991,8 +991,8 @@ input[type="radio"] {
 
    Links and muted text take one extra step darker than their plain light-mode
    values, because those were tuned against pure white and these fills are
-   tinted. --sc-link #2a74b6 is 4.97:1 on white but only 4.01:1 on the alert
-   fill; --sc-text-muted #6c7178 is 4.98:1 on white but 4.01:1 there. So --sc-link
+   tinted. --sc-link #2a74b6 is 4.99:1 on white but only 4.01:1 on the alert
+   fill; --sc-text-muted #6c7178 is 5.00:1 on white but 4.01:1 there. So --sc-link
    here is the light ramp's hover value with the hover one step darker again,
    and the muted grey is darkened the same way Layer 1's own "pewter-strong"
    was, far enough to clear the fills while staying a clear step off the ink

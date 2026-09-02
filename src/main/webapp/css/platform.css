@@ -111,14 +111,14 @@ body {
 body.admin-console nav .sticky {
   background: linear-gradient(180deg,
     var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #18202d) 100%);
+    var(--sc-chrome, #17202d) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 body.admin-console .admin-menu {
   background: linear-gradient(180deg,
     var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #18202d) 100%);
+    var(--sc-chrome, #17202d) 100%);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -146,7 +146,7 @@ body.admin-console .statistic-card-value {
 
 body.admin-console .help-text {
   font-style: normal;
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
   line-height: 1.5;
 }
 
@@ -431,7 +431,7 @@ p {
      does not -- --sc-chrome-raised is a raised surface in the admin rail. Binding a dashboard
      label to it looks right until chrome is re-themed and the label follows it somewhere it was
      never meant to go. */
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 .platform-dashboard-section-label::after {
   content: '';
@@ -499,7 +499,7 @@ p {
   font-size: 14px;
   background-color: var(--sc-info-light, #eaf2fa);
   border: 1px solid var(--sc-border, #ddd8cf);
-  color: var(--sc-info, #286eac);
+  color: var(--sc-info, #266eac);
 }
 
 /* Body */
@@ -586,7 +586,7 @@ label {
 }
 
 span.required {
-  color: var(--sc-danger, #ba4230);
+  color: var(--sc-danger, #ba403e);
   font-weight: var(--sc-weight-bold, 700);
 }
 
@@ -606,7 +606,7 @@ label.button {
 }
 
 .input-error {
-  color: var(--sc-danger, #ba4230);
+  color: var(--sc-danger, #ba403e);
 }
 
 /* Tables */
@@ -682,7 +682,7 @@ body.admin-console a:not(.button):focus {
   margin-bottom: 0;
   font-size: 0.8125rem;
   letter-spacing: 0.02em;
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 .platform-content-last-updated small {
@@ -709,14 +709,14 @@ ul.pagination li.page {
 }
 
 ul.pagination li.page:hover {
-  border: 1px solid var(--sc-fnd-primary, #1779ba);
+  border: 1px solid var(--sc-fnd-primary, #2677bc);
 }
 
 ul.pagination li.page a {
   padding: 0;
   height: 100%;
   line-height: 40px;
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #2677bc);
 }
 
 ul.pagination li.page a:hover {
@@ -726,12 +726,12 @@ ul.pagination li.page a:hover {
 
 ul.pagination li.current {
   line-height: 40px;
-  border: 1px solid var(--sc-fnd-primary, #1779ba);
+  border: 1px solid var(--sc-fnd-primary, #2677bc);
 }
 
 ul.pagination li.pagination-previous a,
 ul.pagination li.pagination-next a {
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #2677bc);
 }
 
 ul.pagination li.pagination-previous a:hover,
@@ -860,7 +860,7 @@ ul.pagination li.pagination-next a:hover {
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option {
   position: relative;
   padding-right: 1.5rem;
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #2677bc);
 }
 
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option::before {
@@ -871,7 +871,7 @@ ul.pagination li.pagination-next a:hover {
   content: '';
   border-bottom-width: 0;
   border-top-style: solid;
-  border-color: var(--sc-fnd-primary, #1779ba) transparent transparent;
+  border-color: var(--sc-fnd-primary, #2677bc) transparent transparent;
   left: 5px;
   right: auto;
   margin-right: 5px;
@@ -1044,7 +1044,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-caption h3 {
-  color: var(--sc-fnd-warning, #ffae00);
+  color: var(--sc-fnd-warning, #feaf0a);
   font-size: var(--sc-font-xl, 1.5rem);
   font-weight: var(--sc-weight-bold, 700);
   margin-bottom: 0;
@@ -1069,7 +1069,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-controls button {
-  background: var(--sc-fnd-warning, #ffae00);
+  background: var(--sc-fnd-warning, #feaf0a);
   padding: 1rem 0.5rem;
 }
 
@@ -1112,7 +1112,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-bullets button.is-active {
-  background-color: var(--sc-fnd-warning, #ffae00);
+  background-color: var(--sc-fnd-warning, #feaf0a);
 }
 
 .clean-hero-slider li.orbit-slide {
@@ -1146,7 +1146,7 @@ ul.pagination li.pagination-next a:hover {
      against what surrounds it (SC 1.4.11), and #999 on the white field fell under that floor -- on
      a focus state, which is the one moment the boundary is doing real work. The token clears it,
      and is already the answer everywhere else in this file. */
-  border: 1px solid var(--sc-border-control, #838589);
+  border: 1px solid var(--sc-border-control, #878581);
   box-shadow: none;
 }
 
@@ -1187,7 +1187,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .user-action-container .user-action-box .action-area .action-anchor .fa {
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #2677bc);
 }
 
 .status-update-input-box .user-action-container .user-submit-box {
@@ -1242,13 +1242,13 @@ ul.pagination li.pagination-next a:hover {
      Both are warm -- red channel highest in each -- which is what stops a very dark rail
      reading as grey. background-color stays as the fallback for anything that cannot
      paint the gradient. */
-  background-color: var(--sc-chrome, #18202d);
-  background-image: linear-gradient(180deg, var(--sc-chrome, #18202d) 0%, var(--sc-chrome-raised, #1f2a39) 100%);
+  background-color: var(--sc-chrome, #17202d);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #17202d) 0%, var(--sc-chrome-raised, #1f2a39) 100%);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
   line-height: var(--sc-leading-normal, 1.4);
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -1260,7 +1260,7 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: var(--sc-chrome, #18202d);
+  background-color: var(--sc-chrome, #17202d);
   color: var(--sc-chrome-ink, #e8eef6);
 }
 /* Version number: de-emphasized metadata under the product name, not part
@@ -1271,7 +1271,7 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-2xs, 0.6875rem);
-  color: var(--sc-text-subtle, #979ca4);
+  color: var(--sc-text-subtle, #a09b93);
 }
 /* No fill. It used to take --sc-chrome-raised, which is the same token the ACTIVE nav item
    took, so the signed-in user read as a selected menu entry and the rail appeared to have
@@ -1290,7 +1290,7 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .app-user i {
   /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
      2.64:1 on this lighter strip. Issue 1574. */
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1302,7 +1302,7 @@ ul.pagination li.pagination-next a:hover {
      gutter and padded 12px again inside, so their label starts at 24px. */
   padding-left: 24px;
   padding-bottom: 6px;
-  color: var(--sc-text-subtle, #979ca4);
+  color: var(--sc-text-subtle, #a09b93);
 }
 /* Scoped with body.admin-console and :not(.button) so this outranks the console's blanket
    content-link rule (body.admin-console a:not(.button), specificity 0-2-2), which was silently
@@ -1315,13 +1315,13 @@ ul.pagination li.pagination-next a:hover {
    its ink. */
 body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
   font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
    only once the item is active (see .is-active > a i below). */
 .admin-menu a i {
-  color: var(--sc-text-subtle, #979ca4);
+  color: var(--sc-text-subtle, #a09b93);
 }
 /* Crema's nav is a column of inset pills rather than full-bleed bands: the list carries a
    12px gutter, and each item is a rounded rectangle inside it. The gutter is not decoration
@@ -1367,7 +1367,7 @@ body.admin-console .admin-menu a:not(.button) {
    applied to the two interactive states. Same specificity (0,3,2) as those, which is what
    beats the blanket rule's (0,2,2). */
 body.admin-console .admin-menu a:not(.button) {
-  color: var(--sc-chrome-ink-muted, #a9b6c6);
+  color: var(--sc-chrome-ink-muted, #aab6c6);
 }
 body.admin-console .admin-menu a:not(.button):hover,
 body.admin-console .admin-menu a:not(.button):focus {
@@ -1507,7 +1507,7 @@ body.admin-console .admin-menu li.is-active > a:not(.button):focus {
   background: var(--sc-surface-sunken, #ede9e3);
   border: 1px dashed var(--sc-border, #ddd8cf);
   border-radius: var(--sc-radius-md, 4px);
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
   font-size: var(--sc-font-2xl, 2rem);
 }
 
@@ -1774,7 +1774,7 @@ a.read-more {
 .tabs .tabs-title>a:focus, .tabs .tabs-title>a[aria-selected=true],
 .tabs .tabs-title.is-active a {
   color: var(--sc-text-inverse, #ffffff);
-  background: var(--sc-fnd-primary, #1779ba);
+  background: var(--sc-fnd-primary, #2677bc);
 }
 
 .full-container {
@@ -1898,10 +1898,10 @@ a.read-more {
 }
 .platform-activity-content-date {
   font-size: 80%;
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 .platform-activity-content-other {
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 /* Controls */
@@ -2742,7 +2742,7 @@ div.item-image-large img {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   font-weight: var(--sc-weight-semibold, 600);
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 /* Shape only. The colours stay whatever the site's theme gives .button, so this
@@ -2846,7 +2846,7 @@ div.item-image-large img {
 }
 
 .platform-blog-showcase-container nav ul.pagination li a:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #276caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
   outline-offset: var(--sc-focus-ring-offset, 2px);
   border-radius: 3px;
   opacity: 1;
@@ -2914,7 +2914,7 @@ div.item-image-large img {
   /* The one that actually broke: the site rule targets `p`, so the heading above kept its own
      colour at 13.06:1 while the message dropped to 1.10:1. A half-styled card reads as a design
      choice, which is why nobody spotted it until someone subscribed and saw nothing. */
-  color: var(--sc-text-muted, #656970) !important;
+  color: var(--sc-text-muted, #6c6861) !important;
   line-height: var(--sc-leading-relaxed, 1.5);
 }
 
@@ -2942,7 +2942,7 @@ div.item-image-large img {
 
 .platform-settings-group-description {
   margin-bottom: var(--sc-space-5, 1.5rem);
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 .platform-settings-card {
@@ -2961,7 +2961,7 @@ div.item-image-large img {
 .platform-settings-card:hover,
 .platform-settings-card:focus {
   background: var(--sc-surface-raised, #ffffff);
-  border-color: var(--sc-link, #276caa);
+  border-color: var(--sc-link, #246caa);
   color: var(--sc-text, #2c2925);
   text-decoration: none;
 }
@@ -2991,6 +2991,6 @@ div.item-image-large img {
 }
 
 .platform-settings-card-description {
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
   line-height: var(--sc-leading-relaxed, 1.5);
 }
