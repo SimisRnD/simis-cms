@@ -89,6 +89,9 @@ public class WidgetContext implements Serializable {
   // Bridged by CalendarEventDetailsWidget for Event schema (issue #1181); the whole record rides
   // the bridge rather than a dozen scalar fields, as FaqQuestion does
   private CalendarEvent calendarEvent = null;
+  // VideoObject schema (issue #1795), bridged from ContentWidget. A list, like faqQuestions:
+  // several content blocks on one page can each show a video and all of them belong in the graph
+  private List<PageVideo> videos = null;
 
   private String jsp = null;
   private String html = null;
@@ -338,6 +341,14 @@ public class WidgetContext implements Serializable {
 
   public void setCalendarEvent(CalendarEvent calendarEvent) {
     this.calendarEvent = calendarEvent;
+  }
+
+  public List<PageVideo> getVideos() {
+    return videos;
+  }
+
+  public void setVideos(List<PageVideo> videos) {
+    this.videos = videos;
   }
 
   public String getJsp() {
