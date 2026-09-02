@@ -1324,6 +1324,29 @@ public class PageServlet extends HttpServlet {
           organization.put("description", siteDescription);
         }
 
+        // The postal address and founding year an administrator can now enter on Site Settings
+        // (issue #1795). Every part is optional and a blank one is left out rather than emitted
+        // empty, so a site that fills in only a city and country says exactly that much and no
+        // more. When nothing is filled in there is no address key at all, which is why an existing
+        // site's output is byte-identical until someone sets one.
+        Map<String, Object> address = new LinkedHashMap<>();
+        address.put("@type", "PostalAddress");
+        putIfNotBlank(address, "streetAddress", sitePropertyMap.get("site.address.street"));
+        putIfNotBlank(address, "addressLocality", sitePropertyMap.get("site.address.city"));
+        putIfNotBlank(address, "addressRegion", sitePropertyMap.get("site.address.state"));
+        putIfNotBlank(address, "postalCode", sitePropertyMap.get("site.address.postalCode"));
+        putIfNotBlank(address, "addressCountry", sitePropertyMap.get("site.address.country"));
+        // Size 1 is the @type alone -- an address node saying only that it is an address is worse
+        // than none, so it is not attached.
+        if (address.size() > 1) {
+          organization.put("address", address);
+        }
+
+        // schema.org foundingDate is an ISO 8601 date, and a bare year is one. The field is
+        // labelled "Year founded" to steer that; a value that is not a date is passed through
+        // rather than guessed at, the same as every other admin-entered value in this graph.
+        putIfNotBlank(organization, "foundingDate", sitePropertyMap.get("site.founded"));
+
         String siteLogo = sitePropertyMap.get("site.image");
         if (StringUtils.isNotBlank(siteLogo)) {
           if (siteLogo.startsWith("/")) {
@@ -1791,6 +1814,13 @@ public class PageServlet extends HttpServlet {
     // Home plus one is a single-level trail, which computeBreadcrumbList already treats as redundant
     // with the nav; emitting it here would contradict that for no gain.
     return itemListElement.size() >= 3 ? itemListElement : null;
+  }
+
+  /** Puts the value only when it has one, so an unset setting leaves the key off the node entirely. */
+  private static void putIfNotBlank(Map<String, Object> target, String key, String value) {
+    if (StringUtils.isNotBlank(value)) {
+      target.put(key, value);
+    }
   }
 
   private static Map<String, Object> breadcrumbListItem(int position, String name, String url) {

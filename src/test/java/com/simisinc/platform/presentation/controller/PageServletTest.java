@@ -877,4 +877,70 @@ class PageServletTest {
     JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
     assertNull(organization.get("description"));
   }
+
+  @Test
+  void theOrganizationCarriesTheAddressAndFoundingYear() {
+    // issue #1795: an administrator enters these on Site Settings; before this they had nowhere to
+    // put an address at all, and the Organization node could say only name/url/logo/sameAs.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.address.street", "100 Example Way");
+    sitePropertyMap.put("site.address.city", "Suffolk");
+    sitePropertyMap.put("site.address.state", "VA");
+    sitePropertyMap.put("site.address.postalCode", "23435");
+    sitePropertyMap.put("site.address.country", "US");
+    sitePropertyMap.put("site.founded", "2007");
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertEquals("2007", organization.get("foundingDate").asText());
+    JsonNode address = organization.get("address");
+    assertEquals("PostalAddress", address.get("@type").asText());
+    assertEquals("100 Example Way", address.get("streetAddress").asText());
+    assertEquals("Suffolk", address.get("addressLocality").asText());
+    assertEquals("VA", address.get("addressRegion").asText());
+    assertEquals("23435", address.get("postalCode").asText());
+    assertEquals("US", address.get("addressCountry").asText());
+  }
+
+  @Test
+  void aPartialAddressEmitsOnlyThePartsThatAreSet() {
+    // A site that fills in only a city and country should say exactly that, not carry empty keys
+    // that read as "we have a street address and it is blank".
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.address.city", "Suffolk");
+    sitePropertyMap.put("site.address.country", "US");
+    sitePropertyMap.put("site.address.street", "  ");
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode address = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0).get("address");
+    assertEquals("Suffolk", address.get("addressLocality").asText());
+    assertEquals("US", address.get("addressCountry").asText());
+    assertNull(address.get("streetAddress"));
+    assertNull(address.get("postalCode"));
+  }
+
+  @Test
+  void anUnsetAddressLeavesNoAddressNodeAtAll() {
+    // The upgrade seeds these empty, so every existing site takes this path and its output must be
+    // exactly what it was before the properties existed. An address node holding only @type would
+    // be worse than none.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertNull(organization.get("address"));
+    assertNull(organization.get("foundingDate"));
+  }
 }
