@@ -17,8 +17,12 @@
 package com.simisinc.platform.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Tests masking of the host portion of an IP address for analytics storage
@@ -47,5 +51,49 @@ class IpAddressCommandTest {
     assertEquals(null, IpAddressCommand.anonymize(null));
     // Not an IP literal -> returned unchanged (no DNS lookup attempted)
     assertEquals("not-an-ip", IpAddressCommand.anonymize("not-an-ip"));
+  }
+
+  // --- forAction: the address that belongs on a record of an action (issue #1782) ---
+
+  private static HttpServletRequest requestFrom(String remoteAddr) {
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(request.getRemoteAddr()).thenReturn(remoteAddr);
+    return request;
+  }
+
+  @Test
+  void theRequestsAddressWinsOverTheSessionsOwn() {
+    // The bug this exists for: a session created at 9am on one network, an action performed at
+    // 5pm on another. web.xml's 60 minute timeout is an IDLE one, so the session is still the
+    // same object and still carries the address it was constructed with.
+    assertEquals("203.0.113.9",
+        IpAddressCommand.forAction(requestFrom("203.0.113.9"), "198.51.100.4"));
+  }
+
+  @Test
+  void theSessionsAddressIsUsedWhenThereIsNoRequest() {
+    // A caller with no request in hand is no worse off than before this change.
+    assertEquals("198.51.100.4", IpAddressCommand.forAction(null, "198.51.100.4"));
+  }
+
+  @Test
+  void aRequestWithNoAddressFallsBackRatherThanStoringBlank() {
+    assertEquals("198.51.100.4",
+        IpAddressCommand.forAction(requestFrom(null), "198.51.100.4"));
+    assertEquals("198.51.100.4",
+        IpAddressCommand.forAction(requestFrom("   "), "198.51.100.4"));
+  }
+
+  @Test
+  void bothAbsentIsNullRatherThanAnException() {
+    assertNull(IpAddressCommand.forAction(null, null));
+  }
+
+  @Test
+  void theFullAddressIsKeptNotAnonymized() {
+    // IpAddressCommand's own javadoc: mailing-list submissions are among the records that keep the
+    // full address. forAction must not quietly route through anonymize().
+    assertEquals("203.0.113.9",
+        IpAddressCommand.forAction(requestFrom("203.0.113.9"), null));
   }
 }

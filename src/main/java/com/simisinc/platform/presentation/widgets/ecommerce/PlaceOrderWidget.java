@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.CartValidationCommand;
 import com.simisinc.platform.application.ecommerce.EcommerceCommand;
@@ -222,7 +223,10 @@ public class PlaceOrderWidget extends GenericWidget {
         emailBean.setSubscribed(new Timestamp(System.currentTimeMillis()));
 
         // Populate all the http and session info
-        emailBean.setIpAddress(context.getUserSession().getIpAddress());
+        // The address of the request that subscribed, not the one the session was created at
+        // (issue #1782)
+        emailBean.setIpAddress(IpAddressCommand.forAction(context.getRequest(),
+            context.getUserSession().getIpAddress()));
         emailBean.setSessionId(context.getUserSession().getSessionId());
         emailBean.setReferer(context.getUserSession().getReferer());
         emailBean.setUserAgent(context.getUserSession().getUserAgent());
