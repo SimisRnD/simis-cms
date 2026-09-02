@@ -406,6 +406,11 @@ public class WebContainerCommand implements Serializable {
             if (widgetContext.getCalendarEvent() != null) {
               pageRenderInfo.setCalendarEvent(widgetContext.getCalendarEvent());
             }
+            // VideoObject schema (issue #1795), from ContentWidget -- additive like the FAQ
+            // questions above, since each content block reports only the videos it renders
+            if (widgetContext.getVideos() != null && !widgetContext.getVideos().isEmpty()) {
+              pageRenderInfo.addVideos(widgetContext.getVideos());
+            }
           }
 
           // Expect JSON first and return early

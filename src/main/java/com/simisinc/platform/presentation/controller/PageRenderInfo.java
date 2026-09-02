@@ -74,6 +74,9 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private List<FaqQuestion> faqQuestions = null;
   // Bridged by CalendarEventDetailsWidget for Event schema (issue #1181)
   private CalendarEvent calendarEvent = null;
+  // VideoObject schema (issue #1795); additive for the same reason faqQuestions is -- a page can
+  // show several videos, and on this site's home page it shows four
+  private List<PageVideo> videos = null;
 
   public PageRenderInfo() {
   }
@@ -308,6 +311,17 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setCalendarEvent(CalendarEvent calendarEvent) {
     this.calendarEvent = calendarEvent;
+  }
+
+  public List<PageVideo> getVideos() {
+    return videos;
+  }
+
+  public void addVideos(List<PageVideo> videosToAdd) {
+    if (videos == null) {
+      videos = new ArrayList<>();
+    }
+    videos.addAll(videosToAdd);
   }
 
 }

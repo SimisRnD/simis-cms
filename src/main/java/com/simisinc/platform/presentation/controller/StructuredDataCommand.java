@@ -36,9 +36,11 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds the schema.org JSON-LD graph a page emits for search engines (issue #1795). Split out of
@@ -225,6 +227,11 @@ public class StructuredDataCommand {
       if (event != null) {
         graph.add(event);
       }
+
+      // Add a VideoObject for each self-hosted video the page shows (issue #1795); bridged from
+      // ContentWidget, which is the only thing that knows a video is on the page -- a video is
+      // hand-authored markup inside a content block, not a page-level feature
+      graph.addAll(computeVideoSchemas(pageRenderInfo, siteUrl));
 
       jsonLd.put("@graph", graph);
       return escapeForInlineScript(mapper.writeValueAsString(jsonLd));
@@ -460,6 +467,72 @@ public class StructuredDataCommand {
     }
 
     return place;
+  }
+
+  /**
+   * A VideoObject for every self-hosted video the page reported, in the order they appear (issue
+   * #1795).
+   *
+   * <p>
+   * Google's required properties are name, thumbnailUrl and uploadDate; description and contentUrl
+   * are recommended, and contentUrl is what lets Google fetch the video itself rather than take the
+   * page's word for it. ContentVideoCommand has already dropped anything it could not describe
+   * completely, so what arrives here is emittable -- the checks below are the same belt-and-braces
+   * the other compute methods apply, not a second gate.
+   * </p>
+   *
+   * <p>
+   * uploadDate is the file's upload time, which is the honest answer to the property's question and
+   * is emitted as a full ISO 8601 instant, matching datePublished/dateModified on the WebPage node.
+   * Only videos this page actually renders are described: nothing walks the file library looking
+   * for videos to claim.
+   * </p>
+   *
+   * @return the video nodes, empty when the page shows none; never null
+   */
+  static List<Map<String, Object>> computeVideoSchemas(PageRenderInfo pageRenderInfo, String siteUrl) {
+    List<Map<String, Object>> videoSchemaList = new ArrayList<>();
+    if (pageRenderInfo == null || pageRenderInfo.getVideos() == null) {
+      return videoSchemaList;
+    }
+    Set<String> alreadyDescribed = new HashSet<>();
+    for (PageVideo pageVideo : pageRenderInfo.getVideos()) {
+      if (StringUtils.isBlank(pageVideo.getName()) || StringUtils.isBlank(pageVideo.getThumbnailUrl())
+          || pageVideo.getUploadDate() == null) {
+        continue;
+      }
+      // One video shown twice on a page -- in a panel and again in the modal it opens, say -- is
+      // still one video. Two nodes for it would tell Google the page has two.
+      String identity = pageVideo.getContentUrl() != null
+          ? pageVideo.getContentUrl()
+          : pageVideo.getName() + "|" + pageVideo.getThumbnailUrl();
+      if (!alreadyDescribed.add(identity)) {
+        continue;
+      }
+      Map<String, Object> video = new LinkedHashMap<>();
+      video.put("@type", "VideoObject");
+      video.put("name", pageVideo.getName());
+      putIfNotBlank(video, "description", pageVideo.getDescription());
+      video.put("thumbnailUrl", absoluteUrl(siteUrl, pageVideo.getThumbnailUrl()));
+      video.put("uploadDate", pageVideo.getUploadDate().toInstant().toString());
+      putIfNotBlank(video, "contentUrl", absoluteUrl(siteUrl, pageVideo.getContentUrl()));
+      putIfNotBlank(video, "encodingFormat", pageVideo.getEncodingFormat());
+      videoSchemaList.add(video);
+    }
+    return videoSchemaList;
+  }
+
+  /**
+   * Site-relative paths made absolute for the graph, the way the logo and the page image already
+   * are. A value that is already absolute, or a blank one, is returned untouched -- content can
+   * legitimately point at a video hosted elsewhere, and prefixing that would produce a URL that
+   * resolves nowhere.
+   */
+  private static String absoluteUrl(String siteUrl, String url) {
+    if (StringUtils.isBlank(url) || !url.startsWith("/") || StringUtils.isBlank(siteUrl)) {
+      return url;
+    }
+    return siteUrl + url;
   }
 
   /**
