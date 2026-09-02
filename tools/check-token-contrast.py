@@ -29,14 +29,14 @@ What this checks
    is computed from the real token values, per theme block. 4.5:1 for text
    (SC 1.4.3), 3:1 for control borders and focus indicators (SC 1.4.11).
 
-2. **Dark/auto parity.** The dark tokens are declared twice --
-   ``:root[data-theme="dark"]`` and a duplicate ``:root[data-theme="auto"]``
-   inside ``@media (prefers-color-scheme: dark)``. They are duplicates by
-   design, and a token fixed in only one leaves every ``theme.ui.mode=auto``
-   site on the broken value. ``--sc-shadow-*`` genuinely differs between the two
-   and is exempted by name, split by reason: PARITY_PENDING is waiting on a fix
-   already in flight and reports itself retirable the moment its blocks agree,
-   while PARITY_SETTLED is divergent on purpose and never does.
+2. **Dark/auto parity is no longer checked here.** It used to be: the dark
+   tokens are declared twice, in ``:root[data-theme="dark"]`` and in a duplicate
+   ``:root[data-theme="auto"]``, and a value fixed in only one left every
+   ``theme.ui.mode=auto`` site on the old one. Both blocks are now emitted from a
+   single table by ``tools/build-tokens.py``, so they cannot diverge, and
+   ``build-tokens.py --check`` fails the build if the committed CSS stops matching
+   that table. A check whose failure mode has been made unrepresentable is a
+   check worth deleting rather than keeping as reassurance (issue 1803).
 
 3. **Comment claims.** Each ratio quoted in a comment is pinned to the token
    pairing it describes and must match the computed value at the precision the
@@ -367,38 +367,6 @@ WAIVED = {
     # the problem it documents.
 }
 
-# --------------------------------------------------------------------------
-# 2. Dark/auto parity
-# --------------------------------------------------------------------------
-
-# Exempt because the divergence is settled and intended. Never reported as
-# retirable: a future reader should not re-open a decision someone already made.
-#
-# Empty as of PR 1503. --sc-shadow-sm was the last entry (the token itself was removed
-# in issue 1590, unconsumed) -- its dark and auto
-# blocks differed only in alpha (0.4 vs 0.45), which PR 1492's geometry argument
-# did not reach and which was deliberately left out of that PR's scope. PR 1503
-# then restored the dark alpha ramp on auto, so the two agree and the exemption
-# stopped protecting anything.
-#
-# With this and PARITY_PENDING both empty, the parity check is total: every token
-# declared in either block must match in the other. Keep it that way unless a
-# divergence is genuinely intended, and write down why here if one ever is.
-PARITY_SETTLED: set[str] = set()
-
-# Exempt pending a fix that is already in flight. Each entry is reported (never
-# failed) as soon as its two blocks agree, so an exemption that has stopped
-# protecting anything says so instead of sitting here silently.
-#
-# Empty as of PR 1492, which converged --sc-shadow-md and --sc-shadow-lg onto the
-# geometry light and dark already shared. They were listed here to decouple this
-# check's merge from that one's; that ordering resolved when 1492 landed, and the
-# check itself flagged them as retirable on the first run against the new main.
-# --sc-shadow-sm was the last PARITY_SETTLED entry; PR 1503 converged it and issue 1590
-# then removed the token entirely as unconsumed.
-PARITY_PENDING: set[str] = set()
-
-PARITY_EXEMPT = PARITY_SETTLED | PARITY_PENDING
 
 # --------------------------------------------------------------------------
 # 3. Comment claims
@@ -910,32 +878,6 @@ def check_waivers(used, errors):
                 f"-- the value was fixed and the waiver left behind. Drop it from WAIVED.")
 
 
-def check_parity(tokens, errors, verbose, notes):
-    dark, auto = tokens["dark"], tokens["auto"]
-    names = (set(dark) | set(auto)) - PARITY_EXEMPT
-    for name in sorted(names):
-        d, a = dark.get(name), auto.get(name)
-        if d is None:
-            errors.append(f"PARITY   {name} is declared in [data-theme=\"auto\"] but not "
-                          f"[data-theme=\"dark\"]")
-        elif a is None:
-            errors.append(f"PARITY   {name} is declared in [data-theme=\"dark\"] but not "
-                          f"[data-theme=\"auto\"] -- every theme.ui.mode=auto site misses it")
-        elif d != a:
-            errors.append(f"PARITY   {name}: dark is {d!r}, auto is {a!r} -- the two blocks are "
-                          f"duplicates by design; a value fixed in only one leaves every "
-                          f"theme.ui.mode=auto site on the old value")
-    for name in sorted(PARITY_PENDING):
-        d, a = dark.get(name), auto.get(name)
-        if d is not None and d == a:
-            notes.append(f"retired  {name} is exempt from the dark/auto parity check but the two "
-                         f"blocks now agree -- drop it from PARITY_EXEMPT")
-    if verbose:
-        notes.append(f"ok       dark/auto parity across {len(names)} tokens "
-                     f"({len(PARITY_EXEMPT)} exempt)")
-    return len(names)
-
-
 def decimals(literal: str) -> int:
     return len(literal.split(".", 1)[1]) if "." in literal else 0
 
@@ -1083,7 +1025,6 @@ def main() -> int:
 
     pairs, used_waivers = check_pairings(tokens, errors, notes, args.verbose)
     check_waivers(used_waivers, errors)
-    parity = check_parity(tokens, errors, args.verbose, notes)
     covered, claims = check_claims(text, blocks, tokens, errors, notes, args.verbose)
     check_registration(text, comment_spans, covered, errors)
 
@@ -1097,8 +1038,7 @@ def main() -> int:
               f"promise about a declaration; this gate keeps the two together.", file=sys.stderr)
         return 1
 
-    print(f"OK  {pairs} token pairings above their floor, {claims} comment ratios re-derived, "
-          f"{parity} tokens identical across the dark and auto blocks")
+    print(f"OK  {pairs} token pairings above their floor, {claims} comment ratios re-derived")
     return 0
 
 

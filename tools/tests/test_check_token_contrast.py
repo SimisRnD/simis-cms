@@ -143,16 +143,16 @@ def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens, tmp_path):
     # The waived-but-passing half needs a live waiver, and the committed table has
     # none by design, so this makes its own.
     tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
-    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
+    edit(tokens, "--sc-fnd-alert: #cb4643;", "--sc-fnd-alert: #f0a090;")
     r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
     assert "to clear it:" not in r.stdout
     assert "to clear it:" in run_copy(tool, tokens, "--verbose").stdout
 
-    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #53575c;")
-    edit(tokens, "--sc-surface-overlay: #3a3025;", "--sc-surface-overlay: #53575c;")
-    edit(tokens, "--sc-field-bg: #2f271e;", "--sc-field-bg: #53575c;")
-    edit(tokens, "--sc-field-disabled-bg: #2f271e;", "--sc-field-disabled-bg: #53575c;")
+    edit(tokens, "--sc-surface-raised: #393025;", "--sc-surface-raised: #53575c;")
+    edit(tokens, "--sc-surface-overlay: #393025;", "--sc-surface-overlay: #53575c;")
+    edit(tokens, "--sc-field-bg: #2e271e;", "--sc-field-bg: #53575c;")
+    edit(tokens, "--sc-field-disabled-bg: #2e271e;", "--sc-field-disabled-bg: #53575c;")
     f = run_tool(TOOL, tokens)
     assert f.returncode == 1
     assert "to clear it: background L <= 0.0469" in out(f)
@@ -182,14 +182,14 @@ def test_missing_token_file_fails(repo):
 def test_a_brand_accent_used_as_a_surface_fails(tokens):
     """Issue #1489 exactly: --sc-surface-raised flattened to Anthracite. The four tokens
     that carry that value must all report, in both the dark and the auto block."""
-    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #53575c;")
-    edit(tokens, "--sc-surface-overlay: #3a3025;", "--sc-surface-overlay: #53575c;")
-    edit(tokens, "--sc-field-bg: #2f271e;", "--sc-field-bg: #53575c;")
-    edit(tokens, "--sc-field-disabled-bg: #2f271e;", "--sc-field-disabled-bg: #53575c;")
+    edit(tokens, "--sc-surface-raised: #393025;", "--sc-surface-raised: #53575c;")
+    edit(tokens, "--sc-surface-overlay: #393025;", "--sc-surface-overlay: #53575c;")
+    edit(tokens, "--sc-field-bg: #2e271e;", "--sc-field-bg: #53575c;")
+    edit(tokens, "--sc-field-disabled-bg: #2e271e;", "--sc-field-disabled-bg: #53575c;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     text = out(r)
-    assert "CONTRAST dark  --sc-text-muted" in text and "2.77:1" in text
+    assert "CONTRAST dark  --sc-text-muted" in text and "2.78:1" in text
     assert "CONTRAST dark  --sc-link " in text and "3.02:1" in text
     assert "CONTRAST auto  --sc-text-muted" in text
 
@@ -207,7 +207,7 @@ def test_var_indirection_is_followed_through_two_levels(tokens):
     """--sc-fnd-surface is var(--sc-surface-raised) and --sc-fnd-white is
     var(--sc-fnd-surface); --sc-fnd-ink is var(--sc-text). A resolver that stopped at the
     first var() would silently check the light-mode value in a dark block."""
-    edit(tokens, "--sc-surface-raised: #3a3025;", "--sc-surface-raised: #f4f5f7;")
+    edit(tokens, "--sc-surface-raised: #393025;", "--sc-surface-raised: #f4f5f7;")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     assert "--sc-fnd-ink" in out(r) and "--sc-fnd-surface" in out(r)
@@ -218,7 +218,7 @@ def test_a_waived_pairing_reports_but_does_not_fail(tokens, tmp_path):
     table: it reports on every run, so it cannot go quiet, and it never turns a red
     build green by silence."""
     tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
-    edit(tokens, "--sc-fnd-alert: #cb4834;", "--sc-fnd-alert: #f0a090;")
+    edit(tokens, "--sc-fnd-alert: #cb4643;", "--sc-fnd-alert: #f0a090;")
     r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
     assert "WAIVED" in r.stdout and "--sc-fnd-alert" in r.stdout
@@ -262,76 +262,20 @@ def test_the_committed_table_carries_no_dead_waivers(tokens):
     assert "WAIVED" not in r.stdout
 
 
-# -- 2. dark/auto parity ---------------------------------------------------
-
-def test_a_token_fixed_in_only_the_dark_block_fails(tokens):
-    """The whole point: a value corrected in one block leaves every theme.ui.mode=auto
-    site on the old one, and both blocks otherwise look individually correct."""
-    edit(tokens, "    --sc-surface-raised: #3a3025;", "    --sc-surface-raised: #53575c;")
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 1
-    assert "PARITY   --sc-surface-raised" in out(r)
-
-
-def test_a_token_missing_from_the_auto_block_fails(tokens):
-    edit(tokens, "    --sc-field-placeholder: #b3a894;\n", "", 1)
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 1
-    assert "PARITY   --sc-field-placeholder" in out(r)
-
-
-def test_shadows_may_differ_between_the_dark_and_auto_blocks(tokens):
-    """They already do on main -- pre-existing, unrelated to contrast, and exempted by
-    name so the parity check does not have to be weakened to accommodate them."""
-    edit(tokens, "  --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);",
-         "  --sc-shadow-lg: 0 3px 9px rgba(0, 0, 0, 0.6);")
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 0, out(r)
-
-
-def test_nothing_reports_as_retirable_while_no_exemption_is_pending(tokens):
-    """PARITY_PENDING is empty since PR #1492 converged md and lg, so a clean tree must
-    say nothing about retirement. This is the state the retirement path reports from when
-    it has no work to do; the path itself earned its keep by flagging md and lg on the
-    first run after #1492 landed, which is how this test came to be rewritten."""
-    r = run_tool(TOOL, tokens)
-    assert r.returncode == 0, out(r)
-    assert "retired" not in r.stdout
-
-
-def test_a_dark_auto_divergence_outside_the_exempt_set_still_fails(tokens):
-    """The exemptions are narrow. A token that is not exempt must still fail on divergence,
-    or emptying PARITY_PENDING would have quietly widened what the check tolerates."""
-    edit(tokens, '    --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);',
-         '    --sc-shadow-lg: 0 9px 9px rgba(0, 0, 0, 0.5);', count=1)
-    r = run_tool(TOOL, tokens)
-    assert r.returncode != 0, out(r)
-    assert "PARITY" in out(r)
-
-
-def test_the_parity_check_is_total_with_no_exemptions_left(tokens):
-    """PR #1492 converged md and lg, PR #1503 converged sm, so both exemption sets are empty
-    and every token declared in one block must match the other. Diverging either remaining
-    shadow must now fail -- previously each was excused by name. (--sc-shadow-sm was the
-    third case until issue 1590 removed the token as unconsumed.)"""
-    original = (tokens / CSS).read_text(encoding="utf-8")
-    for token in ("--sc-shadow-md", "--sc-shadow-lg"):
-        hits = list(re.finditer(rf"{re.escape(token)}:\s*[^;]+;", original))
-        assert len(hits) >= 3, f"expected light, dark and auto declarations of {token}"
-        last = hits[-1]  # the auto block's copy
-        broken = original[:last.start()] + f"{token}: 0 9px 9px rgba(0, 0, 0, 0.5);" + original[last.end():]
-        (tokens / CSS).write_text(broken, encoding="utf-8")
-        r = run_tool(TOOL, tokens)
-        assert r.returncode != 0, f"{token} divergence was tolerated: {out(r)}"
-        assert "PARITY" in out(r), out(r)
-    (tokens / CSS).write_text(original, encoding="utf-8")
+# -- 2. dark/auto parity: moved to tools/tests/test_build_tokens.py -----------
+#
+# The dark and auto blocks are now emitted from one table by tools/build-tokens.py,
+# so they cannot diverge and this gate no longer checks them. The failure mode these
+# tests guarded -- a value fixed in the dark block only, leaving every
+# theme.ui.mode=auto site on the old one -- is covered there instead, against the
+# generator that now makes it unrepresentable. See issue 1803.
 
 
 # -- 3. comment claims -----------------------------------------------------
 
 def test_a_stale_comment_ratio_fails(tokens):
     """The defect's actual signature: the value moved, the comment did not."""
-    edit(tokens, "text 11.63:1, muted 4.91:1", "text 6.67:1, muted 5.01:1")
+    edit(tokens, "text 11.69:1, muted 4.95:1", "text 6.67:1, muted 5.01:1")
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1
     text = out(r)
@@ -360,7 +304,7 @@ def test_a_floor_claim_may_be_exceeded_but_not_missed(tokens):
 def test_the_duplicated_foundation_table_is_checked_in_both_blocks(tokens):
     """That summary block is copied verbatim into the dark and auto blocks; each copy is
     resolved against its own block's tokens, so breaking one copy reports one failure."""
-    edit(tokens, "ink on surface ............. 11.63:1",
+    edit(tokens, "ink on surface ............. 11.69:1",
          "ink on surface ............. 11.11:1", 1)
     r = run_tool(TOOL, tokens)
     assert r.returncode == 1

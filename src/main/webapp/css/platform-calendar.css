@@ -158,8 +158,8 @@
    out-specify whichever rule is actually setting the colour. */
 
 .fc {
-  --fc-event-bg-color: var(--sc-fnd-primary, #1779ba);
-  --fc-event-border-color: var(--sc-fnd-primary, #1779ba);
+  --fc-event-bg-color: var(--sc-fnd-primary, #2677bc);
+  --fc-event-border-color: var(--sc-fnd-primary, #2677bc);
 }
 
 :root .fc .fc-day-today .fc-daygrid-day-number {
@@ -246,7 +246,7 @@
   opacity: 1;
 }
 :root .fc .fc-day-other .fc-daygrid-day-number {
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 /* Editorial Calendar (issue #426) -- /admin/editorial-calendar's entry rendering */
@@ -281,7 +281,7 @@
    badge text. */
 .fc-event.ec-status-expiring {
   /* The alert role the comment above already names it by (issue #1590). */
-  border-left: 3px solid var(--sc-fnd-alert, #cb4834);
+  border-left: 3px solid var(--sc-fnd-alert, #cb4643);
   background-color: rgba(204, 75, 55, 0.08);
 }
 /* The rule above replaces FullCalendar's solid event chip with an 8% wash but
@@ -366,7 +366,7 @@
 }
 .ec-undated-empty {
   padding: 6px 4px;
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
   font-style: italic;
 }
 

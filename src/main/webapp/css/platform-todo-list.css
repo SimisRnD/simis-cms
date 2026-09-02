@@ -108,7 +108,7 @@
    default row in light and 6.83:1 in dark. */
 .todo-list-card ul input[type="checkbox"] ~ label::after {
   background: var(--sc-field-bg, #ffffff);
-  border: 1px solid var(--sc-text-muted, #656970);
+  border: 1px solid var(--sc-text-muted, #6c6861);
   content: '';
   display: block;
   height: 20px;
@@ -128,8 +128,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "\f00c";
-  color: var(--sc-link, #276caa);
-  border: 1px solid var(--sc-link, #276caa);
+  color: var(--sc-link, #246caa);
+  border: 1px solid var(--sc-link, #246caa);
 }
 
 /* ==========================================================================

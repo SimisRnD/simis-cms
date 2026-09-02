@@ -60,7 +60,7 @@
   background: #b6ddf6;
   /* Foundation's own primary, and used here as Foundation uses it -- the selected state of a
      control. Same value, now following the theme (issue #1590). */
-  border: 1px solid var(--sc-fnd-primary, #1779ba);
+  border: 1px solid var(--sc-fnd-primary, #2677bc);
   border-radius: 3px;
   color: #3d3d3d;
   font-weight: var(--sc-weight-semibold, 600);
@@ -84,7 +84,7 @@
    value follows the theme instead of being fixed here. Kept at (0,2,0) so
    platform-tokens.css's (0,3,x) rules still beat it. */
 .product-details-add-to-cart .dim-text {
-  color: var(--sc-text-muted, #656970);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 .product-details-add-to-cart .price {

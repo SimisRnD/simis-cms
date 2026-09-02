@@ -53,10 +53,16 @@ jobs:
       # new rule is a chance to add another literal and the routing work only keeps level.
       - name: Fail on new hardcoded colours in first-party CSS
         run: python3 tools/check-css-token-adoption.py .
+      # The colour tokens are generated from a small set of hue seeds, so the
+      # committed stylesheet has to be proven current or the seeds stop being the
+      # source of truth. This also replaces the old dark-vs-auto parity check: both
+      # blocks come from one table now, so they cannot drift apart. See issue #1803.
+      - name: Fail on a stale generated token stylesheet
+        run: python3 tools/build-tokens.py . --check
       # Evaluates the token values themselves: declared pairings against their WCAG
-      # floors, dark-vs-auto parity, and every contrast ratio quoted in a comment
-      # re-derived from the declaration it describes. See issue #1489 -- the value
-      # drifted, the comment did not, and nothing in CI could tell.
+      # floors, and every contrast ratio quoted in a comment re-derived from the
+      # declaration it describes. See issue #1489 -- the value drifted, the comment
+      # did not, and nothing in CI could tell.
       - name: Fail on design tokens below their WCAG contrast floor
         run: python3 tools/check-token-contrast.py .
       # A var() fallback is what renders when the token stylesheet does not load, and
