@@ -222,7 +222,11 @@
     </section>
   </page>
 
-  <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager">
+  <!-- Issue #1772: widened to every principal that can render the admin menu, so the
+       Documentation row is not a dead link for four of them. Read-only by construction:
+       WikiWidget's hasRole checks gate showEditor and canManageWikiPages, not viewing,
+       so no widget change is needed and the edit affordance stays restricted. -->
+  <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager,ecommerce-manager,data-manager" capability="admin:manage,users:manage">
     <column class="small-12 cell">
       <widget name="content">
         <html><![CDATA[<h2 class="h3">App Platform Resources</h2>
@@ -233,7 +237,9 @@
       </widget>
     </column>
   </page>
-  <page name="/admin/documentation/wiki" role="admin,content-manager,community-manager">
+  <!-- Kept in step with /admin/documentation above (issue #1772); the menu row points at
+       /admin/documentation/wiki/Home, which resolves here via locatePage()'s prefix fallback. -->
+  <page name="/admin/documentation/wiki" role="admin,content-manager,community-manager,ecommerce-manager,data-manager" capability="admin:manage,users:manage">
     <column class="small-12 cell">
       <widget name="wiki" class="padding-20 padding-width-30">
         <title>Documentation</title>

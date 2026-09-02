@@ -180,13 +180,11 @@ PSEUDO_ROLES = ("guest", "users")
 # the capability), and this PR adds the detector rather than choosing. Remove an entry
 # when its row is fixed; never add one without saying why here. A new href, or a wider
 # leak on one of these, fails --strict.
-ALLOWLIST: dict[str, set] = {
-    "/admin": {"capability:admin:manage", "capability:users:manage", "role:data-manager"},
-    "/admin/documentation/wiki/Home": {"capability:admin:manage", "capability:users:manage",
-                                       "role:data-manager", "role:ecommerce-manager"},
-    "/admin/activity": {"capability:admin:manage", "capability:users:manage",
-                        "role:data-manager"},
-}
+# Empty, and it should stay that way (issue #1772). The three entries that were here were the
+# menu's only pre-existing violations: Welcome and Activity are now narrowed to the roles their
+# pages declare, and Documentation was widened to match the menu instead. A new entry here is a
+# decision to ship a dead link, so add one only with the reason written down.
+ALLOWLIST: dict[str, set] = {}
 
 
 class Undetermined(Exception):
