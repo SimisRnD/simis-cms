@@ -23,6 +23,10 @@
 <jsp:useBean id="thumbnailUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="videoPageUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="consentGiven" class="java.lang.String" scope="request"/>
+<%-- Both are Strings, deliberately: a raw boolean request attribute and a String useBean is a
+     ClassCastException at render time, so VideoWidget sets String.valueOf(...) for each. --%>
+<jsp:useBean id="videoUrlRecognized" class="java.lang.String" scope="request"/>
+<jsp:useBean id="canBuildLayout" class="java.lang.String" scope="request"/>
 <c:set var="videoWidgetId" value="video-widget${widgetContext.uniqueId}"/>
 <%-- aspectRatio is free-form (see VideoWidget#execute); any value not recognized below simply
      falls through to the 16:9 default, so it never needs sanitizing to be safe here. --%>
@@ -49,6 +53,18 @@
          aria-label="<c:out value="${empty title ? 'No video configured' : title}"/>">
       <i class="fa fa-video" aria-hidden="true"></i>
     </div>
+    <%-- A url was set and could not be read (issue #1797). The placeholder above is unchanged for
+         visitors -- what an author was missing is any signal at all that the paste was the problem
+         rather than a widget they had not filled in yet. Shown to the layout-builder tier only,
+         since videoUrl is a page-layout preference and nobody else can act on it. --%>
+    <c:if test="${videoUrlRecognized eq 'false' && canBuildLayout eq 'true'}">
+      <p class="help-text">
+        <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+        This video's web address was not recognized, so nothing can be shown. Use a YouTube or Vimeo
+        link to a single video &mdash; the address bar on the video's own page works, as does the one
+        the Share button copies.
+      </p>
+    </c:if>
   </c:when>
   <%-- Gate 2: consent is present and the video is recognized, but the iframe is still not embedded
        until the visitor clicks --%>

@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
+import com.simisinc.platform.application.cms.ContentVideoCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -71,6 +72,11 @@ public class ContentWidget extends GenericWidget {
 
     // Use the final html
     context.getRequest().setAttribute("contentHtml", html);
+
+    // Report any self-hosted videos this block shows, so the page can describe them as VideoObject
+    // (issue #1795). Read from the finished html rather than from the stored content, because that
+    // is what the visitor and the crawler are actually given.
+    context.setVideos(ContentVideoCommand.findVideos(html));
 
     // Handle scripts and iframes
     if (html.contains("<script")) {
