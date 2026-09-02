@@ -31,14 +31,32 @@ site-wide for weeks with no error anywhere (issues #1745, #1753).
 `SchemaIntegrityCommand` now reports this class of gap at startup, but only for objects it knows to
 look for. Adding both files together is what prevents it.
 
+## Every upgrade migration is executed on every build
+
+`DatabaseMigrationTest` applies **every** `UPGRADE_*.sql` to a freshly installed PostgreSQL, inside a
+transaction it then rolls back. Nothing is mutated, and a migration that is syntactically broken, or
+that references an object which no longer exists, fails the build the moment it is written.
+
+Replaying against a *modern* install is not the same as replaying against the schema of the day. An
+upgrade the install track has since caught up with — adding a column the `NEW_` file now creates,
+seeding a `site_properties` row it now seeds — cannot succeed twice, and that is correct rather than
+broken. Those are listed, one line each with a reason, in
+`src/test/resources/database/upgrade-replay-exceptions.txt`.
+
+The list is a ratchet checked in both directions: a migration that is **not** listed must replay
+cleanly, and a migration that **is** listed must still fail. So an entry cannot quietly go stale, and
+adding one is a deliberate act rather than a way to silence a migration nobody read. At the time it
+was introduced: 129 of 170 replayed, 41 listed.
+
+The 11 Java upgrade migrations (`V*.java`) are not covered — they are code, not a file that can be
+replayed — so they still want a hand-written test.
+
 ## Test a migration that transforms data
 
-An `UPGRADE_` migration **only runs in CI if someone writes a test for it** — nothing else executes
-them (issue #1755). A migration that is syntactically broken, or that silently does nothing, passes
-the full suite.
+Executing a migration proves it runs. It does not prove it did anything: a backfill that quietly
+updates zero rows replays perfectly cleanly.
 
-That matters most for migrations that move data rather than only create objects: a backfill that
-quietly updates zero rows looks exactly like a backfill that worked.
+That is why data-transforming migrations still need a test of their own.
 
 **CI now requires the test rather than trusting you to remember.**
 `tools/check-migration-test-coverage.py` fails the build when a migration added or changed in the

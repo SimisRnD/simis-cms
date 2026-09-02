@@ -1,0 +1,67 @@
+# Upgrade migrations that cannot replay against a fresh install (issue #1755)
+#
+# DatabaseMigrationTest applies every UPGRADE_*.sql to a freshly installed database inside a
+# transaction it then rolls back, so nothing is mutated and the whole track is executed on every
+# build. Before this, an upgrade migration only ran in CI if someone hand-wrote a test for it --
+# 3 of 169 had one -- so a broken or silently-empty migration passed the full suite.
+#
+# A file listed here is EXPECTED to fail that replay, for a reason that is not a defect: an upgrade
+# is written against the schema as it stood at the time, and the install track has since caught up.
+# Adding a column the install file now creates, or seeding a site_properties row the install file
+# now seeds, cannot succeed twice. That is correct behaviour, not a bug.
+#
+# The list is a ratchet, checked both ways:
+#
+#   * a migration NOT listed here must replay cleanly -- so a new one with a typo, a reference to a
+#     dropped object, or a broken function body fails the build at authoring time
+#   * a migration listed here must actually still fail -- so an entry cannot go stale unnoticed,
+#     and removing the cause means removing the line
+#
+# Adding a line is a deliberate act. Do it when the failure is genuinely "the install track already
+# did this", and say which. Do not add one to silence a migration you have not read.
+#
+# The 11 Java upgrade migrations (V*.java) are not covered: they are code, not SQL, and cannot be
+# replayed by reading a file. They remain the case for a hand-written test.
+#
+# Format: <filename>  # <reason>
+UPGRADE_20220409.1000__group_unique_id.sql                       # install track already creates this column
+UPGRADE_20220409.1002__group_unique_id.sql                       # install track already creates this object
+UPGRADE_20220420.1000__oauth_properties.sql                      # install track already seeds these site_properties rows
+UPGRADE_20220504.1000__properties.sql                            # install track already seeds these site_properties rows
+UPGRADE_20220509.1000__collections.sql                           # install track already creates this column
+UPGRADE_20220518.1000__menu.sql                                  # install track already creates this column
+UPGRADE_20220613.1000__properties.sql                            # install track already seeds these site_properties rows
+UPGRADE_20220701.1000__properties.sql                            # install track already seeds these site_properties rows
+UPGRADE_20220712.1000__fields.sql                                # install track already creates this column
+UPGRADE_20220721.1000__fields.sql                                # install track already creates this column
+UPGRADE_20220722.1000__fields.sql                                # install track already creates this column
+UPGRADE_20220730.1000__api.sql                                   # install track already seeds these site_properties rows
+UPGRADE_20220806.1000__fields.sql                                # operates on an object a later migration removed
+UPGRADE_20220811.1000__fields.sql                                # install track already creates this column
+UPGRADE_20220814.1000__fields.sql                                # install track already creates this column
+UPGRADE_20220831.1000__web_path.sql                              # install track already creates this column
+UPGRADE_20230320.1000__category_unique_id.sql                    # install track already creates this column
+UPGRADE_20230325.1000__lock.sql                                  # install track already creates this object
+UPGRADE_20260726.1002__sessions_is_anonymous.sql                 # install track already creates this column
+UPGRADE_20260726.2000__create_web_vitals_table.sql               # install track already creates this object
+UPGRADE_20260727.1001__web_vitals_context_and_aggregates.sql     # install track already creates this column
+UPGRADE_20260729.1001__search_analytics.sql                      # install track already creates this object
+UPGRADE_20260729.2003__capabilities_walking_skeleton.sql         # install track already creates this object
+UPGRADE_20260729.2004__blog_mailing_list_association.sql         # install track already creates this column
+UPGRADE_20260729.2005__capability_grants.sql                     # install track already creates this object
+UPGRADE_20260730.1000__mailchimp_campaign_id.sql                 # install track already creates this column
+UPGRADE_20260730.1002__metabase_bi_properties.sql                # install track already seeds these site_properties rows
+UPGRADE_20260730.1003__system_health_checks.sql                  # install track already creates this object
+UPGRADE_20260801.1006__security_rate_limit_properties.sql        # install track already seeds these site_properties rows
+UPGRADE_20260803.1001__integration_registry.sql                  # install track already creates this column
+UPGRADE_20260803.1002__remove_dead_images_processed_columns.sql  # operates on an object a later migration removed
+UPGRADE_20260805.1200__users_manage_capability.sql               # install track already seeds this capability
+UPGRADE_20260806.1800__add_password_policy_properties.sql        # install track already seeds these site_properties rows
+UPGRADE_20260810.1400__service_errors.sql                        # install track already creates this object
+UPGRADE_20260811.1000__insert_search_web_page.sql                # a later migration added a NOT NULL column this INSERT predates
+UPGRADE_20260811.1100__insert_about_us_web_page.sql              # a later migration added a NOT NULL column this INSERT predates
+UPGRADE_20260816.1100__documentation_wiki_property.sql           # install track already seeds these site_properties rows
+UPGRADE_20260827.1000__create_csp_violation_table.sql            # install track already creates this object
+UPGRADE_20260830.0100__workflow_notification_sent.sql            # install track already creates this object
+UPGRADE_20260831.1800__mailing_list_unique_id.sql                # install track already creates this column
+UPGRADE_20260902.1000__organization_properties.sql               # install track already seeds these site_properties rows
