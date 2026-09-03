@@ -149,6 +149,20 @@ class HtmlCleanerTest {
     String value = HtmlCommand.cleanContent(html);
     assertEquals(expected, value);
   }
+
+  @Test
+  void checkVideoPreloadSurvives() {
+    // preload="none" is the one attribute that stops a hidden reveal-modal video from fetching media
+    // on page load. It must survive the sanitizer, or an author cannot author a performant video.
+    String html = "<div class=\"responsive-embed widescreen\"><video controls=\"controls\" preload=\"none\" " +
+        "poster=\"/assets/view/1-1/poster.jpg\">\n" +
+        "<source src=\"/assets/view/20200914083941-104/SimIS-HTT.mp4\" type=\"video/mp4\" /></video></div>";
+    String value = HtmlCommand.cleanContent(html);
+
+    assertTrue(value.contains("preload=\"none\""), "preload was stripped: " + value);
+    assertTrue(value.contains("poster=\"/assets/view/1-1/poster.jpg\""), "poster was stripped: " + value);
+  }
+
   @Test
   void checkIframeTitleSurvives() {
     // An embedded frame with no accessible name is announced only as "frame" (WCAG 4.1.2), and a
