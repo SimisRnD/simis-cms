@@ -3,6 +3,7 @@
   font-family: 'Libre Baskerville';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/libre/libre-baskerville-v5-latin-regular.eot'); /* IE9 Compat Modes */
   src: local('Libre Baskerville'), local('LibreBaskerville-Regular'),
   url('../../fonts/libre/libre-baskerville-v5-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
@@ -16,6 +17,7 @@
   font-family: 'Libre Baskerville';
   font-style: normal;
   font-weight: 700;
+  font-display: swap;
   src: url('../../fonts/libre/libre-baskerville-v5-latin-700.eot'); /* IE9 Compat Modes */
   src: local('Libre Baskerville Bold'), local('LibreBaskerville-Bold'),
   url('../../fonts/libre/libre-baskerville-v5-latin-700.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
@@ -29,6 +31,7 @@
   font-family: 'Libre Baskerville';
   font-style: italic;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/libre/libre-baskerville-v5-latin-italic.eot'); /* IE9 Compat Modes */
   src: local('Libre Baskerville Italic'), local('LibreBaskerville-Italic'),
   url('../../fonts/libre/libre-baskerville-v5-latin-italic.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
