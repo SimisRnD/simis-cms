@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -363,6 +364,37 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   /** Re-loads the current (saved, not submitted) properties and re-renders the editor -- used when
    * a step-up re-authentication prompt needs to interrupt post() before any save is attempted. */
+  /**
+   * Overlay the values the admin just submitted onto the stored properties before the editor is
+   * re-rendered. The step-up gate returns before the save loop runs, so without this the
+   * re-authentication prompt hands back a form rebuilt from the database: the pending edit is
+   * discarded, and the admin's next save silently writes the unchanged values with no error at all
+   * (issue #1816). Mirrors the submitted-values behavior the save path already applies on its
+   * validation-error branch.
+   *
+   * <p>Secret properties are deliberately skipped. The JSP always renders a secret with an empty
+   * value and keys its "not set" / "value hidden" placeholder off the stored value, so overlaying a
+   * submitted secret would echo it back into the form, and overlaying a blank one would misreport a
+   * configured secret as unset. A secret is re-entered after re-authentication either way.
+   *
+   * @param siteProperties the stored properties about to be rendered, modified in place
+   * @param parameterLookup resolves a submitted request parameter by property name
+   */
+  static void applySubmittedValues(List<SiteProperty> siteProperties, Function<String, String> parameterLookup) {
+    if (siteProperties == null) {
+      return;
+    }
+    for (SiteProperty siteProperty : siteProperties) {
+      if (SecretSitePropertiesCommand.isSecret(siteProperty.getName())) {
+        continue;
+      }
+      String submittedValue = parameterLookup.apply(siteProperty.getName());
+      if (submittedValue != null) {
+        siteProperty.setValue(submittedValue.trim());
+      }
+    }
+  }
+
   private void redisplayEditor(WidgetContext context, String prefix) {
     List<SiteProperty> siteProperties = new ArrayList<>();
     String[] prefixList = prefix.split(",");
@@ -372,6 +404,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
         siteProperties.addAll(sitePropertiesList);
       }
     }
+    applySubmittedValues(siteProperties, context::getParameter);
     context.getRequest().setAttribute("sitePropertyList", siteProperties);
     context.getRequest().setAttribute("secretPropertyNames", SecretSitePropertiesCommand.getSecretPropertyNames());
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
