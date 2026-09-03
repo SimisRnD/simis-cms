@@ -110,15 +110,15 @@ body {
    content panels are inside main. */
 body.admin-console nav .sticky {
   background: linear-gradient(180deg,
-    var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #17202d) 100%);
+    var(--sc-chrome-raised, #00292d) 0%,
+    var(--sc-chrome, #001416) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 body.admin-console .admin-menu {
   background: linear-gradient(180deg,
-    var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #17202d) 100%);
+    var(--sc-chrome-raised, #00292d) 0%,
+    var(--sc-chrome, #001416) 100%);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -497,9 +497,9 @@ p {
   height: 34px;
   border-radius: 8px;
   font-size: 14px;
-  background-color: var(--sc-info-light, #eaf2fa);
+  background-color: var(--sc-info-light, #e7f4f6);
   border: 1px solid var(--sc-border, #ddd8cf);
-  color: var(--sc-info, #266eac);
+  color: var(--sc-info, #03727e);
 }
 
 /* Body */
@@ -709,14 +709,14 @@ ul.pagination li.page {
 }
 
 ul.pagination li.page:hover {
-  border: 1px solid var(--sc-fnd-primary, #2677bc);
+  border: 1px solid var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.page a {
   padding: 0;
   height: 100%;
   line-height: 40px;
-  color: var(--sc-fnd-primary, #2677bc);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.page a:hover {
@@ -726,12 +726,12 @@ ul.pagination li.page a:hover {
 
 ul.pagination li.current {
   line-height: 40px;
-  border: 1px solid var(--sc-fnd-primary, #2677bc);
+  border: 1px solid var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.pagination-previous a,
 ul.pagination li.pagination-next a {
-  color: var(--sc-fnd-primary, #2677bc);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.pagination-previous a:hover,
@@ -860,7 +860,7 @@ ul.pagination li.pagination-next a:hover {
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option {
   position: relative;
   padding-right: 1.5rem;
-  color: var(--sc-fnd-primary, #2677bc);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option::before {
@@ -871,7 +871,7 @@ ul.pagination li.pagination-next a:hover {
   content: '';
   border-bottom-width: 0;
   border-top-style: solid;
-  border-color: var(--sc-fnd-primary, #2677bc) transparent transparent;
+  border-color: var(--sc-fnd-primary, #06828f) transparent transparent;
   left: 5px;
   right: auto;
   margin-right: 5px;
@@ -1187,7 +1187,7 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .user-action-container .user-action-box .action-area .action-anchor .fa {
-  color: var(--sc-fnd-primary, #2677bc);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 .status-update-input-box .user-action-container .user-submit-box {
@@ -1242,13 +1242,13 @@ ul.pagination li.pagination-next a:hover {
      Both are warm -- red channel highest in each -- which is what stops a very dark rail
      reading as grey. background-color stays as the fallback for anything that cannot
      paint the gradient. */
-  background-color: var(--sc-chrome, #17202d);
-  background-image: linear-gradient(180deg, var(--sc-chrome, #17202d) 0%, var(--sc-chrome-raised, #1f2a39) 100%);
+  background-color: var(--sc-chrome, #001416);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #001416) 0%, var(--sc-chrome-raised, #00292d) 100%);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
   line-height: var(--sc-leading-normal, 1.4);
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #a1babc);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -1260,8 +1260,8 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: var(--sc-chrome, #17202d);
-  color: var(--sc-chrome-ink, #e8eef6);
+  background-color: var(--sc-chrome, #001416);
+  color: var(--sc-chrome-ink, #e4f0f1);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -1285,12 +1285,12 @@ ul.pagination li.pagination-next a:hover {
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-sm, 0.8125rem);
-  color: var(--sc-chrome-ink, #e8eef6);
+  color: var(--sc-chrome-ink, #e4f0f1);
 }
 .admin-menu .app-user i {
   /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
      2.64:1 on this lighter strip. Issue 1574. */
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #a1babc);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1315,7 +1315,7 @@ ul.pagination li.pagination-next a:hover {
    its ink. */
 body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #a1babc);
   font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
@@ -1367,11 +1367,11 @@ body.admin-console .admin-menu a:not(.button) {
    applied to the two interactive states. Same specificity (0,3,2) as those, which is what
    beats the blanket rule's (0,2,2). */
 body.admin-console .admin-menu a:not(.button) {
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #a1babc);
 }
 body.admin-console .admin-menu a:not(.button):hover,
 body.admin-console .admin-menu a:not(.button):focus {
-  color: var(--sc-chrome-ink, #e8eef6);
+  color: var(--sc-chrome-ink, #e4f0f1);
 }
 /* The active item overrides both: it carries dark ink on the dove fill, and these two rules
    outrank .admin-menu li.is-active > a on specificity alone. */
@@ -1394,7 +1394,7 @@ body.admin-console .admin-menu li.is-active > a:not(.button):focus {
    then, which meant a theme could restyle the whole rail and leave a blue
    stripe behind it. */
 .admin-menu li.is-active > a {
-  background-color: var(--sc-chrome-selected, #2b3a4e);
+  background-color: var(--sc-chrome-selected, #014e53);
   color: var(--sc-chrome-ink-selected, #ffffff);
   font-weight: var(--sc-weight-medium, 500);
 }
@@ -1774,7 +1774,7 @@ a.read-more {
 .tabs .tabs-title>a:focus, .tabs .tabs-title>a[aria-selected=true],
 .tabs .tabs-title.is-active a {
   color: var(--sc-text-inverse, #ffffff);
-  background: var(--sc-fnd-primary, #2677bc);
+  background: var(--sc-fnd-primary, #06828f);
 }
 
 .full-container {
@@ -2846,7 +2846,7 @@ div.item-image-large img {
 }
 
 .platform-blog-showcase-container nav ul.pagination li a:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #246caa);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #04707c);
   outline-offset: var(--sc-focus-ring-offset, 2px);
   border-radius: 3px;
   opacity: 1;
@@ -2961,7 +2961,7 @@ div.item-image-large img {
 .platform-settings-card:hover,
 .platform-settings-card:focus {
   background: var(--sc-surface-raised, #ffffff);
-  border-color: var(--sc-link, #246caa);
+  border-color: var(--sc-link, #04707c);
   color: var(--sc-text, #2c2925);
   text-decoration: none;
 }

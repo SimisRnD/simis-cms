@@ -60,7 +60,7 @@
   background: #b6ddf6;
   /* Foundation's own primary, and used here as Foundation uses it -- the selected state of a
      control. Same value, now following the theme (issue #1590). */
-  border: 1px solid var(--sc-fnd-primary, #2677bc);
+  border: 1px solid var(--sc-fnd-primary, #06828f);
   border-radius: 3px;
   color: #3d3d3d;
   font-weight: var(--sc-weight-semibold, 600);

@@ -128,8 +128,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "\f00c";
-  color: var(--sc-link, #246caa);
-  border: 1px solid var(--sc-link, #246caa);
+  color: var(--sc-link, #04707c);
+  border: 1px solid var(--sc-link, #04707c);
 }
 
 /* ==========================================================================

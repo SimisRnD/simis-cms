@@ -31,9 +31,9 @@ TOKENS_CSS = "src/main/webapp/css/platform-tokens.css"
 
 SEED_LIGHT = {
     "brand": 36.4,  # SimIS brand orange-red
-    "chrome": 256.6,  # the admin chrome ladder
+    "chrome": 203.0,  # the admin chrome ladder -- deep petrol, see issue 1803
     "danger": 25.0,  # error state - kept clear of brand (issue 1803)
-    "link": 248.4,  # link, focus ring, info
+    "link": 207.0,  # link, focus ring, info -- moved with the chrome so the two relate
     "marker": 47.6,  # the active-nav accent
     "neutral": 81.7,  # warm grey: surfaces, borders, body text, tables
     "success": 150.8,
@@ -50,28 +50,39 @@ SEED_DARK = {
 
 # --- authored lightness and chroma -----------------------------------------
 # (token, family, L, C). These are the design system; the seeds are the theme.
+#
+# The five chrome SURFACE rows (chrome, raised, control, control-hover, selected) were
+# re-authored in the Petrol change. They previously sat within 0.10 of each other in
+# lightness, so the rail, top bar, controls and selected row all read as one flat slab --
+# no hue could fix that. They now span 0.175 to 0.385, roughly 2.1x the range. A wider 0.430 top was tried
+# first and the contrast gate rejected it: the marker and the subtle ink could not hold
+# their ratios against a selected row that light.
+#
+# Widening lightness is NOT free the way a hue change is: lightness is what carries
+# contrast, so these values are only safe because check-token-contrast.py re-derives every
+# ratio against them. Change them and read that gate's output, do not assume.
 
 LIGHT = [
     ('--sc-brand',                      'brand',    0.561340, 0.170558),
     ('--sc-brand-hover',                'brand',    0.500400, 0.152538),
     ('--sc-brand-text',                 'brand',    0.500400, 0.152538),
-    ('--sc-chrome',                     'chrome',   0.242083, 0.027640),
+    ('--sc-chrome',                     'chrome',   0.175000, 0.052500),
     ('--sc-chrome-accent',              'chrome',   0.467511, 0.163945),
     ('--sc-chrome-accent-deep',         'chrome',   0.402002, 0.144986),
-    ('--sc-chrome-control',             'chrome',   0.305579, 0.033385),
-    ('--sc-chrome-control-hover',       'chrome',   0.329364, 0.036550),
+    ('--sc-chrome-control',             'chrome',   0.306000, 0.063400),
+    ('--sc-chrome-control-hover',       'chrome',   0.334000, 0.069400),
     ('--sc-chrome-ink',                 'chrome',   0.946889, 0.012557),
     ('--sc-chrome-ink-muted',           'chrome',   0.771232, 0.027081),
     ('--sc-chrome-ink-subtle',          'chrome',   0.687627, 0.030991),
-    ('--sc-chrome-raised',              'chrome',   0.281860, 0.031768),
-    ('--sc-chrome-selected',            'chrome',   0.344332, 0.040472),
+    ('--sc-chrome-raised',              'chrome',   0.257000, 0.060400),
+    ('--sc-chrome-selected',            'chrome',   0.385000, 0.076900),
     ('--sc-danger',                     'danger',   0.544065, 0.158406),
     ('--sc-fnd-alert',                  'danger',   0.579635, 0.170102),
     ('--sc-fnd-primary',                'link',     0.556031, 0.130957),
-    ('--sc-focus-ring',                 'link',     0.519207, 0.119502),
-    ('--sc-info',                       'link',     0.525435, 0.119731),
+    ('--sc-focus-ring',                 'link',     0.500000, 0.119502),
+    ('--sc-info',                       'link',     0.506000, 0.119731),
     ('--sc-info-light',                 'link',     0.957444, 0.013746),
-    ('--sc-link',                       'link',     0.519207, 0.119502),
+    ('--sc-link',                       'link',     0.500000, 0.119502),
     ('--sc-link-hover',                 'link',     0.454582, 0.104443),
     ('--sc-chrome-active-marker',       'marker',   0.704871, 0.186721),
     ('--sc-border',                     'neutral',  0.883687, 0.013374),
