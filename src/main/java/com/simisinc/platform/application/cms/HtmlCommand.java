@@ -349,7 +349,14 @@ public class HtmlCommand {
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">
     // </video>
     safelist.addTags("video");
-    safelist.addAttributes("video", "src", "controls", "poster", "type", "width", "height", "autoplay");
+    safelist.addAttributes("video", "src", "controls", "poster", "type", "width", "height", "autoplay",
+        "preload");
+    // preload is an enumerated attribute (none|metadata|auto) with no URL or script surface -- the one
+    // control an author has over eager media fetching. Without it a <video> defaults to fetching
+    // metadata, often more, the moment the page loads, even for a player hidden inside a reveal modal.
+    // Four such videos on the home page pulled ~57MB before anyone pressed play and the two largest
+    // connections were reset under a throttled mobile load. Listing it lets an author set
+    // preload="none" so no media is fetched until playback actually starts.
     safelist.addTags("source");
     safelist.addAttributes("source", "src", "type");
     // <track kind="captions" src="/assets/view/.../SimIS-HTT.vtt" srclang="en" label="English" default>
