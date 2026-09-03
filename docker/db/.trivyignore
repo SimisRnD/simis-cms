@@ -26,6 +26,28 @@
 #   confirm the statement reads not_affected, and delete this entry.
 CVE-2026-66046 exp:2026-09-10
 
+# CVE-2026-16742 exp:2026-10-03
+#   systemd (systemd-homed local privilege escalation, no fixed version published by
+#   Debian). Entered 2026-09-03 to unblock the publish gate, which had stopped delivery of
+#   two already-merged PRs.
+#
+#   Not a judgement call: the vulnerable component is not in the image. systemd-homed ships
+#   as its own binary package and is not installed. Verified against an image built from the
+#   pinned base digest plus the PostGIS install -- /usr/lib/systemd/systemd-homed absent,
+#   homectl absent, package systemd-homed not installed, PID 1 is the postgres entrypoint
+#   shell. Trivy flags it because PostGIS pulls in the systemd source package as a transitive
+#   dependency and the CVE is recorded against that source package.
+#
+#   The CVE_POLICY entry in tools/generate-db-vex.py already resolves this to
+#   not_affected (vulnerable_code_not_present). The VEX document cannot carry the statement
+#   yet only because generate-db-vex.py reads open Trivy alerts from code scanning, and
+#   there are currently zero -- the live scan in the publish workflow found this first.
+#
+#   To resolve: once the alert appears in code scanning, regenerate
+#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json),
+#   confirm the statement reads not_affected, and delete this entry.
+CVE-2026-16742 exp:2026-10-03
+
 # Previously cleared:
 #   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
 #     (vulnerable_code_not_in_execute_path) with recorded evidence on 2026-07-24
