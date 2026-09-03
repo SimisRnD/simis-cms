@@ -145,6 +145,12 @@ class PageServletSecurityHeadersTest {
         "img-src must allow the YouTube poster host or the video widget loses its thumbnail: " + actualCsp);
     assertTrue(actualCsp.contains("https://i.vimeocdn.com"),
         "img-src must allow the Vimeo thumbnail host set by video.jsp's oEmbed call: " + actualCsp);
+    // WeatherWidget renders the National Weather Service's forecast icons as <img> straight from
+    // api.weather.gov. Without the host the widget half-works -- temperatures render, every icon
+    // becomes a broken placeholder -- and nothing errors where a developer would look, because
+    // only a browser enforces CSP. curl fetches the icon happily. Issue #1805.
+    assertTrue(actualCsp.contains("https://api.weather.gov"),
+        "img-src must allow the NWS icon host or the weather widget loses every icon: " + actualCsp);
     // Deliberately still absent: img-src cannot be set until published content stops referencing
     // external images, and default-src must come after it or the video/careers iframes break.
     assertTrue(!actualCsp.contains("default-src"),
