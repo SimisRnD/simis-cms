@@ -48,6 +48,46 @@ CVE-2026-66046 exp:2026-09-10
 #   confirm the statement reads not_affected, and delete this entry.
 CVE-2026-16742 exp:2026-10-03
 
+# CVE-2026-76642, CVE-2026-78408, CVE-2026-78409, CVE-2026-78410 exp:2026-10-03
+#   util-linux (no fixed version published by Debian bookworm). Entered 2026-09-03 to unblock
+#   the publish gate, which had stopped delivery of two already-merged PRs (#1819, #1821).
+#   Trivy reports 36 findings, all HIGH, no CRITICAL: these four CVEs against the nine binary
+#   packages built from the one util-linux source (bsdutils, libblkid1, libfdisk1, libmount1,
+#   libsmartcols1, libuuid1, mount, util-linux, util-linux-extra), so it is four defects
+#   counted nine times each -- the same arithmetic recorded for CVE-2026-53613.
+#
+#   Pending triage, not a determination. What is already established, and why these are
+#   expected to resolve not_affected on the existing recorded basis:
+#
+#   All four are privilege-boundary defects in mount/namespace operations -- a failed external
+#   mount helper still running privileged X-mount post-hooks (76642), nsenter --join-cgroup
+#   leaking root cgroup migration authority (78408), X-mount.subdir tree resolution escaping
+#   via intermediate symlinks (78409), and restricted bind mounts not pinning their source
+#   (78410). Each needs a caller able to cross a privilege boundary via mount or nsenter.
+#
+#   This image removes both routes, under mitigations already reviewed and recorded here:
+#     - docker/db/Dockerfile runs `chmod u-s` on /usr/bin/mount, /usr/bin/umount, /bin/mount
+#       and /bin/umount, so no setuid-root transition exists to race or subvert. This is the
+#       mitigation recorded for CVE-2026-53613 (inline_mitigations_already_exist).
+#     - The container drops all Linux capabilities (docker-compose.yaml cap_drop, CapEff
+#       0000000000000000, PR #230), so it cannot perform mount or namespace operations at
+#       all. This is the basis recorded for CVE-2026-53615.
+#   nsenter is never invoked in the image, and PostgreSQL never mounts a filesystem.
+#
+#   That evidence is not a substitute for triage. tools/generate-db-vex.py keys its policy by
+#   CVE precisely so a new util-linux CVE falls through to under_investigation rather than
+#   inheriting a previous CVE's reasoning, and these four have not been assessed individually.
+#   This entry holds the gate open for that assessment; it does not pre-empt its outcome.
+#
+#   To resolve: assess each CVE against the mitigations above, add the outcome to CVE_POLICY
+#   in tools/generate-db-vex.py, regenerate
+#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json), confirm the
+#   statements read as intended, and delete these entries.
+CVE-2026-76642 exp:2026-10-03
+CVE-2026-78408 exp:2026-10-03
+CVE-2026-78409 exp:2026-10-03
+CVE-2026-78410 exp:2026-10-03
+
 # Previously cleared:
 #   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
 #     (vulnerable_code_not_in_execute_path) with recorded evidence on 2026-07-24
