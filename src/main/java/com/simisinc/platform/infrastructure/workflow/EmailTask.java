@@ -129,7 +129,7 @@ public class EmailTask implements Work {
           // Set user specific site links
           User thisUser = (User) entry.getValue();
           if (thisUser != null && StringUtils.isNotBlank(thisUser.getAccountToken())) {
-            ctx.setVariable("validateAccountUrl", siteUrl + "/validate-account?confirmation=" + UrlCommand.encodeUri(thisUser.getAccountToken()));
+            ctx.setVariable("validateAccountUrl", siteUrl + "/validate-account/" + UrlCommand.encodeUri(thisUser.getAccountToken()));
           }
         }
       }
