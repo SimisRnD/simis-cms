@@ -208,6 +208,14 @@ public class PageServlet extends HttpServlet {
       // reveal either, because this pilot happens not to use the widget -- the requirement is in
       // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
       //
+      // api.weather.gov is the third of that kind. WeatherWidget renders the National Weather
+      // Service's own forecast icons as <img> elements straight from that host, so without it
+      // the widget half-works: temperatures and conditions render, every icon becomes a broken
+      // placeholder, and nothing errors anywhere a developer would look. It went unnoticed
+      // because curl fetches the icon URL happily -- only a browser enforces CSP (issue #1805).
+      // Unlike the tile server below it, this is a fixed government host with nothing to
+      // configure, so it is a constant rather than a lookup.
+      //
       // frame-src is emitted from AllowedIframeHostCommand, the same list HtmlCommand enforces
       // when content is saved. Two layers on one list: the sanitizer stops a disallowed embed
       // becoming stored content and tells the author while they can still fix it, and this stops
@@ -232,7 +240,8 @@ public class PageServlet extends HttpServlet {
       response.setHeader("Content-Security-Policy",
           "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
               + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com"
+              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
+              + "https://api.weather.gov"
               + mapTileImageSource + "; "
               + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
               + "script-src 'self' 'nonce-" + cspNonce + "'");
