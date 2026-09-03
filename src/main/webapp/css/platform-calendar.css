@@ -158,8 +158,8 @@
    out-specify whichever rule is actually setting the colour. */
 
 .fc {
-  --fc-event-bg-color: var(--sc-fnd-primary, #2677bc);
-  --fc-event-border-color: var(--sc-fnd-primary, #2677bc);
+  --fc-event-bg-color: var(--sc-fnd-primary, #06828f);
+  --fc-event-border-color: var(--sc-fnd-primary, #06828f);
 }
 
 :root .fc .fc-day-today .fc-daygrid-day-number {
