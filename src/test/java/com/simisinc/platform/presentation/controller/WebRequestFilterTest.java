@@ -47,6 +47,7 @@ import jakarta.servlet.http.HttpSession;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -1061,4 +1062,49 @@ class WebRequestFilterTest {
     Assertions.assertTrue(rememberMeRestoreLogsIn(userWithRoles(62L, "admin"), "false", false),
         "An admin's remember-me cookie must still work while site.login is off");
   }
+  /**
+   * Which assets may be cached for a year. The exclusions matter more than the inclusions here: a
+   * path wrongly treated as immutable is cached by every visitor's browser for a year with no way
+   * to recall it.
+   */
+  @Nested
+  class ImmutableAssetCaching {
+
+    @Test
+    void contentAddressedAssetsAreImmutable() {
+      // upload timestamp + id in the path: a re-upload is a different URL
+      Assertions.assertTrue(WebRequestFilter.isImmutableAsset("/assets/img/20260903203907-332/logo.webp"));
+      // version in the filename
+      Assertions.assertTrue(WebRequestFilter.isImmutableAsset("/fonts/inter/inter-v11-latin-regular.woff2"));
+      // version in the vendor directory
+      Assertions.assertTrue(
+          WebRequestFilter.isImmutableAsset("/css/fontawesome-free-6.1.1-web/webfonts/fa-solid-900.woff2"));
+    }
+
+    @Test
+    void stylesheetsAndScriptsAreNotImmutable() {
+      // These are busted by a "?v=" stamp read from ApplicationInfo.VERSION, which is hand-edited
+      // and goes stale; caching them for a year would strand a deployed CSS fix on every browser
+      // that had already visited.
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/platform.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/platform-tokens.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/custom/stylesheet.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/javascript/platform-password-reveal.js"));
+    }
+
+    @Test
+    void prefixesAreAnchoredAtAPathBoundary() {
+      // The trap isBrowserResourcePath() documents: an ordinary page slug that merely starts with
+      // the same letters must not inherit a year-long cache.
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/fonts-of-the-world"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/assets/imgur-review"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css-tutorial-2026"));
+    }
+
+    @Test
+    void nullIsSafe() {
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset(null));
+    }
+  }
+
 }
