@@ -2611,6 +2611,19 @@ div.item-image-large img {
   }
 }
 
+/* Until Swiper initializes, every slide is still in normal document flow, so a multi-slide hero
+   stacks them vertically (580px each, per the height above) and then collapses to a single visible
+   slide the moment Swiper runs -- pulling everything below the hero up by the height of the extra
+   slides. On a six-slide hero that is a ~2900px shift; it measured as CLS 0.938 against <main>,
+   i.e. effectively the page's entire layout-shift score. Hiding all but the first slide until
+   Swiper adds .swiper-initialized makes the reserved height before init equal the height after it,
+   so no shift occurs. This deliberately styles the pre-init state rather than reserving height on a
+   container: the slide already carries its own height rule, and a container height would have to be
+   kept in sync with it (and with the max-width:640px override) by hand. */
+.hero-banner .swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
+  display: none;
+}
+
 /* ---------------------------------------------------------------------------
    Blog post list -- "showcase" view (blog-post-list-showcase.jsp)
 
