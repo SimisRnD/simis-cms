@@ -135,6 +135,18 @@ CVE_POLICY = {
         "cron daemon, so they never execute; the read-only root filesystem additionally prevents "
         "staging the crafted data files the flaw requires.",
     ),
+    "CVE-2026-16742": (
+        NOT_PRESENT,
+        "The flaw is in systemd-homed's handling of home-record signatures. PostGIS pulls in "
+        "the systemd binary package as a transitive dependency, so Trivy flags the whole "
+        "source package, but systemd-homed ships in its own binary package (systemd-homed) "
+        "which this image does not install: neither /usr/lib/systemd/systemd-homed nor "
+        "homectl exists in the built image, and PID 1 is the postgres entrypoint shell, not "
+        "systemd. Verified by inspecting an image built from the pinned base digest plus the "
+        "PostGIS install - the five packages Trivy reports (libsystemd-shared, libsystemd0, "
+        "libudev1, systemd, systemd-timesyncd) are all present, and the vulnerable component "
+        "is not among them.",
+    ),
     "CVE-2023-45853": (
         NOT_PRESENT,
         "This vulnerability is in zlib's MiniZip contrib component "
