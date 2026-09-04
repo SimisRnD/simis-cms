@@ -47,6 +47,15 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * <p>Also covers issue #1791: the per-ip rate limit has to be keyed to the address the reset is
  * being driven from, not the one the session was created at.
  *
+ * <p>The three postWhenTheTokenWrite* tests pin the null return of
+ * {@code UserRepository#createAccountToken}. The widget assigned that return back over its own
+ * {@code user} reference and then read {@code user.getId()} out of it as an argument to the audit
+ * call, so a failed write threw a NullPointerException before any record was written -- an
+ * unauthenticated visitor got a 500 and the attempt left no trace at all. Because that 500 could
+ * only ever happen for an account that exists, it also answered the one question this page is
+ * built to refuse; postAnswersAFailedTokenWriteExactlyLikeANonexistentUsername is the regression
+ * test for that property.
+ *
  * @author SimIS Inc.
  */
 class ForgotPasswordWidgetTest extends WidgetBase {
@@ -302,5 +311,123 @@ class ForgotPasswordWidgetTest extends WidgetBase {
       rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(eq(SESSION_IP), anyBoolean()), times(2));
       rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(isNull(), anyBoolean()), never());
     }
+  }
+
+  /** The response every outcome of this page must share, whatever actually happened server-side. */
+  private static final String GENERIC_MESSAGE =
+      "If the email you specified exists in our system, we've sent a password reset link to it.";
+
+  @Test
+  void postWhenTheTokenWriteFailsRecordsFailureAndSendsNoLink() {
+    // UserRepository.createAccountToken() returns null when its DB update does not take (it logs
+    // "createAccountToken failed!"). The widget assigned that null back over `user`, so
+    // String.valueOf(user.getId()) -- an argument to the audit call, evaluated before it -- threw.
+    // The record was never written: a failed reset left no evidence it had been attempted. No token
+    // was written either, so no reset email may be triggered.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      // The id and email come from the reference captured before the call, not from the null return
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset.requested"), eq(AuditEventCommand.FAILURE), eq("user"), eq("11"),
+          eq("target@example.com"), any()), times(1));
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+    }
+  }
+
+  @Test
+  void postAnswersAFailedTokenWriteExactlyLikeANonexistentUsername() {
+    // Enumeration safety is the constraint the admin-side sibling (#1837) did not have: there, the
+    // failure is reported to a signed-in admin by name. Here the caller is anonymous and may not be
+    // the account holder, so a failed write must be indistinguishable from "no such account" -- a
+    // failed write can only happen for an account that exists, so any distinct response is an
+    // oracle. Runs both paths against the same context and compares what the visitor actually sees.
+    logout(widgetContext);
+
+    String[] nonexistent;
+    String[] writeFailed;
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("nobody@example.com")).thenReturn(null);
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
+
+      addQueryParameter(widgetContext, "username", "nobody@example.com");
+      new ForgotPasswordWidget().post(widgetContext);
+      nonexistent = visitorResponse(widgetContext);
+
+      resetVisitorResponse(widgetContext);
+
+      addQueryParameter(widgetContext, "username", "target@example.com");
+      new ForgotPasswordWidget().post(widgetContext);
+      writeFailed = visitorResponse(widgetContext);
+    }
+
+    Assertions.assertArrayEquals(nonexistent, writeFailed,
+        "a failed token write must be indistinguishable from a username that does not exist");
+    // Pin the shared response too, so making both paths identically wrong would not pass
+    Assertions.assertArrayEquals(new String[] { GENERIC_MESSAGE, ForgotPasswordWidget.SUCCESS_JSP, null, null }, writeFailed);
+  }
+
+  @Test
+  void postWhenTheTokenWriteSucceedsStillTriggersTheResetEvent() {
+    // The guard must not cost the working case its email: a token that writes still audits SUCCESS
+    // and dispatches the reset event.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset.requested"), eq(AuditEventCommand.SUCCESS), eq("user"), eq("11"),
+          eq("target@example.com"), any()), times(1));
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), times(1));
+      Assertions.assertArrayEquals(new String[] { GENERIC_MESSAGE, ForgotPasswordWidget.SUCCESS_JSP, null, null },
+          visitorResponse(widgetContext));
+    }
+  }
+
+  /** Everything this page hands back to an unauthenticated visitor. */
+  private static String[] visitorResponse(WidgetContext context) {
+    return new String[] { context.getSuccessMessage(), context.getJsp(), context.getWarningMessage(),
+        context.getErrorMessage() };
+  }
+
+  private static void resetVisitorResponse(WidgetContext context) {
+    context.setSuccessMessage(null);
+    context.setJsp(null);
+    context.setWarningMessage(null);
+    context.setErrorMessage(null);
   }
 }

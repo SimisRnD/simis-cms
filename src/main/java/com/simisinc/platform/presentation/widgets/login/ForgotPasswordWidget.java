@@ -149,18 +149,35 @@ public class ForgotPasswordWidget extends GenericWidget {
     // #1836 fixed the admin-initiated path differently, by warning the admin that they had just
     // replaced a live link. That answer does not transfer here: there is nobody to warn, and the
     // caller is not necessarily the account holder.
-    if (!hasWorkingLink(user)) {
-      user = UserRepository.createAccountToken(user);
-    }
+    // Captured before the write, because createAccountToken returns null when its update does not
+    // take and reassigning over `user` would lose the identity the audit record below needs.
+    String targetId = String.valueOf(user.getId());
+    String targetEmail = user.getEmail();
+
+    User tokenedUser = hasWorkingLink(user) ? user : UserRepository.createAccountToken(user);
 
     // Record the self-service request (#492) -- distinct event type from the admin-initiated
     // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
     // happened. The actor resolves to unauthenticated/anonymous since nobody is signed in yet.
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.reset.requested",
-        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), "self-service");
+        tokenedUser != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "user", targetId, targetEmail, "self-service");
 
-    // Trigger events
-    WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, null));
+    // Trigger events -- only when a token was actually written. A null return means the update did
+    // not take (UserRepository#createAccountToken logs "createAccountToken failed!"), so there is no
+    // link to email and the event would carry a null user.
+    //
+    // The visitor is deliberately NOT told any of this. Unlike the admin-side sibling (#1837), which
+    // reports the failure to a signed-in administrator by name, this page answers every outcome with
+    // one response: the generic success message and SUCCESS_JSP are what a nonexistent username gets
+    // too. Any distinct failure response here would be an account-existence oracle, since a failed
+    // token write can only ever happen for an account that exists -- which is exactly what the
+    // NullPointerException this replaces leaked, as a 500 no nonexistent username could provoke.
+    // The failure is recorded server-side instead: the FAILURE audit record above and the
+    // repository's own error log.
+    if (tokenedUser != null) {
+      WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(tokenedUser, null));
+    }
 
     context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
     context.setJsp(SUCCESS_JSP);
