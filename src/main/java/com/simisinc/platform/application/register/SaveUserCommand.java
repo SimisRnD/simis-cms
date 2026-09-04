@@ -18,8 +18,6 @@ package com.simisinc.platform.application.register;
 
 import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
 
-import java.util.List;
-
 import javax.security.auth.login.AccountException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -30,7 +28,7 @@ import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.LoadUserCommand;
-import com.simisinc.platform.domain.model.Role;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 
@@ -138,9 +136,9 @@ public class SaveUserCommand {
         // stored values unchanged and must still succeed, so a lower-ranked editor can go on
         // correcting a name, title or department on such a record.
         if (userMakingChange != null
-            && highestRoleLevel(user.getRoleList()) > highestRoleLevel(userMakingChange.getRoleList())) {
-          int actorLevel = highestRoleLevel(userMakingChange.getRoleList());
-          int targetLevel = highestRoleLevel(user.getRoleList());
+            && RoleLevelCommand.highestRoleLevel(user.getRoleList()) > RoleLevelCommand.highestRoleLevel(userMakingChange.getRoleList())) {
+          int actorLevel = RoleLevelCommand.highestRoleLevel(userMakingChange.getRoleList());
+          int targetLevel = RoleLevelCommand.highestRoleLevel(user.getRoleList());
           if (!StringUtils.equalsIgnoreCase(user.getEmail(), userBean.getEmail())) {
             LOG.warn("Blocked identity change: user " + userMakingChange.getId() + " (level " + actorLevel
                 + ") attempted to change the email of user " + user.getId() + " (level " + targetLevel + ")");
@@ -217,25 +215,4 @@ public class SaveUserCommand {
     return UserRepository.save(user);
   }
 
-
-  /**
-   * The highest role level in the given list, or 0 when the account holds no roles.
-   * <p>
-   * Mirrors the identical rule in UserDetailsWidget.targetOutranksActor(), UnsuspendAccountCommand
-   * and UserFormWidget -- a lower-privileged editor cannot act on an account that outranks them.
-   * Duplicated rather than shared because those live in the presentation and login packages;
-   * consolidating the copies is worth doing, but not inside a security fix.
-   */
-  private static int highestRoleLevel(List<Role> roleList) {
-    int max = 0;
-    if (roleList == null) {
-      return max;
-    }
-    for (Role role : roleList) {
-      if (role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
-  }
 }

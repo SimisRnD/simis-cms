@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import java.sql.Timestamp;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
@@ -43,6 +45,15 @@ public class ForgotPasswordWidget extends GenericWidget {
   static String JSP = "/login/forgot-password-form.jsp";
   static String SUCCESS_JSP = "/login/forgot-password-success.jsp";
   static String RATE_LIMITED_JSP = "/cms/error-rate-limited.jsp";
+
+  /**
+   * The single answer every reachable outcome of a well-formed request gives back: username not
+   * found, username found and mailed, and username found but carrying an address that cannot be
+   * mailed. It is deliberately one constant rather than three identical literals -- the enumeration
+   * defence is the responses being indistinguishable, so they must not be able to drift apart.
+   */
+  static final String GENERIC_RESPONSE_MESSAGE =
+      "If the email you specified exists in our system, we've sent a password reset link to it.";
 
   public WidgetContext execute(WidgetContext context) {
     
@@ -97,7 +108,7 @@ public class ForgotPasswordWidget extends GenericWidget {
         return context;
       }
       // Always show the same success message whether the username exists or not, to prevent enumeration.
-      context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
+      context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
       context.setJsp(SUCCESS_JSP);
       return context;
     }
@@ -108,15 +119,39 @@ public class ForgotPasswordWidget extends GenericWidget {
     RateLimitCommand.isUsernameAllowedRightNow(username, true);
     RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
 
-    // Make sure the user has a valid email address
+    // Make sure the user has a valid email address. Nothing can be sent, but the answer has to be
+    // the same one every other outcome gives: this branch is only reachable when the username DOES
+    // resolve to an account, so a distinct "Check the username and try again" on the form told an
+    // unauthenticated caller that the account exists -- the one hole in this page's otherwise
+    // careful enumeration defence, which is why the not-found branch above is worded the way it is.
+    //
+    // The account holder is not worse off: they could not have been mailed either way. The signal
+    // moves to the log, which is now the only place this surfaces, so it names the account rather
+    // than reporting that some user somewhere has an unusable address.
     if (!JMail.isValid(user.getEmail())) {
-      LOG.warn("This user does not have a valid email to send to");
-      context.setWarningMessage("Check the username and try again");
+      LOG.warn("No password reset sent: user " + user.getId() + " has an unusable email address");
+      context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
+      context.setJsp(SUCCESS_JSP);
       return context;
     }
 
-    // Create an account token and send email
-    user = UserRepository.createAccountToken(user);
+    // Create an account token and send email -- but only when the account does not already hold a
+    // link that still resolves. An account holds exactly one token and createAccountToken
+    // overwrites it, which silently stops the previously emailed link from working (#1836). Minting
+    // unconditionally here meant anyone who knew a username could destroy the link that account
+    // holder was mid-click on, repeatedly, from a page that requires no authentication at all --
+    // rate limiting bounds how often that can be done, not whether it works.
+    //
+    // Reusing is also just the right answer to "I never got the email": the address is unchanged,
+    // so the same link is re-sent rather than a second one that invalidates the first. The expiry
+    // is deliberately not extended -- this preserves an existing link, it does not renew it.
+    //
+    // #1836 fixed the admin-initiated path differently, by warning the admin that they had just
+    // replaced a live link. That answer does not transfer here: there is nobody to warn, and the
+    // caller is not necessarily the account holder.
+    if (!hasWorkingLink(user)) {
+      user = UserRepository.createAccountToken(user);
+    }
 
     // Record the self-service request (#492) -- distinct event type from the admin-initiated
     // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
@@ -127,8 +162,27 @@ public class ForgotPasswordWidget extends GenericWidget {
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, null));
 
-    context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
+    context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
     context.setJsp(SUCCESS_JSP);
     return context;
+  }
+
+  /**
+   * Whether the account already holds a setup or password-reset link that still resolves.
+   *
+   * <p>A null expiry counts as still working, matching both
+   * {@code UserRepository.findByAccountToken}'s own "IS NULL" arm and
+   * {@code UserDetailsWidget.accountLinkState()}: such a token does resolve, so replacing it would
+   * break exactly the link this is here to preserve. That helper classifies the same states for the
+   * admin page, but it is package-private in another presentation package and returns a
+   * three-state label for display; this needs a boolean, and widening it to share four lines across
+   * packages would be the worse trade.
+   */
+  private static boolean hasWorkingLink(User user) {
+    if (user == null || StringUtils.isBlank(user.getAccountToken())) {
+      return false;
+    }
+    Timestamp expires = user.getAccountTokenExpires();
+    return expires == null || expires.getTime() > System.currentTimeMillis();
   }
 }
