@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -93,5 +95,47 @@ class WebRequestFilterImmutableCacheTest {
     HttpServletResponse withMessage = mock(HttpServletResponse.class);
     new WebRequestFilter.ImmutableAssetResponse(withMessage).sendError(500, "boom");
     verify(withMessage, times(1)).setHeader("Cache-Control", "no-store");
+  }
+
+  @Test
+  void stylesheetsScriptsAndBundledImagesRevalidateRatherThanCacheBlind() {
+    // Their ?v= stamp comes from ApplicationInfo.VERSION, which is hand-edited and stale, so it
+    // cannot be trusted to change when the file does. Sending no header is not neutral: with
+    // neither an expiry nor a validator, browsers apply heuristic freshness and a deployed CSS fix
+    // can go unseen for an unpredictable stretch.
+    assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"));
+    assertTrue(WebRequestFilter.isRevalidatedAsset("/javascript/copy-button.js"));
+    assertTrue(WebRequestFilter.isRevalidatedAsset("/images/favicon.png"));
+  }
+
+  @Test
+  void immutableAssetsAreNotDowngradedToRevalidation() {
+    // isImmutableAsset is checked first in the filter, so the webfonts under a vendor directory
+    // keep the year-long cache even though they also sit under /css.
+    String webfont = "/css/fontawesome-free-6.1.1-web/webfonts/fa-solid-900.woff2";
+    assertTrue(WebRequestFilter.isImmutableAsset(webfont),
+        "the vendor webfonts must stay immutable -- they are content-addressed by that directory");
+    assertTrue(WebRequestFilter.isRevalidatedAsset(webfont),
+        "precondition: it also matches the /css prefix, which is why the filter's order matters");
+  }
+
+  @Test
+  void ordinaryPagesAreNeverGivenAnAssetCacheHeader() {
+    // Anchored at a path boundary: a bare startsWith would also claim page slugs.
+    assertFalse(WebRequestFilter.isRevalidatedAsset("/images-of-our-team"));
+    assertFalse(WebRequestFilter.isRevalidatedAsset("/javascript-basics"));
+    assertFalse(WebRequestFilter.isRevalidatedAsset("/css-tutorial-2026"));
+    assertFalse(WebRequestFilter.isRevalidatedAsset("/contact-us"));
+    assertFalse(WebRequestFilter.isRevalidatedAsset(null));
+  }
+
+  @Test
+  void revalidationIsWithdrawnOnAnError() throws Exception {
+    // Same withdrawal the immutable wrapper does: an error response must not carry an asset
+    // caching directive at all.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    new WebRequestFilter.ImmutableAssetResponse(response, WebRequestFilter.REVALIDATE_CACHE_CONTROL)
+        .sendError(404);
+    verify(response, times(1)).setHeader("Cache-Control", "no-store");
   }
 }
