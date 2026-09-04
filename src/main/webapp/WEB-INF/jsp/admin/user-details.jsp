@@ -128,8 +128,8 @@
   <p style="margin-bottom:0">
     Full detail and every single-account action for this one user. Bulk equivalents (suspend,
     unsuspend, reset password, grant a role) live on the <a href="${ctx}/admin/users">Users list</a>;
-    a few actions here -- Delete, Unlock, and approving/denying an unsuspend request -- don't exist
-    there at all.
+    a few actions here -- Delete, Unlock, Reset MFA, and approving/denying an unsuspend request --
+    don't exist there at all.
   </p>
 </div>
 <div class="grid-container">
@@ -458,6 +458,11 @@
     required, but that's enforced by the form, not the server. You can't suspend your own account, or
     one with a higher role level than yours -- an explicit error message says so if you try, e.g. from
     a stale page or a shared link.</li>
+  <li><strong>Reset MFA</strong> only appears once the account actually has MFA enabled. It clears
+    that account's second factor and any unused recovery codes immediately -- the account holder has
+    to re-enroll from scratch, so it is the recovery path for someone who has lost their authenticator
+    device. Like Reset Password, it requires you to re-enter your own password or authenticator code
+    first, and you can't reset MFA for an account with a higher role level than yours.</li>
   <li><strong>Restore Account / Request Unsuspend&hellip;</strong> -- which one you see depends on the
     target's role. A non-elevated account restores in one click. A community-manager-or-above account
     instead requires a second, <em>different</em> admin's approval -- filing the request notifies
@@ -473,11 +478,8 @@
   <li><strong>Delete Account</strong> is permanent, with no confirmation beyond the browser's own "Are
     you sure?" prompt. It fails safely, with an explicit error rather than a partial delete, if the
     account is still referenced elsewhere in the database (it authored content, owns uploaded files,
-    etc. -- see "Common problems" below). You can't delete your own account --
-    <strong>but unlike Suspend and Restore above, deleting an account with a higher role level than
-    yours is not currently blocked.</strong> A community-manager can permanently delete an admin
-    account from here. Treat this as a real gap, not a safety net: double-check who you're deleting,
-    especially on this page specifically.</li>
+    etc. -- see "Common problems" below). You can't delete your own account, or one with a higher role
+    level than yours -- an explicit error message says so if you try.</li>
 </ul>
 
 <h5>Reading the detail grid</h5>
@@ -496,37 +498,29 @@
     threshold (Overdue at twice that threshold). An account whose password change was never tracked
     is always shown as Overdue -- there's no way to distinguish "recently created" from "ancient,
     unmonitored password" from this field alone.</li>
-  <li><strong>MFA</strong> here is a status display only -- there is currently no action on this page
-    to reset or disable a user's MFA. See the callout below if that's what you need.</li>
+  <li><strong>MFA</strong> here is a status display only -- to clear an enrollment, use the
+    <strong>Reset MFA</strong> action above, which appears in the Actions menu only while this field
+    shows MFA as enabled.</li>
 </ul>
 
 <h5>Common problems and how to fix them</h5>
 <ul>
-  <li><strong>"You cannot suspend/restore an account with a higher role level than your
+  <li><strong>"You cannot suspend/restore/delete an account with a higher role level than your
     own."</strong> A community-manager can act on ordinary users but not on admins (or another account
     holding a higher-level custom role) -- enforced here even if the action is reached via a
-    bookmarked link. This specific check covers Suspend and Restore only; see the Delete Account
-    warning above for the one action it doesn't currently cover.</li>
+    bookmarked link. The same check covers Suspend Account, Restore, Delete Account and Reset MFA,
+    each phrasing the message in terms of the action you tried.</li>
   <li><strong>Restore doesn't take effect immediately.</strong> Expected for a community-manager-and-
     above account -- it needs a second, different administrator's approval. Check who requested it in
     the banner at the top of this page, or on <a href="${ctx}/admin/unsuspend-requests">Unsuspend
     Requests</a>.</li>
-  <li><strong>A user is locked out of MFA</strong> (lost their device, no backup codes left). There is
-    no admin "Reset MFA" action on this page today -- see the callout below.</li>
+  <li><strong>A user is locked out of MFA</strong> (lost their device, no backup codes left). Use
+    <strong>Reset MFA</strong> in the Actions menu, then have them re-enroll -- it clears the second
+    factor and any unused recovery codes in one step.</li>
   <li><strong>Delete failed with "referenced in other tables."</strong> The account owns something
     else in the system (content, files, form submissions, etc.) that deleting it outright would
     orphan. Suspending instead of deleting is usually the safer option here.</li>
 </ul>
-
-<div class="callout radius" style="margin-bottom:20px">
-  <p style="margin-bottom:0">
-    <i class="fa fa-info-circle"></i> <strong>Coming soon, not yet available:</strong> a "Reset MFA"
-    action on this page for an account that's lost its authenticator device. Also, the
-    "Capability Grants" link above is currently shown to every community-manager who can reach this
-    page, even though that page itself is admin-only -- a community-manager who clicks it today just
-    hits an access-denied page.
-  </p>
-</div>
 
 <div class="reveal" id="resetPasswordReveal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordRevealTitle"
      data-reveal data-close-on-click="true">
