@@ -39,6 +39,7 @@ import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -71,6 +72,13 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * like Suspend/Restore, and on success clears the target's MFA secret/enabled flag and recovery codes by reusing
  * the same UserMfaCommand/UserMfaRecoveryCodeCommand calls the self-service "disable" action already makes on the
  * user's own account (see MyMfaSettingsWidgetTest).
+ *
+ * resetPasswordViaPostReportsFailureWhenTheTokenWriteFails pins the null return of
+ * UserRepository#createAccountToken. The audit line already recorded that outcome as FAILURE, but the two
+ * statements after it passed the null reference into UserPasswordResetEvent and then called user.getEmail()
+ * unconditionally, so a failed token write threw a NullPointerException at the admin instead of a message
+ * saying the reset did not happen. resetPasswordViaPostSendsInstructionsWhenTheTokenWriteSucceeds keeps the
+ * success path honest alongside it.
  *
  * @author Elizabeth Houser
  */
@@ -675,6 +683,70 @@ class UserDetailsWidgetTest extends WidgetBase {
           eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
       Assertions.assertNull(result.getSuccessMessage());
       Assertions.assertNotNull(result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void resetPasswordViaPostReportsFailureWhenTheTokenWriteFails() throws Exception {
+    // UserRepository.createAccountToken() returns null when its DB update does not take (it logs
+    // "createAccountToken failed!"). The audit line already anticipated that by recording FAILURE, but the
+    // statements after it dereferenced the same null reference -- the admin got a NullPointerException
+    // rather than a message explaining the reset did not happen. No token was written, so no reset email
+    // may be triggered either.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = activeUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset"), eq(AuditEventCommand.FAILURE), eq("user"), eq("5"),
+          eq("active@example.com"), any()), times(1));
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      Assertions.assertNull(result.getSuccessMessage());
+      Assertions.assertNotNull(result.getErrorMessage());
+      // The address comes from targetLabel, captured before the call, not from the null reference
+      Assertions.assertTrue(result.getErrorMessage().contains("active@example.com"));
+    }
+  }
+
+  @Test
+  void resetPasswordViaPostSendsInstructionsWhenTheTokenWriteSucceeds() throws Exception {
+    // The guard above must not change the success path: a token that writes still audits SUCCESS,
+    // triggers the reset event, and reports the address the instructions went to.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = activeUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset"), eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"),
+          eq("active@example.com"), any()), times(1));
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), times(1));
+      Assertions.assertNull(result.getErrorMessage());
+      Assertions.assertNotNull(result.getSuccessMessage());
+      Assertions.assertTrue(result.getSuccessMessage().contains("active@example.com"));
     }
   }
 }
