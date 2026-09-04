@@ -169,8 +169,28 @@ public class PageServlet extends HttpServlet {
     }
     response.setHeader("X-Frame-Options", "SAMEORIGIN");
     response.setHeader("X-Content-Type-Options", "nosniff");
-    response.setHeader("X-XSS-Protection", "1; mode=block");
+    // 0, not 1: the legacy auditor this header enables has itself been a source of
+    // information-disclosure bugs, and modern browsers have removed it outright. Where it is still
+    // honoured, 0 turns it off and leaves XSS defence to the nonce-based CSP built below, which is
+    // the real protection. ContentWidget used to set 0 on blocks containing <script>/<iframe>;
+    // those overrides never won because this ran first, and are removed with this change.
+    response.setHeader("X-XSS-Protection", "0");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Disclaim capabilities the platform never uses, so neither author-supplied HTML nor a
+    // third-party embed (YouTube, Vimeo, the careers iframe) can request them: an embed cannot ask
+    // for a capability the top-level document has already given up. Each was verified unused
+    // before being disclaimed -- no navigator.geolocation (the Leaflet map JSPs ship no locate
+    // control), no getUserMedia, no navigator.usb, and no browser Payment Request API. The
+    // *PaymentRequest types under application/ecommerce are the server-side Square SDK, not the
+    // browser API; the Stripe/Square card fields tokenize in-page and post the token back here.
+    response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    // same-origin severs window.opener for cross-origin popups, which closes tabnabbing against
+    // target="_blank" links -- and those can appear in author-supplied content. Verified rather
+    // than assumed: nothing in the checkout JSPs opens a popup, the payment SDKs tokenize in-page
+    // and post same-origin, and the platform's only window.open calls (the two calendar views)
+    // target same-origin URLs, which this does not sever. If a payment SDK ever needs an
+    // opener-bearing cross-origin popup, same-origin-allow-popups is the weaker fallback.
+    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     byte[] nonceBytes = new byte[16];
     SECURE_RANDOM.nextBytes(nonceBytes);
     String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);

@@ -286,9 +286,9 @@ class PageServletSecurityHeadersTest {
   }
 
   /**
-   * The three headers that are set unconditionally at the top of service(). They were emitted but
-   * never asserted, so deleting any one of them broke nothing that anyone would notice: no test
-   * failed, and the absence of a header is invisible in a browser unless you go looking.
+   * The headers set unconditionally at the top of service(). They were emitted but never asserted,
+   * so deleting any one of them broke nothing that anyone would notice: no test failed, and the
+   * absence of a header is invisible in a browser unless you go looking.
    */
   @Test
   void serviceSendsTheBaselineSecurityHeadersOnEveryResponse() throws Exception {
@@ -297,7 +297,26 @@ class PageServletSecurityHeadersTest {
 
     verify(response, times(1)).setHeader("X-Frame-Options", "SAMEORIGIN");
     verify(response, times(1)).setHeader("X-Content-Type-Options", "nosniff");
-    verify(response, times(1)).setHeader("X-XSS-Protection", "1; mode=block");
+    verify(response, times(1)).setHeader("X-XSS-Protection", "0");
+    verify(response, times(1))
+        .setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    verify(response, times(1)).setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  }
+
+  /**
+   * The value matters more than the presence. "1; mode=block" enables a legacy auditor that has
+   * itself leaked cross-origin information, so sending it is worse than sending nothing; "0" turns
+   * it off and leaves XSS defence to the nonce-based CSP. Pinned separately from the baseline
+   * assertion above so that reinstating the harmful value fails loudly rather than merely changing
+   * a string someone might "fix" back.
+   */
+  @Test
+  void serviceNeverSendsTheHarmfulLegacyXssAuditorValue() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, null);
+
+    verify(response, never()).setHeader("X-XSS-Protection", "1; mode=block");
+    verify(response, never()).setHeader(eq("X-XSS-Protection"), eq("1"));
   }
 
   /**

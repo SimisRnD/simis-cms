@@ -3,6 +3,7 @@
   font-family: 'Questrial';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/questrial/questrial-v8-latin-regular.eot'); /* IE9 Compat Modes */
   src: local('Questrial'), local('Questrial-Regular'),
   url('../../fonts/questrial/questrial-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
