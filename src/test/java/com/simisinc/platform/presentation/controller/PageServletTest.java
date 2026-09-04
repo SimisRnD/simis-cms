@@ -946,4 +946,28 @@ class PageServletTest {
     assertNull(organization.get("address"));
     assertNull(organization.get("foundingDate"));
   }
+
+  @Test
+  void brandedAssetContextIsNullWhenThereIsNowhereRealToProbe() {
+    // The layouts probe this path with an Image() before preferring an operator's own favicon,
+    // apple-touch-icon and logo variants over the bundled ones. /web-content is the seeded default
+    // and nothing in this codebase serves it, so probing it 404s on every page load -- thirteen
+    // times across the header, footer, checkout and activity layouts.
+    assertNull(PageServlet.resolveBrandedAssetContext("/web-content"));
+    assertNull(PageServlet.resolveBrandedAssetContext("  /web-content  "));
+    assertNull(PageServlet.resolveBrandedAssetContext(""));
+    assertNull(PageServlet.resolveBrandedAssetContext("   "));
+    assertNull(PageServlet.resolveBrandedAssetContext(null));
+  }
+
+  @Test
+  void brandedAssetContextIsKeptWhenAnOperatorConfiguredOne() {
+    // A deployment that actually serves branded assets must still be probed -- this change is about
+    // not probing a path that cannot answer, not about dropping the feature.
+    assertEquals("https://cdn.example.com",
+        PageServlet.resolveBrandedAssetContext("https://cdn.example.com"));
+    assertEquals("/branding", PageServlet.resolveBrandedAssetContext("  /branding  "));
+    // Merely containing the unserved default is not the same as being it
+    assertEquals("/web-content-cdn", PageServlet.resolveBrandedAssetContext("/web-content-cdn"));
+  }
 }
