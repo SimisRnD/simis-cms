@@ -145,6 +145,20 @@ public class StructuredDataCommand {
         }
 
         graph.add(organization);
+
+        // A WebPage is part of a WebSite, not part of a company: schema.org's isPartOf expects a
+        // CreativeWork, and Organization is not one, so pointing a page's isPartOf straight at
+        // #organization is invalid and the schema.org validator rejects it. The WebSite is the
+        // entity that was missing in between. It is emitted inside this same site.name guard as the
+        // Organization it publishes, so the two are always present or absent together and the
+        // publisher reference below can never dangle.
+        Map<String, Object> webSite = new LinkedHashMap<>();
+        webSite.put("@type", "WebSite");
+        webSite.put("@id", siteUrl + "#website");
+        webSite.put("url", siteUrl);
+        webSite.put("name", sitePropertyMap.get("site.name"));
+        webSite.put("publisher", Collections.singletonMap("@id", siteUrl + "#organization"));
+        graph.add(webSite);
       }
 
       // Add WebPage schema for all pages
@@ -159,7 +173,12 @@ public class StructuredDataCommand {
       if (StringUtils.isNotBlank(pageRenderInfo.getDescription())) {
         webPageSchema.put("description", pageRenderInfo.getDescription());
       }
-      webPageSchema.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
+      // Guarded on the same condition that emits the WebSite above: with no site.name there is no
+      // WebSite node, and an isPartOf pointing at an @id that appears nowhere in the graph is a
+      // dangling reference -- a different defect from the one being fixed, not an improvement.
+      if (StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        webPageSchema.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#website"));
+      }
 
       // Add image if available
       if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
