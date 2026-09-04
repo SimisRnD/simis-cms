@@ -245,6 +245,14 @@ public class UserDetailsWidget extends GenericWidget {
         user != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         "user", targetId, targetLabel, null);
 
+    // The token write did not take (see UserRepository#createAccountToken returning null), so there is
+    // no token to email -- report the failure the audit record just captured instead of dereferencing
+    // the null reference below. Uses targetLabel, captured before the call, for the address.
+    if (user == null) {
+      context.setErrorMessage("The password could not be reset for: " + targetLabel);
+      return context;
+    }
+
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
 
