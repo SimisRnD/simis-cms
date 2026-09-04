@@ -55,6 +55,14 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * Reset Password / Assign Roles both require a fresh step-up re-authentication once per batch --
  * exactly the same bar the single-user forms already hold each of these actions to.
  *
+ * bulkUnsuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch closes the same gap
+ * on the bulk unsuspend path, and pins why the #492 Phase 3 maker-checker gate does not cover it:
+ * UnsuspendAccountCommand.requiresApproval() compares the TARGET's level against the elevated
+ * threshold and never looks at the actor's, so a target that outranks the actor but sits below that
+ * threshold (a content-manager, level 80, against a users:manage capability-only grantee at level 0)
+ * clears the gate entirely and was restored outright -- while the single-account restoreAccount()
+ * form refuses exactly that pairing.
+ *
  * bulkSuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch guards a gap that was
  * specific to the bulk checkbox path: UserDetailsWidget's single-account suspendAccount() already
  * refuses to suspend an account with a higher role level than the acting admin's, but
@@ -201,6 +209,8 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
       loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(null); // deleted concurrently / tampered id
       loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(userWithId(1L));
       roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(role(3, 90, "community-manager"));
+      // bulkUnsuspendAction() now consults targetOutranksActor(), which reaches findAll()
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(3, 90, COMMUNITY_MANAGER), role(1, 100, ADMIN)));
       userRepo.when(() -> UserRepository.restoreAccount(found)).thenReturn(found);
 
       WidgetContext result = new UsersListWidget().post(widgetContext);
@@ -209,6 +219,56 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
       userRepo.verify(() -> UserRepository.restoreAccount(any()), times(1));
       assertTrue(result.getWarningMessage().contains("1 of 2"));
       assertTrue(result.getWarningMessage().contains("Not found: 1"));
+    }
+  }
+
+  @Test
+  void bulkUnsuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch() throws Exception {
+    // The maker-checker gate is NOT a substitute for the role-level guard, and this is the case that
+    // proves it. UnsuspendAccountCommand.requiresApproval() compares the TARGET's level against the
+    // elevated threshold (community-manager's level, 90) -- it never looks at the actor. A
+    // users:manage capability-only grantee holds no role at all and resolves to level 0, so a
+    // content-manager target (level 80) outranks them, yet clears requiresApproval() and was
+    // restored outright -- while the single-account restoreAccount() form on /admin/user-details
+    // refuses exactly this pairing.
+    Capability usersManage = new Capability();
+    usersManage.setCode("users:manage");
+    widgetContext.getUserSession().setCapabilityList(List.of(usersManage));
+    multiValue("userId", "5", "6");
+    addQueryParameter(widgetContext, "command", "bulkUnsuspend");
+
+    // Above the acting level-0 grantee, but below the elevated threshold, so the maker-checker gate
+    // lets it straight through -- only the role-level guard stops it.
+    User outranking = userWithId(5L);
+    outranking.setEnabled(false);
+    List<Role> heldByOutranking = new ArrayList<>();
+    heldByOutranking.add(role(4, 80, "content-manager"));
+    outranking.setRoleList(heldByOutranking);
+
+    User withinReach = userWithId(6L);
+    withinReach.setEnabled(false);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(outranking);
+      loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(withinReach);
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(userWithId(1L));
+      roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(role(3, 90, "community-manager"));
+      roleRepo.when(RoleRepository::findAll)
+          .thenReturn(Arrays.asList(role(4, 80, "content-manager"), role(3, 90, COMMUNITY_MANAGER), role(1, 100, ADMIN)));
+      userRepo.when(() -> UserRepository.restoreAccount(withinReach)).thenReturn(withinReach);
+
+      WidgetContext result = new UsersListWidget().post(widgetContext);
+
+      // The outranking account is never restored and never filed as a request; the other one
+      // (level 0, not above the actor) is restored normally.
+      userRepo.verify(() -> UserRepository.restoreAccount(outranking), never());
+      userRepo.verify(() -> UserRepository.restoreAccount(withinReach), times(1));
+      userRepo.verify(() -> UserRepository.restoreAccount(any()), times(1));
+      assertTrue(result.getWarningMessage().contains("1 of 2"));
+      assertTrue(result.getWarningMessage().contains("Skipped (higher role level than yours): 1"));
     }
   }
 
