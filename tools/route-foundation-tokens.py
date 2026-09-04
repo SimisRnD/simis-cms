@@ -33,6 +33,21 @@ the pixels addressable.
 A hex inside a ``url()`` value is never replaced -- an inline SVG data URI would
 be corrupted by it. 6.8.1 happens to contain none, but a future upgrade might.
 
+The source is consumed whole
+----------------------------
+``foundation.min.css`` is read verbatim and everything in it reaches the output,
+so it cannot carry a note about itself. A comment added there is copied into the
+served stylesheet, where it is at best noise and at worst a claim about the wrong
+file; and because the rewrite scans the whole text rather than just declarations,
+any hex inside that comment is routed to a ``var()`` and counted as a routed
+declaration. Both were verified, not assumed.
+
+That matters because the unserved vendor originals invite exactly such a note:
+their colours are stock Foundation, they are greppable, and reading a contrast
+ratio off them has already produced one false accessibility defect. The warning
+lives where it does no damage instead -- a banner in ``foundation.css`` (which
+nothing reads) and ``README.md`` in the vendored directory. Put it there, not here.
+
 Modes
 -----
 Default regenerates the output file. ``--check`` verifies the committed output
@@ -47,7 +62,7 @@ import sys
 from pathlib import Path
 
 VENDOR_DIR = "src/main/webapp/css/foundation-6.8.1"
-SOURCE = f"{VENDOR_DIR}/foundation.min.css"
+SOURCE = f"{VENDOR_DIR}/foundation.min.css"  # consumed verbatim -- see the docstring before editing it
 GENERATED = f"{VENDOR_DIR}/foundation.tokens.min.css"
 
 # Foundation's base palette -> token name. Foundation uses one Sass variable per
@@ -70,7 +85,8 @@ PALETTE = {
     "#767676": "--sc-fnd-secondary",
     "#3adb76": "--sc-fnd-success",
     "#ffae00": "--sc-fnd-warning",
-    "#cc4b37": "--sc-fnd-alert",
+    # #cc4b37 is NOT here -- $alert plays a fill role and a foreground role that
+    # part company in dark mode, so it is split by role below.
     "#e6e6e6": "--sc-fnd-light-gray",
     "#cacaca": "--sc-fnd-medium-gray",
     "#8a8a8a": "--sc-fnd-dark-gray",
@@ -86,7 +102,7 @@ PALETTE = {
     "#ececec": "--sc-fnd-table-stripe-hover",
 }
 
-# (colour, role) -> token, for the two that invert. Role is derived from the
+# (colour, role) -> token, for the colours whose roles part company. Role is derived from the
 # declaration's property; anything that is not text is treated as a surface, which
 # keeps borders and shadows moving with the surface they sit against.
 SPLIT = {
@@ -105,6 +121,27 @@ SPLIT = {
     # #f1f1f1 border in dark mode, which is what led here.
     ("#f1f1f1", "surface"): "--sc-fnd-table-stripe",
     ("#f1f1f1", "border"): "--sc-fnd-table-rule",
+    # $alert is the third colour to need this, and it splits along a different seam than
+    # #f1f1f1: not fill-vs-rule, but fill-vs-foreground. Foundation spends #cc4b37 both as
+    # a FILL under light ink (.button.alert, .button-group.alert, .label.alert, .badge.alert,
+    # .progress.alert) and as INK or a BORDER drawn straight on the page ground (.form-error,
+    # .is-invalid-label, .is-invalid-input, the hollow/clear alert variants and their
+    # dropdown caret).
+    #
+    # Held as one token the two roles are strictly opposed in dark mode. The fill has to stay
+    # dark enough for #fefefe ink to clear 4.5:1 on top of it; the ink has to be light enough
+    # to clear 4.5:1 against a dark page. A red that satisfies one fails the other. Issue 1527
+    # lifted the shared token to #cb4834 for the fill and disclosed that the ink role kept
+    # failing on the dark page; that is issue 1851, and this split is what closes it.
+    #
+    # Border follows the ink rather than the surface: every #cc4b37 border in Foundation is
+    # drawn on the page ground -- a hollow button's outline, an invalid field's outline --
+    # never around a filled alert element. The dropdown caret reaches the same token by a
+    # different path: .button.dropdown is in MARK_SELECTORS, so its border-colour is already
+    # classified as a foreground mark before the border role is considered.
+    ("#cc4b37", "surface"): "--sc-fnd-alert",
+    ("#cc4b37", "text"): "--sc-fnd-alert-ink",
+    ("#cc4b37", "border"): "--sc-fnd-alert-ink",
 }
 
 HEADER = (
