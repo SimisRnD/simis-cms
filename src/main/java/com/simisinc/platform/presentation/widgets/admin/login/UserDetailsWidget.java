@@ -420,10 +420,20 @@ public class UserDetailsWidget extends GenericWidget {
     }
     String reason = context.getParameter("reason");
     User result = UserRepository.suspendAccount(user, reason);
-    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
-        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), reason);
-    context.setSuccessMessage("Account suspended");
+    // Reflect the actual DB-write outcome rather than assuming success, matching deleteAccount()'s
+    // if/else pattern. UserRepository.suspendAccount() returns null when its update does not take
+    // (it logs "suspendAccount failed!"); the audit line already recorded that as FAILURE, but the
+    // success message was set unconditionally, so the admin read "Account suspended" for an account
+    // that is still enabled.
+    if (result != null) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setSuccessMessage("Account suspended");
+    } else {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.FAILURE, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setErrorMessage("The account could not be suspended");
+    }
     return context;
   }
 

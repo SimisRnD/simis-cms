@@ -103,6 +103,12 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * warning the admin now gets, and pin that the warning stays off when nothing was replaced -- a
  * warning on every reset would be noise and would train admins to ignore it.
  *
+ * suspendAccountViaPostRecordsFailureWhenTheSuspendWriteFails pins the null return of
+ * UserRepository#suspendAccount. Unlike the resetPassword case above, nothing threw -- user is never
+ * reassigned -- so the failure was silent: the audit line already recorded FAILURE, but the success
+ * message was set unconditionally, leaving the admin told "Account suspended" for an account that is
+ * still enabled. suspendAccountViaPostCallsRepositoryAndAudits keeps the success path honest alongside it.
+ *
  * @author Elizabeth Houser
  */
 class UserDetailsWidgetTest extends WidgetBase {
@@ -261,6 +267,38 @@ class UserDetailsWidgetTest extends WidgetBase {
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"),
           eq("Reported phishing attempt from this account")), times(1));
       Assertions.assertEquals("Account suspended", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void suspendAccountViaPostRecordsFailureWhenTheSuspendWriteFails() throws Exception {
+    // UserRepository.suspendAccount() returns null when its DB update does not take (it logs
+    // "suspendAccount failed!") -- suspendAccount() must reflect that instead of unconditionally
+    // reporting "Account suspended", matching deleteAccount()'s if/else pattern. Nothing here
+    // threw before the fix: user is never reassigned, so the admin simply saw a success message
+    // for an account that is still enabled, while the audit record said FAILURE.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "suspendAccount");
+    addQueryParameter(widgetContext, "reason", "Reported phishing attempt from this account");
+
+    User target = adminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.suspendAccount(eq(target), any())).thenReturn(null);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.disable"),
+          eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"),
+          eq("Reported phishing attempt from this account")), times(1));
+      Assertions.assertNull(result.getSuccessMessage());
+      Assertions.assertNotNull(result.getErrorMessage());
     }
   }
 
