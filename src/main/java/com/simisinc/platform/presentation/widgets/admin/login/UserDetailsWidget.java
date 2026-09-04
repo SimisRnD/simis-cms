@@ -275,6 +275,17 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   private WidgetContext resetPassword(WidgetContext context, User user) {
+    // Not one that outranks the acting admin -- see targetOutranksActor(). Step-up re-authentication
+    // above proves who the acting admin is, not which accounts they may act on, so without this the
+    // one action on this page still missing the guard let a community-manager (or a users:manage
+    // capability-only grantee with no legacy role) reissue an admin account's setup link -- silently
+    // invalidating any link that admin was already using, since createAccountToken overwrites the
+    // single account_token column (#1836) -- while suspend, restore, delete and reset MFA all refuse
+    // that same target.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reset the password for an account with a higher role level than your own");
+      return context;
+    }
     // Capture the target before the token replaces the reference
     String targetId = String.valueOf(user.getId());
     String targetLabel = user.getEmail();
