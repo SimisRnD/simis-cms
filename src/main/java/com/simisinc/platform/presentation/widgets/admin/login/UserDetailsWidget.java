@@ -616,6 +616,15 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   private WidgetContext unlockAccount(WidgetContext context, User user) {
+    // Not an account that outranks the acting admin -- see targetOutranksActor(). The lockout is a
+    // security control on the target account, so clearing it is a state change on that account like
+    // suspend/restore/delete above, not a favour to its owner: without this guard a community-manager
+    // (or a users:manage capability-only grantee with no legacy role) could repeatedly clear the
+    // brute-force lockout protecting an admin account and keep guessing its password.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot unlock an account with a higher role level than your own");
+      return context;
+    }
     // Clear the failed-attempt counter and lockout timestamp so the user can sign in again (#295, AC-7).
     // The clear is idempotent, so the outcome is recorded as a success even if the lock had just expired.
     UserRepository.resetLockout(user.getId());
