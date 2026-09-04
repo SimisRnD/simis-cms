@@ -505,7 +505,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet${includeStylesheet}.css?v=${includeStylesheetLastModified}" />
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
@@ -548,7 +548,7 @@
     <script src="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.js"></script>
     <%-- Unconditional: password fields appear on the public auth forms and on admin screens alike,
          and the handler is delegated, so it costs nothing on a page that has none. --%>
-    <script src="${ctx}/javascript/platform-password-reveal.js?v=<%= VERSION %>"></script>
+    <script src="${ctx}/javascript/platform-password-reveal.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
@@ -1227,7 +1227,7 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
-    <script src="${ctx}/javascript/web-vitals-collector.js?v=<%= VERSION %>" nonce="${cspNonce}"></script>
+    <script src="${ctx}/javascript/web-vitals-collector.js?v=${fn:escapeXml(applicationScope.assetVersion)}" nonce="${cspNonce}"></script>
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1251,7 +1251,7 @@
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
-    <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
+    <script src="${ctx}/javascript/platform-editor.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>

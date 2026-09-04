@@ -46,6 +46,15 @@ public class ForgotPasswordWidget extends GenericWidget {
   static String SUCCESS_JSP = "/login/forgot-password-success.jsp";
   static String RATE_LIMITED_JSP = "/cms/error-rate-limited.jsp";
 
+  /**
+   * The single answer every reachable outcome of a well-formed request gives back: username not
+   * found, username found and mailed, and username found but carrying an address that cannot be
+   * mailed. It is deliberately one constant rather than three identical literals -- the enumeration
+   * defence is the responses being indistinguishable, so they must not be able to drift apart.
+   */
+  static final String GENERIC_RESPONSE_MESSAGE =
+      "If the email you specified exists in our system, we've sent a password reset link to it.";
+
   public WidgetContext execute(WidgetContext context) {
     
     // No need to show widget when rate limiting is triggered
@@ -99,7 +108,7 @@ public class ForgotPasswordWidget extends GenericWidget {
         return context;
       }
       // Always show the same success message whether the username exists or not, to prevent enumeration.
-      context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
+      context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
       context.setJsp(SUCCESS_JSP);
       return context;
     }
@@ -110,10 +119,19 @@ public class ForgotPasswordWidget extends GenericWidget {
     RateLimitCommand.isUsernameAllowedRightNow(username, true);
     RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
 
-    // Make sure the user has a valid email address
+    // Make sure the user has a valid email address. Nothing can be sent, but the answer has to be
+    // the same one every other outcome gives: this branch is only reachable when the username DOES
+    // resolve to an account, so a distinct "Check the username and try again" on the form told an
+    // unauthenticated caller that the account exists -- the one hole in this page's otherwise
+    // careful enumeration defence, which is why the not-found branch above is worded the way it is.
+    //
+    // The account holder is not worse off: they could not have been mailed either way. The signal
+    // moves to the log, which is now the only place this surfaces, so it names the account rather
+    // than reporting that some user somewhere has an unusable address.
     if (!JMail.isValid(user.getEmail())) {
-      LOG.warn("This user does not have a valid email to send to");
-      context.setWarningMessage("Check the username and try again");
+      LOG.warn("No password reset sent: user " + user.getId() + " has an unusable email address");
+      context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
+      context.setJsp(SUCCESS_JSP);
       return context;
     }
 
@@ -161,7 +179,7 @@ public class ForgotPasswordWidget extends GenericWidget {
       WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(tokenedUser, null));
     }
 
-    context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
+    context.setSuccessMessage(GENERIC_RESPONSE_MESSAGE);
     context.setJsp(SUCCESS_JSP);
     return context;
   }

@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.datasets;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.items.GenerateCategoryUniqueIdCommand;
 import com.simisinc.platform.application.items.ItemPhoneNumberCommand;
@@ -128,7 +129,14 @@ public class SaveDatasetRowCommand {
       // colliding with (or sorting ahead of) real, already-ordered items.
       item.setItemOrder(ItemRepository.getNextItemOrder(collection.getId()));
     }
-    item = constructItem(item, row, dataset, collection, columnNames, fieldTitles, fieldMappings, fieldOptions);
+    try {
+      item = constructItem(item, row, dataset, collection, columnNames, fieldTitles, fieldMappings, fieldOptions);
+    } catch (DataException de) {
+      // A write this row depends on did not take. Report the row as failed so the caller turns it
+      // into "Save error" and stops the sync, rather than persisting a partially-built item.
+      LOG.error("The row could not be converted, dataset: " + dataset.getId() + ": " + de.getMessage());
+      return false;
+    }
     if (item != null) {
       updateGeoPoint(item);
       return SaveItemCommand.saveBatchItem(previousItem, item);
@@ -138,7 +146,8 @@ public class SaveDatasetRowCommand {
   }
 
   public static Item constructItem(Item item, String[] row, Dataset dataset, Collection collection,
-      List<String> columnNames, List<String> fieldTitles, List<String> fieldMappings, List<String> fieldOptions) {
+      List<String> columnNames, List<String> fieldTitles, List<String> fieldMappings, List<String> fieldOptions)
+      throws DataException {
 
     // Values from the dataset
     item.setDatasetId(dataset.getId());
@@ -229,6 +238,19 @@ public class SaveDatasetRowCommand {
             category.setUniqueId(GenerateCategoryUniqueIdCommand.generateUniqueId(category, category));
             category.setCreatedBy(dataset.getModifiedBy());
             category = CategoryRepository.save(category);
+            // The insert did not take (see CategoryRepository#insert, which logs its SQLException
+            // and returns null rather than throwing), so there is no category to file this item
+            // under. Fail the row instead of dereferencing null on the next line. Unlike an
+            // unparseable date or an unknown assignedTo username -- source-data problems whose
+            // safe fallback is to leave the field unset -- this is a failed write, and dropping
+            // the category would silently file the item under the wrong categories, or none at
+            // all, with nothing to distinguish it from a row that legitimately had no category.
+            // Failing the row surfaces the outcome an operator can act on: fix the database
+            // condition and re-run the sync.
+            if (category == null) {
+              throw new DataException("The category could not be created, collection: " + collection.getId()
+                  + ", name: " + categoryText.trim());
+            }
           }
           // Set the primary category
           if (item.getCategoryId() == -1) {

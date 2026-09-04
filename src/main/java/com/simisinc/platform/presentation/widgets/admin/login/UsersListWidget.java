@@ -24,6 +24,7 @@ import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
@@ -163,7 +164,7 @@ public class UsersListWidget extends GenericWidget {
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
     context.getRequest().setAttribute("actingRoleLevel",
-        UserFormWidget.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
+        RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
@@ -353,11 +354,11 @@ public class UsersListWidget extends GenericWidget {
     }
 
     // Populate the roles -- an editor may only grant roles at or below their own highest role level,
-    // the same rule UserFormWidget.post() enforces when editing an existing user (see its
-    // highestRoleLevel() for details). This is a new user, so there is no prior role to preserve.
+    // the same rule UserFormWidget.post() enforces when editing an existing user (both resolve the
+    // actor's level through RoleLevelCommand). This is a new user, so there is no prior role to preserve.
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
-      int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), roleList);
+      int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
@@ -701,10 +702,10 @@ public class UsersListWidget extends GenericWidget {
       return context;
     }
     // The requested role's level is always resolved server-side and compared against the actor's
-    // own highest role level -- reusing UserFormWidget's exact escalation-level logic -- and the
+    // own highest role level -- the same RoleLevelCommand rule the single-user form applies -- and the
     // WHOLE batch is rejected up front if it's above that level, never silently downgraded and
     // never applied to some accounts but not others.
-    int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), RoleRepository.findAll());
+    int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), RoleRepository.findAll());
     if (role.getLevel() > actingLevel) {
       LOG.warn("Blocked bulk role escalation: user " + context.getUserId() + " (level " + actingLevel
           + ") attempted to bulk-grant '" + role.getCode() + "' (level " + role.getLevel() + ")");
