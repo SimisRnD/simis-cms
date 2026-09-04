@@ -26,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -36,6 +37,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Verifies the self-service forgot-password request is recorded in the audit log (issue #492) --
@@ -44,6 +46,16 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
  *
  * <p>Also covers issue #1791: the per-ip rate limit has to be keyed to the address the reset is
  * being driven from, not the one the session was created at.
+ *
+ * <p>postRecordsFailureWhenTheTokenWriteFails and
+ * postAnswersIdenticallyWhetherTheAccountIsMissingOrTheTokenWriteFailed pin the null return of
+ * UserRepository#createAccountToken on this public page. The audit line recorded SUCCESS and the
+ * statements after it dereferenced the same null reference, so a write that did not take produced a
+ * NullPointerException for an unauthenticated visitor plus an audit trail claiming a reset that
+ * never happened. The admin-initiated path answers this by telling the admin (UserDetailsWidget,
+ * #1837); this one cannot, because the response here is the enumeration control -- so the second
+ * test asserts the failure response is indistinguishable from the no-such-username response rather
+ * than asserting any particular wording.
  *
  * @author SimIS Inc.
  */
@@ -162,6 +174,83 @@ class ForgotPasswordWidgetTest extends WidgetBase {
 
       rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(eq(SESSION_IP), anyBoolean()), times(2));
       rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow(isNull(), anyBoolean()), never());
+    }
+  }
+
+  @Test
+  void postRecordsFailureWhenTheTokenWriteFails() {
+    // UserRepository.createAccountToken() returns null when its DB update does not take (it logs
+    // "createAccountToken failed!"). The audit line recorded SUCCESS unconditionally and then read
+    // getId()/getEmail() off that same null reference, so the visitor got a NullPointerException and
+    // the trail got a reset that never happened. No token was written, so no reset email or webhook
+    // may be triggered either.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
+
+      WidgetContext result = new ForgotPasswordWidget().post(widgetContext);
+
+      // The id and address come from the values captured before the call, not from the null return
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset.requested"), eq(AuditEventCommand.FAILURE), eq("user"), eq("11"),
+          eq("target@example.com"), any()), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), any(), any(), eq(AuditEventCommand.SUCCESS),
+          any(), any(), any(), any()), never());
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      Assertions.assertNull(result.getErrorMessage());
+      Assertions.assertNull(result.getWarningMessage());
+    }
+  }
+
+  @Test
+  void postAnswersIdenticallyWhetherTheAccountIsMissingOrTheTokenWriteFailed() {
+    // The enumeration control on this page is that the response does not vary with account
+    // existence, so the write-failure arm cannot report the failure the way the admin page does --
+    // any failure response would be reachable only for a username that does exist, which is exactly
+    // the distinction the shared message exists to hide. A generic failure message would be no
+    // safer: what leaks is the difference, not the wording. This asserts the two responses match
+    // rather than asserting a literal string, so it keeps holding if the copy is ever reworded.
+    logout(widgetContext);
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      User target = targetUser();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      loadUser.when(() -> LoadUserCommand.loadUser("nobody@example.com")).thenReturn(null);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
+
+      // An account that does not exist at all
+      addQueryParameter(widgetContext, "username", "nobody@example.com");
+      WidgetContext missing = new ForgotPasswordWidget().post(widgetContext);
+      String missingMessage = missing.getSuccessMessage();
+      String missingJsp = missing.getJsp();
+      String missingError = missing.getErrorMessage();
+      String missingWarning = missing.getWarningMessage();
+
+      // An account that does exist, whose token write did not take
+      addQueryParameter(widgetContext, "username", "target@example.com");
+      WidgetContext failed = new ForgotPasswordWidget().post(widgetContext);
+
+      Assertions.assertNotNull(missingMessage);
+      Assertions.assertEquals(missingMessage, failed.getSuccessMessage());
+      Assertions.assertEquals(missingJsp, failed.getJsp());
+      Assertions.assertEquals(missingError, failed.getErrorMessage());
+      Assertions.assertEquals(missingWarning, failed.getWarningMessage());
     }
   }
 }

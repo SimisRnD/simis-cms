@@ -115,17 +115,44 @@ public class ForgotPasswordWidget extends GenericWidget {
       return context;
     }
 
+    // Capture the target before the token write can replace the reference
+    String targetId = String.valueOf(user.getId());
+    String targetLabel = user.getEmail();
+
     // Create an account token and send email
     user = UserRepository.createAccountToken(user);
 
     // Record the self-service request (#492) -- distinct event type from the admin-initiated
     // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
     // happened. The actor resolves to unauthenticated/anonymous since nobody is signed in yet.
+    //
+    // The outcome reflects what the token write actually did. createAccountToken returns null when
+    // its update does not take (it logs "createAccountToken failed!"), and recording SUCCESS there
+    // put a reset that never happened into the audit trail -- the same mismatch
+    // UserDetailsWidget#resetPassword and #deleteAccount already avoid by auditing the write's
+    // return rather than assuming it took.
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.reset.requested",
-        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), "self-service");
+        user != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "user", targetId, targetLabel, "self-service");
 
-    // Trigger events
-    WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, null));
+    // Trigger events -- but only when a token was actually written. On the null return there is no
+    // token for the reset email to carry, and the event's consumers read the user off it
+    // (BuildWebhookPayloadCommand#userSummary, the EmailTask templates), so firing it would send a
+    // link-less reset mail and a null-user webhook for a reset that did not happen.
+    //
+    // Nothing is said to the visitor about any of this, which is where this path deliberately
+    // parts from the admin-initiated fix in UserDetailsWidget#resetPassword (#1837). That one shows
+    // the admin an error, because an authenticated admin is entitled to know their action failed.
+    // Here the caller is anonymous and the response is the enumeration control: every arm of this
+    // method -- no such username, token written, token write failed -- has to leave the same
+    // message and the same JSP, because a failure response would only ever be reachable for a
+    // username that does exist. A generic "please try again" is no safer than a specific one; what
+    // leaks is the difference itself, not the wording. So the method falls through to the one exit
+    // below and the failure is recorded server-side only, in the audit line above and in
+    // createAccountToken's own log.
+    if (user != null) {
+      WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, null));
+    }
 
     context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
     context.setJsp(SUCCESS_JSP);
