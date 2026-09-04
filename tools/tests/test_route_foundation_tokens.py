@@ -138,12 +138,37 @@ def test_non_text_properties_follow_the_surface(repo):
     assert "--sc-fnd-ink-surface" in out
 
 
-def test_accent_and_status_colours_are_not_split(repo):
-    """A themed alert is one colour whether it paints text, a fill or a border."""
+def test_alert_is_split_into_a_fill_and_a_foreground(repo):
+    """$alert's fill and its ink/border move in opposite directions in dark mode.
+
+    The fill has to stay dark enough for #fefefe ink to clear 4.5:1 on top of it, while the
+    ink has to be light enough to clear 4.5:1 against a dark page. No single red does both:
+    one clearing the floor on the dark ground is at most ~2.9:1 on white (issues 1527, 1851).
+
+    Borders follow the ink rather than the surface because every #cc4b37 border Foundation
+    draws outlines something sitting on the page -- a hollow button, an invalid field --
+    never a filled alert element.
+    """
     seed(repo, ".a{color:#cc4b37}.b{background:#cc4b37}.c{border:1px solid #cc4b37}")
     run_tool(TOOL, repo)
     out = (repo / GENERATED).read_text()
-    assert out.count("var(--sc-fnd-alert,#cc4b37)") == 3
+    assert ".a{color:var(--sc-fnd-alert-ink,#cc4b37)}" in out
+    assert ".b{background:var(--sc-fnd-alert,#cc4b37)}" in out
+    assert ".c{border:1px solid var(--sc-fnd-alert-ink,#cc4b37)}" in out
+
+
+def test_alert_split_keeps_the_filled_variants_on_the_fill_token(repo):
+    """The shape that must not regress: a filled badge and page-ground ink, side by side.
+
+    .label.alert is a fill under light ink and its pairing with --sc-fnd-on-accent is
+    registered in check-token-contrast.py's CLAIMS at 4.611:1; .form-error is ink on the
+    page. Routing both to one token is what left the second failing in dark mode.
+    """
+    seed(repo, ".label.alert{background:#cc4b37;color:#fefefe}.form-error{color:#cc4b37}")
+    run_tool(TOOL, repo)
+    out = (repo / GENERATED).read_text()
+    assert ".label.alert{background:var(--sc-fnd-alert,#cc4b37);color:var(--sc-fnd-on-accent,#fefefe)}" in out
+    assert ".form-error{color:var(--sc-fnd-alert-ink,#cc4b37)}" in out
 
 
 def test_text_on_a_light_accent_fill_keeps_a_token_that_never_darkens(repo):
