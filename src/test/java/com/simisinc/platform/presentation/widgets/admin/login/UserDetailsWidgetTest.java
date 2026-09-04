@@ -161,6 +161,15 @@ class UserDetailsWidgetTest extends WidgetBase {
     return user;
   }
 
+  /** A locked account that also holds admin (level 100) -- the target of the unlock escalation tests. */
+  private static User lockedAdminUser() {
+    User user = lockedUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(4, 100, "admin", "System Administrator"));
+    user.setRoleList(held);
+    return user;
+  }
+
   @Test
   void unlockAccountClearsLockoutAndAudits() throws Exception {
     setRoles(widgetContext, ADMIN);
@@ -172,8 +181,11 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // unlockAccount() now consults targetOutranksActor(), which reaches RoleRepository
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
 
       new UserDetailsWidget().action(widgetContext);
 
@@ -511,6 +523,86 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void communityManagerCannotUnlockAccountThatOutranksThem() throws Exception {
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "unlockAccount");
+
+    User target = lockedAdminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.resetLockout(anyLong()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot unlock an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCannotUnlockAccountThatOutranksThemViaTheGetActionPath() throws Exception {
+    // unlockAccount is one of the actions action() dispatches, so a plain GET carrying
+    // ?action=unlockAccount reaches it without going through post() at all (WebContainerContext
+    // routes any request with an "action" parameter that isn't a POST to action()). The guard has
+    // to hold on that path too, not just on the menu's postAction() submission above.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "unlockAccount");
+
+    User target = lockedAdminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().action(widgetContext);
+
+      userRepo.verify(() -> UserRepository.resetLockout(anyLong()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot unlock an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCanUnlockAccountAtOrBelowTheirOwnLevel() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "unlockAccount");
+
+    // The target holds community-manager (level 90), at the acting user's own level -- not
+    // "outranks", so the ordinary lockout-recovery path stays open.
+    User target = lockedUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(3, 90, "community-manager", "Community Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.resetLockout(5L), times(1));
+      Assertions.assertEquals("Account unlocked", result.getSuccessMessage());
+    }
+  }
+
+  @Test
   void unlockAccountViaPostDispatchesThroughAction() throws Exception {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "userId", "5");
@@ -520,8 +612,11 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // unlockAccount() now consults targetOutranksActor(), which reaches RoleRepository
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
@@ -614,8 +709,11 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // unlockAccount() now consults targetOutranksActor(), which reaches RoleRepository
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
 
       setRoles(widgetContext, ADMIN);
       addQueryParameter(widgetContext, "userId", "5");
