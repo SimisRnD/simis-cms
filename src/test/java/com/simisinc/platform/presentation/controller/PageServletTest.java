@@ -131,7 +131,7 @@ class PageServletTest {
     // Still valid, semantically unchanged JSON once parsed
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     // @graph = [Organization, WebPage, BreadcrumbList, Product] -- /products/widget is 2 levels deep
-    JsonNode product = parsed.get("@graph").get(3);
+    JsonNode product = parsed.get("@graph").get(4);
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
   }
@@ -229,7 +229,7 @@ class PageServletTest {
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     // @graph = [Organization, WebPage, Article] -- single-segment path, no BreadcrumbList
-    JsonNode article = parsed.get("@graph").get(2);
+    JsonNode article = parsed.get("@graph").get(3);
     assertEquals("NewsArticle", article.get("@type").asText());
     assertEquals("Launch Announcement", article.get("headline").asText());
     assertEquals("Jane Author", article.get("author").get("name").asText());
@@ -294,7 +294,7 @@ class PageServletTest {
     assertFalse(jsonLd.contains("<script>"), "a poisoned question must not open a new <script> tag: " + jsonLd);
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode faqPage = parsed.get("@graph").get(2);
+    JsonNode faqPage = parsed.get("@graph").get(3);
     assertEquals("FAQPage", faqPage.get("@type").asText());
     assertTrue(faqPage.get("mainEntity").get(0).get("name").asText().contains("</script><script>"));
   }
@@ -419,7 +419,10 @@ class PageServletTest {
     String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    // NB: these assertions address @graph nodes by position. Index 0 is the Organization, 1 the
+    // WebSite, 2 the WebPage; anything inserted into the graph shifts them. Addressing by @type
+    // would be sturdier -- see the helper in StructuredDataCommandWebSiteTest.
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("WebPage", webPageNode.get("@type").asText());
     assertEquals("2026-03-15T12:30:00Z", webPageNode.get("dateModified").asText());
     // datePublished prefers publishAt over created when both are present
@@ -440,7 +443,7 @@ class PageServletTest {
     String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("2026-01-01T00:00:00Z", webPageNode.get("datePublished").asText());
     assertNull(webPageNode.get("dateModified"));
   }
@@ -461,7 +464,7 @@ class PageServletTest {
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("WebPage", webPageNode.get("@type").asText());
     assertNull(webPageNode.get("dateModified"));
     assertNull(webPageNode.get("datePublished"));
