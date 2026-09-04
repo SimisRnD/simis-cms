@@ -67,6 +67,13 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * restore, or permanently delete an admin account outright. Mirrors the escalation guard UserFormWidget already
  * applies to role grants (see UserFormWidgetTest). deleteAccount() was the last of the three still missing it.
  *
+ * resetPasswordRefusesWhenTargetOutranksActor extends that same guard to the one remaining state-changing
+ * action on this page that never had it. resetPassword() was gated on step-up re-authentication only, which
+ * establishes who the acting admin is and not which accounts they may act on, so the same community-manager
+ * or users:manage capability-only grantee who is refused suspend, restore, delete and reset MFA against an
+ * admin account could still reissue that account's setup link -- and, because createAccountToken overwrites
+ * the single account_token column (#1836), silently invalidate a link that admin was already using.
+ *
  * resetMfaWithoutStepUpDoesNotResetAndShowsReAuthPanel / resetMfaRefusesWhenTargetOutranksActor /
  * resetMfaViaPostCallsCommandsAndAudits cover the admin "Reset MFA" lockout-recovery action: it requires a fresh
  * step-up re-authentication exactly like Reset Password, refuses when the target outranks the acting admin exactly
@@ -748,6 +755,41 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void resetPasswordRefusesWhenTargetOutranksActor() throws Exception {
+    // The target holds admin (level 100), above the acting community-manager (level 90). Step-up
+    // re-authentication is granted here on purpose: proving who the acting admin is must not be
+    // mistaken for permission to act on this particular account.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = adminUser();
+    target.setAccountToken("still-valid");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      // No token is minted, so the admin's outstanding link keeps working and no reset mail is sent.
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals(
+          "You cannot reset the password for an account with a higher role level than your own",
+          result.getErrorMessage());
+      Assertions.assertNull(result.getSuccessMessage());
+    }
+  }
+
+  @Test
   void resetPasswordViaPostReportsFailureWhenTheTokenWriteFails() throws Exception {
     // UserRepository.createAccountToken() returns null when its DB update does not take (it logs
     // "createAccountToken failed!"). The audit line already anticipated that by recording FAILURE, but the
@@ -763,9 +805,13 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // resetPassword() reaches RoleRepository through targetOutranksActor(); activeUser() holds no
+      // role at all, so it never outranks the acting admin and the path under test still runs.
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -794,9 +840,13 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // resetPassword() reaches RoleRepository through targetOutranksActor(); activeUser() holds no
+      // role at all, so it never outranks the acting admin and the success path still runs.
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
