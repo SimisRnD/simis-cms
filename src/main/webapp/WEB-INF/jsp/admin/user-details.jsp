@@ -490,7 +490,9 @@
   <li><strong>Restore Account / Request Unsuspend&hellip;</strong> -- which one you see depends on the
     target's role. A non-elevated account restores in one click. A community-manager-or-above account
     instead requires a second, <em>different</em> admin's approval -- filing the request notifies
-    other eligible admins, and you can't also approve your own request.</li>
+    other eligible admins, and you can't also approve your own request. Neither path reaches an
+    account with a higher role level than yours: that is refused outright, not queued for a second
+    admin to review.</li>
   <li><strong>Approve Unsuspend Request / Deny Unsuspend Request</strong> only appear when a request is
     pending <em>and</em> it was filed by someone else. Approving requires your own step-up
     re-authentication, restores the account, and immediately invalidates its password -- the account
@@ -498,7 +500,9 @@
     reason and leaves the account suspended.</li>
   <li><strong>Unlock Account</strong> only appears once the account is actually locked (too many failed
     sign-in attempts). It clears the failed-attempt counter and lockout timer only -- it does not
-    touch the password, MFA, or suspension status.</li>
+    touch the password, MFA, or suspension status. You can't unlock an account with a higher role
+    level than yours: the lockout is a security control on that account, so clearing it is a change
+    to the account, not a favour to its owner.</li>
   <li><strong>Delete Account</strong> is permanent, with no confirmation beyond the browser's own "Are
     you sure?" prompt. It fails safely, with an explicit error rather than a partial delete, if the
     account is still referenced elsewhere in the database (it authored content, owns uploaded files,
