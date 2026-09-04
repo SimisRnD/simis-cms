@@ -80,6 +80,13 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${user:roleTierClass(userRole.level)}":
+        "users-list.jsp and user-details.jsp role badges: the value is the return of "
+        "UserCommand.roleTierClass(int), which is a chain of integer comparisons returning one of "
+        "exactly four fixed string literals -- \"warning\", \"primary\", \"success\" or "
+        "\"secondary\". It takes an int (Role.getLevel(), a Java primitive) and never touches its "
+        "argument's text, so no input reaches the output at all and the class attribute cannot be "
+        "broken out of. Escaping it would be inert.",
     "${!empty duplicatesView}":
         "image-browser.jsp: duplicatesView is a Boolean request attribute set only by "
         "AdminImageBrowserWidget#duplicatesViewAction (setAttribute(\"duplicatesView\", true)) "
