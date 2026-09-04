@@ -23,6 +23,7 @@ import java.sql.Timestamp;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
@@ -178,6 +179,27 @@ public class UserDetailsWidget extends GenericWidget {
       context.setRedirect("/admin/user-details?userId=" + userId);
       return resetPassword(context, user);
     }
+    if ("revealSetupLink".equals(action)) {
+      // Same step-up bar as Reset Password: this hands the admin a working credential for someone
+      // else's account. Kept OUT of action()'s dispatch table for the same reason resetPassword is,
+      // so a plain GET can never reveal a token.
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          renderDetailsPage(context, user);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          renderDetailsPage(context, user);
+          return context;
+        }
+      }
+      return revealSetupLink(context, user);
+    }
     if ("resetMfa".equals(action)) {
       // Clearing another user's MFA enrollment requires step-up, same bar as Reset Password --
       // and, matching resetPassword's own comment above, is intentionally kept OUT of action()'s
@@ -322,6 +344,51 @@ public class UserDetailsWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * Show the admin the account's outstanding setup link so it can be delivered out of band (#1836
+   * follow-up).
+   *
+   * <p>Exists because email is not always a usable channel -- a network that answers for the site
+   * with something other than this deployment, a mailbox nobody can reach, a link mangled in
+   * transit. Without this the only recovery was to reissue, which replaces the outstanding token and
+   * so breaks the link the person may be part-way through using.
+   *
+   * <p>Deliberately NOT rendered on page load. It is a live credential: anyone holding it can set
+   * this account's password, so it is revealed only by an explicit action, behind a fresh step-up,
+   * and the reveal is audited. It is never redirected to, never logged, and never placed in a query
+   * string, so it stays out of access logs and browser history.
+   */
+  private WidgetContext revealSetupLink(WidgetContext context, User user) {
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reveal the setup link for an account with a higher role level than your own");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    if (!LINK_OUTSTANDING.equals(accountLinkState(user))) {
+      // Nothing usable to hand over: no token, or one that has already lapsed. Say so rather than
+      // composing a URL that would only produce the "no longer valid" page.
+      context.setWarningMessage("There is no working setup link for this account. Use Reset Password to send a new one.");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
+    if (StringUtils.isBlank(siteUrl)) {
+      context.setErrorMessage("The site URL is not configured, so a setup link cannot be built");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    // Composed exactly as EmailTask does, so what is copied here and what was emailed cannot drift.
+    String setupLink = StringUtils.removeEnd(siteUrl.trim(), "/")
+        + "/validate-account/" + UrlCommand.encodeUri(user.getAccountToken());
+
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.setup_link.revealed",
+        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), null);
+
+    context.getRequest().setAttribute("setupLink", setupLink);
+    renderDetailsPage(context, user);
+    return context;
+  }
+
   private WidgetContext resetMfa(WidgetContext context, User user) {
     // Not one that outranks the acting admin -- see targetOutranksActor()
     if (targetOutranksActor(context, user)) {
@@ -364,10 +431,20 @@ public class UserDetailsWidget extends GenericWidget {
     }
     String reason = context.getParameter("reason");
     User result = UserRepository.suspendAccount(user, reason);
-    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
-        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), reason);
-    context.setSuccessMessage("Account suspended");
+    // Reflect the actual DB-write outcome rather than assuming success, matching deleteAccount()'s
+    // if/else pattern. UserRepository.suspendAccount() returns null when its update does not take
+    // (it logs "suspendAccount failed!"); the audit line already recorded that as FAILURE, but the
+    // success message was set unconditionally, so the admin read "Account suspended" for an account
+    // that is still enabled.
+    if (result != null) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setSuccessMessage("Account suspended");
+    } else {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.FAILURE, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setErrorMessage("The account could not be suspended");
+    }
     return context;
   }
 
