@@ -131,9 +131,12 @@ public class ForgotPasswordWidget extends GenericWidget {
     // #1836 fixed the admin-initiated path differently, by warning the admin that they had just
     // replaced a live link. That answer does not transfer here: there is nobody to warn, and the
     // caller is not necessarily the account holder.
-    if (!hasWorkingLink(user)) {
-      user = UserRepository.createAccountToken(user);
-    }
+    // Captured before the write, because createAccountToken returns null when its update does not
+    // take and reassigning over `user` would lose the identity the audit record below needs.
+    String targetId = String.valueOf(user.getId());
+    String targetEmail = user.getEmail();
+
+    User tokenedUser = hasWorkingLink(user) ? user : UserRepository.createAccountToken(user);
 
     // Record the self-service request (#492) -- distinct event type from the admin-initiated
     // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
