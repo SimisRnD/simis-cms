@@ -61,12 +61,28 @@
         </div>
         <div>
           <i class="fa fa-arrows form-field-drag-handle" title="Drag to reorder"></i>
-          <strong><c:out value="${field.label}"/></strong><c:if test="${field.required}"> <span class="required">*</span></c:if>
+          <%-- The name links to the same editor as the pencil. Those icons are absolutely
+               positioned at the far right of the row, so on a wide screen they sit a long way from
+               the field they act on and read as decoration -- the field's own name is where someone
+               looking to change it clicks first. --%>
+          <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}&fieldId=${field.id}"
+             title="Edit this field"><strong><c:out value="${field.label}"/></strong></a><c:if test="${field.required}"> <span class="required">*</span></c:if>
         </div>
         <div>
           <small class="subheader">
             <c:out value="${field.name}"/> &middot; <c:out value="${field.type}"/>
             <c:if test="${!empty field.placeholder}"> &middot; placeholder: "<c:out value="${field.placeholder}"/>"</c:if>
+            <%-- The other editable property the row never mentioned. It is not cosmetic: form.jsp
+                 uses it as a field's initial value, and preselects a dropdown option with it, so a
+                 default silently decides what a visitor sees before they touch anything. --%>
+            <c:if test="${!empty field.defaultValue}"> &middot; default: "<c:out value="${field.defaultValue}"/>"</c:if>
+            <%-- A select's choices are the thing an editor most often comes here to change, and the
+                 row said nothing about them -- so the list read as fixed and the only way to find
+                 out otherwise was to open a field on the off-chance. Listed rather than counted:
+                 seeing the current choices is what tells you whether this is the field you want. --%>
+            <c:if test="${!empty field.listOfOptions}"> &middot; options:
+              <c:forEach items="${field.listOfOptions}" var="option" varStatus="optionStatus"><c:out
+                  value="${option.value}"/><c:if test="${!optionStatus.last}">, </c:if></c:forEach></c:if>
           </small>
         </div>
       </div>
