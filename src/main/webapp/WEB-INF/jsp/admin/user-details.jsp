@@ -497,7 +497,9 @@
     pending <em>and</em> it was filed by someone else. Approving requires your own step-up
     re-authentication, restores the account, and immediately invalidates its password -- the account
     holder gets an email to set a new one before they can sign in again. Denying just requires a
-    reason and leaves the account suspended.</li>
+    reason and leaves the account suspended. You can't approve unsuspending an account with a role
+    above your own level -- denying one isn't restricted that way, because a denial leaves the
+    account suspended either way and so can't lift a control on an account that outranks you.</li>
   <li><strong>Unlock Account</strong> only appears once the account is actually locked (too many failed
     sign-in attempts). It clears the failed-attempt counter and lockout timer only -- it does not
     touch the password, MFA, or suspension status. You can't unlock an account with a higher role
