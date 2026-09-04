@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -46,6 +47,12 @@ import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
+ * resolvePageUrl... cover #1835. The URL stored with every submission was built from the live
+ * request's host, which behind a CDN or reverse proxy is the ORIGIN's rather than the visitor's --
+ * Azure Front Door sends a fixed originHostHeader, so submissions recorded the App Service's
+ * *.azurewebsites.net name and leaked it into the form CSV export. It now prefers site.url, the
+ * source every other absolute URL the platform emits already uses.
+ *
  * @author matt rajkowski
  * @created 5/7/2022 8:30 AM
  */
@@ -798,6 +805,47 @@ class FormWidgetTest extends WidgetBase {
         Assertions.assertEquals("button radius large brand expanded",
             widgetContext.getRequest().getAttribute("buttonClass"));
       }
+    }
+  }
+
+  @Test
+  void resolvePageUrlPrefersTheConfiguredSiteUrlOverTheRequestHost() {
+    // The request host is the origin's behind a proxy, so it must not reach the stored value.
+    when(request.getScheme()).thenReturn("https");
+    when(request.getServerName()).thenReturn("app-pilot-abc123.azurewebsites.net");
+    when(request.getServerPort()).thenReturn(443);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com");
+
+      Assertions.assertEquals("https://www.example.com/example/path", FormWidget.resolvePageUrl(widgetContext));
+    }
+  }
+
+  @Test
+  void resolvePageUrlToleratesATrailingSlashOnSiteUrl() {
+    // site.url is admin-entered free text; a trailing slash must not double up on the path.
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com/");
+
+      Assertions.assertEquals("https://www.example.com/example/path", FormWidget.resolvePageUrl(widgetContext));
+    }
+  }
+
+  @Test
+  void resolvePageUrlFallsBackToTheRequestWhenSiteUrlIsUnset() {
+    // A freshly installed site has no site.url yet; the page path must still be well formed rather
+    // than losing its leading slash, which the previous form only avoided by cancelling quirks.
+    when(request.getScheme()).thenReturn("https");
+    when(request.getServerName()).thenReturn("localhost");
+    when(request.getServerPort()).thenReturn(443);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("");
+
+      Assertions.assertEquals("https://localhost/example/path", FormWidget.resolvePageUrl(widgetContext));
     }
   }
 }
