@@ -743,9 +743,9 @@ public class WebRequestFilter implements Filter {
    * after a bad deploy -- would be cached for a year by every browser that saw it, with no way to
    * recall it.
    */
-  private static final class ImmutableAssetResponse extends HttpServletResponseWrapper {
+  static final class ImmutableAssetResponse extends HttpServletResponseWrapper {
 
-    private ImmutableAssetResponse(HttpServletResponse response) {
+    ImmutableAssetResponse(HttpServletResponse response) {
       super(response);
       response.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
     }
@@ -768,9 +768,17 @@ public class WebRequestFilter implements Filter {
       super.setStatus(sc);
     }
 
-    /** 304 keeps the header: a revalidated hit is still the same immutable asset. */
+    /**
+     * Only an error withdraws the caching. The first version of this tested "not 200 and not 304",
+     * which withdrew on every other status a container may legitimately set on its way to serving a
+     * 200 -- and Tomcat's DefaultServlet, which serves /fonts and /css, does exactly that. The
+     * result was that fonts went out with no-store: a guaranteed re-download on every visit, worse
+     * than the missing header this was meant to fix. Assets under /assets/img go through PageServlet
+     * instead, never hit that path, and cached correctly, which is what made the bug look
+     * path-specific rather than logical.
+     */
     private void withdrawCaching(int sc) {
-      if (sc != HttpServletResponse.SC_OK && sc != HttpServletResponse.SC_NOT_MODIFIED && !isCommitted()) {
+      if (sc >= 400 && !isCommitted()) {
         setHeader("Cache-Control", "no-store");
       }
     }
