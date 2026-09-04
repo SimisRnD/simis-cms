@@ -320,8 +320,31 @@
               <c:if test="${!empty user.accountTokenExpires}">
                 until <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" />
               </c:if>
+              <%-- Revealing the link is an explicit, audited action behind a step-up -- it hands over a
+                   working credential for this account, so it is never rendered on page load. --%>
+              <br />
+              <a data-open="revealSetupLinkReveal">Show setup link</a>
             </c:otherwise>
           </c:choose>
+        </div>
+      </div>
+    </c:if>
+    <%-- Rendered only in the response to a successful reveal; a reload does not bring it back. --%>
+    <c:if test="${!empty setupLink}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
+          <div class="callout warning">
+            <p><strong>Send this to <c:out value="${user.email}" /> directly.</strong> It sets the account's
+              password, so treat it like one: send it over a channel you trust, and do not post it anywhere
+              shared. It stops working once used, once it expires, or as soon as a new one is issued.</p>
+            <label for="setupLinkValue">Setup link
+              <input type="text" id="setupLinkValue" value="${fn:escapeXml(setupLink)}" readonly
+                     class="select-on-focus" />
+            </label>
+            <button type="button" class="button primary radius copy-button" data-copy-target="setupLinkValue">
+              Copy link
+            </button>
+          </div>
         </div>
       </div>
     </c:if>
@@ -482,11 +505,17 @@
     level than yours -- an explicit error message says so if you try.</li>
 </ul>
 
+<script src="${ctx}/javascript/copy-button.js"></script>
+
 <h5>Reading the detail grid</h5>
 <ul>
   <li><strong>Validated</strong> shows when the account's invitation or password-reset link was
     actually used. "Not Validated" means that step has never happened and the account can't sign in
     yet, regardless of what the Status badge next to the name says.</li>
+  <li><strong>Show setup link</strong> reveals the working link itself so you can deliver it by hand
+    when email is not reaching someone. It re-authenticates you first and records the reveal in the
+    audit log, because that link sets the account's password. Unlike Reset Password it changes
+    nothing -- anything already sent keeps working.</li>
   <li><strong>Setup Link</strong> appears only while an unused invitation or password-reset link
     exists. An account holds <em>one</em> link at a time, so "Reset Password" does not send a second
     copy -- it replaces the link, and the previously emailed one stops working immediately. Check
@@ -552,6 +581,34 @@
       </div>
     </div>
     <input type="submit" class="button warning radius" value="Send Reset Email"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="revealSetupLinkReveal" role="dialog" aria-modal="true"
+     aria-labelledby="revealSetupLinkRevealTitle" data-reveal data-close-on-click="true">
+  <h4 id="revealSetupLinkRevealTitle">Show setup link</h4>
+  <p>This shows the working link for <strong><c:out value="${user.email}" /></strong> so you can send it
+    yourself -- useful when email is not reaching them. <strong>It sets their password, so treat it like
+    one.</strong> Showing it is recorded in the audit log.</p>
+  <p>This does not change or replace the link, so anything already sent keeps working.</p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="revealSetupLink"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <div class="grid-x grid-padding-x">
+      <div class="small-12 cell">
+        <label for="revealStepUpCredential">Your password or authenticator code <span class="required">*</span>
+          <input type="password" id="revealStepUpCredential" name="stepUpCredential" maxlength="255"
+                 placeholder="Password or 6-digit code" required
+                 title="Re-authentication required to show another user's setup link"/>
+        </label>
+      </div>
+    </div>
+    <input type="submit" class="button primary radius" value="Show Link"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">

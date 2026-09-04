@@ -33,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.Role;
@@ -66,6 +67,13 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * restore, or permanently delete an admin account outright. Mirrors the escalation guard UserFormWidget already
  * applies to role grants (see UserFormWidgetTest). deleteAccount() was the last of the three still missing it.
  *
+ * resetPasswordRefusesWhenTargetOutranksActor extends that same guard to the one remaining state-changing
+ * action on this page that never had it. resetPassword() was gated on step-up re-authentication only, which
+ * establishes who the acting admin is and not which accounts they may act on, so the same community-manager
+ * or users:manage capability-only grantee who is refused suspend, restore, delete and reset MFA against an
+ * admin account could still reissue that account's setup link -- and, because createAccountToken overwrites
+ * the single account_token column (#1836), silently invalidate a link that admin was already using.
+ *
  * resetMfaWithoutStepUpDoesNotResetAndShowsReAuthPanel / resetMfaRefusesWhenTargetOutranksActor /
  * resetMfaViaPostCallsCommandsAndAudits cover the admin "Reset MFA" lockout-recovery action: it requires a fresh
  * step-up re-authentication exactly like Reset Password, refuses when the target outranks the acting admin exactly
@@ -79,6 +87,13 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * unconditionally, so a failed token write threw a NullPointerException at the admin instead of a message
  * saying the reset did not happen. resetPasswordViaPostSendsInstructionsWhenTheTokenWriteSucceeds keeps the
  * success path honest alongside it.
+ *
+ * revealSetupLink... cover the out-of-band delivery path. An account holds one link at a time, so
+ * when email cannot reach someone the only previous recovery was to reissue -- which replaces the
+ * outstanding token and breaks the link that person may be part-way through using. Revealing the
+ * existing link changes nothing. It is a live credential, so these pin that it needs a fresh
+ * step-up, that it is audited, that it refuses a target who outranks the actor, and that it is never
+ * composed when there is no working link to hand over.
  *
  * stepUpReRenderStillSetsAccountLinkState guards a trap the #1836 change itself introduced:
  * post()'s step-up prompts re-render user-details.jsp WITHOUT running execute(), and the JSP
@@ -94,6 +109,12 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * the very link that person was clicking. These pin the classification the page renders and the
  * warning the admin now gets, and pin that the warning stays off when nothing was replaced -- a
  * warning on every reset would be noise and would train admins to ignore it.
+ *
+ * suspendAccountViaPostRecordsFailureWhenTheSuspendWriteFails pins the null return of
+ * UserRepository#suspendAccount. Unlike the resetPassword case above, nothing threw -- user is never
+ * reassigned -- so the failure was silent: the audit line already recorded FAILURE, but the success
+ * message was set unconditionally, leaving the admin told "Account suspended" for an account that is
+ * still enabled. suspendAccountViaPostCallsRepositoryAndAudits keeps the success path honest alongside it.
  *
  * @author Elizabeth Houser
  */
@@ -253,6 +274,38 @@ class UserDetailsWidgetTest extends WidgetBase {
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"),
           eq("Reported phishing attempt from this account")), times(1));
       Assertions.assertEquals("Account suspended", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void suspendAccountViaPostRecordsFailureWhenTheSuspendWriteFails() throws Exception {
+    // UserRepository.suspendAccount() returns null when its DB update does not take (it logs
+    // "suspendAccount failed!") -- suspendAccount() must reflect that instead of unconditionally
+    // reporting "Account suspended", matching deleteAccount()'s if/else pattern. Nothing here
+    // threw before the fix: user is never reassigned, so the admin simply saw a success message
+    // for an account that is still enabled, while the audit record said FAILURE.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "suspendAccount");
+    addQueryParameter(widgetContext, "reason", "Reported phishing attempt from this account");
+
+    User target = adminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.suspendAccount(eq(target), any())).thenReturn(null);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.disable"),
+          eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"),
+          eq("Reported phishing attempt from this account")), times(1));
+      Assertions.assertNull(result.getSuccessMessage());
+      Assertions.assertNotNull(result.getErrorMessage());
     }
   }
 
@@ -702,6 +755,41 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void resetPasswordRefusesWhenTargetOutranksActor() throws Exception {
+    // The target holds admin (level 100), above the acting community-manager (level 90). Step-up
+    // re-authentication is granted here on purpose: proving who the acting admin is must not be
+    // mistaken for permission to act on this particular account.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = adminUser();
+    target.setAccountToken("still-valid");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      // No token is minted, so the admin's outstanding link keeps working and no reset mail is sent.
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals(
+          "You cannot reset the password for an account with a higher role level than your own",
+          result.getErrorMessage());
+      Assertions.assertNull(result.getSuccessMessage());
+    }
+  }
+
+  @Test
   void resetPasswordViaPostReportsFailureWhenTheTokenWriteFails() throws Exception {
     // UserRepository.createAccountToken() returns null when its DB update does not take (it logs
     // "createAccountToken failed!"). The audit line already anticipated that by recording FAILURE, but the
@@ -717,9 +805,13 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // resetPassword() reaches RoleRepository through targetOutranksActor(); activeUser() holds no
+      // role at all, so it never outranks the acting admin and the path under test still runs.
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(null);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -748,9 +840,13 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      // resetPassword() reaches RoleRepository through targetOutranksActor(); activeUser() holds no
+      // role at all, so it never outranks the acting admin and the success path still runs.
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -868,6 +964,133 @@ class UserDetailsWidgetTest extends WidgetBase {
           widgetContext.getRequest().getAttribute("accountLinkState"),
           "the re-render must state the link state explicitly; an unset attribute becomes \"\" "
               + "under jsp:useBean and would render as an outstanding link");
+    }
+  }
+
+  @Test
+  void revealSetupLinkWithoutStepUpShowsReAuthAndRevealsNothing() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "revealSetupLink");
+
+    User target = activeUser();
+    target.setAccountToken("still-valid");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      // Stubbed so that if a guard above is ever removed, the failure is this test's assertion
+      // rather than an unmocked database call further down.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com");
+
+      new UserDetailsWidget().post(widgetContext);
+
+      Assertions.assertNull(widgetContext.getRequest().getAttribute("setupLink"),
+          "a credential was revealed without re-authentication");
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void revealSetupLinkBuildsTheLinkAndAuditsIt() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "revealSetupLink");
+
+    User target = activeUser();
+    target.setAccountToken("tok-abc");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com/");
+
+      new UserDetailsWidget().post(widgetContext);
+
+      // Composed exactly as EmailTask does, and the trailing slash on the configured value must not
+      // double up on the path.
+      Assertions.assertEquals("https://www.example.com/validate-account/tok-abc",
+          widgetContext.getRequest().getAttribute("setupLink"));
+      // Revealing must not disturb the token -- that is the whole point of it over Reset Password.
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.setup_link.revealed"), eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"),
+          eq("active@example.com"), any()), times(1));
+    }
+  }
+
+  @Test
+  void revealSetupLinkRefusesWhenTargetOutranksActor() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "revealSetupLink");
+
+    // Admin (level 100) outranks the acting community-manager (level 90).
+    User target = adminUser();
+    target.setAccountToken("tok-abc");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      // Stubbed so that if a guard above is ever removed, the failure is this test's assertion
+      // rather than an unmocked database call further down.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com");
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      Assertions.assertNull(widgetContext.getRequest().getAttribute("setupLink"),
+          "an account that outranks the actor had its credential revealed");
+      Assertions.assertNotNull(result.getErrorMessage());
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void revealSetupLinkSaysSoWhenThereIsNoWorkingLink() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "revealSetupLink");
+
+    // Lapsed: composing a URL from it would only produce the "no longer valid" page.
+    User target = activeUser();
+    target.setAccountToken("tok-expired");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() - 1_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      // Stubbed so that if a guard above is ever removed, the failure is this test's assertion
+      // rather than an unmocked database call further down.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url"))
+          .thenReturn("https://www.example.com");
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      Assertions.assertNull(widgetContext.getRequest().getAttribute("setupLink"));
+      Assertions.assertNotNull(result.getWarningMessage());
+      audit.verifyNoInteractions();
     }
   }
 }
