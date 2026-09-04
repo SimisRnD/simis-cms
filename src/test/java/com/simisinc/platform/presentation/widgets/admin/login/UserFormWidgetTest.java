@@ -520,13 +520,43 @@ class UserFormWidgetTest extends WidgetBase {
   }
 
   @Test
-  void aCaseOnlyEmailChangeOnAnOutrankingAccountIsRefused() throws Exception {
-    // Pins the fail-closed comparison: rather than reasoning about which mail providers treat a
-    // local part case-insensitively, a case-only difference counts as a change and is refused.
+  void aCaseOnlyEmailChangeOnAnOutrankingAccountIsNotTreatedAsAnIdentityChange() throws Exception {
+    // The platform resolves identity case-insensitively -- UserRepository.findByUsername matches on
+    // LOWER(username) = ? and findByEmailAddress on LOWER(email) = ? -- so a case-only edit moves
+    // neither who can sign in nor which mailbox the reset link reaches. Refusing it would raise a
+    // security error against an edit that changes nothing, so the comparison ignores case.
     setRoles(widgetContext, COMMUNITY_MANAGER);
     grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "5");
-    addQueryParameter(widgetContext, "email", "Admin@example.com");
+    addQueryParameter(widgetContext, "email", "Admin@Example.com");
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+
+      WidgetContext result = new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      Assertions.assertEquals("Admin@Example.com", captor.getValue().getEmail());
+      Assertions.assertNull(result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void aRealEmailChangeThatDiffersOnlyBeyondCaseIsStillRefused() throws Exception {
+    // Guards the obvious way to get the case-insensitive comparison wrong: loosening it must not
+    // let an actually-different address through.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "Admin@Example.NET");   // different domain, mixed case
 
     try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);

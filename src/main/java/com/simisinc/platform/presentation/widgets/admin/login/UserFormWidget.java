@@ -340,9 +340,11 @@ public class UserFormWidget extends GenericWidget {
    * or an explicitly submitted, different username, and both are caught here directly -- duplicating
    * the sync logic would just give it a second copy to drift from.
    *
-   * <p>Comparison is trimmed but case-sensitive, so a case-only email change is treated as a change
-   * and refused. That fails closed rather than reasoning about which providers treat a local part
-   * case-insensitively.
+   * <p>Comparison is trimmed and case-INSENSITIVE, because the platform has already settled that
+   * question in SQL: {@code UserRepository.findByUsername} matches on {@code LOWER(username) = ?}
+   * and {@code findByEmailAddress} on {@code LOWER(email) = ?}. A case-only edit therefore moves
+   * neither who can sign in nor which mailbox the reset link reaches, so refusing it would be a
+   * security error raised against an edit that changes nothing.
    */
   private static boolean identityFieldsChanged(User existing, User submitted) {
     if (!sameValue(existing.getEmail(), submitted.getEmail())) {
@@ -355,10 +357,11 @@ public class UserFormWidget extends GenericWidget {
         && !sameValue(existing.getUsername(), submitted.getUsername());
   }
 
-  /** Null-safe, trimmed, case-sensitive equality -- a blank stored value and a blank submitted one
+  /** Null-safe, trimmed, case-insensitive equality -- matching the LOWER() comparisons the
+   *  identity lookups in UserRepository already use. A blank stored value and a blank submitted one
    *  are the same value, and blanking a populated field counts as a change. */
   private static boolean sameValue(String stored, String submitted) {
-    return StringUtils.trimToEmpty(stored).equals(StringUtils.trimToEmpty(submitted));
+    return StringUtils.trimToEmpty(stored).equalsIgnoreCase(StringUtils.trimToEmpty(submitted));
   }
 
   /**
