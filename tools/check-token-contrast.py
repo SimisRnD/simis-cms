@@ -385,6 +385,20 @@ WAIVED = {
 # sharing a surface value, or the three that must all clear one bound.
 
 CLAIMS = [
+    # -- The alert ink/fill split (issue 1851) ------------------------------
+    # --sc-fnd-alert stays the fill and keeps its own pairing below; this is the ink half,
+    # aliased to --sc-danger so it resolves per theme. Registered as pairings rather than
+    # rendered measurements because every ground here is a token, which is the condition
+    # this file's header sets for moving a number out of RENDERED_RATIOS.
+    (r"light ink on canvas ([\d.]+):1 and on raised ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-fnd-alert-ink", "--sc-surface")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-surface-raised")])]),
+    (r"dark ink on canvas ([\d.]+):1, on raised ([\d.]+):1, on the field ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-fnd-alert-ink", "--sc-surface")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-surface-raised")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-field-bg")])]),
     # -- The warm dark ramp -------------------------------------------------
     # The step that separates a card from the canvas. Small on purpose: the previous ramp
     # relied on darkness for separation, this one relies on the step plus --sc-border.

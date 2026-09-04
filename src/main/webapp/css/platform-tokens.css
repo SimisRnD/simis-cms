@@ -430,6 +430,20 @@
      --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
      clear the floor on the light ground and costs the dark case as little as possible. */
   --sc-fnd-alert: #cb4643;
+  /* The ink half of the split the note above predicted. --sc-fnd-alert stays the FILL --
+     its --sc-fnd-on-accent pairing is registered in CLAIMS and verified there, and must not move --
+     while this paints the same status colour where it is text or a border ON the page.
+     The two roles need opposite directions in dark mode, which is why one token could not
+     carry both: a red that clears the floor on the dark canvas falls well short of it on
+     white, and the reverse.
+
+     Aliased to --sc-danger rather than given its own literal, because that token already
+     carries a red chosen for exactly these grounds in both modes, and a second literal
+     would be a second thing to keep in step. Resolves per theme through the alias, so
+     there is no dark override to forget (issue 1851).
+       light ink on canvas 4.870:1 and on raised 5.397:1
+       dark ink on canvas 6.418:1, on raised 5.033:1, on the field 5.733:1 */
+  --sc-fnd-alert-ink: var(--sc-danger);
   --sc-fnd-light-gray: #e7e6e3;
   --sc-fnd-medium-gray: #cdc9c3;
   --sc-fnd-dark-gray: #91897b;
@@ -843,6 +857,19 @@ input[type="radio"] {
   border-color: var(--sc-fnd-warning-ink);
 }
 
+/* The pair the block above deferred: ".hollow.alert / .clear.alert are not listed: they
+   carry the --sc-fnd-alert shortfall tracked in issue 1527". That shortfall is what the
+   ink/fill split closes, so they join their siblings here (issue 1851). Foundation's own
+   hover for these is a hardcoded #67251a it never routed to a token, effectively invisible
+   on the dark overlay, which no override can reach; left alone deliberately, since no .hollow.alert
+   or .clear.alert exists in the product today and repainting only the rest state would
+   make the hover the worse of the two. */
+.button.hollow.alert,
+.button.clear.alert {
+  color: var(--sc-fnd-alert-ink);
+  border-color: var(--sc-fnd-alert-ink);
+}
+
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
    animate.css all animate by default; honour the OS setting. */
 @media (prefers-reduced-motion: reduce) {
@@ -1136,6 +1163,34 @@ textarea::placeholder {
 :root[data-theme="dark"] textarea::placeholder {
   color: var(--sc-field-placeholder);
   opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio */
+}
+
+/* Restore the invalid-field marker in dark mode (issue 1852). Foundation marks the field
+   with .is-invalid-input:not(:focus) at (0,2,0); the dark field rules above are (0,3,1)
+   and repaint border-color and the placeholder, so an invalid field rendered identically
+   to a valid one -- no border, no text, no icon, nothing. Not theoretical: the vendored
+   foundation-datepicker adds this class (foundation-datepicker.js:446) whenever a typed
+   date overflows its format string, on the non-readonly date inputs in product-form,
+   blog-editor, item-full-form and pricing-rule-form.
+
+   These are (0,4,1) and clear the field rules. Adding the class to those 15-selector
+   lists as :not(.is-invalid-input) guards instead would mean negating each one twice over,
+   in two blocks -- far more surface to get wrong.
+
+   background-color is deliberately NOT restored: Foundation's #f9ecea is a light pink that
+   belongs on a light ground, and the dark field background overriding it is correct.
+   Nothing is light-scoped, so auto + prefers-color-scheme: light still gets Foundation's
+   own rule untouched. */
+:root[data-theme="dark"] input.is-invalid-input:not(:focus),
+:root[data-theme="dark"] textarea.is-invalid-input:not(:focus),
+:root[data-theme="dark"] select.is-invalid-input:not(:focus) {
+  border-color: var(--sc-fnd-alert-ink);
+}
+
+:root[data-theme="dark"] input.is-invalid-input:not(:focus)::placeholder,
+:root[data-theme="dark"] textarea.is-invalid-input:not(:focus)::placeholder {
+  color: var(--sc-fnd-alert-ink);
+  opacity: 1;
 }
 
 :root[data-theme="dark"] input:disabled,
@@ -1454,6 +1509,20 @@ textarea::placeholder {
   :root[data-theme="auto"] input::placeholder,
   :root[data-theme="auto"] textarea::placeholder {
     color: var(--sc-field-placeholder);
+    opacity: 1;
+  }
+
+  /* The auto mirror of the dark invalid-field rules above. The auto/dark parity checker
+     exists because this pairing has been missed before (issue 1852). */
+  :root[data-theme="auto"] input.is-invalid-input:not(:focus),
+  :root[data-theme="auto"] textarea.is-invalid-input:not(:focus),
+  :root[data-theme="auto"] select.is-invalid-input:not(:focus) {
+    border-color: var(--sc-fnd-alert-ink);
+  }
+
+  :root[data-theme="auto"] input.is-invalid-input:not(:focus)::placeholder,
+  :root[data-theme="auto"] textarea.is-invalid-input:not(:focus)::placeholder {
+    color: var(--sc-fnd-alert-ink);
     opacity: 1;
   }
 
