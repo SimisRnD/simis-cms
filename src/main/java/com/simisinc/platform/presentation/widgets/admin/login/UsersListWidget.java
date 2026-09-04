@@ -505,7 +505,9 @@ public class UsersListWidget extends GenericWidget {
 
     // Elevated-role accounts (#492 Phase 3) route through the same maker-checker gate the
     // single-user restoreAccount() action uses -- UnsuspendAccountCommand is the one shared
-    // enforcement point, so bulk can never bypass what the single-user path requires.
+    // enforcement point for THAT rule. It is not the only rule restoreAccount() applies: the
+    // role-level guard lives in the widget, above the command, so it has to be repeated here (see
+    // the per-target check in the loop below).
     String reason = context.getParameter("reason");
     User actingAdmin = context.getUserSession() != null ? context.getUserSession().getUser() : null;
 
@@ -514,12 +516,25 @@ public class UsersListWidget extends GenericWidget {
     int requested = 0;
     int alreadyPendingOrNotSuspended = 0;
     int reasonRequired = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     for (Long userId : userIds) {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account restoreAccount() already enforces (targetOutranksActor()), exactly as
+      // bulkSuspendAction() above mirrors suspendAccount(). The maker-checker gate below is NOT a
+      // substitute: requiresApproval() keys off the TARGET's level against the elevated threshold
+      // (community-manager's level), not off the actor's, so it says nothing at all about a target
+      // that outranks the actor but sits below that threshold. A users:manage capability-only
+      // grantee (level 0) restoring a content-manager (level 80) clears requiresApproval() and is
+      // restored outright, while the single-user form refuses it.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       if (UnsuspendAccountCommand.requiresApproval(user) && StringUtils.isBlank(reason)) {
@@ -554,11 +569,11 @@ public class UsersListWidget extends GenericWidget {
         (succeeded + requested) > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
         "restored=" + succeeded + "; requested=" + requested + "; alreadyPendingOrNotSuspended="
-            + alreadyPendingOrNotSuspended + "; reasonRequired=" + reasonRequired + "; notFound=" + notFound
-            + "; failed=" + failed);
+            + alreadyPendingOrNotSuspended + "; reasonRequired=" + reasonRequired + "; skippedOutranked="
+            + skippedOutranked + "; notFound=" + notFound + "; failed=" + failed);
 
     setBulkUnsuspendResultMessage(context, succeeded, requested, alreadyPendingOrNotSuspended, reasonRequired,
-        userIds.size(), notFound, failed);
+        skippedOutranked, userIds.size(), notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -569,7 +584,8 @@ public class UsersListWidget extends GenericWidget {
    * rather than forcing that shape into {@link #setBulkResultMessage}.
    */
   private void setBulkUnsuspendResultMessage(WidgetContext context, int succeeded, int requested,
-      int alreadyPendingOrNotSuspended, int reasonRequired, int totalSelected, int notFound, int failed) {
+      int alreadyPendingOrNotSuspended, int reasonRequired, int skippedOutranked, int totalSelected, int notFound,
+      int failed) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" restored.");
@@ -583,6 +599,10 @@ public class UsersListWidget extends GenericWidget {
     }
     if (reasonRequired > 0) {
       sb.append(" Needs a reason (elevated account): ").append(reasonRequired).append(".");
+    }
+    if (skippedOutranked > 0) {
+      // Same wording setBulkResultMessage uses for the other three bulk actions.
+      sb.append(" Skipped (higher role level than yours): ").append(skippedOutranked).append(".");
     }
     if (notFound > 0) {
       sb.append(" Not found: ").append(notFound).append(".");
@@ -615,6 +635,7 @@ public class UsersListWidget extends GenericWidget {
     BulkActor actor = new BulkActor(context);
     User actingUser = context.getUserSession() != null ? context.getUserSession().getUser() : null;
     int succeeded = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     int replacedLiveLinks = 0;
@@ -622,6 +643,16 @@ public class UsersListWidget extends GenericWidget {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account resetPassword() already enforces (targetOutranksActor()), exactly as
+      // bulkSuspendAction() above mirrors suspendAccount(). Without this a community-manager, or a
+      // users:manage capability-only grantee with no legacy role, could mint a password reset token
+      // for an account (e.g. an admin's) the single-user form refuses to touch -- and the reset link
+      // is emailed to whatever address that account currently holds.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       // #1836: an account holds one link at a time, so this replaces any outstanding one. Count
@@ -645,9 +676,11 @@ public class UsersListWidget extends GenericWidget {
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_password_reset",
         succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+        "reset=" + succeeded + "; skippedOutranked=" + skippedOutranked + "; notFound=" + notFound
+            + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed,
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, skippedOutranked,
+        notFound, failed,
         replacedLiveLinks > 0
             ? " " + replacedLiveLinks + " of these already had a working link, which has now stopped working"
                 + " -- those people must use the newest email."
