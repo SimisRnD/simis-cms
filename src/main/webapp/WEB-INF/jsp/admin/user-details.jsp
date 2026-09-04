@@ -270,7 +270,8 @@
         </div>
         <div class="small-8 align-self-middle cell">
           <c:forEach items="${user.roleList}" var="userRole" varStatus="status">
-            <span class="label"><c:out value="${userRole.title}" /></span>
+            <%-- Same privilege-ladder colours as /admin/users, so a role reads the same on both --%>
+            <span class="label ${user:roleTierClass(userRole.level)}"><c:out value="${userRole.title}" /></span>
           </c:forEach>
         </div>
       </div>
