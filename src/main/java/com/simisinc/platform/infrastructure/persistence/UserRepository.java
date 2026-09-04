@@ -389,8 +389,25 @@ public class UserRepository {
     return add(record);
   }
 
+  /**
+   * How long a newly created account's activation link stays usable.
+   *
+   * <p>Longer than {@link #RESET_TOKEN_MILLIS} on purpose, and the difference is the point. A
+   * password reset is requested and used minutes later, so a short window costs nothing. An
+   * invitation is sent TO someone on someone else's schedule -- invited on a Friday, opened on a
+   * Monday -- and a 24-hour window there mostly produces dead links and reissue requests.
+   */
+  static final long ACTIVATION_TOKEN_MILLIS = 7L * 24 * 60 * 60 * 1000;
+
+  /** How long a password-reset or unsuspend link stays usable. */
+  static final long RESET_TOKEN_MILLIS = 24L * 60 * 60 * 1000;
+
   public static User add(User record) {
+    // The token and its expiry are set together, deliberately: this insert used to write a token
+    // with no expiry, and findByAccountToken treats a missing expiry as valid indefinitely, so an
+    // activation link issued here never stopped working. Every path that mints a token now dates it.
     record.setAccountToken(UUID.randomUUID().toString());
+    record.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + ACTIVATION_TOKEN_MILLIS));
     if (record.getEmail() != null) {
       record.setEmail(record.getEmail().trim().toLowerCase());
     }
@@ -415,6 +432,7 @@ public class UserRepository {
         .add("password", record.getPassword())
         .add("enabled", true)
         .add("account_token", record.getAccountToken())
+        .add("account_token_expires", record.getAccountTokenExpires())
         .addIfExists("created", record.getCreated())
         .add("created_by", record.getCreatedBy(), -1);
     if (record.hasGeoPoint()) {
@@ -606,7 +624,7 @@ public class UserRepository {
 
   public static User createAccountToken(User record) {
     String newToken = UUID.randomUUID().toString();
-    Timestamp expires = new Timestamp(System.currentTimeMillis() + 86_400_000L); // 24 hours
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + RESET_TOKEN_MILLIS);
     SqlUtils updateValues = new SqlUtils()
         .add("account_token", newToken)
         .add("account_token_expires", expires)
