@@ -476,7 +476,8 @@
 <ul>
   <li><strong>Reset Password</strong> emails the account a password-reset link -- it doesn't set or
     reveal a password directly. Sending it requires you (the admin) to re-enter your own password or
-    authenticator code first.</li>
+    authenticator code first, and you can't reset the password for an account with a higher role
+    level than yours -- re-authenticating proves who you are, not which accounts you may act on.</li>
   <li><strong>Suspend Account</strong> immediately blocks sign-in. The modal marks a reason as
     required, but that's enforced by the form, not the server. You can't suspend your own account, or
     one with a higher role level than yours -- an explicit error message says so if you try, e.g. from
