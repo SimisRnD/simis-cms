@@ -307,6 +307,12 @@ COMMON = [
     ("--sc-fnd-on-accent", "--sc-fnd-ink-surface", TEXT),   # .tooltip
     ("--sc-fnd-on-accent", "--sc-fnd-primary", TEXT),
     ("--sc-fnd-on-accent", "--sc-fnd-alert", TEXT),
+    # The ink half of the same split. Checked on the canvas, a field and an overlay --
+    # the grounds these selectors are drawn on, the overlay being the worst in dark.
+    # It follows --sc-danger, so a change there is caught here rather than in review.
+    ("--sc-fnd-alert-ink", "--sc-surface", TEXT),
+    ("--sc-fnd-alert-ink", "--sc-field-bg", TEXT),
+    ("--sc-fnd-alert-ink", "--sc-surface-overlay", TEXT),
     # The token that exists so warning/success captions stay dark: those two
     # fills keep their light values in dark mode, so their text must not follow.
     ("--sc-fnd-ink-on-accent", "--sc-fnd-warning", TEXT),
@@ -654,6 +660,25 @@ CLAIMS = [
      "light", [("exact", [("--sc-link", "--sc-surface")])]),
     (r"--sc-text-muted #6c7178 is ([\d.]+):1 on white",
      "light", [("exact", [("--sc-text-muted", "--sc-surface")])]),
+    # -- $alert's role split (issues 1851 / 1852) --------------------------------------
+    # The fill keeps the only pairing its value still has to satisfy.
+    (r"on-accent on the alert fill ([\d.]+):1",
+     "light", [("exact", [("--sc-fnd-on-accent", "--sc-fnd-alert")])]),
+    # The ink half, on the three grounds its selectors are drawn on. These replace the two
+    # .form-error notes this file used to carry in RENDERED_RATIOS: those were measured
+    # once, against a dark canvas that was re-grounded afterwards, and nothing re-derived
+    # them -- so they sat in the file reading as fact while being off by a full ratio point.
+    # Both halves are tokens now, which is exactly the promotion the RENDERED_RATIOS header
+    # asks for. Re-derived every run, in both modes.
+    (r"light ink on the canvas ([\d.]+):1, on a field ([\d.]+):1",
+     "light",
+     [("exact", [("--sc-fnd-alert-ink", "--sc-surface")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-field-bg")])]),
+    (r"dark ink on the canvas ([\d.]+):1, on a field ([\d.]+):1, on an overlay ([\d.]+):1",
+     "dark",
+     [("exact", [("--sc-fnd-alert-ink", "--sc-surface")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-field-bg")]),
+      ("exact", [("--sc-fnd-alert-ink", "--sc-surface-overlay")])]),
 ]
 
 # --------------------------------------------------------------------------
@@ -676,7 +701,6 @@ EXEMPT_RATIOS = [
     (r"held to the (4\.5):1 SC 1\.4\.3 asks", "SC 1.4.3 floor, not a measurement"),
     (r"even the (3):1 of 1\.4\.11", "SC 1.4.11 floor, not a measurement"),
     (r"under the (4\.5):1 floor of SC 1\.4\.3", "SC 1.4.3 floor, not a measurement"),
-    (r"clears (4\.5):1 on #17191e", "SC 1.4.3 floor, not a measurement"),
     (r"under the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"held to the (3):1 that SC 1\.4\.11 asks", "SC 1.4.11 floor, not a measurement"),
     (r"comes near the\s+(4\.5):1 floor", "SC 1.4.3 floor, not a measurement"),
@@ -714,14 +738,6 @@ RENDERED_RATIOS = [
     (r"are 1\.799:1 and (1\.842):1", "Foundation $warning as text on white, issue 1529"),
     (r"land at (1\.799):1 and 1\.842:1", "same pair restated at the hollow/clear button rule"),
     (r"land at 1\.799:1 and (1\.842):1", "same pair restated at the hollow/clear button rule"),
-    (r"--sc-fnd-on-accent at\s+(4\.498):1", "Foundation's original #cc4b37 with on-accent, the value that prompted issue 1527"),
-    (r"at most ~(3\.3):1 on white", "the best a red clearing 4.5:1 on the dark page can do on white -- the opposition this note describes"),
-    (r"left the rest at (4\.498):1", "same historical pair, for the variants a lighter ink would not have fixed"),
-    (r"ink #fefefe on the fill \.+ ([\d.]+):1", "the darkened alert fill under #fefefe ink, measured"),
-    (r"the colour as text on #fefefe \.+ ([\d.]+):1", "the same red as text on #fefefe, measured"),
-    (r"the colour as text on #ffffff \.+ ([\d.]+):1", "the same red as text on pure white, measured"),
-    (r"reads worse: ([\d.]+):1\s*\n?\s*before", "form-error red on the dark page before issue 1527's change"),
-    (r"before, ([\d.]+):1 after", "form-error red on the dark page after it, still failing"),
     (r"success fill \(#e1faea\): ([\d.]+):1", "dark --sc-text on the light success callout fill, before Layer 3b repainted it"),
     (r"only ([\d.]+):1 on the alert", "--sc-link against the tinted alert callout fill"),
     (r"\((3\.42):1 against it", "darkened muted grey against the callout ink, a separation not a floor"),

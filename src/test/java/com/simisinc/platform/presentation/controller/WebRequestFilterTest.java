@@ -682,7 +682,9 @@ class WebRequestFilterTest {
       WebRequestFilter filter = filterWithoutSSL(siteProperties);
       filter.doFilter(requestForResource("/css/shared-path.css"), response, chain);
 
-      verify(response, never()).setHeader(anyString(), anyString());
+      // Location only, for the same reason as above: a disabled DB redirect must not fall
+      // through to the CSV map, which is a statement about Location and not about caching.
+      verify(response, never()).setHeader(eq("Location"), anyString());
       verify(chain).doFilter(any(), any());
     }
   }
@@ -722,7 +724,11 @@ class WebRequestFilterTest {
 
       HttpServletResponse secondResponse = mock(HttpServletResponse.class);
       filter.doFilter(requestForResource("/css/deleted-path.css"), secondResponse, chain);
-      verify(secondResponse, never()).setHeader(anyString(), anyString());
+      // Narrowed to Location, which is what this asserts: that the purged path no longer
+      // redirects. It used to say "no header at all", which also happened to be true only because
+      // nothing else set one -- these /css paths now carry a revalidation Cache-Control (issue
+      // 1827), and that is unrelated to whether the CSV fallback fired.
+      verify(secondResponse, never()).setHeader(eq("Location"), anyString());
       verify(chain).doFilter(any(), any());
     }
   }
