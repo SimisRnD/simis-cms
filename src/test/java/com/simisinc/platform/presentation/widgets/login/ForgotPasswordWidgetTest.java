@@ -68,6 +68,105 @@ class ForgotPasswordWidgetTest extends WidgetBase {
     return user;
   }
 
+  /** An account already holding a link that still resolves, as if one was emailed minutes ago. */
+  private static User userWithOutstandingLink() {
+    User user = targetUser();
+    user.setAccountToken("still-valid-token");
+    user.setAccountTokenExpires(new java.sql.Timestamp(System.currentTimeMillis() + 3_600_000L));
+    return user;
+  }
+
+  @Test
+  void postReusesAnOutstandingLinkRatherThanReplacingIt() {
+    // An account holds exactly one token, so minting here would stop the link already in that
+    // person's inbox from resolving (#1836). This page needs no authentication, so unconditional
+    // minting let anyone who knew a username break an in-progress recovery at will.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      User target = userWithOutstandingLink();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      // The stored token is left alone...
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      Assertions.assertEquals("still-valid-token", target.getAccountToken(),
+          "the outstanding link must survive the request that would have replaced it");
+      // ...but the person still gets their link re-sent, and the request is still recorded.
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.password.reset.requested"), eq(AuditEventCommand.SUCCESS), eq("user"), eq("11"),
+          eq("target@example.com"), any()), times(1));
+    }
+  }
+
+  @Test
+  void postMintsANewLinkWhenTheOutstandingOneHasExpired() {
+    // Preserving a link that no longer resolves would leave the account unable to recover at all,
+    // so an expired token is replaced exactly as before.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      User target = targetUser();
+      target.setAccountToken("long-since-expired");
+      target.setAccountTokenExpires(new java.sql.Timestamp(System.currentTimeMillis() - 1_000L));
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(target);
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      new ForgotPasswordWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.createAccountToken(target), times(1));
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), times(1));
+    }
+  }
+
+  @Test
+  void postAnswersIdenticallyWhetherOrNotTheLinkWasReused() {
+    // Enumeration safety: reusing must not become an oracle. The message and JSP have to match the
+    // mint path exactly, which is also what a nonexistent username already returns.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      User reused = userWithOutstandingLink();
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(reused);
+
+      WidgetContext result = new ForgotPasswordWidget().post(widgetContext);
+
+      Assertions.assertEquals(ForgotPasswordWidget.SUCCESS_JSP, result.getJsp());
+      Assertions.assertEquals(
+          "If the email you specified exists in our system, we've sent a password reset link to it.",
+          result.getSuccessMessage());
+    }
+  }
+
   @Test
   void postAuditsTheRequestWhenTheUserExists() {
     logout(widgetContext);

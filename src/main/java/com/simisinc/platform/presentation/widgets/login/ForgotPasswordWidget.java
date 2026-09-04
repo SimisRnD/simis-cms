@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import java.sql.Timestamp;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
@@ -115,14 +117,23 @@ public class ForgotPasswordWidget extends GenericWidget {
       return context;
     }
 
-    // Identify the account before the write. createAccountToken returns null when its update does
-    // not take, and the audit record below has to name the account on that path too -- reading the
-    // id and email back off the return value is what made a failed write unrecordable.
-    String targetId = String.valueOf(user.getId());
-    String targetEmail = user.getEmail();
-
-    // Create an account token and send email
-    User tokenedUser = UserRepository.createAccountToken(user);
+    // Create an account token and send email -- but only when the account does not already hold a
+    // link that still resolves. An account holds exactly one token and createAccountToken
+    // overwrites it, which silently stops the previously emailed link from working (#1836). Minting
+    // unconditionally here meant anyone who knew a username could destroy the link that account
+    // holder was mid-click on, repeatedly, from a page that requires no authentication at all --
+    // rate limiting bounds how often that can be done, not whether it works.
+    //
+    // Reusing is also just the right answer to "I never got the email": the address is unchanged,
+    // so the same link is re-sent rather than a second one that invalidates the first. The expiry
+    // is deliberately not extended -- this preserves an existing link, it does not renew it.
+    //
+    // #1836 fixed the admin-initiated path differently, by warning the admin that they had just
+    // replaced a live link. That answer does not transfer here: there is nobody to warn, and the
+    // caller is not necessarily the account holder.
+    if (!hasWorkingLink(user)) {
+      user = UserRepository.createAccountToken(user);
+    }
 
     // Record the self-service request (#492) -- distinct event type from the admin-initiated
     // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
@@ -150,5 +161,24 @@ public class ForgotPasswordWidget extends GenericWidget {
     context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
     context.setJsp(SUCCESS_JSP);
     return context;
+  }
+
+  /**
+   * Whether the account already holds a setup or password-reset link that still resolves.
+   *
+   * <p>A null expiry counts as still working, matching both
+   * {@code UserRepository.findByAccountToken}'s own "IS NULL" arm and
+   * {@code UserDetailsWidget.accountLinkState()}: such a token does resolve, so replacing it would
+   * break exactly the link this is here to preserve. That helper classifies the same states for the
+   * admin page, but it is package-private in another presentation package and returns a
+   * three-state label for display; this needs a boolean, and widening it to share four lines across
+   * packages would be the worse trade.
+   */
+  private static boolean hasWorkingLink(User user) {
+    if (user == null || StringUtils.isBlank(user.getAccountToken())) {
+      return false;
+    }
+    Timestamp expires = user.getAccountTokenExpires();
+    return expires == null || expires.getTime() > System.currentTimeMillis();
   }
 }

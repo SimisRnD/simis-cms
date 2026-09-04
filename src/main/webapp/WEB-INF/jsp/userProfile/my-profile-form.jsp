@@ -41,12 +41,12 @@
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
 <style>
   .form-field-error {
-    border-left: 4px solid #cc4c28 !important;
+    border-left: 4px solid var(--sc-danger, #ba403e) !important;
     background-color: rgba(204, 76, 40, 0.02);
   }
   .error-message {
     display: none;
-    color: #cc4c28;
+    color: var(--sc-danger, #ba403e);
     font-weight: 500;
     margin-top: 0.5rem;
     font-size: 0.9rem;
