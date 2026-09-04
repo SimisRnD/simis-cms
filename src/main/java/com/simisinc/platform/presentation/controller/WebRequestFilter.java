@@ -230,6 +230,20 @@ public class WebRequestFilter implements Filter {
       }
     }
 
+    // Send a trailing-slash URL to its canonical form. /news/ used to 404 while /news served the
+    // page, so anyone arriving from an older link, a bookmark or a search result with the slash on
+    // the end hit a dead end -- 17 distinct visitors on /news/ alone in six hours, and the same for
+    // every other page. Placed AFTER the admin-managed redirect lookup above so an explicit rule for
+    // a slashed path still wins, and 301 rather than serving the same page at both URLs, which would
+    // split search ranking between them.
+    if (("GET".equals(httpServletRequest.getMethod()) || "HEAD".equals(httpServletRequest.getMethod()))) {
+      String canonical = trailingSlashRedirect(resource, httpServletRequest.getQueryString());
+      if (canonical != null) {
+        do301(servletResponse, canonical);
+        return;
+      }
+    }
+
     // Handle logouts immediately
     if (resource.equals("/logout")) {
       // CSRF: validate the session token before processing logout
@@ -782,6 +796,58 @@ public class WebRequestFilter implements Filter {
         setHeader("Cache-Control", "no-store");
       }
     }
+  }
+
+  /**
+   * The canonical location for a path that arrived with a trailing slash, or null to leave the
+   * request alone.
+   *
+   * <p>Only GET and HEAD reach this (the caller checks): redirecting a POST would drop the body.
+   *
+   * <p>Deliberately does not check whether the target exists. A slashed URL for a page that is gone
+   * ends at a 404 either way, and probing first would put a lookup on every request to buy nothing.
+   *
+   * <p>The Location is a path, never an absolute URL, so nothing here can be steered onto another
+   * host by a Host header. It is still run through {@link HostnameCommand#safeRedirectPath} for the
+   * protocol-relative ("//evil.example") and control-character cases, and a query string is only
+   * carried over once it is known to hold no control characters -- a header value is being built.
+   */
+  static String trailingSlashRedirect(String resource, String queryString) {
+    if (resource == null || !resource.endsWith("/")) {
+      return null;
+    }
+    String stripped = StringUtils.stripEnd(resource, "/");
+    if (stripped.isEmpty()) {
+      // "/" and "//" -- the site root is served, and there is nothing shorter to send them to
+      return null;
+    }
+    if (isPathOrPrefix(stripped, "/api")) {
+      // REST clients are not browsers; a 301 is not theirs to follow and the path may be meaningful
+      return null;
+    }
+    if (isBrowserResourcePath(stripped)) {
+      // Static directories belong to the default servlet, not to page routing
+      return null;
+    }
+    String path = HostnameCommand.safeRedirectPath(stripped);
+    if ("/".equals(path)) {
+      // The sanitiser rejected it; send nothing rather than bouncing the visitor to the home page
+      return null;
+    }
+    if (StringUtils.isNotEmpty(queryString) && !hasControlCharacter(queryString)) {
+      return path + "?" + queryString;
+    }
+    return path;
+  }
+
+  private static boolean hasControlCharacter(String value) {
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      if (c < 0x20 || c == 0x7f) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean isBrowserResourcePath(String resource) {

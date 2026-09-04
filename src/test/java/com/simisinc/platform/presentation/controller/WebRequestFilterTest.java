@@ -1107,4 +1107,76 @@ class WebRequestFilterTest {
     }
   }
 
+
+  @Test
+  void trailingSlashRedirectsToTheCanonicalPath() {
+    // /news/ used to 404 while /news served the page, so an older link or a bookmark with the slash
+    // on the end was a dead end for real visitors.
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news/", null));
+    Assertions.assertEquals("/data-center", WebRequestFilter.trailingSlashRedirect("/data-center/", null));
+    // Repeated slashes collapse to the same canonical target rather than to "/news/"
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news///", null));
+  }
+
+  @Test
+  void trailingSlashRedirectKeepsTheQueryString() {
+    Assertions.assertEquals("/news?page=2", WebRequestFilter.trailingSlashRedirect("/news/", "page=2"));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesPathsWithoutATrailingSlashAlone() {
+    // The redirect must be a no-op for ordinary requests, or every page would bounce once
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/news", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect(null, null));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesTheSiteRootAlone() {
+    // "/" is served; redirecting it would be an infinite loop, and there is nothing shorter anyway
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("//", null));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesApiAndStaticDirectoriesAlone() {
+    // REST clients are not browsers and will not follow a 301; static directories belong to the
+    // default servlet rather than to page routing.
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/api/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/api/v1/items/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/css/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/javascript/vendor/", null));
+  }
+
+  @Test
+  void trailingSlashRedirectRefusesToBuildAnUnsafeLocation() {
+    // A Location header is being built, so a protocol-relative path must never become the target --
+    // "//evil.example/" would send the visitor to another host entirely.
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("//evil.example/", null));
+    // A control character in the query would let a header be split; the path still redirects, the
+    // query is simply dropped rather than carried into the header.
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news/", "a=1\r\nX-Injected: 1"));
+  }
+
+  @Test
+  void trailingSlashRequestIs301edAndNeverReachesTheChain() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(httpRequestOverPlainHttp("www.example.com", "/news/"), response, chain);
+
+      verify(response).setHeader("Location", "/news");
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
 }
