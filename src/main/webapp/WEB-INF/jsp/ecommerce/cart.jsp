@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -33,7 +32,7 @@
 <jsp:useBean id="card2" class="java.lang.String" scope="request"/>
 <jsp:useBean id="pricingRule" class="com.simisinc.platform.domain.model.ecommerce.PricingRule" scope="request"/>
 <jsp:useBean id="preventCheckout" class="java.lang.String" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>"/>
+<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=${fn:escapeXml(applicationScope.assetVersion)}"/>
 <script nonce="${cspNonce}">
   var itemIdList = [<c:forEach items="${cartEntryList}" var="cartEntry" varStatus="status">${cartEntry.cartItem.id}<c:if test="${!status.last}">, </c:if></c:forEach>];
 

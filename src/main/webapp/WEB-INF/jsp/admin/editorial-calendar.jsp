@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -27,7 +26,7 @@
 <%-- Issue #426: editorial calendar -- reuses the same FullCalendar/moment bundle and CSS as the
      public full-calendar.jsp; the events themselves come from /json/editorialCalendar
      (EditorialCalendarAjax), not from this JSP. --%>
-<link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
+<link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <script src="${ctx}/javascript/fullcalendar-6.1.10/moment-2.27.0.min.js"></script>
 <script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <c:if test="${!empty title}">

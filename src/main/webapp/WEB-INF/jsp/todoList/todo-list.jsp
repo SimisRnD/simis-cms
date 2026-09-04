@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -22,7 +21,7 @@
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="todoList" class="java.util.LinkedHashMap" scope="request"/>
 <%@include file="../page_messages.jspf" %>
-<link rel="stylesheet" href="${ctx}/css/platform-todo-list.css?v=<%= VERSION %>" />
+<link rel="stylesheet" href="${ctx}/css/platform-todo-list.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <style>
     .todo-list-card ul li {
         background-color: <c:out value="${themePropertyMap['theme.callout.secondary.backgroundColor']}" />;
