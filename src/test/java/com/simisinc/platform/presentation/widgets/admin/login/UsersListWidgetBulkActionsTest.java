@@ -55,13 +55,12 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * Reset Password / Assign Roles both require a fresh step-up re-authentication once per batch --
  * exactly the same bar the single-user forms already hold each of these actions to.
  *
- * bulkUnsuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch closes the same gap
- * on the bulk unsuspend path, and pins why the #492 Phase 3 maker-checker gate does not cover it:
- * UnsuspendAccountCommand.requiresApproval() compares the TARGET's level against the elevated
- * threshold and never looks at the actor's, so a target that outranks the actor but sits below that
- * threshold (a content-manager, level 80, against a users:manage capability-only grantee at level 0)
- * clears the gate entirely and was restored outright -- while the single-account restoreAccount()
- * form refuses exactly that pairing.
+ * bulkResetPasswordSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch closes the same
+ * gap on the bulk password-reset path. bulkSuspendAction() gained the guard when deleteAccount()
+ * did, but bulkResetPasswordAction() was left calling UserRepository.createAccountToken() for any
+ * selected id -- and unlike suspend, this one is an escalation primitive rather than an
+ * inconsistency: the reset link is emailed to whatever address the target account currently holds,
+ * and /admin/modify-user lets the same lower-privileged editor change that address first.
  *
  * bulkSuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch guards a gap that was
  * specific to the bulk checkbox path: UserDetailsWidget's single-account suspendAccount() already
@@ -446,10 +445,13 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
 
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(first);
       loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(second);
+      // bulkResetPasswordAction() now consults targetOutranksActor(), which reaches RoleRepository
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(2, 90, COMMUNITY_MANAGER), role(1, 100, ADMIN)));
       userRepo.when(() -> UserRepository.createAccountToken(first)).thenReturn(first);
       userRepo.when(() -> UserRepository.createAccountToken(second)).thenReturn(second);
 
@@ -464,6 +466,49 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
       audit.verify(() -> SaveAuditEventCommand.recordAdminEvent(eq("user_management"), eq("user.bulk_password_reset"),
           eq("success"), anyLong(), any(), any(), any(), eq("user"), isNull(), isNull(), any()), times(1));
       assertTrue(result.getSuccessMessage().contains("2 of 2"));
+    }
+  }
+
+  @Test
+  void bulkResetPasswordSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch() throws Exception {
+    // Without this guard, a community-manager (or a users:manage capability-only grantee with no
+    // legacy role at all) could use this bulk checkbox path to mint a password reset token for an
+    // admin account -- something the single-account resetPassword() form on /admin/user-details
+    // already refuses (see UserDetailsWidgetTest). The reset link is emailed to whatever address
+    // the target account currently holds, so this is the second half of an escalation chain, not
+    // merely an inconsistency with the single-user form.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    multiValue("userId", "5", "6");
+    addQueryParameter(widgetContext, "command", "bulkResetPassword");
+
+    User outranking = userWithId(5L);
+    List<Role> heldByOutranking = new ArrayList<>();
+    heldByOutranking.add(role(1, 100, ADMIN));
+    outranking.setRoleList(heldByOutranking);
+
+    User withinReach = userWithId(6L);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(outranking);
+      loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(withinReach);
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(2, 90, COMMUNITY_MANAGER), role(1, 100, ADMIN)));
+      userRepo.when(() -> UserRepository.createAccountToken(withinReach)).thenReturn(withinReach);
+
+      WidgetContext result = new UsersListWidget().post(widgetContext);
+
+      // No token is minted for the admin account, and no reset email is triggered for it; the other
+      // account (level 0, below the acting community-manager's level 90) proceeds normally.
+      userRepo.verify(() -> UserRepository.createAccountToken(outranking), never());
+      userRepo.verify(() -> UserRepository.createAccountToken(withinReach), times(1));
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), times(1));
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), times(1));
+      assertTrue(result.getWarningMessage().contains("1 of 2"));
+      assertTrue(result.getWarningMessage().contains("Skipped (higher role level than yours): 1"));
     }
   }
 

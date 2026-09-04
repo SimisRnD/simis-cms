@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="userList" class="java.util.ArrayList" scope="request"/>
@@ -144,7 +145,10 @@
       <td><c:out value="${user.email}" /></td>
       <td>
         <c:forEach items="${user.roleList}" var="userRole">
-          <span class="label round"><c:out value="${userRole.code}" /></span>
+          <%-- Colour carries the privilege ladder, so elevated access is visible at a glance; the
+               tooltip names the role in full, since the badge shows the short code. --%>
+          <span class="label round ${user:roleTierClass(userRole.level)}"
+                title="${fn:escapeXml(userRole.title)}"><c:out value="${userRole.code}" /></span>
         </c:forEach>
         <%-- Break-glass had no surface at all until now: nothing on this screen said which account
              alerts every other administrator when it signs in, or which one an MFA policy will not

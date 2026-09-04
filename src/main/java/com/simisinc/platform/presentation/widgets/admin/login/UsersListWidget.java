@@ -635,6 +635,7 @@ public class UsersListWidget extends GenericWidget {
     BulkActor actor = new BulkActor(context);
     User actingUser = context.getUserSession() != null ? context.getUserSession().getUser() : null;
     int succeeded = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     int replacedLiveLinks = 0;
@@ -642,6 +643,16 @@ public class UsersListWidget extends GenericWidget {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account resetPassword() already enforces (targetOutranksActor()), exactly as
+      // bulkSuspendAction() above mirrors suspendAccount(). Without this a community-manager, or a
+      // users:manage capability-only grantee with no legacy role, could mint a password reset token
+      // for an account (e.g. an admin's) the single-user form refuses to touch -- and the reset link
+      // is emailed to whatever address that account currently holds.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       // #1836: an account holds one link at a time, so this replaces any outstanding one. Count
@@ -665,9 +676,11 @@ public class UsersListWidget extends GenericWidget {
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_password_reset",
         succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+        "reset=" + succeeded + "; skippedOutranked=" + skippedOutranked + "; notFound=" + notFound
+            + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed,
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, skippedOutranked,
+        notFound, failed,
         replacedLiveLinks > 0
             ? " " + replacedLiveLinks + " of these already had a working link, which has now stopped working"
                 + " -- those people must use the newest email."
