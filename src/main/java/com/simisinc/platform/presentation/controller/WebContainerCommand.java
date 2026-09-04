@@ -73,7 +73,10 @@ public class WebContainerCommand implements Serializable {
   private static final Set<String> PAGE_LEVEL_ATTRIBUTE_NAMES = Set.of(
       "pageEditMode", "pageLayoutMode", "hasDraft", "previewingDraft", "widgetLibraryJson", "widgetSchemaJson", "cspNonce",
       "systemPropertyMap", "sitePropertyMap", "themePropertyMap", "socialPropertyMap",
-      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap");
+      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap",
+      // Derived from systemPropertyMap alongside it; activity-list.jsp reads it during its own
+      // widget turn, so it has to survive the per-widget reset exactly as that map does
+      "brandedAssetContext");
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
