@@ -26,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -36,6 +37,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Verifies the self-service forgot-password request is recorded in the audit log (issue #492) --
@@ -56,6 +58,44 @@ class ForgotPasswordWidgetTest extends WidgetBase {
     user.setEmail("target@example.com");
     return user;
   }
+
+  @Test
+  void anAccountWithAnUnusableEmailAnswersLikeEveryOtherOutcome() {
+    // This branch is only reachable when the username DOES resolve to an account, so the previous
+    // "Check the username and try again" warning told an unauthenticated caller that the account
+    // exists -- the one hole in this page's otherwise careful enumeration defence. It now returns
+    // the same message and the same JSP as the not-found and the mailed paths.
+    //
+    // All three paths reference GENERIC_RESPONSE_MESSAGE, so asserting against that constant is
+    // what makes them indistinguishable; three separate literals could have drifted apart.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "username", "target@example.com");
+
+    User unusable = targetUser();
+    unusable.setEmail("not-an-email");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      loadUser.when(() -> LoadUserCommand.loadUser("target@example.com")).thenReturn(unusable);
+
+      WidgetContext result = new ForgotPasswordWidget().post(widgetContext);
+
+      Assertions.assertEquals(ForgotPasswordWidget.GENERIC_RESPONSE_MESSAGE, result.getSuccessMessage());
+      Assertions.assertEquals(ForgotPasswordWidget.SUCCESS_JSP, result.getJsp(),
+          "the JSP must match too -- landing on the form is as good an oracle as a different message");
+      Assertions.assertNull(result.getWarningMessage(),
+          "the warning that distinguished an existing account must be gone");
+      // Nothing was mailed, because nothing could be: the address is unusable either way.
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+    }
+  }
+
 
   @Test
   void postAuditsTheRequestWhenTheUserExists() {
