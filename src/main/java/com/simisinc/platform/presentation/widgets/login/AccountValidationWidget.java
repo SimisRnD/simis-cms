@@ -95,8 +95,7 @@ public class AccountValidationWidget extends GenericWidget {
     User user = UserRepository.findByAccountToken(confirmation);
     if (user == null) {
       LOG.warn("No user was found for token!");
-      context.setJsp(NOT_FOUND_JSP);
-      return context;
+      return notFound(context, confirmation);
     }
 
     // User needs to change their password to login
@@ -117,6 +116,26 @@ public class AccountValidationWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * Render the "link did not work" page, distinguishing a lapsed link from an unrecognised one
+   * (#1836).
+   *
+   * <p>The page previously guessed "already validated, or the request expired" for every failure.
+   * At least five causes land here -- never issued, superseded by a newer link, expired, already
+   * used, or a truncated URL -- and the guess was frequently wrong, which sent people looking for
+   * the wrong remedy.
+   *
+   * <p>Only "expired" is separable from the data: an account holds a single token, so a superseded
+   * link leaves no trace to distinguish it from one that never existed. The unknown case therefore
+   * names the realistic causes and points at the newest email rather than asserting one.
+   */
+  private WidgetContext notFound(WidgetContext context, String confirmation) {
+    boolean expired = UserRepository.findExpiredByAccountToken(confirmation) != null;
+    context.getRequest().setAttribute("notFoundReason", expired ? "expired" : "unknown");
+    context.setJsp(NOT_FOUND_JSP);
+    return context;
+  }
+
   public WidgetContext post(WidgetContext context) {
 
     // Don't accept multiple form posts
@@ -133,8 +152,7 @@ public class AccountValidationWidget extends GenericWidget {
     User user = UserRepository.findByAccountToken(confirmation);
     if (user == null) {
       LOG.warn("No user was found for token!");
-      context.setJsp(NOT_FOUND_JSP);
-      return context;
+      return notFound(context, confirmation);
     }
 
     // User needs to change their password to login, or they requested to

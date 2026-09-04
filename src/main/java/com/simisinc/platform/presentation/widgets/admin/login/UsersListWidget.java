@@ -617,16 +617,23 @@ public class UsersListWidget extends GenericWidget {
     int succeeded = 0;
     int notFound = 0;
     int failed = 0;
+    int replacedLiveLinks = 0;
     for (Long userId : userIds) {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
         continue;
       }
+      // #1836: an account holds one link at a time, so this replaces any outstanding one. Count
+      // those so the result message can say plainly that previously emailed links stopped working.
+      boolean hadLiveLink = UserDetailsWidget.LINK_OUTSTANDING.equals(UserDetailsWidget.accountLinkState(user));
       User result = UserRepository.createAccountToken(user);
       String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
       if (result != null) {
         ++succeeded;
+        if (hadLiveLink) {
+          ++replacedLiveLinks;
+        }
         WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(result, actingUser));
       } else {
         ++failed;
@@ -640,7 +647,11 @@ public class UsersListWidget extends GenericWidget {
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
         "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed);
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed,
+        replacedLiveLinks > 0
+            ? " " + replacedLiveLinks + " of these already had a working link, which has now stopped working"
+                + " -- those people must use the newest email."
+            : null);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -807,6 +818,16 @@ public class UsersListWidget extends GenericWidget {
    */
   private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
       int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed) {
+    setBulkResultMessage(context, verb, succeeded, alreadyDone, totalSelected, skippedSelf, skippedOutranked,
+        notFound, failed, null);
+  }
+
+  /**
+   * @param extraNote appended verbatim after the counts when non-blank; for a consequence the counts
+   *     cannot express, such as #1836's "the links you just replaced have stopped working".
+   */
+  private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
+      int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed, String extraNote) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" ").append(verb).append(".");
@@ -824,6 +845,9 @@ public class UsersListWidget extends GenericWidget {
     }
     if (failed > 0) {
       sb.append(" Failed: ").append(failed).append(".");
+    }
+    if (StringUtils.isNotBlank(extraNote)) {
+      sb.append(extraNote);
     }
     boolean allAccountedFor = (succeeded + alreadyDone) == totalSelected;
     if (succeeded == 0 && alreadyDone == 0) {

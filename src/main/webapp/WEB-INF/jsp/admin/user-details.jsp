@@ -27,6 +27,7 @@
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
 <jsp:useBean id="passwordAgeSeverity" class="java.lang.String" scope="request"/>
+<jsp:useBean id="accountLinkState" class="java.lang.String" scope="request"/>
 <script nonce="${cspNonce}">
   function restoreAccount() {
     if (!confirm("Are you sure you want to RESTORE this user account?")) {
@@ -299,6 +300,31 @@
         </c:choose>
       </div>
     </div>
+    <%-- #1836: only one setup/reset link can exist per account, so knowing whether one is
+         outstanding decides whether to reissue (which invalidates it) or chase the email. --%>
+    <c:if test="${accountLinkState eq 'outstanding' or accountLinkState eq 'expired'}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-4 text-right cell">
+          <small>Setup Link</small>
+        </div>
+        <div class="small-8 align-self-middle cell">
+          <c:choose>
+            <c:when test="${accountLinkState eq 'expired'}">
+              <span class="label warning">Expired</span>
+              <c:if test="${!empty user.accountTokenExpires}">
+                <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" />
+              </c:if>
+            </c:when>
+            <c:otherwise>
+              <span class="label success">Outstanding</span>
+              <c:if test="${!empty user.accountTokenExpires}">
+                until <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" />
+              </c:if>
+            </c:otherwise>
+          </c:choose>
+        </div>
+      </div>
+    </c:if>
     <c:if test="${user.locked}">
       <div class="grid-x grid-padding-x">
         <div class="small-4 text-right cell">
@@ -459,6 +485,12 @@
   <li><strong>Validated</strong> shows when the account's invitation or password-reset link was
     actually used. "Not Validated" means that step has never happened and the account can't sign in
     yet, regardless of what the Status badge next to the name says.</li>
+  <li><strong>Setup Link</strong> appears only while an unused invitation or password-reset link
+    exists. An account holds <em>one</em> link at a time, so "Reset Password" does not send a second
+    copy -- it replaces the link, and the previously emailed one stops working immediately. Check
+    this field before reissuing: if it says <span class="label success">Outstanding</span>, a
+    working link is already in that person's inbox, and reissuing while they are mid-click is what
+    makes activation appear to fail repeatedly.</li>
   <li><strong>Password Changed</strong> gets an <span class="label warning">Aging</span> or
     <span class="label alert">Overdue</span> badge once it passes the site's configured password-age
     threshold (Overdue at twice that threshold). An account whose password change was never tracked
@@ -500,6 +532,17 @@
      data-reveal data-close-on-click="true">
   <h4 id="resetPasswordRevealTitle">Reset Password</h4>
   <p>An email with password reset instructions will be sent to <strong><c:out value="${user.email}" /></strong>.</p>
+  <%-- #1836: warn BEFORE the admin commits, not after. An account holds one link at a time, so
+       sending this one stops the outstanding link working -- including one being clicked right now. --%>
+  <c:if test="${accountLinkState eq 'outstanding'}">
+    <div class="callout warning">
+      This account already has a working setup link<c:if test="${!empty user.accountTokenExpires}">, valid
+      until <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" /></c:if>.
+      Sending a new one immediately stops that link working. If they are partway through using it,
+      this will interrupt them -- check whether they simply need the email resent to a reachable
+      address before reissuing.
+    </div>
+  </c:if>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>
