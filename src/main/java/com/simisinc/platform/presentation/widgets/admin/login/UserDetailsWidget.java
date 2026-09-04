@@ -98,9 +98,42 @@ public class UserDetailsWidget extends GenericWidget {
     context.getRequest().setAttribute("pendingUnsuspendRequest", UnsuspendRequestRepository.findPendingByTargetUserId(user.getId()));
     context.getRequest().setAttribute("currentUserId", context.getUserId());
 
+    // #1836: whether a setup/reset link is currently outstanding for this account. Until now the
+    // page showed only "Not Validated", identically whether a live link existed or none did, so an
+    // admin had no way to tell "they never got a link" from "a link is sitting in their inbox" --
+    // and reissuing was the only way to find out, which destroys the outstanding link (see
+    // resetPassword below). buildRecord already loads both fields on every user load.
+    context.getRequest().setAttribute("accountLinkState", accountLinkState(user));
+
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  static final String LINK_NONE = "none";
+  static final String LINK_OUTSTANDING = "outstanding";
+  static final String LINK_EXPIRED = "expired";
+
+  /**
+   * Classify the account's outstanding validation/reset link for display (#1836).
+   *
+   * <p>Display only. Whether a token actually grants access is decided solely by
+   * {@link UserRepository#findByAccountToken(String)}, which enforces expiry in SQL against the
+   * database clock; this compares against the JVM clock, so around the expiry instant the two can
+   * disagree by the clock skew between them. That is acceptable for choosing a label and must not
+   * be relied on for an access decision.
+   *
+   * <p>A null expiry counts as outstanding, matching findByAccountToken's own "IS NULL" arm.
+   */
+  static String accountLinkState(User user) {
+    if (user == null || StringUtils.isBlank(user.getAccountToken())) {
+      return LINK_NONE;
+    }
+    Timestamp expires = user.getAccountTokenExpires();
+    if (expires != null && expires.getTime() <= System.currentTimeMillis()) {
+      return LINK_EXPIRED;
+    }
+    return LINK_OUTSTANDING;
   }
 
   private static String passwordAgeSeverity(Timestamp lastChanged, int maxAgeDays) {
@@ -131,16 +164,14 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
@@ -155,16 +186,14 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
@@ -179,16 +208,14 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
@@ -233,10 +260,30 @@ public class UserDetailsWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * Re-render the details page from a POST branch (the step-up re-authentication prompts).
+   *
+   * <p>These paths never run {@link #execute(WidgetContext)}, so every attribute the JSP reads has
+   * to be set here as well. #1836's accountLinkState in particular: the JSP declares it via
+   * jsp:useBean, so an unset attribute becomes an empty string rather than null, and the Setup Link
+   * row would render and report a link as outstanding on an account that has none.
+   */
+  private void renderDetailsPage(WidgetContext context, User user) {
+    context.getRequest().setAttribute("user", user);
+    context.getRequest().setAttribute("accountLinkState", accountLinkState(user));
+    context.setJsp(JSP);
+  }
+
   private WidgetContext resetPassword(WidgetContext context, User user) {
     // Capture the target before the token replaces the reference
     String targetId = String.valueOf(user.getId());
     String targetLabel = user.getEmail();
+    // #1836: read the outstanding link's state BEFORE minting a new one. createAccountToken
+    // overwrites the single account_token column, so issuing a new link silently stops the
+    // previously emailed one from resolving. Admins were told only "instructions have been sent"
+    // and reasonably kept resending to help someone mid-click, destroying the very link that
+    // person was using.
+    boolean replacedLiveLink = LINK_OUTSTANDING.equals(accountLinkState(user));
     // Create an account token and send email
     user = UserRepository.createAccountToken(user);
 
@@ -256,7 +303,11 @@ public class UserDetailsWidget extends GenericWidget {
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
 
-    context.setSuccessMessage("Password reset instructions have been sent to: " + user.getEmail());
+    String successMessage = "Password reset instructions have been sent to: " + user.getEmail();
+    if (replacedLiveLink) {
+      successMessage += ". Any link sent to them earlier has stopped working -- they must use this newest email";
+    }
+    context.setSuccessMessage(successMessage);
     return context;
   }
 

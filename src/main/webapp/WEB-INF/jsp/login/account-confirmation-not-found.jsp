@@ -18,12 +18,28 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <h2 class="h4">
-  An error occurred
+  This link is no longer valid
 </h2>
+<%-- #1836: only "expired" is knowable from the data. An account holds a single token, so a link
+     replaced by a newer one leaves nothing to distinguish it from one that never existed -- the
+     fallback names the realistic causes instead of guessing a single wrong one. --%>
+<c:choose>
+  <c:when test="${notFoundReason eq 'expired'}">
+    <p>
+      This link has expired. Links are only good for a limited time, so please
+      request a new one and use it soon after it arrives.
+    </p>
+  </c:when>
+  <c:otherwise>
+    <p>
+      This link has either already been used, or it was replaced by a newer one.
+      Only the most recent link sent to you will work, so please check for a more
+      recent email before requesting another.
+    </p>
+  </c:otherwise>
+</c:choose>
 <p>
-  This account may have already been validated, or the request expired.
-  If you have trouble logging into your account then you can request another
-  confirmation email.
+  If you still cannot get in, request a new link below.
 </p>
 <p>
   <c:choose>

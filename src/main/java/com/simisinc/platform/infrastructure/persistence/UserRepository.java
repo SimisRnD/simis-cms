@@ -156,6 +156,27 @@ public class UserRepository {
         UserRepository::buildRecord);
   }
 
+  /**
+   * Look up a user by account token WITHOUT the expiry predicate (#1836).
+   *
+   * <p>Strictly for telling a visitor <em>why</em> their link failed: a token that exists but has
+   * lapsed produces a different, actionable message than one that is simply unknown. Access is
+   * granted only by {@link #findByAccountToken(String)}, which keeps the expiry check in SQL.
+   * Never substitute this for that check -- doing so would honour expired tokens.
+   */
+  public static User findExpiredByAccountToken(String token) {
+    if (StringUtils.isBlank(token)) {
+      return null;
+    }
+    return (User) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils()
+            .add("account_token = ?", token)
+            .add("account_token_expires IS NOT NULL")
+            .add("account_token_expires <= NOW()"),
+        UserRepository::buildRecord);
+  }
+
   public static User findByEmailAddress(String email) {
     if (StringUtils.isBlank(email)) {
       return null;

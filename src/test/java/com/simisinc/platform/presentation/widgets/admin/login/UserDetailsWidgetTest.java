@@ -80,6 +80,21 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * saying the reset did not happen. resetPasswordViaPostSendsInstructionsWhenTheTokenWriteSucceeds keeps the
  * success path honest alongside it.
  *
+ * stepUpReRenderStillSetsAccountLinkState guards a trap the #1836 change itself introduced:
+ * post()'s step-up prompts re-render user-details.jsp WITHOUT running execute(), and the JSP
+ * declares accountLinkState through jsp:useBean -- so an unset attribute resolves to "" rather
+ * than null, and a "not none" test would have rendered "Outstanding" for an account holding no
+ * link at all. Every path that renders that JSP must set it.
+ *
+ * accountLinkStateClassifiesOutstandingExpiredAndNone / resetPasswordWarnsWhenItReplacedAnOutstandingLink /
+ * resetPasswordStaysQuietWhenNoLinkWasOutstanding cover #1836. An account holds exactly one
+ * account_token, so createAccountToken overwrites whatever was there -- issuing a reset silently
+ * stops the previously emailed link resolving. The page reported only "instructions have been
+ * sent", so an admin helping someone mid-activation would reasonably keep resending and destroy
+ * the very link that person was clicking. These pin the classification the page renders and the
+ * warning the admin now gets, and pin that the warning stays off when nothing was replaced -- a
+ * warning on every reset would be noise and would train admins to ignore it.
+ *
  * @author Elizabeth Houser
  */
 class UserDetailsWidgetTest extends WidgetBase {
@@ -747,6 +762,112 @@ class UserDetailsWidgetTest extends WidgetBase {
       Assertions.assertNull(result.getErrorMessage());
       Assertions.assertNotNull(result.getSuccessMessage());
       Assertions.assertTrue(result.getSuccessMessage().contains("active@example.com"));
+    }
+  }
+
+  @Test
+  void accountLinkStateClassifiesOutstandingExpiredAndNone() {
+    User none = activeUser();
+    none.setAccountToken(null);
+    Assertions.assertEquals(UserDetailsWidget.LINK_NONE, UserDetailsWidget.accountLinkState(none));
+    Assertions.assertEquals(UserDetailsWidget.LINK_NONE, UserDetailsWidget.accountLinkState(null));
+
+    User outstanding = activeUser();
+    outstanding.setAccountToken("a-token");
+    outstanding.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+    Assertions.assertEquals(UserDetailsWidget.LINK_OUTSTANDING, UserDetailsWidget.accountLinkState(outstanding));
+
+    User expired = activeUser();
+    expired.setAccountToken("a-token");
+    expired.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() - 1_000L));
+    Assertions.assertEquals(UserDetailsWidget.LINK_EXPIRED, UserDetailsWidget.accountLinkState(expired));
+
+    // A null expiry counts as outstanding, matching findByAccountToken's own "IS NULL" arm -- such
+    // a token still opens the password form, so the page must not imply no link exists.
+    User noExpiry = activeUser();
+    noExpiry.setAccountToken("a-token");
+    noExpiry.setAccountTokenExpires(null);
+    Assertions.assertEquals(UserDetailsWidget.LINK_OUTSTANDING, UserDetailsWidget.accountLinkState(noExpiry));
+  }
+
+  @Test
+  void resetPasswordWarnsWhenItReplacedAnOutstandingLink() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = activeUser();
+    target.setAccountToken("still-valid");
+    target.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + 3_600_000L));
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.createAccountToken(target), times(1));
+      Assertions.assertTrue(result.getSuccessMessage().contains("stopped working"),
+          "an admin who just invalidated a live link must be told so: " + result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void resetPasswordStaysQuietWhenNoLinkWasOutstanding() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = activeUser();
+    target.setAccountToken(null);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.createAccountToken(target)).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      Assertions.assertFalse(result.getSuccessMessage().contains("stopped working"),
+          "nothing was replaced, so the warning must not fire: " + result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void stepUpReRenderStillSetsAccountLinkState() throws Exception {
+    // No step-up granted and no credential supplied: post() re-renders the page itself rather
+    // than delegating to execute(), which is where the attribute is normally set.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    User target = activeUser();
+    target.setAccountToken(null);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      new UserDetailsWidget().post(widgetContext);
+
+      // No token was minted -- the step-up prompt is shown instead.
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      Assertions.assertEquals(UserDetailsWidget.LINK_NONE,
+          widgetContext.getRequest().getAttribute("accountLinkState"),
+          "the re-render must state the link state explicitly; an unset attribute becomes \"\" "
+              + "under jsp:useBean and would render as an outstanding link");
     }
   }
 }
