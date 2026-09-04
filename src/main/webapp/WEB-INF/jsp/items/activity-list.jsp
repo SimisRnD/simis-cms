@@ -92,8 +92,9 @@
        once an Image() probe confirms it actually loads, then swaps any already-rendered avatars
        and remembers the winning URL for icons rendered later (notifications, polled activity). --%>
   var platformActivityIconUrl = '${ctx}/images/apple-touch-icon.png';
+  <c:if test="${!empty brandedAssetContext}">
   (function(){
-    var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';
+    var u='${js:escape(brandedAssetContext)}/images/apple-touch-icon.png';
     var i=new Image();
     i.onload=function(){
       platformActivityIconUrl=u;
@@ -101,6 +102,7 @@
     };
     i.src=u;
   })();
+  </c:if>
 </script>
 <script nonce="${cspNonce}">
   // Enable notifications
