@@ -285,6 +285,17 @@
         <include name="fonts/**"/>
         <include name="images/**"/>
         <include name="javascript/**"/>
+        <!-- Foundation vendor originals that no page links. Only
+             foundation.tokens.min.css and motion-ui.min.css are served from this
+             directory. foundation.min.css stays in the
+             repository because tools/route-foundation-tokens.py reads it to generate
+             the tokens file, but it reads it from src/, so it does not need to ship.
+             NOTE: foundation.min.css.map is deliberately NOT excluded. The served
+             foundation.tokens.min.css still carries a sourceMappingURL pointing at
+             it, so dropping it here would 404 in devtools. -->
+        <exclude name="css/foundation-6.8.1/foundation.css"/>
+        <exclude name="css/foundation-6.8.1/foundation.css.map"/>
+        <exclude name="css/foundation-6.8.1/foundation.min.css"/>
       </fileset>
     </copy>
     <!-- META-INF context config (e.g. the SameSite CookieProcessor) -->
@@ -407,6 +418,17 @@
         <include name="fonts/**"/>
         <include name="images/**"/>
         <include name="javascript/**"/>
+        <!-- Foundation vendor originals that no page links. Only
+             foundation.tokens.min.css and motion-ui.min.css are served from this
+             directory. foundation.min.css stays in the
+             repository because tools/route-foundation-tokens.py reads it to generate
+             the tokens file, but it reads it from src/, so it does not need to ship.
+             NOTE: foundation.min.css.map is deliberately NOT excluded. The served
+             foundation.tokens.min.css still carries a sourceMappingURL pointing at
+             it, so dropping it here would 404 in devtools. -->
+        <exclude name="css/foundation-6.8.1/foundation.css"/>
+        <exclude name="css/foundation-6.8.1/foundation.css.map"/>
+        <exclude name="css/foundation-6.8.1/foundation.min.css"/>
       </fileset>
     </copy>
     <!-- Prepare the JSPs-->

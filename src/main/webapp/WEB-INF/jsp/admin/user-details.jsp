@@ -270,7 +270,8 @@
         </div>
         <div class="small-8 align-self-middle cell">
           <c:forEach items="${user.roleList}" var="userRole" varStatus="status">
-            <span class="label"><c:out value="${userRole.title}" /></span>
+            <%-- Same privilege-ladder colours as /admin/users, so a role reads the same on both --%>
+            <span class="label ${user:roleTierClass(userRole.level)}"><c:out value="${userRole.title}" /></span>
           </c:forEach>
         </div>
       </div>
@@ -476,7 +477,8 @@
 <ul>
   <li><strong>Reset Password</strong> emails the account a password-reset link -- it doesn't set or
     reveal a password directly. Sending it requires you (the admin) to re-enter your own password or
-    authenticator code first.</li>
+    authenticator code first, and you can't reset the password for an account with a higher role
+    level than yours -- re-authenticating proves who you are, not which accounts you may act on.</li>
   <li><strong>Suspend Account</strong> immediately blocks sign-in. The modal marks a reason as
     required, but that's enforced by the form, not the server. You can't suspend your own account, or
     one with a higher role level than yours -- an explicit error message says so if you try, e.g. from
@@ -489,15 +491,21 @@
   <li><strong>Restore Account / Request Unsuspend&hellip;</strong> -- which one you see depends on the
     target's role. A non-elevated account restores in one click. A community-manager-or-above account
     instead requires a second, <em>different</em> admin's approval -- filing the request notifies
-    other eligible admins, and you can't also approve your own request.</li>
+    other eligible admins, and you can't also approve your own request. Neither path reaches an
+    account with a higher role level than yours: that is refused outright, not queued for a second
+    admin to review.</li>
   <li><strong>Approve Unsuspend Request / Deny Unsuspend Request</strong> only appear when a request is
     pending <em>and</em> it was filed by someone else. Approving requires your own step-up
     re-authentication, restores the account, and immediately invalidates its password -- the account
     holder gets an email to set a new one before they can sign in again. Denying just requires a
-    reason and leaves the account suspended.</li>
+    reason and leaves the account suspended. You can't approve unsuspending an account with a role
+    above your own level -- denying one isn't restricted that way, because a denial leaves the
+    account suspended either way and so can't lift a control on an account that outranks you.</li>
   <li><strong>Unlock Account</strong> only appears once the account is actually locked (too many failed
     sign-in attempts). It clears the failed-attempt counter and lockout timer only -- it does not
-    touch the password, MFA, or suspension status.</li>
+    touch the password, MFA, or suspension status. You can't unlock an account with a higher role
+    level than yours: the lockout is a security control on that account, so clearing it is a change
+    to the account, not a favour to its owner.</li>
   <li><strong>Delete Account</strong> is permanent, with no confirmation beyond the browser's own "Are
     you sure?" prompt. It fails safely, with an explicit error rather than a partial delete, if the
     account is still referenced elsewhere in the database (it authored content, owns uploaded files,

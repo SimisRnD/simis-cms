@@ -33,6 +33,21 @@ the pixels addressable.
 A hex inside a ``url()`` value is never replaced -- an inline SVG data URI would
 be corrupted by it. 6.8.1 happens to contain none, but a future upgrade might.
 
+The source is consumed whole
+----------------------------
+``foundation.min.css`` is read verbatim and everything in it reaches the output,
+so it cannot carry a note about itself. A comment added there is copied into the
+served stylesheet, where it is at best noise and at worst a claim about the wrong
+file; and because the rewrite scans the whole text rather than just declarations,
+any hex inside that comment is routed to a ``var()`` and counted as a routed
+declaration. Both were verified, not assumed.
+
+That matters because the unserved vendor originals invite exactly such a note:
+their colours are stock Foundation, they are greppable, and reading a contrast
+ratio off them has already produced one false accessibility defect. The warning
+lives where it does no damage instead -- a banner in ``foundation.css`` (which
+nothing reads) and ``README.md`` in the vendored directory. Put it there, not here.
+
 Modes
 -----
 Default regenerates the output file. ``--check`` verifies the committed output
@@ -47,7 +62,7 @@ import sys
 from pathlib import Path
 
 VENDOR_DIR = "src/main/webapp/css/foundation-6.8.1"
-SOURCE = f"{VENDOR_DIR}/foundation.min.css"
+SOURCE = f"{VENDOR_DIR}/foundation.min.css"  # consumed verbatim -- see the docstring before editing it
 GENERATED = f"{VENDOR_DIR}/foundation.tokens.min.css"
 
 # Foundation's base palette -> token name. Foundation uses one Sass variable per
