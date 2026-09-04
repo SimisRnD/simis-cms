@@ -91,6 +91,123 @@ class SaveUserCommandTest {
     }
   }
 
+  private static List<Role> rolesWithLevel(int level, String... codes) {
+    List<Role> list = new ArrayList<>();
+    for (String code : codes) {
+      Role role = new Role(code, code); // Role(title, code)
+      role.setLevel(level);
+      list.add(role);
+    }
+    return list;
+  }
+
+  /** An existing stored account at a given role level, whose username is in sync with its email. */
+  private static User rankedUser(long id, int level, String roleCode, String email) {
+    User user = new User();
+    user.setId(id);
+    user.setRoleList(rolesWithLevel(level, roleCode));
+    user.setEmail(email);
+    user.setUsername(email);
+    return user;
+  }
+
+  /** A well-formed edit of an existing ranked account, submitting the given identity fields. */
+  private static User identityEditBean(long targetId, long editorId, int targetLevel, String targetRoleCode,
+      String email, String username) {
+    User bean = new User();
+    bean.setId(targetId);
+    bean.setModifiedBy(editorId);
+    bean.setFirstName("Test");
+    bean.setLastName("User");
+    bean.setEmail(email);
+    bean.setUsername(username);
+    bean.setRoleList(rolesWithLevel(targetLevel, targetRoleCode));
+    bean.setGroupList(new ArrayList<>());
+    return bean;
+  }
+
+  /** As runSaveUser, but through the provider-managed entry point (isSystemUser = true). */
+  private static User runSaveUserAsSystem(User existing, User bean) throws Exception {
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+         MockedStatic<GenerateUserUniqueIdCommand> genId = mockStatic(GenerateUserUniqueIdCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(bean.getId())).thenReturn(existing);
+      genId.when(() -> GenerateUserUniqueIdCommand.generateUniqueId(any(), any())).thenReturn("uniqueid");
+      userRepo.when(() -> UserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+      return SaveUserCommand.saveUser(bean, true);
+    }
+  }
+
+  @Test
+  void lowerRankedEditorCannotChangeTheEmailOfAnAccountThatOutranksThem() {
+    // Repointing an admin's email is a complete account takeover on its own: /forgot-password is a
+    // public page that mails the reset link to whatever address the account carries, so no
+    // admin-side reset guard is involved in the chain at all.
+    User editor = rankedUser(EDITOR_ID, 90, "community-manager", "cm@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "attacker@example.com", "admin@example.com");
+
+    DataException e = Assertions.assertThrows(DataException.class, () -> runSaveUser(editor, existing, bean));
+    Assertions.assertEquals(
+        "You cannot change the email address of an account with a higher role level than your own",
+        e.getMessage());
+  }
+
+  @Test
+  void lowerRankedEditorCannotChangeTheUsernameOfAccountThatOutranksThem() {
+    // Separate from the email case: username is what AuthenticateLoginCommand resolves a sign-in
+    // against, so changing it alone locks the admin out of the identifier they know.
+    User editor = rankedUser(EDITOR_ID, 90, "community-manager", "cm@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "admin@example.com", "attacker");
+
+    DataException e = Assertions.assertThrows(DataException.class, () -> runSaveUser(editor, existing, bean));
+    Assertions.assertEquals(
+        "You cannot change the username of an account with a higher role level than your own",
+        e.getMessage());
+  }
+
+  @Test
+  void lowerRankedEditorCanStillEditOtherFieldsOfAnAccountThatOutranksThem() throws Exception {
+    // The guard is scoped to a *change* of email/username, not to the record. A community-manager
+    // correcting a typo in an admin's name re-submits the stored identity unchanged and must still
+    // succeed -- a blanket refusal would have broken this.
+    User editor = rankedUser(EDITOR_ID, 90, "community-manager", "cm@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "admin@example.com", "admin@example.com");
+    bean.setFirstName("Corrected");
+
+    User saved = runSaveUser(editor, existing, bean);
+
+    Assertions.assertEquals("Corrected", saved.getFirstName());
+    Assertions.assertEquals("admin@example.com", saved.getEmail());
+  }
+
+  @Test
+  void editorAtTheSameLevelCanChangeTheIdentityFields() throws Exception {
+    // "Outranks" is strictly greater, matching targetOutranksActor(): one admin may still edit
+    // another admin's email, which is how a legitimate address change gets made at all.
+    User editor = rankedUser(EDITOR_ID, 100, "admin", "admin1@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin2@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "newaddress@example.com", "newaddress@example.com");
+
+    User saved = runSaveUser(editor, existing, bean);
+
+    Assertions.assertEquals("newaddress@example.com", saved.getEmail());
+  }
+
+  @Test
+  void providerManagedSaveIsNotSubjectToTheIdentityGuard() throws Exception {
+    // CSV import and OAuth provisioning save with isSystemUser = true and no acting user, and
+    // legitimately rewrite an address from the provider. The guard must not break those.
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "moved@example.com", "moved@example.com");
+
+    User saved = runSaveUserAsSystem(existing, bean);
+
+    Assertions.assertEquals("moved@example.com", saved.getEmail());
+  }
+
   @Test
   void nonAdminCannotGrantAdminRole() throws Exception {
     User editor = userWithRoles(EDITOR_ID, "users");
