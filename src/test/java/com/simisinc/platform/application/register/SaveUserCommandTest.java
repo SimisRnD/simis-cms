@@ -184,6 +184,38 @@ class SaveUserCommandTest {
   }
 
   @Test
+  void aCaseOnlyDifferenceInTheEmailIsNotAnIdentityChange() throws Exception {
+    // The comparison is deliberately case-insensitive, because the platform already resolves
+    // identity that way: UserRepository.findByUsername matches on LOWER(username) and
+    // findByEmailAddress on LOWER(email). Re-casing an address therefore moves neither who can sign
+    // in nor where a reset link is delivered, so refusing it would raise a security error against an
+    // edit that changes nothing. This pins that -- without it, "hardening" the comparison to be
+    // case-sensitive would look like a safe tightening and break a legitimate normalisation.
+    User editor = rankedUser(EDITOR_ID, 90, "community-manager", "cm@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "Admin@Example.com", "Admin@Example.com");
+
+    User saved = runSaveUser(editor, existing, bean);
+
+    Assertions.assertEquals("Admin@Example.com", saved.getEmail());
+  }
+
+  @Test
+  void anEmailThatDiffersBeyondCaseIsStillRefused() throws Exception {
+    // The guard against the guard above: loosening a comparison is exactly the kind of change that
+    // quietly goes too far. A different address in mixed case is a real identity change and must
+    // stay refused -- only the casing of the same address is exempt.
+    User editor = rankedUser(EDITOR_ID, 90, "community-manager", "cm@example.com");
+    User existing = rankedUser(TARGET_ID, 100, "admin", "admin@example.com");
+    User bean = identityEditBean(TARGET_ID, EDITOR_ID, 100, "admin", "Admin@Example.NET", "Admin@Example.NET");
+
+    DataException e = Assertions.assertThrows(DataException.class, () -> runSaveUser(editor, existing, bean));
+    Assertions.assertEquals(
+        "You cannot change the email address of an account with a higher role level than your own",
+        e.getMessage());
+  }
+
+  @Test
   void editorAtTheSameLevelCanChangeTheIdentityFields() throws Exception {
     // "Outranks" is strictly greater, matching targetOutranksActor(): one admin may still edit
     // another admin's email, which is how a legitimate address change gets made at all.
