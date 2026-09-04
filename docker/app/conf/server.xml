@@ -97,27 +97,6 @@
                                  implied default. Revisit only if a real upload path
                                  legitimately needs more than 50 parts (raising is
                                  safer than the alternative of an unbounded default).
-           compression="on" — HTML was served uncompressed: 111 KB on the home page against
-                                 18 KB gzipped, an 83% saving on the first resource of every page
-                                 load. Static assets looked fine only because Front Door
-                                 compresses what it can cache; pages are Cache-Control: no-store
-                                 (CacheStrategy), so AFD skips caching and therefore compressing
-                                 them, and nothing at the origin picked up the slack. Compressing
-                                 here covers the response whether or not the edge can cache it.
-                                 compressionMinSize=1024 leaves tiny responses alone, where the
-                                 gzip header costs more than it saves. Tomcat does not
-                                 re-compress a response that already sets Content-Encoding, so
-                                 StylesheetServlet's and SitemapServlet's own gzip paths are
-                                 unaffected.
-                                 Security: HTTP compression is a precondition for BREACH, which
-                                 also needs a secret in the response and attacker-controlled text
-                                 reflected into that same response. UserSession.formToken is a
-                                 per-session UUID that does appear in pages, so the precondition
-                                 is not vacuous. Accepted because disabling compression costs 83%
-                                 of every page and is no longer the recommended mitigation; the
-                                 durable fix is per-response token masking, which belongs in the
-                                 application, not this connector. Recorded so the trade-off is
-                                 explicit rather than implied.
            discardFacades="true" — allocate a fresh request/response facade per
                                  request instead of recycling, closing a class of
                                  cross-request information-disclosure bugs. This is the
@@ -144,9 +123,6 @@
                maxPartHeaderSize="512"
                discardFacades="true"
                allowTrace="false"
-               compression="on"
-               compressionMinSize="1024"
-               compressibleMimeType="text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml,image/svg+xml"
                server="SimIS"
                xpoweredBy="false"
                />
