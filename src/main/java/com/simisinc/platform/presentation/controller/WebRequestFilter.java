@@ -37,6 +37,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.jsp.jstl.core.Config;
 
@@ -128,6 +129,15 @@ public class WebRequestFilter implements Filter {
     String contextPath = request.getServletContext().getContextPath();
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
+
+    // Assets whose URL already identifies their content can be cached indefinitely, so a repeat
+    // visit revalidates nothing instead of re-fetching. Wrapping the response here, rather than
+    // setting the header at each chain.doFilter site, means every path through this filter gets
+    // the same treatment; the wrapper withdraws the header if the response turns out not to be a
+    // successful read.
+    if (isImmutableAsset(resource) && servletResponse instanceof HttpServletResponse) {
+      servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
+    }
     String ipAddress = request.getRemoteAddr();
     String referer = httpServletRequest.getHeader("Referer");
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
@@ -692,6 +702,80 @@ public class WebRequestFilter implements Filter {
    * @param resource the request path, relative to the context path
    * @return true if the path is one of the always-allowed browser resource paths
    */
+  /** One year, plus immutable so a reload does not even revalidate. */
+  static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
+  /**
+   * True for assets whose URL already identifies their content, so a changed asset is necessarily
+   * a changed URL and a year-long cache cannot serve anything stale:
+   *
+   * <ul>
+   * <li>{@code /assets/img/<upload-timestamp>-<id>/...} -- re-uploading yields a new directory.</li>
+   * <li>{@code /fonts/...} -- the version is in the filename (inter-v11-latin-regular.woff2).</li>
+   * <li>{@code /css/<vendor>/webfonts/...} -- the version is in the vendor directory name
+   * (fontawesome-free-6.1.1-web).</li>
+   * </ul>
+   *
+   * <p>Stylesheets and scripts are deliberately excluded. They are cache-busted by a {@code ?v=}
+   * stamp read from ApplicationInfo.VERSION, which is edited by hand and is currently stale --
+   * platform.css has changed since the value it carries. Caching those for a year would mean a
+   * deployed CSS fix never reaching anyone who had already visited the site. They keep the existing
+   * revalidation behaviour, which stays correct whether or not that stamp is remembered. The site
+   * stylesheet is separate again: StylesheetServlet already serves it with Last-Modified and an
+   * ETag, so an admin edit is picked up on the next conditional request.
+   *
+   * <p>Each prefix carries a trailing slash so it is anchored at a path boundary, for the same
+   * reason isBrowserResourcePath() documents: a bare startsWith would also match an ordinary page
+   * slug such as /fonts-of-the-world.
+   */
+  static boolean isImmutableAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/assets/img/")
+        || resource.startsWith("/fonts/")
+        || (resource.startsWith("/css/") && resource.contains("/webfonts/"));
+  }
+
+  /**
+   * Sets the immutable cache header up front, then withdraws it if the response is not a successful
+   * read. Without the withdrawal a transient 404 -- a variant not yet generated, a file missing
+   * after a bad deploy -- would be cached for a year by every browser that saw it, with no way to
+   * recall it.
+   */
+  private static final class ImmutableAssetResponse extends HttpServletResponseWrapper {
+
+    private ImmutableAssetResponse(HttpServletResponse response) {
+      super(response);
+      response.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
+    }
+
+    @Override
+    public void sendError(int sc) throws IOException {
+      withdrawCaching(sc);
+      super.sendError(sc);
+    }
+
+    @Override
+    public void sendError(int sc, String msg) throws IOException {
+      withdrawCaching(sc);
+      super.sendError(sc, msg);
+    }
+
+    @Override
+    public void setStatus(int sc) {
+      withdrawCaching(sc);
+      super.setStatus(sc);
+    }
+
+    /** 304 keeps the header: a revalidated hit is still the same immutable asset. */
+    private void withdrawCaching(int sc) {
+      if (sc != HttpServletResponse.SC_OK && sc != HttpServletResponse.SC_NOT_MODIFIED && !isCommitted()) {
+        setHeader("Cache-Control", "no-store");
+      }
+    }
+  }
+
   private static boolean isBrowserResourcePath(String resource) {
     // Path-boundary anchored, not a bare startsWith: web.xml maps /css/*, /fonts/*, /html/*,
     // /images/*, /javascript/* as directories, so an unanchored prefix match here would also
