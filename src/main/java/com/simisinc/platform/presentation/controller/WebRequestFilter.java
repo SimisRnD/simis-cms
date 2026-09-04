@@ -135,8 +135,16 @@ public class WebRequestFilter implements Filter {
     // setting the header at each chain.doFilter site, means every path through this filter gets
     // the same treatment; the wrapper withdraws the header if the response turns out not to be a
     // successful read.
-    if (isImmutableAsset(resource) && servletResponse instanceof HttpServletResponse) {
-      servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
+    if (servletResponse instanceof HttpServletResponse) {
+      if (isImmutableAsset(resource)) {
+        servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
+      } else if (isRevalidatedAsset(resource)) {
+        // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above and keep the
+        // year-long cache. Everything else under /css, /javascript and /images revalidates, because
+        // its ?v= stamp is hand-edited and cannot be trusted to change when the file does.
+        servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse,
+            REVALIDATE_CACHE_CONTROL);
+      }
     }
     String ipAddress = request.getRemoteAddr();
     String referer = httpServletRequest.getHeader("Referer");
@@ -751,6 +759,38 @@ public class WebRequestFilter implements Filter {
         || (resource.startsWith("/css/") && resource.contains("/webfonts/"));
   }
 
+  /** Cache, but check with the server before every use. */
+  static final String REVALIDATE_CACHE_CONTROL = "no-cache";
+
+  /**
+   * True for the bundled static assets that must NOT be cached blind: stylesheets, scripts and the
+   * bundled images.
+   *
+   * <p>These carry a {@code ?v=} stamp from ApplicationInfo.VERSION, which is edited by hand and is
+   * currently stale -- platform.css has changed many times since the value it carries -- so the
+   * stamp cannot be relied on to bust anything. Sending no header at all is not the neutral choice
+   * it looks like: with neither an expiry nor a validator, browsers fall back to HEURISTIC
+   * freshness, typically a fraction of the file's age, and a visitor can be served a stale
+   * stylesheet for an unpredictable stretch after a deploy. {@code no-cache} keeps the copy but
+   * requires a conditional request before reuse, so a deploy always lands and the usual answer is a
+   * cheap 304 rather than a re-download.
+   *
+   * <p>Checked only after {@link #isImmutableAsset}, which claims the webfonts living under
+   * {@code /css/<vendor>/webfonts/}; those are content-addressed by their vendor directory and keep
+   * the year-long cache.
+   *
+   * <p>Prefixes are anchored at a path boundary for the reason isBrowserResourcePath() documents: a
+   * bare startsWith would also match an ordinary page slug such as /images-of-our-team.
+   */
+  static boolean isRevalidatedAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/css/")
+        || resource.startsWith("/javascript/")
+        || resource.startsWith("/images/");
+  }
+
   /**
    * Sets the immutable cache header up front, then withdraws it if the response is not a successful
    * read. Without the withdrawal a transient 404 -- a variant not yet generated, a file missing
@@ -760,8 +800,12 @@ public class WebRequestFilter implements Filter {
   static final class ImmutableAssetResponse extends HttpServletResponseWrapper {
 
     ImmutableAssetResponse(HttpServletResponse response) {
+      this(response, IMMUTABLE_CACHE_CONTROL);
+    }
+
+    ImmutableAssetResponse(HttpServletResponse response, String cacheControl) {
       super(response);
-      response.setHeader("Cache-Control", IMMUTABLE_CACHE_CONTROL);
+      response.setHeader("Cache-Control", cacheControl);
     }
 
     @Override
