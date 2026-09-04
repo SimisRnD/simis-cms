@@ -35,7 +35,9 @@
             <a href="${ctx}/"><img id="logo-small-title-bar" src="${ctx}/images/logo-white-color.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
             <%-- Defaults to the bundled logo; upgrades to the admin-configured one only once an
                  Image() probe confirms it actually loads, so a fresh install never 404s here. --%>
-            <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-small-title-bar').src=u;};i.src=u;})();</script>
+            <c:if test="${!empty brandedAssetContext}">
+              <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-small-title-bar').src=u;};i.src=u;})();</script>
+            </c:if>
           </c:otherwise>
         </c:choose>
       </div>
@@ -185,7 +187,9 @@
                       </c:when>
                       <c:otherwise>
                         <a href="${ctx}/"><img id="logo-header-pro" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
-                        <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-pro').src=u;};i.src=u;})();</script>
+                        <c:if test="${!empty brandedAssetContext}">
+                          <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-pro').src=u;};i.src=u;})();</script>
+                        </c:if>
                       </c:otherwise>
                     </c:choose>
                   </div>
@@ -380,7 +384,9 @@
             </c:when>
             <c:otherwise>
               <a href="${ctx}/"><img id="logo-header-center" src="${ctx}/images/logo-header.png" loading="eager" /></a>
-              <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-center').src=u;};i.src=u;})();</script>
+              <c:if test="${!empty brandedAssetContext}">
+                <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-center').src=u;};i.src=u;})();</script>
+              </c:if>
             </c:otherwise>
           </c:choose>
         </div>
@@ -469,7 +475,9 @@
                   </c:when>
                   <c:otherwise>
                     <li class="logo"><a href="${ctx}/"><img id="logo-white-default" src="${ctx}/images/logo-white.png" loading="eager" /></a></li>
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-default').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-white.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-default').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -483,7 +491,9 @@
                   </c:when>
                   <c:otherwise>
                     <li class="logo"><a href="${ctx}/"><img id="logo-white-color-default" src="${ctx}/images/logo-white-color.png" loading="eager" /></a></li>
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-color-default').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-color-default').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -500,7 +510,9 @@
                   </c:when>
                   <c:otherwise>
                     <li class="logo"><a href="${ctx}/"><img id="logo-header-default" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a></li>
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-default').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-default').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:otherwise>

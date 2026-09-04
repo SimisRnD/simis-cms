@@ -935,6 +935,11 @@ public class PageServlet extends HttpServlet {
       // whole page/header/footer walk is done. WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES
       // must keep exempting these names from that walk's per-widget request attribute reset.
       request.setAttribute("systemPropertyMap", systemPropertyMap);
+      // Where branded assets (favicon, apple-touch-icon, the logo variants) may be overridden.
+      // Null when there is nowhere real to look, which is what stops the layouts probing a path
+      // that cannot answer -- see resolveBrandedAssetContext.
+      request.setAttribute("brandedAssetContext",
+          resolveBrandedAssetContext(systemPropertyMap.get("system.www.context")));
       request.setAttribute("sitePropertyMap", sitePropertyMap);
       request.setAttribute("themePropertyMap", themePropertyMap);
       request.setAttribute("socialPropertyMap", socialPropertyMap);
@@ -1421,5 +1426,37 @@ public class PageServlet extends HttpServlet {
     } catch (NumberFormatException e) {
       return defaultValue;
     }
+  }
+
+  /** The seeded value of system.www.context, which nothing in this codebase serves. */
+  static final String UNSERVED_ASSET_CONTEXT = "/web-content";
+
+  /**
+   * Where to look for operator-supplied branded assets, or null when there is nowhere to look.
+   *
+   * <p>The layouts prefer an operator's own favicon, apple-touch-icon and logo variants over the
+   * bundled ones, discovering them by probing with an {@code Image()} before swapping. That is
+   * worth a request only when the probe can succeed.
+   *
+   * <p>{@link #UNSERVED_ASSET_CONTEXT} is the seeded default, and no servlet mapping, static
+   * resource or proxy in this codebase serves it -- so probing it 404s on every page load, for
+   * every install that never configured a real asset host. Eleven probes fire across the header,
+   * footer and checkout layouts, so this is several failed requests per page, not one. Treating
+   * the shipped default as "not configured" is what it has always meant in practice.
+   *
+   * <p>Consequence worth stating: a deployment that added its own proxy serving exactly
+   * {@code /web-content} stops being probed. Such a deployment should point this property at the
+   * host actually serving those assets, which is what the property is for; leaving it on a value
+   * the platform seeds and never serves cannot be distinguished from never having set it.
+   */
+  static String resolveBrandedAssetContext(String configured) {
+    if (configured == null) {
+      return null;
+    }
+    String trimmed = configured.trim();
+    if (trimmed.isEmpty() || UNSERVED_ASSET_CONTEXT.equals(trimmed)) {
+      return null;
+    }
+    return trimmed;
   }
 }
