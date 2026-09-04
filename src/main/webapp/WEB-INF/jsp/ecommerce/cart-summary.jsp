@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -29,7 +28,7 @@
 <jsp:useBean id="priceChangeList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="noLongerAvailableList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="pricingRule" class="com.simisinc.platform.domain.model.ecommerce.PricingRule" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>" />
+<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <%-- Required by controller --%>
 <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
 <input type="hidden" name="token" value="${userSession.formToken}"/>

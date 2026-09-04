@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -25,8 +24,8 @@
 <jsp:useBean id="calendar" class="com.simisinc.platform.domain.model.cms.Calendar" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
 <%@include file="../page_messages.jspf" %>
-<script src="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.js?v=<%= VERSION %>"></script>
-<link rel="stylesheet" id="add-to-calendar-css" href="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.css?v=<%= VERSION %>" />
+<script src="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
+<link rel="stylesheet" id="add-to-calendar-css" href="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <div class="platform-calendar-details-container">
 <c:if test="${!empty title}">
   <div class="platform-calendar-title text-center">
