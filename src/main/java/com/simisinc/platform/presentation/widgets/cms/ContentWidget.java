@@ -78,26 +78,6 @@ public class ContentWidget extends GenericWidget {
     // is what the visitor and the crawler are actually given.
     context.setVideos(ContentVideoCommand.findVideos(html));
 
-    // Handle scripts and iframes
-    if (html.contains("<script")) {
-      context.getResponse().setHeader("X-XSS-Protection", "0");
-    } else if (html.contains("<iframe")) {
-      // Allow iframes (can limit later to certain applications)
-      context.getResponse().setHeader("X-XSS-Protection", "0");
-      //        context.getResponse().setHeader("Content-Security-Policy", "script-src 'self' www.google-analytics.com ajax.googleapis.com;");
-      /*
-        if (html.contains("youtube.com")) {
-          context.getResponse().setHeader("Content-Security-Policy", "child-src 'self' *.youtube.com ;");
-        }
-        if (html.contains("vimeo.com")) {
-          context.getResponse().setHeader("Content-Security-Policy", "default-src *.vimeo.com ;");
-          context.getResponse().setHeader("Content-Security-Policy", "script-src *.vimeo.com *.vimeocdn.com *.newrelic.com *.nr-data.net ;");
-          context.getResponse().setHeader("Content-Security-Policy", "style-src *.vimeocdn.com ;");
-          context.getResponse().setHeader("Content-Security-Policy", "child-src 'self' *.vimeo.com *.vimeocdn.com ;");
-        }
-      */
-    }
-
     context.setJsp(JSP);
     return context;
   }
