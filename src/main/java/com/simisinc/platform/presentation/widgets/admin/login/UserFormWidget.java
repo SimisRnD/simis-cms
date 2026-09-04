@@ -152,14 +152,48 @@ public class UserFormWidget extends GenericWidget {
       userBean.setGroupList(userGroupList);
     }
 
+    // An existing id means an edit; a new record is a create
+    boolean isUpdate = userBean.getId() > -1;
+
+    // An editor may not repoint the sign-in identity of an account that outranks them. The role list
+    // above is filtered rather than refused because the form submits every checkbox on every save, so
+    // an unrelated edit would otherwise strip a role the editor never meant to touch -- preserving is
+    // protection against an accident. Email is different: it is a free-text field, so a changed value
+    // was deliberately typed, and silently restoring it would report "User was saved" while discarding
+    // what the editor entered. This refuses instead, and only when the value would actually change, so
+    // correcting a typo in an admin's name (or timezone, or department) still works.
+    //
+    // Why this is an escalation and not a cosmetic edit: User.email is where the password reset link
+    // is delivered (site-workflows.yml resolves to-user from the account id at send time), and
+    // SaveUserCommand re-syncs username -- the sign-in identifier -- from the email whenever the two
+    // previously matched. /admin/modify-user is reachable by community-manager and by a users:manage
+    // capability-only grantee with no legacy role at all.
+    //
+    // Checked BEFORE the step-up prompt below, unlike UserDetailsWidget's resetPassword/resetMfa which
+    // step up first: those prompt from a dispatch table that cannot know the target yet, whereas the
+    // target is already in hand here, and demanding a credential for a save that is going to be
+    // refused either way is a prompt with nothing behind it. Nothing is disclosed by ordering it this
+    // way -- the acting user can already read the target's roles on /admin/users.
+    if (isUpdate) {
+      User existing = LoadUserCommand.loadUser(userBean.getId());
+      if (existing != null && UserDetailsWidget.targetOutranksActor(context, existing)
+          && identityFieldsChanged(existing, userBean)) {
+        LOG.warn("Blocked sign-in identity change: user " + context.getUserId()
+            + " attempted to change the email/username of user " + existing.getId());
+        context.setErrorMessage(
+            "You cannot change the sign-in email or username of an account with a higher role level than your own");
+        context.setRequestObject(userBean);
+        context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
+        return context;
+      }
+    }
+
     // Require a recent step-up before saving role or group changes. This runs after the bean is
     // populated so the prompt can redisplay what was submitted -- see redisplayForStepUp().
     if (!isStepUpSatisfied(context, userBean)) {
       return context;
     }
 
-    // An existing id means an edit; a new record is a create
-    boolean isUpdate = userBean.getId() > -1;
     String eventType = isUpdate ? "user.update" : "user.create";
 
     // Save the user
@@ -295,6 +329,36 @@ public class UserFormWidget extends GenericWidget {
       }
     }
     return max;
+  }
+
+  /**
+   * Whether this save would change the target's sign-in identity -- the email the password reset link
+   * is delivered to, or the username it is signed in with.
+   *
+   * <p>Deliberately does not reproduce {@code SaveUserCommand}'s email/username sync rules. The only
+   * two ways either value can move are a changed email (which the sync then carries into the username)
+   * or an explicitly submitted, different username, and both are caught here directly -- duplicating
+   * the sync logic would just give it a second copy to drift from.
+   *
+   * <p>Comparison is trimmed but case-sensitive, so a case-only email change is treated as a change
+   * and refused. That fails closed rather than reasoning about which providers treat a local part
+   * case-insensitively.
+   */
+  private static boolean identityFieldsChanged(User existing, User submitted) {
+    if (!sameValue(existing.getEmail(), submitted.getEmail())) {
+      return true;
+    }
+    // user-form.jsp posts the username as a hidden field carrying the current value, and
+    // SaveUserCommand defaults a blank one from the email, so only an explicit different value is a
+    // change the editor asked for.
+    return StringUtils.isNotBlank(submitted.getUsername())
+        && !sameValue(existing.getUsername(), submitted.getUsername());
+  }
+
+  /** Null-safe, trimmed, case-sensitive equality -- a blank stored value and a blank submitted one
+   *  are the same value, and blanking a populated field counts as a change. */
+  private static boolean sameValue(String stored, String submitted) {
+    return StringUtils.trimToEmpty(stored).equals(StringUtils.trimToEmpty(submitted));
   }
 
   /**

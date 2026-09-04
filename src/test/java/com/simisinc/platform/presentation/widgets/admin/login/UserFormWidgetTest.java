@@ -41,6 +41,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * The user-edit form is reachable by both admin and community-manager (admin-layout.xml). Without a
@@ -75,6 +76,19 @@ class UserFormWidgetTest extends WidgetBase {
     User user = new User();
     user.setId(5L);
     user.setEmail("saved@example.com");
+    return user;
+  }
+
+  /** An existing admin account (level 100) with a settled sign-in identity -- the target of the
+   *  identity-field escalation tests below. */
+  private static User adminTarget() {
+    User user = new User();
+    user.setId(5L);
+    user.setEmail("admin@example.com");
+    user.setUsername("admin@example.com");
+    List<Role> held = new ArrayList<>();
+    held.add(role(4, 100, "admin", "System Administrator"));
+    user.setRoleList(held);
     return user;
   }
 
@@ -412,6 +426,146 @@ class UserFormWidgetTest extends WidgetBase {
       List<String> codes = captor.getValue().getRoleList().stream().map(Role::getCode).toList();
       Assertions.assertTrue(codes.contains("admin"), "a higher role the target already holds must be preserved, not stripped");
       Assertions.assertTrue(codes.contains("content-editor"));
+    }
+  }
+
+  @Test
+  void communityManagerCannotChangeTheEmailOfAnAccountThatOutranksThem() throws Exception {
+    // The takeover this closes: User.email is where the password reset link is delivered, so
+    // repointing an admin's address and then triggering a reset hands the link to the new address on
+    // an account that still holds admin.
+    //
+    // Step-up is deliberately NOT granted here. The refusal must land before the re-authentication
+    // prompt -- there is nothing behind a credential prompt for a save that is refused either way --
+    // so this also pins that ordering.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "attacker@example.net");
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+
+      WidgetContext result = new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(any()), never());
+      Assertions.assertEquals(
+          "You cannot change the sign-in email or username of an account with a higher role level than your own",
+          result.getErrorMessage());
+      Assertions.assertNull(result.getSharedRequestValue("stepUpRequired"),
+          "the refusal must come before the step-up prompt, not after it");
+    }
+  }
+
+  @Test
+  void communityManagerCannotChangeTheUsernameOfAnAccountThatOutranksThem() throws Exception {
+    // The username field is hidden on the form and round-trips the current value, so a different one
+    // is a crafted parameter -- but it is the sign-in identifier, so it is guarded alongside email.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "admin@example.com");     // unchanged
+    addQueryParameter(widgetContext, "username", "attacker");           // crafted
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+
+      WidgetContext result = new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(any()), never());
+      Assertions.assertNotNull(result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCanEditOtherFieldsOnAnAccountThatOutranksThem() throws Exception {
+    // The point of refusing only on change rather than refusing the whole action: correcting a typo
+    // in an admin's name is a legitimate edit and must keep working. If this test ever starts
+    // failing, the guard has become a blanket block.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "admin@example.com");     // unchanged
+    addQueryParameter(widgetContext, "username", "admin@example.com");  // unchanged
+    addQueryParameter(widgetContext, "firstName", "Corrected");
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+
+      WidgetContext result = new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      Assertions.assertEquals("Corrected", captor.getValue().getFirstName());
+      Assertions.assertNull(result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void aCaseOnlyEmailChangeOnAnOutrankingAccountIsRefused() throws Exception {
+    // Pins the fail-closed comparison: rather than reasoning about which mail providers treat a
+    // local part case-insensitively, a case-only difference counts as a change and is refused.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "Admin@example.com");
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(any()), never());
+    }
+  }
+
+  @Test
+  void adminCanChangeTheEmailOfAnotherAdmin() throws Exception {
+    // At or below the actor's own level -- not "outranks", so the ordinary edit path stays open.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "email", "new-address@example.com");
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminTarget());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      Assertions.assertEquals("new-address@example.com", captor.getValue().getEmail());
     }
   }
 
