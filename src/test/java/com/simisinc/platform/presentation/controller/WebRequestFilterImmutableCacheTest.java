@@ -99,8 +99,10 @@ class WebRequestFilterImmutableCacheTest {
 
   @Test
   void stylesheetsScriptsAndBundledImagesRevalidateRatherThanCacheBlind() {
-    // Their ?v= stamp comes from ApplicationInfo.VERSION, which is hand-edited and stale, so it
-    // cannot be trusted to change when the file does. Sending no header is not neutral: with
+    // Still the right answer for everything this method is now reached for: the vendored libraries
+    // carry no ?v= at all. The platform's own assets still match here, deliberately -- they are
+    // claimed earlier by isStampedPlatformAsset only when the request actually carries a stamp, and
+    // this is the safe landing place when it does not. Sending no header is not neutral: with
     // neither an expiry nor a validator, browsers apply heuristic freshness and a deployed CSS fix
     // can go unseen for an unpredictable stretch.
     assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"));
@@ -137,5 +139,63 @@ class WebRequestFilterImmutableCacheTest {
     new WebRequestFilter.ImmutableAssetResponse(response, WebRequestFilter.REVALIDATE_CACHE_CONTROL)
         .sendError(404);
     verify(response, times(1)).setHeader("Cache-Control", "no-store");
+  }
+
+  // ------------------------------------------------- the year-long cache for stamped assets
+
+  @Test
+  void aStampedPlatformAssetMayBeCachedForAYear() {
+    assertTrue(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v=1788564491791"));
+    assertTrue(WebRequestFilter.isStampedPlatformAsset("/javascript/platform-editor.js", "v=17885"));
+  }
+
+  @Test
+  void everyPathTheStampIsComputedFromIsClaimed() {
+    // If a path is added to STAMPED_ASSET_PATHS it starts contributing to the token, so it must
+    // also start being served immutable -- otherwise it silently keeps paying a conditional
+    // request per visit for a stamp it is already moving.
+    for (String path : ContextListener.STAMPED_ASSET_PATHS) {
+      assertTrue(WebRequestFilter.isStampedPlatformAsset(path, "v=1"),
+          path + " contributes to the ?v= token but is not served immutable");
+    }
+  }
+
+  @Test
+  void aVendoredLibraryIsNeverImmutableEvenIfTheUrlCarriesAStamp() {
+    // The critical case. These are referenced from the JSPs with no ?v= at all, and the token is
+    // computed only from the platform's own files, so nothing about their URL tracks their content.
+    // A year-long cache here could pin a stale copy with no way to recall it.
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/animate-3.7.2/animate.min.css", "v=1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/javascript/ace-1.32.0/ace.js", "v=1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset(
+        "/css/foundation-6.8.1/foundation.tokens.min.css", "v=1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/custom/stylesheet.css", "v=1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/images/favicon.png", "v=1"));
+  }
+
+  @Test
+  void anUnstampedRequestForAStampedAssetStillRevalidates() {
+    // A bare URL -- typed, bookmarked, or fetched by a monitor -- addresses no particular version,
+    // so answering it with a year-long cache would freeze whatever happened to be current.
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", null));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", ""));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v="));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "cb=123"));
+    assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"),
+        "and it must land on the revalidating branch rather than falling through with no header");
+  }
+
+  @Test
+  void theVParameterIsMatchedWholeRatherThanBySubstring() {
+    assertTrue(WebRequestFilter.hasVersionStamp("v=1"));
+    assertTrue(WebRequestFilter.hasVersionStamp("a=1&v=2"));
+    assertTrue(WebRequestFilter.hasVersionStamp("v=2&a=1"));
+
+    assertFalse(WebRequestFilter.hasVersionStamp("vv=1"));
+    assertFalse(WebRequestFilter.hasVersionStamp("av=1"));
+    assertFalse(WebRequestFilter.hasVersionStamp("version=1"));
+    assertFalse(WebRequestFilter.hasVersionStamp("=1"));
+    assertFalse(WebRequestFilter.hasVersionStamp("v"));
+    assertFalse(WebRequestFilter.hasVersionStamp(null));
   }
 }
