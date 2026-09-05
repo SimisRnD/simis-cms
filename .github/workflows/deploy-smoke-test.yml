@@ -62,6 +62,12 @@ jobs:
         # deploy or the app fails to boot, the container never turns healthy and this step fails.
         run: docker compose up -d --build --wait --wait-timeout 300 app
 
+      - name: Check response integrity
+        # The health check proves the app answers; it does not look at what it answers with. Both
+        # #1832 (gzip beside an uncompressed Content-Length) and #1878 (a truncated gzip stream)
+        # passed a green pipeline. This step reads the actual bytes.
+        run: .github/scripts/check-response-integrity.sh http://localhost
+
       - name: Dump container logs on failure
         if: failure()
         run: docker compose logs --no-color
