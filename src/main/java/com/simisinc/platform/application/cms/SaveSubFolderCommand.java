@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
@@ -31,6 +32,9 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveSubFolderCommand {
 
+  // @column sub_folders.name
+  private static final int MAX_NAME_LENGTH = 255;
+
   private static Log LOG = LogFactory.getLog(SaveSubFolderCommand.class);
 
   public static SubFolder saveSubFolder(SubFolder subFolderBean) throws DataException {
@@ -39,6 +43,9 @@ public class SaveSubFolderCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(subFolderBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name",
+          subFolderBean.getName(), MAX_NAME_LENGTH);
     }
 
     if (subFolderBean.getFolderId() == -1) {

@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -35,6 +36,15 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionReposi
  */
 public class SaveFormDefinitionCommand {
 
+  // @column form_definitions.name
+  private static final int MAX_NAME_LENGTH = 255;
+  // @column form_definitions.title
+  private static final int MAX_TITLE_LENGTH = 255;
+  // The narrowest field on this form by some way: a button caption that runs past 100 characters
+  // is unusual but entirely typeable, and nothing on the way down was refusing it.
+  // @column form_definitions.button_name
+  private static final int MAX_BUTTON_NAME_LENGTH = 100;
+
   private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890";
   private static Log LOG = LogFactory.getLog(SaveFormDefinitionCommand.class);
 
@@ -44,7 +54,14 @@ public class SaveFormDefinitionCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(formDefinitionBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name",
+          formDefinitionBean.getName(), MAX_NAME_LENGTH);
     }
+    FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A title",
+        formDefinitionBean.getTitle(), MAX_TITLE_LENGTH);
+    FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A button name",
+        formDefinitionBean.getButtonName(), MAX_BUTTON_NAME_LENGTH);
     if (formDefinitionBean.getModifiedBy() == -1) {
       if (errorMessages.length() > 0) {
         errorMessages.append(", ");
