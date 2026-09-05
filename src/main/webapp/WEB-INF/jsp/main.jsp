@@ -104,13 +104,17 @@
        testing shows the failure. Default to the bundled asset and only upgrade to an
        admin-uploaded one that actually loads, probed with an Image() because a <link>'s own
        load/error events are not reliably dispatched. --%>
-  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
+  <c:if test="${!empty brandedAssetContext}">
+    <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
+  </c:if>
   <link rel="icon" type="image/png" id="favicon-link" href="${ctx}/images/favicon.png">
   <%-- Prefers an admin-uploaded favicon at system.www.context when one actually loads; otherwise
        stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s
        on this request. A <link rel="icon">'s own load/error events are not reliably dispatched
        across browsers, so existence is probed with an Image() object instead, whose events are. --%>
-  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/favicon.png';var i=new Image();i.onload=function(){document.getElementById('favicon-link').href=u;};i.src=u;})();</script>
+  <c:if test="${!empty brandedAssetContext}">
+    <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/favicon.png';var i=new Image();i.onload=function(){document.getElementById('favicon-link').href=u;};i.src=u;})();</script>
+  </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.title}"><title><c:out value="${pageRenderInfo.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
     <c:when test="${!empty masterWebPage.title}"><title><c:out value="${masterWebPage.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
@@ -501,7 +505,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet${includeStylesheet}.css?v=${includeStylesheetLastModified}" />
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
@@ -544,7 +548,7 @@
     <script src="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.js"></script>
     <%-- Unconditional: password fields appear on the public auth forms and on admin screens alike,
          and the handler is delegated, so it costs nothing on a page that has none. --%>
-    <script src="${ctx}/javascript/platform-password-reveal.js?v=<%= VERSION %>"></script>
+    <script src="${ctx}/javascript/platform-password-reveal.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
@@ -1223,7 +1227,7 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
-    <script src="${ctx}/javascript/web-vitals-collector.js?v=<%= VERSION %>" nonce="${cspNonce}"></script>
+    <script src="${ctx}/javascript/web-vitals-collector.js?v=${fn:escapeXml(applicationScope.assetVersion)}" nonce="${cspNonce}"></script>
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1247,7 +1251,7 @@
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
-    <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
+    <script src="${ctx}/javascript/platform-editor.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>

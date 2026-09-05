@@ -408,41 +408,37 @@
   --sc-fnd-secondary: #767676;
   --sc-fnd-success: #3bdb75;
   --sc-fnd-warning: #feaf0a;
-  /* Darkened from Foundation's own #cc4b37, which pairs with --sc-fnd-on-accent at
-     4.498:1 -- under the 4.5:1 floor of SC 1.4.3 by 0.002, in both modes and for every
-     element type (issue 1527). The fill moves rather than the ink because this token
-     plays two roles on a light ground and the shortfall is identical in both: a fill
-     beneath light ink (.button.alert, .button-group.alert, .label.alert, .badge.alert)
-     and ink or a border on that ground (.form-error, .is-invalid-label,
-     .is-invalid-input, and the hollow/clear alert variants). Lightening the ink to
-     #ffffff would have fixed only the four filled surfaces and left the rest at 4.498:1.
-       ink #fefefe on the fill ..... 4.611:1     the colour as text on #fefefe ... 4.611:1
-       the colour as text on #ffffff .............................. 4.650:1
+  /* $alert, split by role in route-foundation-tokens.py (issue 1851). Foundation spends
+     one colour on two jobs that need opposite treatment once a theme exists, so it is
+     routed to two tokens: this one paints the FILLS (.button.alert, .button-group.alert,
+     .label.alert, .badge.alert, .progress.alert), and --sc-fnd-alert-ink below paints the
+     ink and borders drawn on the page ground.
+
+     Darkened from Foundation's own #cc4b37 for issue 1527, which paired with
+     --sc-fnd-on-accent under the SC 1.4.3 floor by 0.002. Now that it is a fill-only
+     token, that pairing is the only thing its value has to satisfy:
+       on-accent on the alert fill 4.631:1
      .callout.alert does not share the pair -- it is a tinted #f7e4e1 fill under
-     --sc-fnd-ink -- so it is unaffected.
-
-     Deliberately a modest step, not the largest that clears the floor. On the DARK page
-     this same token also paints .form-error, where a darker red reads worse: 3.876:1
-     before, 3.781:1 after -- failing either way, and a pre-existing gap rather than one
-     this creates. The two directions are strictly opposed for a single token: a red that
-     clears 4.5:1 on #17191e is at most ~3.3:1 on white. Closing the dark side needs the
-     fill and the ink split into separate roles, the way --sc-fnd-on-accent and
-     --sc-fnd-ink-on-accent already are; until then this takes just enough headroom to
-     clear the floor on the light ground and costs the dark case as little as possible. */
+     --sc-fnd-ink -- so it is unaffected. */
   --sc-fnd-alert: #cb4643;
-  /* The ink half of the split the note above predicted. --sc-fnd-alert stays the FILL --
-     its --sc-fnd-on-accent pairing is registered in CLAIMS and verified there, and must not move --
-     while this paints the same status colour where it is text or a border ON the page.
-     The two roles need opposite directions in dark mode, which is why one token could not
-     carry both: a red that clears the floor on the dark canvas falls well short of it on
-     white, and the reverse.
 
-     Aliased to --sc-danger rather than given its own literal, because that token already
-     carries a red chosen for exactly these grounds in both modes, and a second literal
-     would be a second thing to keep in step. Resolves per theme through the alias, so
-     there is no dark override to forget (issue 1851).
-       light ink on canvas 4.870:1 and on raised 5.397:1
-       dark ink on canvas 6.418:1, on raised 5.033:1, on the field 5.733:1 */
+  /* The other half of that split. Held as one token with the fill this could not be
+     fixed: a fill has to stay dark enough for light ink to clear the floor on top of it,
+     while ink has to be light enough to clear the floor against the page behind it, and
+     on the dark page those pull in opposite directions -- a red light enough to clear the
+     floor on the dark canvas falls well under it on white. Issue 1527 chose the fill and
+     disclosed the cost; this token pays it off, and issue 1852 restores the one consumer
+     that was reaching it -- the datepicker's invalid field, whose border the dark field
+     rules were overriding outright.
+
+     Aliased to --sc-danger rather than given literals in each block, so it is declared
+     once and follows the product's own danger red wherever that goes -- the same
+     single-declaration indirection --sc-fnd-white relied on before the role split retired
+     it. Foundation's alert ink and the platform's danger red have always been the same
+     colour semantically; nothing was holding them together.
+
+       light ink on the canvas 4.870:1, on a field 5.397:1
+       dark ink on the canvas 6.418:1, on a field 5.733:1, on an overlay 5.033:1 */
   --sc-fnd-alert-ink: var(--sc-danger);
   --sc-fnd-light-gray: #e7e6e3;
   --sc-fnd-medium-gray: #cdc9c3;
@@ -843,8 +839,9 @@ input[type="radio"] {
    Foundation's own .button.hollow.success at (0,3,0) and win on source order; the
    dark and auto rules in Layer 3b are (0,4,0) and still outrank them, and the ink
    tokens resolve to the same colour those rules paint, so dark is unchanged either
-   way. .hollow.alert / .clear.alert are not listed: they carry the --sc-fnd-alert
-   shortfall tracked in issue 1527 and are fixed there. */
+   way. .hollow.alert / .clear.alert are not listed and do not need to be: their ink
+   and border are routed to --sc-fnd-alert-ink, which follows --sc-danger into dark on
+   its own, so they get the same treatment without a rule here (issue 1851). */
 .button.hollow.success,
 .button.clear.success {
   color: var(--sc-fnd-success-ink);
@@ -1165,30 +1162,33 @@ textarea::placeholder {
   opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio */
 }
 
-/* Restore the invalid-field marker in dark mode (issue 1852). Foundation marks the field
-   with .is-invalid-input:not(:focus) at (0,2,0); the dark field rules above are (0,3,1)
-   and repaint border-color and the placeholder, so an invalid field rendered identically
-   to a valid one -- no border, no text, no icon, nothing. Not theoretical: the vendored
-   foundation-datepicker adds this class (foundation-datepicker.js:446) whenever a typed
-   date overflows its format string, on the non-readonly date inputs in product-form,
-   blog-editor, item-full-form and pricing-rule-form.
+/* Restore the invalid-field marking that the two rules above erase (issue 1852).
 
-   These are (0,4,1) and clear the field rules. Adding the class to those 15-selector
-   lists as :not(.is-invalid-input) guards instead would mean negating each one twice over,
-   in two blocks -- far more surface to get wrong.
+   Foundation marks an invalid input with .is-invalid-input:not(:focus) -- (0,2,0) for the
+   border, (0,2,1) for the placeholder. The dark field rule is (0,3,1) and the dark
+   placeholder rule is (0,2,2), so both outrank it and repaint every trace of the invalid
+   state as an ordinary field: same border, same fill, same placeholder. In dark mode an
+   invalid input was indistinguishable from a valid one -- not low-contrast, unmarked.
 
-   background-color is deliberately NOT restored: Foundation's #f9ecea is a light pink that
-   belongs on a light ground, and the dark field background overriding it is correct.
-   Nothing is light-scoped, so auto + prefers-color-scheme: light still gets Foundation's
-   own rule untouched. */
-:root[data-theme="dark"] input.is-invalid-input:not(:focus),
-:root[data-theme="dark"] textarea.is-invalid-input:not(:focus),
-:root[data-theme="dark"] select.is-invalid-input:not(:focus) {
+   Reachable through the datepicker, which is the only thing in the product that applies
+   the class (foundation-datepicker.js adds it when a typed value runs longer than the
+   format string). Foundation's Abide is not wired up anywhere, so .form-error and
+   .is-invalid-label never render and this border is the whole error affordance.
+
+   Only the border and the placeholder are restored. Foundation also sets a #f9ecea fill,
+   and the dark field rule overriding THAT is correct -- a pale pink field on a dark page
+   would be the regression, not the fix.
+
+   (0,4,0) and (0,4,1), rather than adding :not(.is-invalid-input) to the field rules:
+   those run fifteen selectors long and are duplicated across the dark and auto blocks, so
+   negating each one is thirty places to get wrong instead of two rules to add. Not scoped
+   to light, deliberately -- light has no field rule at this specificity, so Foundation's
+   own declarations still stand there and there is nothing to restore. */
+:root[data-theme="dark"] .is-invalid-input:not(:focus) {
   border-color: var(--sc-fnd-alert-ink);
 }
 
-:root[data-theme="dark"] input.is-invalid-input:not(:focus)::placeholder,
-:root[data-theme="dark"] textarea.is-invalid-input:not(:focus)::placeholder {
+:root[data-theme="dark"] .is-invalid-input:not(:focus)::placeholder {
   color: var(--sc-fnd-alert-ink);
   opacity: 1;
 }
@@ -1512,16 +1512,12 @@ textarea::placeholder {
     opacity: 1;
   }
 
-  /* The auto mirror of the dark invalid-field rules above. The auto/dark parity checker
-     exists because this pairing has been missed before (issue 1852). */
-  :root[data-theme="auto"] input.is-invalid-input:not(:focus),
-  :root[data-theme="auto"] textarea.is-invalid-input:not(:focus),
-  :root[data-theme="auto"] select.is-invalid-input:not(:focus) {
+  /* The auto mirror of the invalid-field restore in Layer 3b -- see issue 1852 there. */
+  :root[data-theme="auto"] .is-invalid-input:not(:focus) {
     border-color: var(--sc-fnd-alert-ink);
   }
 
-  :root[data-theme="auto"] input.is-invalid-input:not(:focus)::placeholder,
-  :root[data-theme="auto"] textarea.is-invalid-input:not(:focus)::placeholder {
+  :root[data-theme="auto"] .is-invalid-input:not(:focus)::placeholder {
     color: var(--sc-fnd-alert-ink);
     opacity: 1;
   }

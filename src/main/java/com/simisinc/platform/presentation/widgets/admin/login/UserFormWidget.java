@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -36,7 +37,6 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -77,11 +77,11 @@ public class UserFormWidget extends GenericWidget {
     context.setPageTitle(user.getFullName());
 
     // Shows any roles -- the JSP only offers/enables roles the editor is allowed to grant or revoke
-    // (see highestRoleLevel() below; matches the same request attribute UsersListWidget sets).
+    // (see RoleLevelCommand.highestRoleLevel(); matches the same request attribute UsersListWidget sets).
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
     context.getRequest().setAttribute("actingRoleLevel",
-        highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
+        RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Show any groups
     List<Group> groupList = GroupRepository.findAll();
@@ -107,7 +107,7 @@ public class UserFormWidget extends GenericWidget {
     // one it does not control. Group delegation is unranked and deferred to the deny-by-default work (#299).
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
-      int actingLevel = highestRoleLevel(context.getUserSession(), roleList);
+      int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList);
       Set<String> retainedHigherRoleCodes = higherRolesTargetAlreadyHolds(userBean.getId(), roleList, actingLevel);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
@@ -276,25 +276,6 @@ public class UserFormWidget extends GenericWidget {
     context.addSharedRequestValue("stepUpRequired", "true");
     context.setRequestObject(userBean);
     context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
-  }
-
-  /**
-   * The highest role level the acting user holds, found by matching their session role codes against
-   * the authoritative role list (which carries the levels). Returns 0 when nothing matches, which
-   * fails closed -- no role above 0 can then be granted. Package-private so UsersListWidget's New User
-   * flow can enforce the same rule when creating a user, instead of duplicating the logic.
-   */
-  static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
-    int max = 0;
-    if (userSession == null) {
-      return max;
-    }
-    for (Role role : allRoles) {
-      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
   }
 
   /**

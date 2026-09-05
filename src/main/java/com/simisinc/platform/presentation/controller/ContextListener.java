@@ -81,9 +81,19 @@ public class ContextListener implements ServletContextListener {
     // succeeds, the site looks unchanged, and it reads as a failed deploy rather than a cache hit.
     // Resolved once at startup rather than per request: these are static files that cannot change
     // while the app is running, and every page render reads this.
+    // Widened from the original two to every platform-owned stamped asset (#1872). The rest were
+    // still interpolating ApplicationInfo.VERSION straight into their ?v=, and that constant is a
+    // release identity edited by hand -- it had not moved since August while these files changed
+    // repeatedly, so their cache-buster did not bust. One token for all of them means a change to
+    // any one re-fetches the set; that over-busts slightly and is the right trade, since they ship
+    // together on a deploy anyway and a single value stays easy to reason about.
+    //
+    // The two vendored add-to-calendar files are deliberately NOT listed: they carry their version
+    // in the path (add-to-calendar-0.1.0), so a new release is already a new URL, and their
+    // modification time says nothing useful. They still render this token for uniformity.
     servletContextEvent.getServletContext().setAttribute("assetVersion",
         resolveAssetVersion(servletContextEvent.getServletContext(), ApplicationInfo.VERSION,
-            "/css/platform.css", "/css/platform-tokens.css"));
+            STAMPED_ASSET_PATHS));
 
     // At-rest secret encryption (#16): warn loudly when the key is absent. Secret storage fails closed, so
     // storing TOTP seeds or integration/payment credentials will be refused until the key is set.
@@ -236,6 +246,27 @@ public class ContextListener implements ServletContextListener {
    * @param paths context-relative asset paths, e.g. {@code /css/platform.css}
    * @return a non-blank token safe to use as a query-string value
    */
+  /**
+   * The platform-owned assets whose modification time drives the {@code ?v=} token.
+   *
+   * <p>A named constant rather than an inline argument list so a test can check every entry
+   * actually resolves to a file. A typo here fails silently -- resolveAssetVersion skips a path it
+   * cannot find, so a misspelled entry simply stops contributing and nothing reports it.
+   */
+  static final String[] STAMPED_ASSET_PATHS = {
+      "/css/platform.css",
+      "/css/platform-tokens.css",
+      "/css/platform-calendar.css",
+      "/css/platform-ecommerce.css",
+      "/css/platform-editor.css",
+      "/css/platform-leaderboard.css",
+      "/css/platform-sitemap-editor.css",
+      "/css/platform-todo-list.css",
+      "/javascript/platform-editor.js",
+      "/javascript/platform-password-reveal.js",
+      "/javascript/web-vitals-collector.js",
+  };
+
   static String resolveAssetVersion(ServletContext servletContext, String fallback, String... paths) {
     long newest = 0L;
     for (String path : paths) {

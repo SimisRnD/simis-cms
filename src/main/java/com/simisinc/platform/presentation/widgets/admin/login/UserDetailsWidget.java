@@ -24,6 +24,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
@@ -42,7 +43,6 @@ import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRe
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.List;
@@ -535,8 +535,9 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   /**
-   * True when the target account's highest role level exceeds the acting user's highest role level --
-   * mirrors UserFormWidget's role-grant escalation guard so a lower-privileged admin (e.g.
+   * True when the target account's highest role level exceeds the acting user's highest role level.
+   * The rule itself lives in {@link RoleLevelCommand}; this wrapper adapts it to the WidgetContext
+   * the actions on this page already hold. A lower-privileged admin (e.g.
    * community-manager, level 90, who reaches this page via admin-layout.xml's
    * role="admin,community-manager") cannot suspend, restore, or delete an account that outranks them
    * (e.g. admin, level 100). Both /admin/users and /admin/user-details are open to community-manager
@@ -549,36 +550,7 @@ public class UserDetailsWidget extends GenericWidget {
    * reach an account the single-account suspendAccount()/resetMfa() below would refuse to touch.
    */
   public static boolean targetOutranksActor(WidgetContext context, User user) {
-    List<Role> allRoles = RoleRepository.findAll();
-    int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
-    int targetLevel = highestRoleLevel(user.getRoleList());
-    return targetLevel > actingLevel;
-  }
-
-  private static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
-    int max = 0;
-    if (userSession == null || allRoles == null) {
-      return max;
-    }
-    for (Role role : allRoles) {
-      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
-  }
-
-  private static int highestRoleLevel(List<Role> roleList) {
-    int max = 0;
-    if (roleList == null) {
-      return max;
-    }
-    for (Role role : roleList) {
-      if (role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
+    return RoleLevelCommand.targetOutranksActor(context.getUserSession(), user);
   }
 
   private WidgetContext deleteAccount(WidgetContext context, User user) {

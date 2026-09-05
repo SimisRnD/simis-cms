@@ -66,6 +66,13 @@
     <filter-name>ServiceErrorLoggingFilter</filter-name>
     <filter-class>com.simisinc.platform.presentation.controller.ServiceErrorLoggingFilter</filter-class>
   </filter>
+  <!-- Compresses generated responses. Mapped just inside ServiceErrorLoggingFilter, so that
+       filter still wraps the whole chain and keeps the exception-logging guarantee from #556,
+       while this one still wraps every page PageServlet renders. -->
+  <filter>
+    <filter-name>ResponseCompressionFilter</filter-name>
+    <filter-class>com.simisinc.platform.presentation.controller.ResponseCompressionFilter</filter-class>
+  </filter>
   <!-- Opt-in: when CMS_TRUSTED_PROXIES is set, resolve the real client IP from
        X-Forwarded-For before any IP-based control runs. Must be mapped first. -->
   <filter>
@@ -82,6 +89,10 @@
   </filter>
   <filter-mapping>
     <filter-name>ServiceErrorLoggingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  <filter-mapping>
+    <filter-name>ResponseCompressionFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
   <filter-mapping>

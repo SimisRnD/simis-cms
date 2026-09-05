@@ -144,6 +144,10 @@ def test_the_bounds_print_on_a_failure_but_not_on_a_pass(tokens, tmp_path):
     # none by design, so this makes its own.
     tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
     edit(tokens, "--sc-fnd-alert: #cb4643;", "--sc-fnd-alert: #f0a090;")
+    # The fill's ratio is a registered claim (issue 1851), so it has to move with the
+    # value -- otherwise this fixture fails on a stale comment rather than on the
+    # pairing under test, and the assertion below stops meaning what it says.
+    edit(tokens, "on-accent on the alert fill 4.631:1", "on-accent on the alert fill 2.054:1")
     r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
     assert "to clear it:" not in r.stdout
@@ -219,6 +223,10 @@ def test_a_waived_pairing_reports_but_does_not_fail(tokens, tmp_path):
     build green by silence."""
     tool = tool_holding(tmp_path, '(None, "--sc-fnd-on-accent", "--sc-fnd-alert")')
     edit(tokens, "--sc-fnd-alert: #cb4643;", "--sc-fnd-alert: #f0a090;")
+    # The fill's ratio is a registered claim (issue 1851), so it has to move with the
+    # value -- otherwise this fixture fails on a stale comment rather than on the
+    # pairing under test, and the assertion below stops meaning what it says.
+    edit(tokens, "on-accent on the alert fill 4.631:1", "on-accent on the alert fill 2.054:1")
     r = run_copy(tool, tokens)
     assert r.returncode == 0, out(r)
     assert "WAIVED" in r.stdout and "--sc-fnd-alert" in r.stdout
