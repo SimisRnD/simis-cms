@@ -247,7 +247,7 @@
               // Blank each address field first: this modal is reused across events, so a field left
               // holding the previous event's value would be submitted as this event's -- and the
               // save overwrites unconditionally.
-              ['street', 'city', 'state', 'postalCode', 'country'].forEach(function (field) {
+              ['street', 'city', 'state', 'postalCode', 'country', 'imageUrl'].forEach(function (field) {
                 document.getElementById(field).value = data.hasOwnProperty(field) ? data[field] : '';
               });
               if (data.hasOwnProperty('description')) {
@@ -474,6 +474,9 @@
       </div>
       <label>Summary
         <input type="text" placeholder="Event Summary" name="summary" id="summary" value="">
+      </label>
+      <label>Event image
+        <input type="text" placeholder="Local Image URL" name="imageUrl" id="imageUrl" value="">
       </label>
       <div class="grid-x grid-margin-x">
         <div class="medium-6 cell">

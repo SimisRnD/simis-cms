@@ -202,6 +202,16 @@
     <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
   </label>
   <small class="help-text"><i class="fa fa-info-circle"></i> Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</small>
+  <label>Event image
+    <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${calendarEvent.imageUrl}"/>">
+  </label>
+  <p>
+    <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
+  </p>
+  <c:if test="${!empty calendarEvent.imageUrl}">
+    <img id="imageUrlPreview" alt="" src="<c:out value="${calendarEvent.imageUrl}"/>" style="max-height: 150px; max-width: 150px">
+  </c:if>
+  <small class="help-text"><i class="fa fa-info-circle"></i> Shown on the event's page, and used as its social card when the event is shared. Without one, a shared link falls back to the site-wide default image.</small>
   <label>Tags
     <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" value="<c:out value="${tagsListValue}"/>" maxlength="255">
   </label>
@@ -222,3 +232,23 @@
     </c:choose>
   </div>
 </form>
+<%-- No data-animation-in (issue #1318): Foundation's Motion-UI animateIn path leaves this
+     display:none forever -- a CSS transition can't start on an element that's still display:none
+     when the animation class is added, so the transitionend it waits for to reveal the element
+     never fires. Omitting it uses Foundation's default, non-animated open, which works. --%>
+<div class="reveal large" id="imageBrowserReveal" data-reveal role="dialog" aria-modal="true" aria-label="Image Browser">
+  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
+</div>
+<script nonce="${cspNonce}">
+    // Load the image browser in an iframe so its own nonce-valid script runs and can populate the
+    // parent field via top.document. Injecting the fragment's HTML with .html() instead stripped
+    // the nonce (issue #1207) and reinterpreted the fetched markup as HTML
+    // (CodeQL js/xss-through-dom). The iframe src is a server-rendered constant; the fragment
+    // itself closes this modal via top.jQuery once an image is selected.
+    $('#imageBrowserReveal').on('open.zf.reveal', function () {
+        document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl&view=reveal';
+    });
+    $('#imageBrowserReveal').on('closed.zf.reveal', function () {
+        document.getElementById('imageBrowserFrame').removeAttribute('src');
+    });
+</script>

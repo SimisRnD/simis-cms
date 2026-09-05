@@ -100,6 +100,11 @@ public class CalendarEventAjax extends GenericWidget {
       if (calendarEvent.getSignUpUrl() != null) {
         sb.append("\"signUpUrl\":\"").append(JsonCommand.toJson(calendarEvent.getSignUpUrl())).append("\",");
       }
+      // Same round-trip reason as the address fields above: the edit modal submits every field it
+      // holds, and the save overwrites unconditionally, so a field missing here gets blanked.
+      if (StringUtils.isNotEmpty(calendarEvent.getImageUrl())) {
+        sb.append("\"imageUrl\":\"").append(JsonCommand.toJson(calendarEvent.getImageUrl())).append("\",");
+      }
       if (calendarEvent.getVideoUrl() != null) {
         sb.append("\"videoUrl\":\"").append(JsonCommand.toJson(calendarEvent.getVideoUrl())).append("\",");
       }

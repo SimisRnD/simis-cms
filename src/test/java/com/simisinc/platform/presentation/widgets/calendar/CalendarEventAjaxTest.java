@@ -103,6 +103,32 @@ class CalendarEventAjaxTest extends WidgetBase {
   }
 
   @Test
+  void jsonCarriesTheImageSoTheEditModalDoesNotBlankIt() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("I/ITSEC");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setImageUrl("/assets/img/20260101000000-1/iitsec.png");
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"imageUrl\":\"\\/assets\\/img\\/20260101000000-1\\/iitsec.png\""),
+        "imageUrl must be present: " + json);
+  }
+
+  @Test
   void jsonOmitsTheAddressFieldsThatAreNotSet() {
     // Omitted rather than emitted empty: the modal treats an absent key as "leave this field
     // blank", and an event with no address should not ship five empty strings to every client.
