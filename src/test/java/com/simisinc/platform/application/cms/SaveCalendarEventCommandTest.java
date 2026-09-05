@@ -70,6 +70,35 @@ class SaveCalendarEventCommandTest {
   }
 
   @Test
+  void theStructuredAddressReachesTheSavedRecord() throws DataException {
+    // Google Search Console reports "Missing field address (in location)" for an Event whose
+    // location carries only a name. StructuredDataCommand already builds the PostalAddress from
+    // these five fields -- nothing could populate them, because this mapping did not exist.
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L);
+    bean.setLocation("Orange County Convention Center");
+    bean.setStreet("9899 International Drive");
+    bean.setCity("Orlando");
+    bean.setState("FL");
+    bean.setPostalCode("32819");
+    bean.setCountry("US");
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      repository.when(() -> CalendarEventRepository.findByUniqueId(any(), any())).thenReturn(null);
+      repository.when(() -> CalendarEventRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveCalendarEventCommand.saveCalendarEvent(bean);
+
+      repository.verify(() -> CalendarEventRepository.save(argThat(saved -> "9899 International Drive".equals(saved.getStreet())
+          && "Orlando".equals(saved.getCity())
+          && "FL".equals(saved.getState())
+          && "32819".equals(saved.getPostalCode())
+          && "US".equals(saved.getCountry()))));
+    }
+  }
+
+  @Test
   void editingAnExistingRecordDoesNotChangeItsOriginalCreatedBy() throws DataException {
     CalendarEvent existing = new CalendarEvent();
     existing.setId(1L);
