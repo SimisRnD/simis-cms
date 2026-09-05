@@ -279,10 +279,21 @@ def route(css: str) -> tuple[str, int]:
     return HEX.sub(replace, css), count
 
 
+# Foundation's minified stylesheet ends with a sourceMappingURL comment. Copied through, it
+# makes the generated file claim a map that does not describe it: foundation.min.css.map has
+# no semicolons in its `mappings`, so it maps exactly one line -- correct for the single-line
+# original -- while routing inserts hundreds of var(--...) substitutions on that line and
+# shifts every column after each one. Devtools then reports positions that drift further the
+# further into the file you look, which is worse than having no map at all. Dropped here so
+# the generated file stops making a promise it cannot keep, which also lets the 313K map stop
+# shipping in the WAR (issues 1860 and 1862).
+SOURCE_MAP_COMMENT = re.compile(r"\s*/\*#\s*sourceMappingURL=[^*]*\*/\s*$")
+
+
 def generate(root: Path) -> tuple[str, int]:
     css = (root / SOURCE).read_text(encoding="utf-8")
     routed, count = route(css)
-    return HEADER + routed, count
+    return HEADER + SOURCE_MAP_COMMENT.sub("\n", routed), count
 
 
 def main() -> int:

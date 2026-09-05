@@ -40,17 +40,17 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
       <label>Name <span class="required">*</span>
-        <input type="text" placeholder="e.g. Contact Us" name="name" value="<c:out value="${formDefinition.name}"/>" required>
+        <input type="text" placeholder="e.g. Contact Us" name="name" maxlength="255" value="<c:out value="${formDefinition.name}"/>" required>
       </label>
     </div>
     <div class="small-12 medium-6 cell">
       <label>Button Label
-        <input type="text" placeholder="Submit" name="buttonName" value="<c:out value="${formDefinition.buttonName}"/>">
+        <input type="text" placeholder="Submit" name="buttonName" maxlength="100" value="<c:out value="${formDefinition.buttonName}"/>">
       </label>
     </div>
   </div>
   <label>Title
-    <input type="text" placeholder="Heading shown above the form..." name="title" value="<c:out value="${formDefinition.title}"/>">
+    <input type="text" placeholder="Heading shown above the form..." name="title" maxlength="255" value="<c:out value="${formDefinition.title}"/>">
   </label>
   <label>Subtitle
     <input type="text" placeholder="Optional text shown under the title..." name="subtitle" value="<c:out value="${formDefinition.subtitle}"/>">
