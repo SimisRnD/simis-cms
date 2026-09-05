@@ -267,6 +267,16 @@ public class ContextListener implements ServletContextListener {
       "/javascript/web-vitals-collector.js",
   };
 
+  /**
+   * The same set, for the cache-header decision in WebRequestFilter.
+   *
+   * <p>Immutable and O(1); the array above stays because resolveAssetVersion takes varargs. One
+   * source of truth matters here more than usual: an asset may only be served {@code immutable} if
+   * it is in this set, because that is exactly the set whose {@code ?v=} token is recomputed from
+   * these files' modification times.
+   */
+  static final java.util.Set<String> STAMPED_ASSET_PATH_SET = java.util.Set.of(STAMPED_ASSET_PATHS);
+
   static String resolveAssetVersion(ServletContext servletContext, String fallback, String... paths) {
     long newest = 0L;
     for (String path : paths) {
