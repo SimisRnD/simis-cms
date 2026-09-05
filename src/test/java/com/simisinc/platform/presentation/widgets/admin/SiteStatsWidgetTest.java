@@ -61,6 +61,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FunnelEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -695,6 +696,56 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
     Assertions.assertEquals("Form", request.getAttribute("label"));
     Assertions.assertEquals("Submissions", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeFileDownloadsPassesTheSelectedWindowThrough() {
+    // The tab a reader picks has to reach the query. A report that ignored its interval would look
+    // perfectly healthy on screen -- a populated table, a highlighted tab -- while showing the same
+    // numbers for every window.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Top Downloads</title>\n" +
+            "  <report>file-downloads</report>\n" +
+            "  <interval>30d</interval>\n" +
+            "  <limit>20</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("NAICS Codes.pdf", "11"));
+    try (MockedStatic<FileDownloadRepository> repository = mockStatic(FileDownloadRepository.class)) {
+      repository.when(() -> FileDownloadRepository.findTopDownloads(30, 'd', 20)).thenReturn(data);
+
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("File", request.getAttribute("label"));
+    Assertions.assertEquals("Downloads", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeFileDownloadsUsesTheHoursWindowForTheTodayTab() {
+    // "Today" is 12h, an hours interval rather than days. Passing the unit through matters: 12
+    // interpreted as days would silently widen the shortest tab to a fortnight.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Top Downloads</title>\n" +
+            "  <report>file-downloads</report>\n" +
+            "  <interval>12h</interval>\n" +
+            "  <limit>20</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("tiny-test.pdf", "3"));
+    try (MockedStatic<FileDownloadRepository> repository = mockStatic(FileDownloadRepository.class)) {
+      repository.when(() -> FileDownloadRepository.findTopDownloads(12, 'h', 20)).thenReturn(data);
+
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
   }
 
   @Test

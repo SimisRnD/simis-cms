@@ -65,4 +65,4 @@ UPGRADE_20260827.1000__create_csp_violation_table.sql            # install track
 UPGRADE_20260830.0100__workflow_notification_sent.sql            # install track already creates this object
 UPGRADE_20260831.1800__mailing_list_unique_id.sql                # install track already creates this column
 UPGRADE_20260902.1000__organization_properties.sql               # install track already seeds these site_properties rows
-UPGRADE_20260905.1900__calendar_event_action_link.sql          # install track already seeds these site_properties rows
+UPGRADE_20260905.1600__file_downloads.sql                        # install track already creates this object
