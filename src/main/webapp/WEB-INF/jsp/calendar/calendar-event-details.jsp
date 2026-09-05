@@ -93,13 +93,23 @@
       </c:otherwise>
     </c:choose>
     <c:if test="${!empty calendarEvent.imageUrl}">
-      <%-- sizes="auto" rather than a hard-coded width (issue #1349): this image is laid out by the
-           page, not at a width the markup knows, and a fixed sizes made the browser pick a larger
-           candidate than it ever displayed. loading="lazy" pairs with it. --%>
+      <%-- sizes is stated rather than left as "auto". sizes="auto" resolves against the image's own
+           laid-out width, and this image has no CSS-determined width -- platform.css gives it
+           max-width and max-height and leaves width/height auto, so the width follows the intrinsic
+           size. That is circular, and the browser resolves it by falling back to the default
+           replaced-element box: a 1279x1279 square rendered 300x150, a 100% aspect error, squashed
+           to half its height. Measured at 1280px and at 375px; both wrong, both correct once sizes
+           is explicit.
+           Issue #1349 is the reason this was reached for, but its case was a content image inside a
+           container with a determinate width, where "auto" does resolve. The precondition does not
+           hold here.
+           720px is the widest this is ever displayed: max-width: 100% inside a ~707px column caps
+           it, and a tall image is capped earlier still by max-height. Below the 767px breakpoint
+           the column is the viewport, so 100vw is right there. --%>
       <c:set var="eventImageSrcset" value="${image:srcset(calendarEvent.imageUrl)}"/>
       <p class="platform-calendar-event-image">
         <img src="<c:out value="${calendarEvent.imageUrl}"/>" alt="<c:out value="${calendarEvent.title}"/>"
-          <c:if test="${not empty eventImageSrcset}"> srcset="<c:out value="${eventImageSrcset}"/>" sizes="auto"</c:if>
+          <c:if test="${not empty eventImageSrcset}"> srcset="<c:out value="${eventImageSrcset}"/>" sizes="(max-width: 767px) 100vw, 720px"</c:if>
           loading="lazy" decoding="async" />
       </p>
     </c:if>
