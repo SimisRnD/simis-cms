@@ -2486,6 +2486,19 @@ div.item-image-large img {
   padding: 10px 0 10px 30px;
 }
 
+/* The event's own artwork, above the venue line. Capped so a large upload does not
+   dominate the page; the img itself still scales down on narrow viewports. */
+.platform-calendar-event-image {
+  margin: 16px 0;
+}
+
+.platform-calendar-event-image img {
+  max-width: 100%;
+  max-height: 420px;
+  height: auto;
+  border-radius: var(--sc-radius-md, 4px);
+}
+
 .platform-calendar-details-container .platform-calendar-event-summary {
   border: 1px solid #cccccc;
   margin: 20px 0 20px 22px;

@@ -17,6 +17,7 @@
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -91,6 +92,17 @@
         </p>
       </c:otherwise>
     </c:choose>
+    <c:if test="${!empty calendarEvent.imageUrl}">
+      <%-- sizes="auto" rather than a hard-coded width (issue #1349): this image is laid out by the
+           page, not at a width the markup knows, and a fixed sizes made the browser pick a larger
+           candidate than it ever displayed. loading="lazy" pairs with it. --%>
+      <c:set var="eventImageSrcset" value="${image:srcset(calendarEvent.imageUrl)}"/>
+      <p class="platform-calendar-event-image">
+        <img src="<c:out value="${calendarEvent.imageUrl}"/>" alt="<c:out value="${calendarEvent.title}"/>"
+          <c:if test="${not empty eventImageSrcset}"> srcset="<c:out value="${eventImageSrcset}"/>" sizes="auto"</c:if>
+          loading="lazy" decoding="async" />
+      </p>
+    </c:if>
     <c:if test="${!empty calendarEvent.location}">
       <p class="platform-calendar-event-location"><i class="fa fa-map-marker fa-fw"></i> <c:out value="${calendarEvent.location}" /></p>
     </c:if>

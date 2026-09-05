@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.calendar;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadCalendarCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
@@ -94,6 +96,13 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     // cannot resolve the event itself -- /calendar-event{/event-unique-id} is a wildcard page and
     // this widget performs the lookup -- which is the same reason Product schema is bridged.
     context.setCalendarEvent(calendarEvent);
+    // og:image for this event rather than the site-wide default. main.jsp reads it off
+    // pageRenderInfo, which WebContainerCommand fills from here (issue #1355), so an event with
+    // its own artwork shares as itself instead of as the generic site card. Same one line
+    // BlogPostWidget uses.
+    if (StringUtils.isNotBlank(calendarEvent.getImageUrl())) {
+      context.setPageImageUrl(calendarEvent.getImageUrl());
+    }
     context.setJsp(JSP);
     return context;
   }
