@@ -894,7 +894,7 @@ public class WebRequestFilter implements Filter {
     return false;
   }
 
-  private static boolean isBrowserResourcePath(String resource) {
+  static boolean isBrowserResourcePath(String resource) {
     // Path-boundary anchored, not a bare startsWith: web.xml maps /css/*, /fonts/*, /html/*,
     // /images/*, /javascript/* as directories, so an unanchored prefix match here would also
     // exempt any ordinary page whose slug merely starts with the same letters (e.g.
