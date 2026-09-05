@@ -136,12 +136,14 @@ public class WebRequestFilter implements Filter {
     // the same treatment; the wrapper withdraws the header if the response turns out not to be a
     // successful read.
     if (servletResponse instanceof HttpServletResponse) {
-      if (isImmutableAsset(resource)) {
+      if (isImmutableAsset(resource)
+          || isStampedPlatformAsset(resource, httpServletRequest.getQueryString())) {
         servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
       } else if (isRevalidatedAsset(resource)) {
-        // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above and keep the
-        // year-long cache. Everything else under /css, /javascript and /images revalidates, because
-        // its ?v= stamp is hand-edited and cannot be trusted to change when the file does.
+        // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above, and so are
+        // the platform's own stamped assets. What is left under /css, /javascript and /images is
+        // everything with no trustworthy stamp -- the vendored libraries, which are referenced
+        // without any ?v= at all -- and that still has to revalidate.
         servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse,
             REVALIDATE_CACHE_CONTROL);
       }
@@ -766,9 +768,13 @@ public class WebRequestFilter implements Filter {
    * True for the bundled static assets that must NOT be cached blind: stylesheets, scripts and the
    * bundled images.
    *
-   * <p>These carry a {@code ?v=} stamp from ApplicationInfo.VERSION, which is edited by hand and is
-   * currently stale -- platform.css has changed many times since the value it carries -- so the
-   * stamp cannot be relied on to bust anything. Sending no header at all is not the neutral choice
+   * <p>Most of what is left here carries no {@code ?v=} stamp at all: the vendored libraries under
+   * /css and /javascript (animate.min.css, ace.js, spectrum.css and the rest) are referenced from
+   * the JSPs by bare path, so there is no token that could ever bust them and they must not be
+   * cached blind. The platform's own assets used to be in the same position -- their stamp came
+   * from the hand-edited ApplicationInfo.VERSION and had gone stale -- but since #1872 it is
+   * derived from their modification times, so {@link #isStampedPlatformAsset} claims those before
+   * this method is reached. Sending no header at all is not the neutral choice
    * it looks like: with neither an expiry nor a validator, browsers fall back to HEURISTIC
    * freshness, typically a fraction of the file's age, and a visitor can be served a stale
    * stylesheet for an unpredictable stretch after a deploy. {@code no-cache} keeps the copy but
@@ -782,6 +788,52 @@ public class WebRequestFilter implements Filter {
    * <p>Prefixes are anchored at a path boundary for the reason isBrowserResourcePath() documents: a
    * bare startsWith would also match an ordinary page slug such as /images-of-our-team.
    */
+  /**
+   * True for a platform asset that may be cached for a year because its URL genuinely identifies
+   * its content.
+   *
+   * <p>Two conditions, and both are load-bearing:
+   *
+   * <p><b>The path must be one the stamp is computed from.</b> The {@code ?v=} token is the newest
+   * modification time across {@link ContextListener#STAMPED_ASSET_PATHS}, so a change to any of
+   * those files moves the token for all of them -- over-invalidating, never under-invalidating.
+   * An asset outside that set has no such guarantee: it either carries no stamp (every vendored
+   * library) or carries one that does not track its own content, so a year-long cache could pin a
+   * stale copy with no way to recall it.
+   *
+   * <p><b>The request must actually carry a stamp.</b> The JSPs always append one, but a bare
+   * {@code /css/platform.css} -- typed, bookmarked, or requested by a monitor -- addresses no
+   * particular version, and answering that with {@code immutable} would freeze whatever happened to
+   * be current for a year. Without a {@code v} parameter the request falls through to
+   * revalidation, which is correct rather than merely cautious.
+   */
+  static boolean isStampedPlatformAsset(String resource, String queryString) {
+    return resource != null
+        && ContextListener.STAMPED_ASSET_PATH_SET.contains(resource)
+        && hasVersionStamp(queryString);
+  }
+
+  /**
+   * True when the query string carries a non-empty {@code v} parameter.
+   *
+   * <p>Parsed by hand rather than through {@code request.getParameter}: this filter runs on every
+   * request, and asking the container for a parameter forces it to parse the request body on a
+   * POST, which would consume the stream before anything downstream can read it.
+   */
+  static boolean hasVersionStamp(String queryString) {
+    if (queryString == null || queryString.isEmpty()) {
+      return false;
+    }
+    for (String pair : queryString.split("&")) {
+      int equals = pair.indexOf('=');
+      if (equals <= 0 || !"v".equals(pair.substring(0, equals))) {
+        continue;
+      }
+      return equals + 1 < pair.length();
+    }
+    return false;
+  }
+
   static boolean isRevalidatedAsset(String resource) {
     if (resource == null) {
       return false;
