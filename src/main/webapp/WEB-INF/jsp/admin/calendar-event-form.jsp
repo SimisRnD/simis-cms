@@ -156,7 +156,36 @@
   <label>Location
     <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>">
   </label>
-  <small class="help-text"><i class="fa fa-info-circle"></i> A free-text label only (e.g. "Main Auditorium" or "Zoom"), not a lookup -- there's no address/map field on this form.</small>
+  <small class="help-text"><i class="fa fa-info-circle"></i> The venue's name (e.g. "Main Auditorium" or "Zoom"). Put the street address in the fields below rather than in here -- search engines read them as a structured address, and a whole address typed into this one box is just an opaque string to them.</small>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Street address
+        <input type="text" placeholder="Street" name="street" value="<c:out value="${calendarEvent.street}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>City
+        <input type="text" placeholder="City" name="city" value="<c:out value="${calendarEvent.city}"/>">
+      </label>
+    </div>
+  </div>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-4 cell">
+      <label>State / region
+        <input type="text" placeholder="State" name="state" value="<c:out value="${calendarEvent.state}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-4 cell">
+      <label>Postal code
+        <input type="text" placeholder="Postal Code" name="postalCode" value="<c:out value="${calendarEvent.postalCode}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-4 cell">
+      <label>Country
+        <input type="text" placeholder="Country" name="country" value="<c:out value="${calendarEvent.country}"/>">
+      </label>
+    </div>
+  </div>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
       <label>URL for more information
