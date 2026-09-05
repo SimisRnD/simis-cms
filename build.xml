@@ -295,12 +295,30 @@
              directory. foundation.min.css stays in the
              repository because tools/route-foundation-tokens.py reads it to generate
              the tokens file, but it reads it from src/, so it does not need to ship.
-             NOTE: foundation.min.css.map is deliberately NOT excluded. The served
-             foundation.tokens.min.css still carries a sourceMappingURL pointing at
-             it, so dropping it here would 404 in devtools. -->
+             foundation.min.css.map now goes too: since issue 1860 the generator strips the
+             sourceMappingURL it used to copy through, so the served tokens file no longer
+             claims a map that does not describe it, and nothing packaged references it. -->
         <exclude name="css/foundation-6.8.1/foundation.css"/>
         <exclude name="css/foundation-6.8.1/foundation.css.map"/>
         <exclude name="css/foundation-6.8.1/foundation.min.css"/>
+        <!-- Source maps are reachable only when a file that is ITSELF served declares one.
+             53 of the 58 in the tree are not: they belong to vendor originals the pages never
+             load (chart.umd.js when the pages load chart.umd.min.js, leaflet-src.js, the
+             unbundled swiper modules), so they were 4.93 MB of the WAR that no browser could
+             ever ask for. Excluded wholesale here and re-added below, so a newly vendored map
+             stays out until someone establishes it is actually reachable (issue 1862). -->
+        <exclude name="**/*.map"/>
+      </fileset>
+      <!-- The five a served file genuinely declares. Kept in a second fileset because Ant
+           gives <exclude> precedence over <include> within one, so they cannot be re-included
+           into the set above. tools/check-source-maps.py fails the build if this list drifts
+           from what the WAR actually references, in either direction. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/foundation-6.8.1/foundation.min.js.map"/>
+        <include name="javascript/leaflet-1.9.4/leaflet.js.map"/>
+        <include name="javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js.map"/>
+        <include name="javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js.map"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js.map"/>
       </fileset>
     </copy>
     <!-- META-INF context config (e.g. the SameSite CookieProcessor) -->
@@ -433,12 +451,30 @@
              directory. foundation.min.css stays in the
              repository because tools/route-foundation-tokens.py reads it to generate
              the tokens file, but it reads it from src/, so it does not need to ship.
-             NOTE: foundation.min.css.map is deliberately NOT excluded. The served
-             foundation.tokens.min.css still carries a sourceMappingURL pointing at
-             it, so dropping it here would 404 in devtools. -->
+             foundation.min.css.map now goes too: since issue 1860 the generator strips the
+             sourceMappingURL it used to copy through, so the served tokens file no longer
+             claims a map that does not describe it, and nothing packaged references it. -->
         <exclude name="css/foundation-6.8.1/foundation.css"/>
         <exclude name="css/foundation-6.8.1/foundation.css.map"/>
         <exclude name="css/foundation-6.8.1/foundation.min.css"/>
+        <!-- Source maps are reachable only when a file that is ITSELF served declares one.
+             53 of the 58 in the tree are not: they belong to vendor originals the pages never
+             load (chart.umd.js when the pages load chart.umd.min.js, leaflet-src.js, the
+             unbundled swiper modules), so they were 4.93 MB of the WAR that no browser could
+             ever ask for. Excluded wholesale here and re-added below, so a newly vendored map
+             stays out until someone establishes it is actually reachable (issue 1862). -->
+        <exclude name="**/*.map"/>
+      </fileset>
+      <!-- The five a served file genuinely declares. Kept in a second fileset because Ant
+           gives <exclude> precedence over <include> within one, so they cannot be re-included
+           into the set above. tools/check-source-maps.py fails the build if this list drifts
+           from what the WAR actually references, in either direction. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/foundation-6.8.1/foundation.min.js.map"/>
+        <include name="javascript/leaflet-1.9.4/leaflet.js.map"/>
+        <include name="javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js.map"/>
+        <include name="javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js.map"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js.map"/>
       </fileset>
     </copy>
     <!-- Prepare the JSPs-->

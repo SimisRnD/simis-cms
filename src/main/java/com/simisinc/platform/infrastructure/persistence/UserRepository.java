@@ -144,6 +144,22 @@ public class UserRepository {
         UserRepository::buildRecord);
   }
 
+  /**
+   * The user holding a still-valid account token, or null.
+   *
+   * <p>A row with no expiry is no longer accepted. The predicate used to read
+   * {@code account_token_expires IS NULL OR account_token_expires > NOW()}, which was correct only
+   * while rows written before UPGRADE_20260904.1400 still had no expiry -- that arm is what made
+   * pre-migration tokens valid forever, which is the defect the expiry work set out to close. The
+   * backfill dated every outstanding token and cleared the leftovers on already-validated accounts,
+   * so nothing legitimate relies on the arm any more and keeping it would leave the original hole
+   * open to any row that reached this state afterwards.
+   *
+   * <p>Failing closed matters more than the tidiness: a token with no expiry is a credential with no
+   * lifetime, and treating one as valid is the more dangerous of the two possible mistakes. An
+   * account whose link is refused this way is not stuck -- the admin screen shows the link state and
+   * can issue a new one (#1838, #1841).
+   */
   public static User findByAccountToken(String token) {
     if (StringUtils.isBlank(token)) {
       return null;
@@ -152,7 +168,7 @@ public class UserRepository {
         TABLE_NAME,
         new SqlUtils()
             .add("account_token = ?", token)
-            .add("(account_token_expires IS NULL OR account_token_expires > NOW())"),
+            .add("account_token_expires > NOW()"),
         UserRepository::buildRecord);
   }
 
@@ -172,8 +188,7 @@ public class UserRepository {
         TABLE_NAME,
         new SqlUtils()
             .add("account_token = ?", token)
-            .add("account_token_expires IS NOT NULL")
-            .add("account_token_expires <= NOW()"),
+            .add("(account_token_expires IS NULL OR account_token_expires <= NOW())"),
         UserRepository::buildRecord);
   }
 

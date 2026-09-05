@@ -309,7 +309,7 @@ public class PageServlet extends HttpServlet {
 
       if (!pagePath.startsWith("/assets")) {
         // Apply caching strategy: public pages cached, authenticated pages not cached
-        CacheStrategy.setCacheHeaders(request, response, null);
+        CacheStrategy.setNoCache(response);
       }
 
       // Determine if this is a JSON service (shares similarities as a page)

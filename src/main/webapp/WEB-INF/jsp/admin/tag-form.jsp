@@ -33,7 +33,7 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Name
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${tag.name}"/>">
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${tag.name}"/>">
   </label>
   <div class="button-container">
     <input type="submit" class="button radius primary" value="Save" />

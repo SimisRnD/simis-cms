@@ -268,6 +268,53 @@ class UserRepositoryTest {
   }
 
   @Test
+  void anUndatedTokenIsNoLongerAcceptedAsValid() {
+    // The predicate used to read "account_token_expires IS NULL OR account_token_expires > NOW()".
+    // That IS NULL arm is what made every pre-migration token valid forever, which is the defect the
+    // expiry work set out to close. Asserted on the generated clause rather than a round trip
+    // because the arm's absence IS the security property: a token with no expiry is a credential
+    // with no lifetime, and accepting one is the more dangerous of the two possible mistakes.
+    ArgumentCaptor<SqlUtils> where = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(() -> DB.selectRecordFrom(anyString(), where.capture(), any())).thenReturn(null);
+
+      UserRepository.findByAccountToken("some-token");
+
+      String clause = clauseOf(where.getValue());
+      assertTrue(clause.contains("account_token_expires > NOW()"),
+          "a valid token must be required to carry a future expiry: " + clause);
+      assertFalse(clause.contains("IS NULL"),
+          "an undated token must not be treated as valid: " + clause);
+    }
+  }
+
+  @Test
+  void anUndatedTokenReadsAsExpiredRatherThanMissing() {
+    // The two lookups have to stay exhaustive. If "valid" requires a future expiry while "expired"
+    // requires a non-null one, a row with no expiry matches neither -- and the admin screen shows
+    // nothing at all for an account that plainly has a token, which is the state #1838 exists to
+    // display.
+    ArgumentCaptor<SqlUtils> where = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(() -> DB.selectRecordFrom(anyString(), where.capture(), any())).thenReturn(null);
+
+      UserRepository.findExpiredByAccountToken("some-token");
+
+      String clause = clauseOf(where.getValue());
+      assertTrue(clause.contains("IS NULL"),
+          "a token with no expiry has to report as expired, not vanish: " + clause);
+    }
+  }
+
+  private static String clauseOf(SqlUtils sqlUtils) {
+    StringBuilder sb = new StringBuilder();
+    for (com.simisinc.platform.infrastructure.database.SqlValue v : sqlUtils.getValues()) {
+      sb.append(' ').append(v.getFieldOrClause());
+    }
+    return sb.toString();
+  }
+
+  @Test
   void addMintsAnActivationTokenWithAnExpiry() throws Exception {
     // add() used to write account_token with no account_token_expires. The column has no DEFAULT,
     // and findByAccountToken treats a missing expiry as valid indefinitely, so every activation

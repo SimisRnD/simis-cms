@@ -47,3 +47,11 @@ jobs:
 
       - name: Fail if a class is referenced but missing from the WAR
         run: python3 tools/check-war-completeness.py --war target/simis-cms.war --strict
+
+      # Same idea one layer out: the WAR should carry the source maps a served file declares,
+      # and only those. 53 maps belonging to vendor originals no page loads were shipping as
+      # 4.93 MB nobody could ever fetch (issues 1860, 1862), and the fix leaves build.xml with a
+      # hand-kept list of the survivors. This checks that list against the artifact in both
+      # directions, so it cannot rot back.
+      - name: Fail if the WAR's source maps and their declarations disagree
+        run: python3 tools/check-source-maps.py --war target/simis-cms.war --root .
