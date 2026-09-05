@@ -1558,11 +1558,15 @@
           <days>7</days>
           <limit>20</limit>
           <options>
+            <!-- Ascending, shortest first. Every other tabbed report on the admin pages reads this
+                 way (7d/30d/90d, 6m/12m/24m, 30d/90d/180d); this one had Today stranded on the far
+                 right. Order is presentation only: SiteStatsWidget sets currentValue from the
+                 configured interval, so the tab highlighted on load is still <days>7</days>. -->
+            <option name="Today" value="12h" />
             <option name="7 Days" value="7d" />
             <option name="2 Weeks" value="2w" />
             <option name="1 Month" value="1m" />
             <option name="6 Months" value="6m" />
-            <option name="Today" value="12h" />
           </options>
         </widget>
       </column>
@@ -1608,6 +1612,41 @@
           <report>referrals</report>
           <days>30</days>
           <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[
+            <h2 class="platform-dashboard-section-label">Downloads</h2>
+            <p>Which files visitors are actually taking away, counted per download rather than per
+            page view. Two things to know about the numbers. <strong>Counting started when this
+            feature was installed</strong> -- downloads before that were only ever kept as a
+            running total per file, with no dates attached, so they cannot appear in any window
+            here; the lifetime total is still on each file in <strong>Files and Folders</strong>.
+            And a file is listed by its <em>current</em> name, so renaming one keeps its history
+            together, while deleting a file removes it from this table entirely.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-download</icon>
+          <title>Top Downloads</title>
+          <report>file-downloads</report>
+          <label>File</label>
+          <value>Downloads</value>
+          <days>7</days>
+          <limit>20</limit>
+          <options>
+            <option name="Today" value="12h" />
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="6 Months" value="6m" />
+          </options>
         </widget>
       </column>
     </section>
