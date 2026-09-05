@@ -55,3 +55,11 @@ jobs:
       # directions, so it cannot rot back.
       - name: Fail if the WAR's source maps and their declarations disagree
         run: python3 tools/check-source-maps.py --war target/simis-cms.war --root .
+
+      # And one layer out again: the maps check answers "is this .map reachable?", not "is the
+      # asset itself reachable, and is every asset a page links actually here?". Nothing checked
+      # either -- check-war-completeness.py above covers Java classes only -- which is how 17.8 MB
+      # of vendor builds no page loads came to ship, and how two <link> tags pointing at files
+      # that do not exist went unnoticed (issue 1862).
+      - name: Fail if the WAR ships an unreachable vendor build or drops a referenced asset
+        run: python3 tools/check-vendor-builds.py --war target/simis-cms.war --root .

@@ -21,7 +21,6 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/codemirror.css">
-<link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/theme/one-dark.css">
   <script src="${ctx}/javascript/codemirror-5.65.14/codemirror.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/xml-fold.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/closetag.js"></script>
@@ -73,7 +72,6 @@
       // Hook up the editor to the textarea
       var pageXml = document.getElementById("pageXml");
       var codeMirror = CodeMirror.fromTextArea(pageXml, {
-        theme: 'one-dark',
         lineNumbers: true,
         lineWrapping: true,
         tabSize: 2,

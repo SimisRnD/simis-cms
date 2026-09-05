@@ -81,7 +81,6 @@
       <small class="help-text"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
     </div>
   </div>
-  <link rel="stylesheet" href="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.css" />
   <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
   <script nonce="${cspNonce}">
     $(function () {
