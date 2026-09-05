@@ -2509,6 +2509,53 @@ div.item-image-large img {
   line-height: 1.0;
 }
 
+/* The event-block left rule is a timeline for the calendar LIST, threading many events under a
+   month heading. On the single-event page it is a line running past one item to nowhere, so the
+   detail view drops it and reclaims the indent the rule was holding. The list keeps it. */
+.platform-calendar-details-container .platform-calendar-event-block {
+  border-left: 0;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+/* Actions on one row rather than stacked. wrap keeps them readable on a narrow screen, and the
+   gap replaces the inline margin the Add-to-Calendar control used to carry. align-items keeps
+   buttons of differing heights on a shared baseline. */
+.platform-calendar-details-container .platform-calendar-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+}
+
+.platform-calendar-details-container .platform-calendar-event-actions .platform-calendar-event-buttons,
+.platform-calendar-details-container .platform-calendar-event-actions .add-to-calendar {
+  margin: 0;
+}
+
+/* The leading spacer icons exist to align text with the icon-prefixed lines above (date,
+   location). Inside a flex row they become stray gaps, so they are dropped here only. */
+.platform-calendar-details-container .platform-calendar-event-actions > .platform-calendar-event-buttons > .fa-fw:first-child {
+  display: none;
+}
+
+/* Foundation gives .button a 1rem bottom margin. Inside this flex row that margin is counted in
+   the item's height, so the buttons block measured 57px against the Add-to-Calendar control's
+   72px and align-items centred two different boxes -- the buttons sat visibly low. The row's own
+   gap provides the spacing instead. */
+.platform-calendar-details-container .platform-calendar-event-actions .button {
+  margin-bottom: 0;
+}
+
+/* Tokens rather than the hardcoded #cccccc this rule carried, so the summary follows the theme
+   and the contrast gate can see it like every other surface. */
+.platform-calendar-details-container .platform-calendar-event-summary {
+  border-color: var(--sc-border, #ddd8cf);
+  border-radius: var(--sc-radius-md, 4px);
+  margin-left: 0;
+}
+
 .platform-calendar-details-container .platform-calendar-event-return {
   margin-top: 12px;
 }

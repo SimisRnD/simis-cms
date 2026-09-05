@@ -44,12 +44,10 @@
   <c:set var="endTime" scope="request">${date:format(calendarEvent.endDate, "h:mm a")}</c:set>
   <c:set var="thisMonth" scope="request">${date:format(calendarEvent.startDate, "MMMM yyyy")}</c:set>
   <c:set var="thisDay" scope="request">${date:format(calendarEvent.startDate, "MMMM d, yyyy")}</c:set>
-  <%-- Show the month header--%>
-  <div class="platform-calendar-month text-center"><h2><c:out value="${thisDay}" /></h2></div>
-  <%-- Show the day --%>
-  <div class="platform-calendar-month-separator">
-    <span class="platform-calendar-month-separator-label"><c:out value="${thisDay}" /></span>
-  </div>
+  <%-- No month header or day separator here. Both belong to the calendar LIST, where they group
+       many events under a heading; on a page showing one event there is nothing to group, and they
+       printed the same date twice more directly above the event's own date line. The list views
+       (upcoming-events.jsp, calendar-search-results.jsp) still use them. --%>
   <div class="platform-calendar-event-block">
     <h1><c:out value="${calendarEvent.title}" /></h1>
     <c:choose>
@@ -106,81 +104,85 @@
     <c:if test="${!empty calendarEvent.location}">
       <p class="platform-calendar-event-location"><i class="fa fa-map-marker fa-fw"></i> <c:out value="${calendarEvent.location}" /></p>
     </c:if>
-    <c:if test="${!empty calendarEvent.tagsList}">
-      <div class="cell auto">
-        <c:forEach items="${calendarEvent.tagsList}" var="tag">
-          <span class="label secondary"><c:out value="${tag}"/></span>
-        </c:forEach>
-      </div>
-    </c:if>
-    <div class="add-to-calendar" style="margin-left: 24px">
-      <span class="icon">far fa-calendar-plus</span>
-      <span class="timezone"><c:out value="${timezone}"/></span>
-      <c:choose>
-        <c:when test="${calendarEvent.allDay}">
-          <span class="allday">true</span>
-          <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy")}</span>
-          <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy")}</span>
-          <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd")}</span>
-          <span class="outlookEnd">${date:format(date:adjustDays(calendarEvent.endDate, 1), "yyyy-MM-dd")}</span>
-        </c:when>
-        <c:otherwise>
-          <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy hh:mm a")}</span>
-          <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy hh:mm a")}</span>
-          <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
-          <span class="outlookEnd">${date:format(calendarEvent.endDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
-        </c:otherwise>
-      </c:choose>
-      <span class="title"><c:out value="${calendarEvent.title}" /></span>
-      <c:if test="${!empty calendarEvent.summary}">
-        <span class="description"><c:out value="${calendarEvent.summary}" /><c:if test="${!empty calendarEvent.detailsUrl}">
-
-<c:out value="${calendarEvent.detailsUrl}" /></c:if><c:if test="${!empty calendarEvent.signUpUrl}">
-
-<c:out value="${calendarEvent.signUpUrl}" /></c:if></span>
-      </c:if>
-      <c:if test="${!empty calendarEvent.location}">
-        <span class="location"><c:out value="${calendarEvent.location}" /></span>
-      </c:if>
-    </div>
+    <%-- Tags are not shown to visitors. They render as plain <span>s, not links, and no
+         tag-filtered calendar view exists to link to -- so "tradeshow" and "2026" were editorial
+         metadata on display with nothing to do, and "2026" repeated the date directly above it.
+         They remain on the event in the admin, where they organise the calendar. If a filtered
+         view is ever built, this is the place to bring them back as links. --%>
     <c:if test="${!empty calendarEvent.summary}">
       <p class="platform-calendar-event-summary"><c:out value="${calendarEvent.summary}" /></p>
     </c:if>
-    <c:if test="${!empty calendarEvent.detailsUrl || !empty calendarEvent.signUpUrl || !empty calendarEvent.videoUrl}">
-      <p class="platform-calendar-event-buttons">
-        <i class="fa fa-fw"></i>
-        <c:if test="${!empty calendarEvent.videoUrl}">
-          <c:choose>
-            <c:when test="${fn:startsWith(calendarEvent.videoUrl, 'http://') || fn:startsWith(calendarEvent.videoUrl, 'https://')}">
-              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.videoUrl}" />">Join Meeting</a>
-            </c:when>
-            <c:otherwise>
-              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.videoUrl}" />">Join Meeting</a>
-            </c:otherwise>
-          </c:choose>
+    <%-- Actions grouped in one row. The Add-to-Calendar control and the link buttons were
+         separate blocks with the summary between them, so they stacked down the page and the
+         first carried an inline margin to fake alignment. Flexed here instead, which also
+         wraps them cleanly on a narrow screen. --%>
+    <div class="platform-calendar-event-actions">
+      <div class="add-to-calendar">
+        <span class="icon">far fa-calendar-plus</span>
+        <span class="timezone"><c:out value="${timezone}"/></span>
+        <c:choose>
+          <c:when test="${calendarEvent.allDay}">
+            <span class="allday">true</span>
+            <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy")}</span>
+            <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy")}</span>
+            <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd")}</span>
+            <span class="outlookEnd">${date:format(date:adjustDays(calendarEvent.endDate, 1), "yyyy-MM-dd")}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy hh:mm a")}</span>
+            <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy hh:mm a")}</span>
+            <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
+            <span class="outlookEnd">${date:format(calendarEvent.endDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
+          </c:otherwise>
+        </c:choose>
+        <span class="title"><c:out value="${calendarEvent.title}" /></span>
+        <c:if test="${!empty calendarEvent.summary}">
+          <span class="description"><c:out value="${calendarEvent.summary}" /><c:if test="${!empty calendarEvent.detailsUrl}">
+  
+  <c:out value="${calendarEvent.detailsUrl}" /></c:if><c:if test="${!empty calendarEvent.signUpUrl}">
+  
+  <c:out value="${calendarEvent.signUpUrl}" /></c:if></span>
         </c:if>
-        <c:if test="${!empty calendarEvent.detailsUrl}">
-          <c:choose>
-            <c:when test="${fn:startsWith(calendarEvent.detailsUrl, 'http://') || fn:startsWith(calendarEvent.detailsUrl, 'https://')}">
-              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.detailsUrl}" />">Learn More</a>
-            </c:when>
-            <c:otherwise>
-              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.detailsUrl}" />">View Details</a>
-            </c:otherwise>
-          </c:choose>
+        <c:if test="${!empty calendarEvent.location}">
+          <span class="location"><c:out value="${calendarEvent.location}" /></span>
         </c:if>
-        <c:if test="${!empty calendarEvent.signUpUrl}">
-          <c:choose>
-            <c:when test="${fn:startsWith(calendarEvent.signUpUrl, 'http://') || fn:startsWith(calendarEvent.signUpUrl, 'https://')}">
-              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.signUpUrl}" />">Sign Up Page</a>
-            </c:when>
-            <c:otherwise>
-              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.signUpUrl}" />">Sign Up Page</a>
-            </c:otherwise>
-          </c:choose>
-        </c:if>
-      </p>
-    </c:if>
+      </div>
+      <c:if test="${!empty calendarEvent.detailsUrl || !empty calendarEvent.signUpUrl || !empty calendarEvent.videoUrl}">
+        <p class="platform-calendar-event-buttons">
+          <i class="fa fa-fw"></i>
+          <c:if test="${!empty calendarEvent.videoUrl}">
+            <c:choose>
+              <c:when test="${fn:startsWith(calendarEvent.videoUrl, 'http://') || fn:startsWith(calendarEvent.videoUrl, 'https://')}">
+                <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.videoUrl}" />">Join Meeting</a>
+              </c:when>
+              <c:otherwise>
+                <a class="button primary" href="<c:out value="${ctx}${calendarEvent.videoUrl}" />">Join Meeting</a>
+              </c:otherwise>
+            </c:choose>
+          </c:if>
+          <c:if test="${!empty calendarEvent.detailsUrl}">
+            <c:choose>
+              <c:when test="${fn:startsWith(calendarEvent.detailsUrl, 'http://') || fn:startsWith(calendarEvent.detailsUrl, 'https://')}">
+                <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.detailsUrl}" />">Learn More</a>
+              </c:when>
+              <c:otherwise>
+                <a class="button primary" href="<c:out value="${ctx}${calendarEvent.detailsUrl}" />">View Details</a>
+              </c:otherwise>
+            </c:choose>
+          </c:if>
+          <c:if test="${!empty calendarEvent.signUpUrl}">
+            <c:choose>
+              <c:when test="${fn:startsWith(calendarEvent.signUpUrl, 'http://') || fn:startsWith(calendarEvent.signUpUrl, 'https://')}">
+                <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.signUpUrl}" />">Sign Up Page</a>
+              </c:when>
+              <c:otherwise>
+                <a class="button primary" href="<c:out value="${ctx}${calendarEvent.signUpUrl}" />">Sign Up Page</a>
+              </c:otherwise>
+            </c:choose>
+          </c:if>
+        </p>
+      </c:if>
+    </div>
     <c:choose>
       <c:when test="${!empty returnPage}">
         <p class="platform-calendar-event-return">
