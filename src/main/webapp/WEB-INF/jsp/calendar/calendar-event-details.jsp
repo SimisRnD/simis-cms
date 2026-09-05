@@ -25,8 +25,6 @@
 <jsp:useBean id="calendar" class="com.simisinc.platform.domain.model.cms.Calendar" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
 <%@include file="../page_messages.jspf" %>
-<script src="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
-<link rel="stylesheet" id="add-to-calendar-css" href="${ctx}/javascript/add-to-calendar-0.1.0/add-to-calendar.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <div class="platform-calendar-details-container">
 <c:if test="${!empty title}">
   <div class="platform-calendar-title text-center">
@@ -117,36 +115,28 @@
          first carried an inline margin to fake alignment. Flexed here instead, which also
          wraps them cleanly on a narrow screen. --%>
     <div class="platform-calendar-event-actions">
-      <div class="add-to-calendar">
-        <span class="icon">far fa-calendar-plus</span>
-        <span class="timezone"><c:out value="${timezone}"/></span>
+      <%-- The Add-to-Calendar control was removed, not restyled. The vendored library builds its
+           own button with innerHTML and puts an inline onclick on it:
+             result.innerHTML = '<button ... onclick="return doAddToCalenderClick(...)">'
+           PageServlet sends script-src 'self' 'nonce-...' with no 'unsafe-inline', so the browser
+           refuses to run that attribute and the button did nothing on any deployment. Verified on
+           the live site: doAddToCalenderClick is defined, the dropdown markup is present with a
+           valid .ics data URL inside it, and clicking the button leaves the dropdown display:none.
+           This is the issue #1188 class of dead control, and tools/check-inline-handlers.py cannot
+           see it -- that gate reads JSPs, and this handler is injected from JavaScript at runtime,
+           which its own docstring records as out of scope.
+           An optional action link takes its place, so a site can point visitors somewhere useful
+           from the event page. Unset by default: no deployment gains a button it did not ask for. --%>
+      <c:if test="${!empty actionUrl}">
         <c:choose>
-          <c:when test="${calendarEvent.allDay}">
-            <span class="allday">true</span>
-            <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy")}</span>
-            <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy")}</span>
-            <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd")}</span>
-            <span class="outlookEnd">${date:format(date:adjustDays(calendarEvent.endDate, 1), "yyyy-MM-dd")}</span>
+          <c:when test="${fn:startsWith(actionUrl, 'http://') || fn:startsWith(actionUrl, 'https://')}">
+            <a class="button primary" target="_blank" rel="noopener" href="<c:out value="${actionUrl}"/>"><c:out value="${empty actionLabel ? 'View all events' : actionLabel}"/></a>
           </c:when>
           <c:otherwise>
-            <span class="start">${date:format(calendarEvent.startDate, "MM/dd/yyyy hh:mm a")}</span>
-            <span class="end">${date:format(calendarEvent.endDate, "MM/dd/yyyy hh:mm a")}</span>
-            <span class="outlookStart">${date:format(calendarEvent.startDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
-            <span class="outlookEnd">${date:format(calendarEvent.endDate, "yyyy-MM-dd'T'HH:mm:00XXX")}</span>
+            <a class="button primary" href="<c:out value="${ctx}${actionUrl}"/>"><c:out value="${empty actionLabel ? 'View all events' : actionLabel}"/></a>
           </c:otherwise>
         </c:choose>
-        <span class="title"><c:out value="${calendarEvent.title}" /></span>
-        <c:if test="${!empty calendarEvent.summary}">
-          <span class="description"><c:out value="${calendarEvent.summary}" /><c:if test="${!empty calendarEvent.detailsUrl}">
-  
-  <c:out value="${calendarEvent.detailsUrl}" /></c:if><c:if test="${!empty calendarEvent.signUpUrl}">
-  
-  <c:out value="${calendarEvent.signUpUrl}" /></c:if></span>
-        </c:if>
-        <c:if test="${!empty calendarEvent.location}">
-          <span class="location"><c:out value="${calendarEvent.location}" /></span>
-        </c:if>
-      </div>
+      </c:if>
       <c:if test="${!empty calendarEvent.detailsUrl || !empty calendarEvent.signUpUrl || !empty calendarEvent.videoUrl}">
         <p class="platform-calendar-event-buttons">
           <i class="fa fa-fw"></i>

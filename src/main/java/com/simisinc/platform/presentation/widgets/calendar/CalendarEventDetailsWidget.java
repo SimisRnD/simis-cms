@@ -84,9 +84,16 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     context.getRequest().setAttribute("calendar", calendar);
     context.getRequest().setAttribute("calendarEvent", calendarEvent);
 
-    // Set Add-To-Calendar requirements
-    String timezone = LoadSitePropertyCommand.loadByName("site.timezone");
-    context.getRequest().setAttribute("timezone", timezone);
+    // An optional action link for the event page, replacing the Add-to-Calendar control that CSP
+    // made inert (see the JSP). Site properties rather than widget preferences, because
+    // /calendar-event{/event-unique-id} is a platform layout: WebPageXmlLayoutCommand checks the
+    // XML pages before it looks at a database page, so that layout always wins for this path and
+    // a site cannot override it to pass a preference. Site Settings can be edited by an admin.
+    // Both blank by default, in which case the JSP renders no button at all.
+    context.getRequest().setAttribute("actionUrl",
+        LoadSitePropertyCommand.loadByName("site.calendar.actionUrl"));
+    context.getRequest().setAttribute("actionLabel",
+        LoadSitePropertyCommand.loadByName("site.calendar.actionLabel"));
 
     // Determine the view
     context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
