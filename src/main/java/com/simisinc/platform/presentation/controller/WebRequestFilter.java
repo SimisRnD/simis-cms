@@ -953,7 +953,15 @@ public class WebRequestFilter implements Filter {
     // /images-of-our-team, /css-tutorial-2026, /javascript-basics) from the IP-block check
     // entirely -- a full, unmitigated bypass, since WebRequestFilter is the only place
     // BlockedIPListCommand.passesCheck() is called.
-    return isPathOrPrefix(resource, "/favicon") ||
+    //
+    // /favicon.ico is matched exactly rather than as a prefix. It is a single file at the site
+    // root, not a directory, so there is no /favicon/ tree to cover -- and an exact match cannot
+    // be the bypass the anchoring above exists to prevent. This entry used to read "/favicon",
+    // which an earlier bare startsWith did match /favicon.ico with; anchoring the prefixes left it
+    // matching only a "/favicon" path that no mapping serves, so the real request stopped being
+    // exempt and began falling through to the full page pipeline. See web.xml, which maps
+    // /favicon.ico to the default servlet.
+    return resource.equals("/favicon.ico") ||
         isPathOrPrefix(resource, "/css") ||
         isPathOrPrefix(resource, "/fonts") ||
         isPathOrPrefix(resource, "/html") ||

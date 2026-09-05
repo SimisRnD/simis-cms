@@ -134,7 +134,13 @@
   <!-- Mappings -->
   <servlet-mapping>
     <servlet-name>default</servlet-name>
-    <!--<url-pattern>/favicon.*</url-pattern>-->
+    <!-- The path every browser asks for on its own, whether or not the page declares a
+         rel="icon" link. PageServlet is mapped to "/" and so answers anything unmapped, which
+         made this render a 404 page for an icon this application already ships. An exact-match
+         pattern, not the "/favicon.*" that used to sit here commented out: the servlet spec knows
+         only exact paths, "/prefix/*" and "*.ext", so "/favicon.*" was never a wildcard. It would
+         have matched a literal path of that name and nothing else. -->
+    <url-pattern>/favicon.ico</url-pattern>
     <!-- For Letsencrypt.org -->
     <url-pattern>/.well-known/acme-challenge/*</url-pattern>
     <!-- For BingBot Webmaster -->

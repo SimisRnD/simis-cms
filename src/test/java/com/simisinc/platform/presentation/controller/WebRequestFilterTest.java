@@ -939,6 +939,49 @@ class WebRequestFilterTest {
     }
   }
 
+  @Test
+  void theRootFaviconIsServedAsABrowserResourceRatherThanRoutedAsAPage() throws Exception {
+    // /favicon.ico is the one path a browser fetches on its own initiative, with no page having
+    // linked it -- from a bookmark, a new-tab tile, or an address-bar visit. PageServlet is mapped
+    // to "/" and therefore answers anything web.xml does not map, so before this fix the request
+    // ran the whole page pipeline: it minted an HTTP session and a visitor token, then rendered a
+    // 404 page in place of an icon this application already ships. Exempting it here is what lets
+    // it short-circuit to the default servlet the way every other static asset does.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      // Blocked for every resource, so reaching the chain can only be the browser-resource
+      // exemption and not a permissive stub -- the same construction as the CSS case above
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/favicon.ico"), response, chain);
+
+      verify(chain).doFilter(any(), any());
+      verify(response, never()).sendError(HttpServletResponse.SC_NOT_FOUND);
+    }
+  }
+
+  @Test
+  void onlyTheExactRootFaviconPathIsExemptAndNotSlugsAroundIt() throws Exception {
+    // The favicon entry is an equality check, not a prefix, so it cannot become the bypass the
+    // anchored prefixes above exist to prevent. "/favicon" is included deliberately: it is what
+    // this entry used to say, and nothing serves it -- a page could legitimately claim that slug,
+    // and it must route as a page rather than skipping the IP-block check.
+    for (String resource : new String[] { "/favicon", "/favicon.ico-generator", "/favicon.icon",
+        "/favicon.png", "/favicons/site.ico" }) {
+      assertBlockedIpIsRejectedFor(resource);
+    }
+  }
+
   private void assertBlockedIpIsRejectedFor(String resource) throws Exception {
     HttpServletResponse response = mock(HttpServletResponse.class);
     FilterChain chain = mock(FilterChain.class);
