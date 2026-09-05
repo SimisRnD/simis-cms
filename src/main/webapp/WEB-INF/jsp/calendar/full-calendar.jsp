@@ -244,6 +244,12 @@
               if (data.hasOwnProperty('location')) {
                 document.getElementById('location').value = data.location;
               }
+              // Blank each address field first: this modal is reused across events, so a field left
+              // holding the previous event's value would be submitted as this event's -- and the
+              // save overwrites unconditionally.
+              ['street', 'city', 'state', 'postalCode', 'country', 'imageUrl'].forEach(function (field) {
+                document.getElementById(field).value = data.hasOwnProperty(field) ? data[field] : '';
+              });
               if (data.hasOwnProperty('description')) {
                 document.getElementById('summary').value = data.description;
               }
@@ -437,8 +443,40 @@
       <label>Location
         <input type="text" placeholder="Name of Location" name="location" id="location" value="">
       </label>
+      <div class="grid-x grid-margin-x">
+        <div class="small-12 medium-6 cell">
+          <label>Street address
+            <input type="text" placeholder="Street" name="street" id="street" value="">
+          </label>
+        </div>
+        <div class="small-12 medium-6 cell">
+          <label>City
+            <input type="text" placeholder="City" name="city" id="city" value="">
+          </label>
+        </div>
+      </div>
+      <div class="grid-x grid-margin-x">
+        <div class="small-12 medium-4 cell">
+          <label>State / region
+            <input type="text" placeholder="State" name="state" id="state" value="">
+          </label>
+        </div>
+        <div class="small-12 medium-4 cell">
+          <label>Postal code
+            <input type="text" placeholder="Postal Code" name="postalCode" id="postalCode" value="">
+          </label>
+        </div>
+        <div class="small-12 medium-4 cell">
+          <label>Country
+            <input type="text" placeholder="Country" name="country" id="country" value="">
+          </label>
+        </div>
+      </div>
       <label>Summary
         <input type="text" placeholder="Event Summary" name="summary" id="summary" value="">
+      </label>
+      <label>Event image
+        <input type="text" placeholder="Local Image URL" name="imageUrl" id="imageUrl" value="">
       </label>
       <div class="grid-x grid-margin-x">
         <div class="medium-6 cell">

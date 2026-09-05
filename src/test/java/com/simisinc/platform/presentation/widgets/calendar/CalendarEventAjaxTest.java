@@ -66,6 +66,97 @@ class CalendarEventAjaxTest extends WidgetBase {
   }
 
   @Test
+  void jsonCarriesTheAddressSoTheEditModalCanRoundTripIt() {
+    // The calendar's own edit modal fills its fields from this feed and submits every one of them
+    // back. SaveCalendarEventCommand overwrites each field from the submitted bean, so a field the
+    // feed omits is a field that modal silently blanks the next time anyone saves the event.
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("I/ITSEC");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setLocation("Orange County Convention Center");
+    event.setStreet("9899 International Drive");
+    event.setCity("Orlando");
+    event.setState("FL");
+    event.setPostalCode("32819");
+    event.setCountry("US");
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"street\":\"9899 International Drive\""), "street: " + json);
+    Assertions.assertTrue(json.contains("\"city\":\"Orlando\""), "city: " + json);
+    Assertions.assertTrue(json.contains("\"state\":\"FL\""), "state: " + json);
+    Assertions.assertTrue(json.contains("\"postalCode\":\"32819\""), "postalCode: " + json);
+    Assertions.assertTrue(json.contains("\"country\":\"US\""), "country: " + json);
+  }
+
+  @Test
+  void jsonCarriesTheImageSoTheEditModalDoesNotBlankIt() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("I/ITSEC");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setImageUrl("/assets/img/20260101000000-1/iitsec.png");
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"imageUrl\":\"\\/assets\\/img\\/20260101000000-1\\/iitsec.png\""),
+        "imageUrl must be present: " + json);
+  }
+
+  @Test
+  void jsonOmitsTheAddressFieldsThatAreNotSet() {
+    // Omitted rather than emitted empty: the modal treats an absent key as "leave this field
+    // blank", and an event with no address should not ship five empty strings to every client.
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    for (String field : new String[] { "street", "city", "state", "postalCode", "country" }) {
+      Assertions.assertFalse(json.contains("\"" + field + "\""), field + " must be absent: " + json);
+    }
+  }
+
+  @Test
   void jsonOmitsVideoUrlWhenNotSet() {
     addQueryParameter(widgetContext, "id", "1");
 

@@ -100,6 +100,11 @@ public class CalendarEventAjax extends GenericWidget {
       if (calendarEvent.getSignUpUrl() != null) {
         sb.append("\"signUpUrl\":\"").append(JsonCommand.toJson(calendarEvent.getSignUpUrl())).append("\",");
       }
+      // Same round-trip reason as the address fields above: the edit modal submits every field it
+      // holds, and the save overwrites unconditionally, so a field missing here gets blanked.
+      if (StringUtils.isNotEmpty(calendarEvent.getImageUrl())) {
+        sb.append("\"imageUrl\":\"").append(JsonCommand.toJson(calendarEvent.getImageUrl())).append("\",");
+      }
       if (calendarEvent.getVideoUrl() != null) {
         sb.append("\"videoUrl\":\"").append(JsonCommand.toJson(calendarEvent.getVideoUrl())).append("\",");
       }
@@ -118,6 +123,24 @@ public class CalendarEventAjax extends GenericWidget {
       }
       if (StringUtils.isNotEmpty(calendarEvent.getLocation())) {
         sb.append("\"location\":\"").append(JsonCommand.toJson(calendarEvent.getLocation())).append("\",");
+      }
+      // The address fields the calendar's own edit modal round-trips. It has to send them back on
+      // save, because SaveCalendarEventCommand overwrites every field from the submitted bean --
+      // a field this feed omits is a field that modal blanks on the next save.
+      if (StringUtils.isNotEmpty(calendarEvent.getStreet())) {
+        sb.append("\"street\":\"").append(JsonCommand.toJson(calendarEvent.getStreet())).append("\",");
+      }
+      if (StringUtils.isNotEmpty(calendarEvent.getCity())) {
+        sb.append("\"city\":\"").append(JsonCommand.toJson(calendarEvent.getCity())).append("\",");
+      }
+      if (StringUtils.isNotEmpty(calendarEvent.getState())) {
+        sb.append("\"state\":\"").append(JsonCommand.toJson(calendarEvent.getState())).append("\",");
+      }
+      if (StringUtils.isNotEmpty(calendarEvent.getPostalCode())) {
+        sb.append("\"postalCode\":\"").append(JsonCommand.toJson(calendarEvent.getPostalCode())).append("\",");
+      }
+      if (StringUtils.isNotEmpty(calendarEvent.getCountry())) {
+        sb.append("\"country\":\"").append(JsonCommand.toJson(calendarEvent.getCountry())).append("\",");
       }
       sb.append("\"title\":\"").append(JsonCommand.toJson(calendarEvent.getTitle())).append("\"");
       sb.append("}");

@@ -114,6 +114,15 @@ public class SaveCalendarEventCommand {
     calendarEvent.setDetailsUrl(calendarEventBean.getDetailsUrl());
     calendarEvent.setSignUpUrl(calendarEventBean.getSignUpUrl());
     calendarEvent.setLocation(calendarEventBean.getLocation());
+    // The structured address behind that free-text venue name. StructuredDataCommand turns these
+    // into the schema.org PostalAddress an Event's location needs -- Search Console reports
+    // "Missing field address (in location)" for every event without them, and until now nothing
+    // could set them: no form field, no mapping here, and no column in the repository's insert.
+    calendarEvent.setStreet(calendarEventBean.getStreet());
+    calendarEvent.setCity(calendarEventBean.getCity());
+    calendarEvent.setState(calendarEventBean.getState());
+    calendarEvent.setPostalCode(calendarEventBean.getPostalCode());
+    calendarEvent.setCountry(calendarEventBean.getCountry());
     calendarEvent.setImageUrl(calendarEventBean.getImageUrl());
     calendarEvent.setVideoUrl(calendarEventBean.getVideoUrl());
     calendarEvent.setTagsList(calendarEventBean.getTagsList());

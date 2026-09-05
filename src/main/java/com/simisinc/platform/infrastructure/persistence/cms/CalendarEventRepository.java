@@ -56,6 +56,13 @@ public class CalendarEventRepository {
   // event save failing on a VARCHAR(255) overflow.
   private static int TAGS_LIST_MAX_LENGTH = 255;
 
+  // Every address column on this table is the same width, so one constant covers them all.
+  // Truncating beats the alternative: an over-length value reaches Postgres, the insert
+  // throws, and the form reports "a system error" for an entry that will fail identically
+  // every time (issue #1740).
+  // @column calendar_events.street
+  private static int ADDRESS_MAX_LENGTH = 100;
+
   // Package-private (not private) so CalendarEventRepositoryWhereClauseTest can exercise the built
   // SqlUtils/SqlValue output directly, mirroring ItemRepository.createSearchWhereStatement's visibility.
   static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
@@ -221,6 +228,11 @@ public class CalendarEventRepository {
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
+        .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
+        .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
+        .add("state", StringUtils.trimToNull(record.getState()), ADDRESS_MAX_LENGTH)
+        .add("postal_code", StringUtils.trimToNull(record.getPostalCode()), ADDRESS_MAX_LENGTH)
+        .add("country", StringUtils.trimToNull(record.getCountry()), ADDRESS_MAX_LENGTH)
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
         .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
@@ -249,6 +261,11 @@ public class CalendarEventRepository {
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
+        .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
+        .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
+        .add("state", StringUtils.trimToNull(record.getState()), ADDRESS_MAX_LENGTH)
+        .add("postal_code", StringUtils.trimToNull(record.getPostalCode()), ADDRESS_MAX_LENGTH)
+        .add("country", StringUtils.trimToNull(record.getCountry()), ADDRESS_MAX_LENGTH)
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
         .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
