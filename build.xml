@@ -281,6 +281,11 @@
     <copy todir="${target.dir}/${project}">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
+        <!-- Root-level, because that is the only place a browser looks for it; web.xml maps
+             /favicon.ico to the default servlet. This fileset is an explicit include list,
+             so a file added at the top of src/main/webapp does not ship unless it is named
+             here, in BOTH this target and the other one below. -->
+        <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
         <include name="images/**"/>
@@ -414,6 +419,11 @@
     <copy todir="${exploded.work.dir}" preservelastmodified="true">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
+        <!-- Root-level, because that is the only place a browser looks for it; web.xml maps
+             /favicon.ico to the default servlet. This fileset is an explicit include list,
+             so a file added at the top of src/main/webapp does not ship unless it is named
+             here, in BOTH this target and the packaging target above. -->
+        <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
         <include name="images/**"/>
