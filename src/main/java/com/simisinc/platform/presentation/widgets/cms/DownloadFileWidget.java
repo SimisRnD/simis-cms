@@ -32,6 +32,8 @@ import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.FileVersion;
+import com.simisinc.platform.domain.model.cms.FileDownload;
+import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileVersionSpecification;
@@ -140,6 +142,7 @@ public class DownloadFileWidget extends GenericWidget {
       if (url.startsWith("http://") || url.startsWith("https://")) {
         // Update the download counter
         FileItemRepository.incrementDownloadCount(record);
+        recordDownload(context, record, null);
         AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
             "folder_file", String.valueOf(record.getId()), record.getFilename(), "redirect to external URL");
         // Redirect to the URL
@@ -229,11 +232,38 @@ public class DownloadFileWidget extends GenericWidget {
 
     // Update the download counter
     FileItemRepository.incrementDownloadCount(record);
+    recordDownload(context, record, versionRecord);
     AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
         "folder_file", String.valueOf(record.getId()), filename, null);
 
     // Return success
     context.setHandledResponse(true);
     return context;
+  }
+
+  /**
+   * Records the download with a date on it, alongside the cumulative counter that has always been
+   * kept. The counter answers "most downloaded ever" and nothing else, because it carries no dates;
+   * these rows are what let the Content Analytics report ask the same question over a window.
+   *
+   * <p>Deliberately not fatal. A reporting write must never be the reason a file fails to deliver,
+   * so the repository swallows and logs its own errors and this returns regardless. Nor does it go
+   * through SaveWebPageHitCommand's queue: that exists because page hits arrive constantly, whereas
+   * a download is rare enough that the insert can sit beside the counter update already happening
+   * here.
+   */
+  private void recordDownload(WidgetContext context, FileItem record, FileVersion versionRecord) {
+    FileDownload fileDownload = new FileDownload();
+    fileDownload.setFileId(record.getId());
+    if (versionRecord != null) {
+      fileDownload.setVersionId(versionRecord.getId());
+    }
+    if (context.getUserSession() != null) {
+      fileDownload.setSessionId(context.getUserSession().getSessionId());
+      if (context.getUserSession().isLoggedIn()) {
+        fileDownload.setDownloadBy(context.getUserId());
+      }
+    }
+    FileDownloadRepository.save(fileDownload);
   }
 }
