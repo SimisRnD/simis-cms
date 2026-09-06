@@ -38,6 +38,7 @@ public class SitePropertySettingsPageCommand {
     PREFIX_TO_PAGE.put("social", "/admin/social-media-settings");
     PREFIX_TO_PAGE.put("elearning", "/admin/elearning-properties");
     PREFIX_TO_PAGE.put("llms", "/admin/llms-properties");
+    PREFIX_TO_PAGE.put("securitytxt", "/admin/security-txt-properties");
   }
 
   private SitePropertySettingsPageCommand() {
