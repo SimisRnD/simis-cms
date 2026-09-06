@@ -653,6 +653,17 @@
     </section>
   </page>
 
+  <page name="/admin/security-txt-properties" role="admin" title="Security Contact (security.txt) Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Security Contact (security.txt) Settings</title>
+          <prefix>securitytxt</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/csp-violations" role="admin" title="CSP Violations">
     <section>
       <column class="small-12 cell">
