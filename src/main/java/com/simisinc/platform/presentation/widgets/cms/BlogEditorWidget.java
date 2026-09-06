@@ -342,7 +342,13 @@ public class BlogEditorWidget extends GenericWidget {
     if (StringUtils.isNotBlank(returnPage)) {
       context.setRedirect(returnPage);
     } else {
-      context.setRedirect("/" + blogPost.getUniqueId());
+      // A blog post lives at /{blog}/{post} -- see BlogPost.getLink() and the sitemap/feed, which
+      // both build it that way. Redirecting to /{post} alone dropped the blog segment and landed
+      // the author on a 404 immediately after a successful save, which reads as the save having
+      // failed. Falls back to the site root rather than that 404 when the blog cannot be resolved.
+      Blog savedBlog = LoadBlogCommand.loadBlogById(blogPost.getBlogId());
+      context.setRedirect(
+          savedBlog != null ? "/" + savedBlog.getUniqueId() + "/" + blogPost.getUniqueId() : "/");
     }
     return context;
   }
