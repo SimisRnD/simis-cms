@@ -5,6 +5,31 @@
 # docker image ls
 # docker run -p 80:8080 --env-file=.env simis-cms:latest
 
+# Stage 1: explode the WAR.
+#
+# The exploded tree has to reach the runtime image as ONE layer that is already owned by the
+# runtime user. Extracting it in the runtime stage instead cost ~430 MB in every published
+# image, in two independent ways:
+#   - `COPY ./target/simis-cms.war /tmp/ROOT.war` wrote a ~120 MB layer, and the `rm` that
+#     followed could not reclaim it -- deleting a file in a later layer only masks it, so the
+#     WAR shipped inside every image forever despite never being read at runtime.
+#   - `chown -R ... /usr/local/tomcat/webapps` ran AFTER the tree existed. Changing ownership
+#     rewrites every file, and Docker stores a rewritten file as a new copy, so the entire
+#     exploded application was duplicated into a second ~310 MB layer.
+# Neither layer is shared between builds -- CI runners start with a cold layer cache, so every
+# RUN re-executes and produces fresh digests -- which multiplied both by every merge to main.
+# Measured across 12 consecutive builds, only the 7 pinned base layers (216 MB) deduplicated;
+# 625 MB was unique per build. Same image contents, roughly half the bytes.
+#
+# This uses the same pinned base as the runtime stage, so it pulls no additional image and
+# unpacks with the JDK's own `jar`.
+FROM tomcat:11.0-jdk21@sha256:133546e3740f0e17d2307d9b324de082062b009226a602111a422016f1e84173 AS warstage
+COPY ./target/simis-cms.war /tmp/ROOT.war
+RUN mkdir -p /warstage/ROOT \
+    && (cd /warstage/ROOT && jar xf /tmp/ROOT.war)
+
+# Stage 2: the runtime image.
+#
 # Tomcat 11 (Jakarta EE / jakarta.servlet). The application targets Servlet 6.1; it will not
 # run on the Tomcat 9 base this image used previously, which serves the javax.* namespace.
 FROM tomcat:11.0-jdk21@sha256:133546e3740f0e17d2307d9b324de082062b009226a602111a422016f1e84173
@@ -94,10 +119,12 @@ COPY ./docker/app/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 # boot -- so the app is exploded here, once, and server.xml sets unpackWARs="false". The
 # extracted tree is identical to the WAR's contents (precompiled JSPs included). This removes
 # the last startup write to webapps/ and lets that directory stay read-only.
-COPY ./target/simis-cms.war /tmp/ROOT.war
-RUN mkdir -p /usr/local/tomcat/webapps/ROOT \
-    && (cd /usr/local/tomcat/webapps/ROOT && jar xf /tmp/ROOT.war) \
-    && rm /tmp/ROOT.war
+#
+# The extraction runs in the `warstage` stage at the top of this file; the result is copied in
+# below the user-creation block. It has to land AFTER the runtime user exists so `COPY --chown`
+# can set ownership as the bytes are written -- a `chown -R` afterwards would rewrite every
+# file and duplicate the whole tree into another layer, which is exactly what this image used
+# to do.
 
 # [STIG] Run Tomcat as a non-root user. The stock image runs as root, which is a standing,
 # citable finding independent of any base-image choice. A fixed high UID/GID avoids collision
@@ -111,8 +138,14 @@ RUN mkdir -p /usr/local/tomcat/webapps/ROOT \
 #            lose the per-request audit trail this profile depends on.
 #   webapps/ (no longer a runtime write -- the WAR is pre-extracted above and unpackWARs is
 #            false, so webapps/ is read-only under the read-only root filesystem).
-#   /opt     (no longer a runtime write -- the App Insights agent's selfDiagnostics is routed to
-#            the console in applicationinsights.json, so nothing is written beside the jar).
+#   /opt     NOT chowned. This used to read `chown -R simis:simis /opt`, which was both wasteful
+#            and a hardening hole: JAVA_HOME is /opt/java/openjdk on this base, so the recursive
+#            chown rewrote all 295 MB of the JDK into its own image layer AND handed the
+#            application user ownership of /opt/java/openjdk/bin/java -- a process running as
+#            `simis` could rewrite the runtime it is executing, which is most of what USER simis
+#            is there to prevent. Nothing needs /opt itself writable: the App Insights agent's
+#            selfDiagnostics is routed to the console in applicationinsights.json, so nothing is
+#            written beside the jar. Only the two directories below are chowned.
 #   /opt/simis  CMS_PATH, the file store. Created here on purpose: docker seeds a NAMED volume
 #            from the image path, so creating it owned by the runtime user is what makes the
 #            mounted web-data volume writable. Without this the app boots and /healthz fails
@@ -173,13 +206,20 @@ RUN groupadd --gid ${APP_GID} simis \
     && mkdir -p /opt/simis /opt/jna /usr/local/tomcat/work /usr/local/tomcat/temp /usr/local/tomcat/logs \
                 /usr/local/tomcat/conf/Catalina/localhost \
     && chown -R simis:simis \
-         /opt \
+         /opt/simis \
+         /opt/jna \
          /usr/local/tomcat/work \
          /usr/local/tomcat/temp \
          /usr/local/tomcat/logs \
          /usr/local/tomcat/webapps \
          /usr/local/tomcat/conf/Catalina \
          /usr/local/tomcat/bin/setenv.sh
+
+# The exploded application, from the `warstage` stage at the top of this file. It lands last and
+# with --chown so the tree is written exactly once, already owned by the runtime user. That is
+# also why the chown -R above can stay cheap: at that point webapps/ is still empty, so it only
+# walks the small runtime directories.
+COPY --from=warstage --chown=simis:simis /warstage/ROOT /usr/local/tomcat/webapps/ROOT
 USER simis
 
 ENV CATALINA_OPTS="-javaagent:/opt/applicationinsights-agent.jar -XX:InitialRAMPercentage=10 -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XX:+ExitOnOutOfMemoryError"
