@@ -212,4 +212,94 @@ class StructuredDataCommandEventSchemaTest {
       assertTrue(lateOnTheFifteenth.toInstant().toString().startsWith("2026-09-16"));
     }
   }
+
+  // ---- organizer / performer / offers (optional credits, omitted while unset) ----
+
+  @Test
+  void computeEventOrganizerReturnsNullWithoutAName() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    assertNull(StructuredDataCommand.computeEventOrganizer(calendarEvent));
+    // A URL on its own is not a credit -- there is no one to name
+    calendarEvent.setOrganizerUrl("https://www.iitsec.org");
+    assertNull(StructuredDataCommand.computeEventOrganizer(calendarEvent));
+  }
+
+  @Test
+  void computeEventOrganizerNamesTheOrganizationAndItsPage() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setOrganizerName("NTSA");
+    calendarEvent.setOrganizerUrl("https://www.iitsec.org");
+    Map<String, Object> organizer = StructuredDataCommand.computeEventOrganizer(calendarEvent);
+    assertEquals("Organization", organizer.get("@type"));
+    assertEquals("NTSA", organizer.get("name"));
+    assertEquals("https://www.iitsec.org", organizer.get("url"));
+  }
+
+  @Test
+  void computeEventOrganizerOmitsTheUrlWhenOnlyANameIsKnown() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setOrganizerName("NTSA");
+    Map<String, Object> organizer = StructuredDataCommand.computeEventOrganizer(calendarEvent);
+    assertEquals("NTSA", organizer.get("name"));
+    assertFalse(organizer.containsKey("url"));
+  }
+
+  @Test
+  void computeEventPerformerReturnsNullWithoutANameAndIsTypedAsAPerson() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    assertNull(StructuredDataCommand.computeEventPerformer(calendarEvent));
+    calendarEvent.setPerformerName("Dr. Johnny Garcia");
+    Map<String, Object> performer = StructuredDataCommand.computeEventPerformer(calendarEvent);
+    assertEquals("Person", performer.get("@type"));
+    assertEquals("Dr. Johnny Garcia", performer.get("name"));
+  }
+
+  @Test
+  void computeEventOffersReturnsNullWithoutASignUpUrl() {
+    assertNull(StructuredDataCommand.computeEventOffers(event("I/ITSEC 2026", "i-itsec-2026"),
+        "https://example.org"));
+  }
+
+  @Test
+  void computeEventOffersCarriesOnlyTheUrlItCanSupport() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setSignUpUrl("https://www.iitsec.org/register");
+    Map<String, Object> offer = StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org");
+    assertEquals("Offer", offer.get("@type"));
+    assertEquals("https://www.iitsec.org/register", offer.get("url"));
+    // price/availability would each be an assertion this record cannot support
+    assertFalse(offer.containsKey("price"));
+    assertFalse(offer.containsKey("availability"));
+  }
+
+  @Test
+  void computeEventOffersMakesARelativeSignUpUrlAbsolute() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setSignUpUrl("/register");
+    Map<String, Object> offer = StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org");
+    assertEquals("https://example.org/register", offer.get("url"));
+  }
+
+  @Test
+  void computeEventSchemaOmitsAllThreeCreditsWhileTheyAreUnset() {
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(
+        renderInfoFor(event("I/ITSEC 2026", "i-itsec-2026")), "https://example.org");
+    assertFalse(schema.containsKey("organizer"));
+    assertFalse(schema.containsKey("performer"));
+    assertFalse(schema.containsKey("offers"));
+  }
+
+  @Test
+  void computeEventSchemaIncludesTheCreditsOnceTheyAreFilledIn() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setOrganizerName("NTSA");
+    calendarEvent.setPerformerName("Dr. Johnny Garcia");
+    calendarEvent.setSignUpUrl("https://www.iitsec.org/register");
+    Map<String, Object> schema = StructuredDataCommand.computeEventSchema(
+        renderInfoFor(calendarEvent), "https://example.org");
+    assertEquals("NTSA", ((Map<?, ?>) schema.get("organizer")).get("name"));
+    assertEquals("Dr. Johnny Garcia", ((Map<?, ?>) schema.get("performer")).get("name"));
+    assertEquals("https://www.iitsec.org/register", ((Map<?, ?>) schema.get("offers")).get("url"));
+  }
+
 }
