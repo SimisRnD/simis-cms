@@ -91,6 +91,14 @@ public class GenerateImageVariantsCommand {
   // resize.
   private static final Set<String> SUPPORTED_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
+  /**
+   * WebP encode quality for generated variants. Pinned rather than left to ImageMagick's default of
+   * 75, both so output is reproducible across ImageMagick versions and because this platform's
+   * images are frequently diagrams carrying small text, where 75 is visibly soft. Governs only the
+   * derived renditions; the original upload is never re-encoded.
+   */
+  private static final double VARIANT_WEBP_QUALITY = 82d;
+
   private GenerateImageVariantsCommand() {
     // Static utility, not instantiated
   }
@@ -169,6 +177,7 @@ public class GenerateImageVariantsCommand {
     if ("image/gif".equals(image.getFileType())) {
       op.layers("optimize");
     }
+    applyVariantQuality(op, image);
     op.addImage(variantPath.file().getAbsolutePath());
     convert.run(op);
 
@@ -243,21 +252,59 @@ public class GenerateImageVariantsCommand {
     if ("image/gif".equals(image.getFileType())) {
       op.layers("optimize");
     }
+    applyVariantQuality(op, image);
     op.addImage(variantPath.file().getAbsolutePath());
     convert.run(op);
 
     return finalizeVariant(image, variantType, variantPath);
   }
 
+  /**
+   * The format generated variants are encoded in, which is deliberately NOT the source's format.
+   *
+   * <p>Variants used to inherit the original's format, so they were only ever resized, never
+   * re-encoded -- and a PNG illustration stayed a PNG at every size. Measured on simisinc.com: the
+   * "large" variant of a PNG diagram was 1,002 KB and of another 1,612 KB, while the same tier
+   * generated from a WebP source was 98 KB. Those are the bytes a visitor actually downloads,
+   * because srcset picks a variant, not the original. An Ahrefs audit flagged 48 such images.
+   *
+   * <p>Both the file extension and the stored fileType come from here so they cannot disagree.
+   * ImageMagick picks its output encoder from the target extension while the servlet serves
+   * {@code variant.getFileType()}, so a mismatch would write one format and label it another --
+   * the same class of defect as issue #1445, where PNG data named ".jpg" was re-encoded to JPEG
+   * and every transparent pixel composited to black. WebP carries an alpha channel, so that
+   * particular trap does not apply here.
+   *
+   * <p>GIF is left alone. WebP can hold an animation, but the coalesce/optimize pair used above is
+   * tuned to GIF's frame model, and silently flattening an animation to one frame is a worse
+   * outcome than a larger file.
+   *
+   * <p>The original upload is never rewritten -- only these derived renditions -- so the lossless
+   * source remains available and is still the largest srcset candidate.
+   */
+  private static String variantFileTypeFor(Image image) {
+    if ("image/gif".equals(image.getFileType())) {
+      return image.getFileType();
+    }
+    return "image/webp";
+  }
+
+  /** Pins the encode quality when the variant is written as WebP; a no-op for GIF. */
+  private static void applyVariantQuality(IMOperation op, Image image) {
+    if ("image/webp".equals(variantFileTypeFor(image))) {
+      op.quality(VARIANT_WEBP_QUALITY);
+    }
+  }
+
   private static VariantPath resolveVariantPath(Image image, String variantType) {
-    // The variant's extension comes from the image's detected content type, never its filename.
+    // The variant's extension comes from variantFileTypeFor(), never the filename.
     // ImageMagick chooses its output encoder from the target file's extension, so a name that
     // misdescribes the contents makes it re-encode into the wrong format: PNG data named ".jpg"
     // is written back out as JPEG, and JPEG has no alpha channel, so every transparent pixel
     // composites to solid black (issue #1445). The original file is never rewritten, which is why
     // only the generated variants were affected. Falls back to the filename for a type with no
     // known extension -- SUPPORTED_MIME_TYPES already keeps those from reaching here.
-    String extension = DetectContentTypeCommand.imageExtensionFor(image.getFileType());
+    String extension = DetectContentTypeCommand.imageExtensionFor(variantFileTypeFor(image));
     if (extension == null) {
       extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(image.getFilename()));
     }
@@ -302,7 +349,7 @@ public class GenerateImageVariantsCommand {
     record.setVariantType(variantType);
     record.setFileServerPath(variantPath.relativePath());
     record.setFileLength(variantPath.file().length());
-    record.setFileType(image.getFileType());
+    record.setFileType(variantFileTypeFor(image));
     record.setWidth(dimension.width);
     record.setHeight(dimension.height);
     return ImageVariantRepository.save(record);
