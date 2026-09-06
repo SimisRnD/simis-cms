@@ -53,6 +53,35 @@ public class RegenerateImageVariantsCommand {
    * @param maxDimension that variant's target size
    * @return how many images were queued
    */
+  /**
+   * Queues every image whose variants are in a format the generator no longer produces.
+   *
+   * <p>Variants are now encoded as WebP rather than inheriting the original's format, but that
+   * governs only variants generated after it shipped. {@link #startBackfill} cannot reach the
+   * existing library: it selects images *missing* a rung, and these are not missing anything --
+   * their variants are present and merely stale. Without this, an established site keeps serving
+   * the multi-megabyte PNG renditions it already has, forever, and the admin's existing action
+   * truthfully reports that every image already has all of its sizes.
+   *
+   * <p>Both formats come from {@link GenerateImageVariantsCommand}'s own constants, so the
+   * population selected here is exactly the population that method would transcode.
+   *
+   * <p>Regenerating writes the new rendition at a new path (the extension changes) and updates the
+   * variant row to point at it. The superseded file is left on disk; nothing references it, and
+   * deleting files is not something a format migration should be doing on its own.
+   *
+   * @return how many images were queued
+   */
+  public static int startFormatBackfill() {
+    List<Long> imageIds = ImageRepository.findAllWithStaleVariantFormat(
+        GenerateImageVariantsCommand.VARIANT_FILE_TYPE,
+        GenerateImageVariantsCommand.VARIANT_EXEMPT_SOURCE_FILE_TYPE);
+    for (Long imageId : imageIds) {
+      BackgroundJobRequest.enqueue(new ImageVariantJob(imageId));
+    }
+    return imageIds.size();
+  }
+
   public static int startBackfill(String variantType, int maxDimension) {
     List<Long> imageIds = ImageRepository.findAllMissingVariant(variantType, maxDimension);
     for (Long imageId : imageIds) {
