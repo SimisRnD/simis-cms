@@ -750,6 +750,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-overview')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-overview"><i class="${font:far()} fa-magnifying-glass-chart fa-fw"></i> <span>SEO &amp; AI Visibility</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-sitemap')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-sitemap"><i class="${font:far()} fa-map fa-fw"></i> <span>SEO Sitemap</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/llms')}"> class="is-active"</c:if>><a href="${ctx}/admin/llms-properties"><i class="${font:far()} fa-file-lines fa-fw"></i> <span>LLM/AI Visibility (llms.txt)</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-txt')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-txt-properties"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Security Contact (security.txt)</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/robots')}"> class="is-active"</c:if>><a href="${ctx}/admin/robots-properties"><i class="${font:far()} fa-robot fa-fw"></i> <span>Robots &amp; Crawlers</span></a></li>
             </ul>
           </c:if>
