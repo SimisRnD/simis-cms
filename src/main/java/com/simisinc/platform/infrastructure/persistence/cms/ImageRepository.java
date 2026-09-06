@@ -236,6 +236,46 @@ public class ImageRepository {
     return ids;
   }
 
+  /**
+   * Images whose generated variants are in a format the generator no longer produces (issue #411
+   * follow-up).
+   *
+   * <p>{@link com.simisinc.platform.application.cms.GenerateImageVariantsCommand} now encodes
+   * variants as WebP rather than inheriting the original's format, but that only governs variants
+   * generated after it shipped. {@link #findAllMissingVariant} cannot pick these up: the variants
+   * are not missing, they are merely stale, so the existing backfill reports nothing to do and an
+   * established library keeps serving multi-megabyte PNG renditions forever.
+   *
+   * <p>Both formats are passed in rather than written into the SQL, so the rule lives in one place
+   * -- {@code GenerateImageVariantsCommand.variantFileTypeFor} -- and a future format change cannot
+   * leave this query selecting the wrong population.
+   *
+   * @param targetFileType the format variants should now be in
+   * @param exemptSourceFileType a source format the generator leaves in its own encoding, so its
+   *        variants are never stale
+   * @return image ids with at least one variant to regenerate
+   */
+  public static List<Long> findAllWithStaleVariantFormat(String targetFileType, String exemptSourceFileType) {
+    List<Long> ids = new ArrayList<>();
+    String sql = "SELECT DISTINCT i.image_id FROM " + TABLE_NAME + " i"
+        + " WHERE i.file_type <> ?"
+        + " AND EXISTS (SELECT 1 FROM image_variants v"
+        + " WHERE v.image_id = i.image_id AND v.file_type <> ?)";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setString(1, exemptSourceFileType);
+      pst.setString(2, targetFileType);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          ids.add(rs.getLong("image_id"));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return ids;
+  }
+
   public static List<Long> findAllUnhashed() {
     List<Long> ids = new ArrayList<>();
     String sql = "SELECT image_id FROM " + TABLE_NAME + " WHERE file_hash IS NULL";
