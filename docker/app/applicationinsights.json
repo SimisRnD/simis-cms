@@ -3,7 +3,13 @@
     "name": "simis-cms"
   },
   "sampling": {
-    "percentage": 100
+    "percentage": 100,
+    "overrides": [
+      {
+        "telemetryType": "dependency",
+        "percentage": 5
+      }
+    ]
   },
   "selfDiagnostics": {
     "level": "warn",
