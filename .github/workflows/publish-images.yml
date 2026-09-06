@@ -210,7 +210,7 @@ jobs:
       # Syft generates the per-image SBOMs below (the same tool sbom.yml uses for
       # the WAR). Installed once here, before the images are built and scanned.
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@aa80c8c5bd439a416a62804f2151ab38c671a638 # v0.24.1
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
 
       # --- Application image (docker/app/Dockerfile, built from repo root) ---
       - name: Build the application image
