@@ -183,18 +183,27 @@
         </p>
       </c:if>
     </div>
-    <c:choose>
-      <c:when test="${!empty returnPage}">
-        <p class="platform-calendar-event-return">
-          <i class="fa fa-fw"></i> <a href="#" data-js-call="goBack" data-js-arg1="<c:out value="${returnPage}"/>"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
-        </p>
-      </c:when>
-      <c:otherwise>
-        <p class="platform-calendar-event-return">
-          <i class="fa fa-fw"></i> <a href="${ctx}/calendar"><i class="${font:fal()} fa-arrow-left"></i> View the calendar</a>
-        </p>
-      </c:otherwise>
-    </c:choose>
+    <%-- The "View the calendar" fallback that used to sit here linked unconditionally to
+         ${ctx}/calendar, a page the platform never creates: there is no /calendar web-layout XML
+         and no install seed for it, so unless a site happened to build that page by hand, every
+         event page shipped a 404. It was found by a site audit on simisinc.com, dead on 2 of 2
+         event pages, and it grows by one broken link per event added.
+
+         There is no reliable way to guess where a given site keeps its event listing, and
+         WebPageRepository.findByLink() is an uncached query, so probing for the page on every
+         render would add a database round trip per event page to answer a question the site can
+         simply be asked. The configurable action link added alongside this (site.calendar.actionUrl)
+         is that answer, and it renders as a button above -- so when it is set the visitor already
+         has a way back to the listing, and when it is not, no link is emitted rather than a
+         guessed one.
+
+         returnPage is unaffected: it comes from the request and walks browser history, so it is
+         always valid when present. --%>
+    <c:if test="${!empty returnPage}">
+      <p class="platform-calendar-event-return">
+        <i class="fa fa-fw"></i> <a href="#" data-js-call="goBack" data-js-arg1="<c:out value="${returnPage}"/>"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
+      </p>
+    </c:if>
   </div>
 </div>
 <script nonce="${cspNonce}">
