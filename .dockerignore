@@ -1,0 +1,23 @@
+# Deny everything, then re-admit only what the two Dockerfiles actually COPY.
+#
+# An allowlist rather than a list of things to exclude: the repository root holds .git, and a
+# build context that carries it puts the full history one stray `COPY . .` away from the webapp
+# root -- which is precisely what the scanners hitting /.git/config every day are looking for.
+# A denylist protects against the paths someone thought to name; this protects against the ones
+# nobody did. Adding a COPY without adding it here fails the build loudly, which is the safe
+# direction to fail.
+#
+# Both images build from the repository root (see .github/workflows/publish-images.yml and
+# docker-compose.yaml), so this one file governs both.
+*
+
+# docker/app/Dockerfile
+!target/simis-cms.war
+!target/simis-cms-ssrf-pin-resolver.jar
+!docker/app/conf/server.xml
+!docker/app/conf/setenv.sh
+!docker/app/applicationinsights.json
+!docker/app/imagemagick-policy.xml
+
+# docker/db/Dockerfile
+!docker/db/init.sql
