@@ -576,6 +576,7 @@ CREATE TABLE sessions (
   ip_address VARCHAR(200),
   user_agent VARCHAR(255),
   referer VARCHAR(255),
+  host VARCHAR(255),
   continent VARCHAR(20),
   country_iso VARCHAR(2),
   country VARCHAR(100),

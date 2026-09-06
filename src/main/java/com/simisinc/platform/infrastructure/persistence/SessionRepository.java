@@ -402,6 +402,14 @@ public class SessionRepository {
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
+            // A referrer from the host this request itself arrived on is a self-referral, whatever
+            // that host is. The six site.url spellings above can only ever name one hostname, so a
+            // site answering on a second one reports its own navigation as external (issue #1893).
+            // Rows written before the host column existed are NULL and stay with the site.url
+            // comparison alone, so historical data keeps its old meaning rather than shifting.
+            "AND (host IS NULL OR (" +
+            "  LOWER(referer) NOT LIKE 'http://' || LOWER(host) || '%' " +
+            "  AND LOWER(referer) NOT LIKE 'https://' || LOWER(host) || '%')) " +
             "AND is_bot = false " +
             "GROUP BY referer " +
             "ORDER BY referer_count desc " +
@@ -447,6 +455,7 @@ public class SessionRepository {
         .add("ip_address", record.getIpAddress())
         .add("user_agent", StringUtils.abbreviate(record.getUserAgent(), 255))
         .add("referer", StringUtils.abbreviate(referer, 255))
+        .add("host", StringUtils.abbreviate(record.getHost(), 255))
         .add("continent", record.getContinent())
         .add("country_iso", record.getCountryIso())
         .add("country", record.getCountry())
@@ -603,6 +612,7 @@ public class SessionRepository {
       record.setIpAddress(rs.getString("ip_address"));
       record.setUserAgent(rs.getString("user_agent"));
       record.setReferer(rs.getString("referer"));
+      record.setHost(rs.getString("host"));
       record.setContinent(rs.getString("continent"));
       record.setCountryIso(rs.getString("country_iso"));
       record.setCountry(rs.getString("country"));

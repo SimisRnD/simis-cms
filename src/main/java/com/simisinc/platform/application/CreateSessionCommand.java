@@ -32,13 +32,25 @@ public class CreateSessionCommand {
 
   private static Log LOG = LogFactory.getLog(CreateSessionCommand.class);
 
-  public static UserSession createSession(String source, String sessionId, String ipAddress, String referer, String userAgent) {
+  public static UserSession createSession(String source, String sessionId, String ipAddress, String referer,
+      String userAgent) {
+    return createSession(source, sessionId, ipAddress, referer, userAgent, null);
+  }
+
+  /**
+   * @param host the hostname this request actually arrived on. Recorded so a referrer from the
+   *             site's own host can be recognised as a self-referral whatever that host is --
+   *             site.url can only ever name one (issue #1893).
+   */
+  public static UserSession createSession(String source, String sessionId, String ipAddress, String referer,
+      String userAgent, String host) {
     LOG.debug("Creating session...");
     UserSession userSession = new UserSession(source, sessionId, ipAddress);
     if (StringUtils.isNotBlank(referer)) {
       userSession.setReferer(referer);
     }
     userSession.setUserAgent(userAgent);
+    userSession.setHost(host);
     userSession.setGeoIP(GeoIPCommand.getLocation(ipAddress));
     if (userSession.getGeoIP() != null && StringUtils.isNotBlank(userSession.getGeoIP().getTimezone())) {
       LOG.debug("Using Timezone: " + userSession.getGeoIP().getTimezone());

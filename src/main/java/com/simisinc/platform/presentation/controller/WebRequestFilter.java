@@ -420,7 +420,7 @@ public class WebRequestFilter implements Filter {
           LOG.debug("Creating user session...");
           // Start a new session
           userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(),
-              ipAddress, referer, userAgent);
+              ipAddress, referer, userAgent, httpServletRequest.getServerName());
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
           if (httpServletRequest.getHeader("X-Monitor") == null && !doNotTrack) {
