@@ -113,6 +113,10 @@ public class SaveCalendarEventCommand {
     calendarEvent.setAllDay(calendarEventBean.getAllDay());
     calendarEvent.setDetailsUrl(calendarEventBean.getDetailsUrl());
     calendarEvent.setSignUpUrl(calendarEventBean.getSignUpUrl());
+    calendarEvent.setOrganizerName(calendarEventBean.getOrganizerName());
+    calendarEvent.setOrganizerUrl(calendarEventBean.getOrganizerUrl());
+    calendarEvent.setPerformerName(calendarEventBean.getPerformerName());
+    calendarEvent.setPerformerUrl(calendarEventBean.getPerformerUrl());
     calendarEvent.setLocation(calendarEventBean.getLocation());
     // The structured address behind that free-text venue name. StructuredDataCommand turns these
     // into the schema.org PostalAddress an Event's location needs -- Search Console reports
