@@ -130,6 +130,30 @@ public class WebRequestFilter implements Filter {
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
 
+    // Security headers for every response, set here for the same reason the caching wrapper below
+    // is: PageServlet sets them for the pages it renders, but static files are served by the
+    // container's default servlet and never reach it, so /css, /javascript and the generated text
+    // endpoints (sitemap.xml, robots.txt, llms.txt, security.txt) carried neither of these.
+    //
+    // nosniff is unconditional. It only forbids the browser second-guessing a Content-Type the
+    // application already sets, so there is no response it can harm. Uploaded images already
+    // carried it via MultipartFileSender; this closes the rest.
+    //
+    // Cross-Origin-Resource-Policy defaults to same-origin, which is where it earns its place: a
+    // resource whose delivery depends on the caller's session. The documents under /assets/file
+    // are served according to the folder's permissions, and same-origin stops another origin
+    // causing a signed-in visitor's browser to fetch one into its process.
+    //
+    // Publicly readable assets are deliberately exempt. Content images and the vendored
+    // css/javascript/font files gain nothing -- anyone can already fetch them anonymously -- and
+    // same-origin there would stop other sites displaying images this site wants shared.
+    if (servletResponse instanceof HttpServletResponse) {
+      HttpServletResponse securedResponse = (HttpServletResponse) servletResponse;
+      securedResponse.setHeader("X-Content-Type-Options", "nosniff");
+      securedResponse.setHeader("Cross-Origin-Resource-Policy",
+          isPubliclyEmbeddableAsset(resource) ? "cross-origin" : "same-origin");
+    }
+
     // Assets whose URL already identifies their content can be cached indefinitely, so a repeat
     // visit revalidates nothing instead of re-fetching. Wrapping the response here, rather than
     // setting the header at each chain.doFilter site, means every path through this filter gets
@@ -752,6 +776,30 @@ public class WebRequestFilter implements Filter {
    * reason isBrowserResourcePath() documents: a bare startsWith would also match an ordinary page
    * slug such as /fonts-of-the-world.
    */
+  /**
+   * Resources any origin may embed: the content images an editor uploads for a page, and the
+   * vendored browser assets. All are readable anonymously, so Cross-Origin-Resource-Policy
+   * protects nothing there -- while same-origin would stop another site displaying an image this
+   * one publishes on purpose.
+   *
+   * Deliberately does NOT cover /assets/file: those are documents served according to a folder's
+   * permissions, which is exactly the case CORP exists for.
+   *
+   * Anchored on a path boundary for the same reason isBrowserResourcePath is: an unanchored
+   * prefix would also match an ordinary page whose slug merely starts with these letters.
+   */
+  static boolean isPubliclyEmbeddableAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/assets/img/")
+        || resource.startsWith("/css/")
+        || resource.startsWith("/javascript/")
+        || resource.startsWith("/images/")
+        || resource.startsWith("/fonts/")
+        || "/favicon.ico".equals(resource);
+  }
+
   static boolean isImmutableAsset(String resource) {
     if (resource == null) {
       return false;

@@ -169,7 +169,11 @@ class WebRequestFilterTest {
       WebRequestFilter filter = filterRequiringSSL(siteProperties);
       filter.doFilter(request, response, chain);
 
-      verify(response, never()).setHeader(anyString(), anyString());
+      // Narrowed from "no header at all" to the redirect specifically: every response now carries
+      // security headers, so a blanket assertion no longer expresses what this test is about --
+      // that the filter passed the request through instead of echoing an untrusted Host header.
+      verify(response, never()).setHeader(eq("Location"), anyString());
+      verify(response, never()).setStatus(anyInt());
       verify(chain).doFilter(request, response);
     }
   }
@@ -1228,4 +1232,36 @@ class WebRequestFilterTest {
       verify(chain, never()).doFilter(any(), any());
     }
   }
+
+  // ---- security headers on every response, including static files ----
+
+  @Test
+  void publicAssetsAreEmbeddableByAnyOrigin() {
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/img/20260823/diagram.png"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/css/platform.css"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/javascript/jquery-3.7.1/jquery.min.js"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/fonts/inter/inter-v11-latin-regular.woff2"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/favicon.ico"));
+  }
+
+  @Test
+  void permissionedDocumentsAreNotEmbeddableByAnyOrigin() {
+    // /assets/file is served according to a folder's permissions -- the case CORP exists for
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/file/20210303-32/report.pdf"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/about-us"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/sitemap.xml"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/.well-known/security.txt"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset(null));
+  }
+
+  @Test
+  void anOrdinaryPageWhoseSlugStartsLikeAnAssetDirectoryIsNotTreatedAsOne() {
+    // Same anchoring trap isBrowserResourcePath documents: an unanchored prefix would hand
+    // cross-origin to real content pages
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/images-of-our-team"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/css-tutorial-2026"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/javascript-basics"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/images-report"));
+  }
+
 }
