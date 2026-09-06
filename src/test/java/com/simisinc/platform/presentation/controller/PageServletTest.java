@@ -493,8 +493,8 @@ class PageServletTest {
 
   @Test
   void computeCanonicalUrlReturnsNullWhenSiteUrlIsBlank() {
-    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null));
-    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null, null));
   }
 
   @Test
@@ -502,13 +502,13 @@ class PageServletTest {
     // Regression test for issue #401: the homepage previously fell through every branch (an
     // explicit !pagePath.equals("/") check excluded it, and there's no WebPage/Item/Collection
     // for a plain root request), so it was the one page that never got a canonical tag at all.
-    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null));
+    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null, null));
   }
 
   @Test
   void computeCanonicalUrlUsesThePagePathWhenNothingElseIdentifiesThePage() {
     assertEquals("https://example.org/legal/privacy",
-        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null, null));
   }
 
   @Test
@@ -520,7 +520,7 @@ class PageServletTest {
     webPage.setLink("/about-us");
 
     assertEquals("https://example.org/about-us",
-        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null, null));
   }
 
   @Test
@@ -533,7 +533,7 @@ class PageServletTest {
     webPage.setLink("/news/*");
 
     assertEquals("https://example.org/news/some-post-slug",
-        PageServlet.computeCanonicalUrl("https://example.org", "/news/some-post-slug", webPage, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/news/some-post-slug", webPage, null, null, null));
   }
 
   @Test
@@ -542,7 +542,7 @@ class PageServletTest {
     collection.setUniqueId("staff");
 
     assertEquals("https://example.org/items/staff",
-        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection));
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection, null));
   }
 
   @Test
@@ -553,7 +553,73 @@ class PageServletTest {
     item.setUniqueId("jane-doe");
 
     assertEquals("https://example.org/items/staff/jane-doe",
-        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection));
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection, null));
+  }
+
+  @Test
+  void computeCanonicalUrlSelfCanonicalizesPageTwoAndBeyond() {
+    // Regression test for the orphan-page defect: every paginated page used to emit page 1's URL as
+    // its canonical, which tells a search engine the deeper pages are duplicates. The links those
+    // pages carry then count for nothing, so entries reachable only from them read as orphans --
+    // measured on simisinc.com as 86 of 88 news posts with no incoming internal links.
+    assertEquals("https://example.org/news?page=2",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "2"));
+    assertEquals("https://example.org/news?page=10",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "10"));
+  }
+
+  @Test
+  void computeCanonicalUrlLeavesPageOneUnchanged() {
+    // Page 1 is the listing's own URL; adding ?page=1 would create a second URL for identical
+    // content and undo the collapsing the canonical tag exists to do.
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "1"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, null));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, ""));
+  }
+
+  @Test
+  void computeCanonicalUrlIgnoresANonNumericPageParameter() {
+    // The page parameter is the one caller-controlled value reaching the canonical tag. It is parsed
+    // to an int and the URL rebuilt from that int, so a non-numeric value cannot be reflected into
+    // the markup -- it simply falls back to the unpaginated URL, which is also what the listing
+    // widgets render for ?page=abc.
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "abc"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "2\" onload=\"alert(1)"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "1e9999"));
+  }
+
+  @Test
+  void computeCanonicalUrlIgnoresAZeroOrNegativePageParameter() {
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "0"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "-3"));
+  }
+
+  @Test
+  void computeCanonicalUrlPaginatesEveryPageIdentitySource() {
+    // Pagination is appended to whichever branch produced the URL, not just the pagePath fallback,
+    // so a paginated collection listing behaves the same way as a paginated web page.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/about-us");
+    assertEquals("https://example.org/about-us?page=3",
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null, "3"));
+
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+    assertEquals("https://example.org/items/staff?page=4",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection, "4"));
+  }
+
+  @Test
+  void computeCanonicalUrlStillReturnsNullForABlankSiteUrlRegardlessOfPage() {
+    assertNull(PageServlet.computeCanonicalUrl("", "/news", null, null, null, "2"));
   }
 
   /** A logged-in session whose user holds exactly the given role codes. */
