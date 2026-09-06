@@ -1108,7 +1108,8 @@ public class PageServlet extends HttpServlet {
 
       // Set canonical URL for SEO (issue #401)
       String siteUrl = (String) sitePropertyMap.get("site.url");
-      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection);
+      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection,
+          request.getParameter("page"));
       if (StringUtils.isNotBlank(canonicalUrl)) {
         pageRenderInfo.setCanonicalUrl(canonicalUrl);
       }
@@ -1321,24 +1322,63 @@ public class PageServlet extends HttpServlet {
    * this can't reflect attacker-controlled query parameters into the tag. A wildcard/dynamic-page
    * match (see LoadWebPageCommand#loadByLink) returns the template's own link (e.g. "/news/*"),
    * not a real URL, so that case is excluded in favor of the actual pagePath.
+   *
+   * <p>Page 2 and beyond of a paginated listing canonicalize to themselves rather than to page 1.
+   * Every paginated page used to emit page 1's URL, which tells a search engine the deeper pages are
+   * duplicates -- so the links they carry count for nothing, and the entries reachable only from them
+   * read as orphans. Measured on simisinc.com: 86 of 88 news posts had zero incoming internal links
+   * and zero organic traffic, because 79 of them appear only on /news?page=2 through ?page=10.
+   *
+   * <p>pageParameter is the raw "page" request parameter, and the one piece of caller-controlled
+   * input reaching this method, so it is parsed to an int and the URL rebuilt from that int rather
+   * than concatenating the string -- the no-query-string guarantee above still holds. Absent,
+   * non-numeric, negative or 1 leaves the URL exactly as it was, which is also how the listing
+   * widgets treat those inputs (?page=abc renders page 1).
+   *
+   * <p>Known residual: a hand-crafted page number past the end of a listing (?page=999) renders an
+   * empty listing with a 200 and will now self-canonicalize. Nothing links there -- the pagination
+   * control never emits a link past the last page -- so it is unreachable by crawling; making
+   * out-of-range pagination return a 404 is the proper fix and is tracked separately.
    */
-  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
+  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection,
+      String pageParameter) {
     if (StringUtils.isBlank(siteUrl)) {
       return null;
     }
     if (item != null && collection != null) {
-      return siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId();
+      return withPageNumber(siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId(), pageParameter);
     }
     if (collection != null) {
-      return siteUrl + "/items/" + collection.getUniqueId();
+      return withPageNumber(siteUrl + "/items/" + collection.getUniqueId(), pageParameter);
     }
     if (webPage != null && StringUtils.isNotBlank(webPage.getLink()) && !webPage.getLink().endsWith("/*")) {
-      return siteUrl + webPage.getLink();
+      return withPageNumber(siteUrl + webPage.getLink(), pageParameter);
     }
     if (StringUtils.isNotBlank(pagePath)) {
-      return siteUrl + pagePath;
+      return withPageNumber(siteUrl + pagePath, pageParameter);
     }
     return null;
+  }
+
+  /**
+   * Appends the pagination parameter to a canonical URL for page 2 and beyond. The value is rebuilt
+   * from the parsed int rather than echoed, so nothing caller-controlled reaches the tag; anything
+   * that is not a number greater than 1 returns the URL untouched.
+   */
+  private static String withPageNumber(String canonicalUrl, String pageParameter) {
+    if (StringUtils.isBlank(pageParameter)) {
+      return canonicalUrl;
+    }
+    int pageNumber;
+    try {
+      pageNumber = Integer.parseInt(pageParameter.trim());
+    } catch (NumberFormatException e) {
+      return canonicalUrl;
+    }
+    if (pageNumber <= 1) {
+      return canonicalUrl;
+    }
+    return canonicalUrl + "?page=" + pageNumber;
   }
 
   /**
