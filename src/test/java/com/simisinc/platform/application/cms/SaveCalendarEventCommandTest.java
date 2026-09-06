@@ -173,4 +173,34 @@ class SaveCalendarEventCommandTest {
       repository.verify(() -> CalendarEventRepository.save(any()), never());
     }
   }
+
+  @Test
+  void theOrganizerAndPerformerCreditsReachTheSavedRecord() throws DataException {
+    // Exactly the failure theStructuredAddressReachesTheSavedRecord above documents, repeated for
+    // the fields added for the "organizer"/"performer" Search Console warnings: the form posts
+    // them, BeanUtils.populate puts them on the bean, the column exists and the query reads it --
+    // and this command copies the bean field by field, so an entry missing here is dropped
+    // silently between a save that reports success and a page that never shows the credit.
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L);
+    bean.setOrganizerName("National Training and Simulation Association (NTSA)");
+    bean.setOrganizerUrl("https://www.trainingsystems.org");
+    bean.setPerformerName("Dr. Johnny Garcia");
+    bean.setPerformerUrl("https://www.simisinc.com/about-us");
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      repository.when(() -> CalendarEventRepository.findByUniqueId(any(), any())).thenReturn(null);
+      repository.when(() -> CalendarEventRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveCalendarEventCommand.saveCalendarEvent(bean);
+
+      repository.verify(() -> CalendarEventRepository.save(argThat(saved -> "National Training and Simulation Association (NTSA)"
+          .equals(saved.getOrganizerName())
+          && "https://www.trainingsystems.org".equals(saved.getOrganizerUrl())
+          && "Dr. Johnny Garcia".equals(saved.getPerformerName())
+          && "https://www.simisinc.com/about-us".equals(saved.getPerformerUrl()))));
+    }
+  }
+
 }
