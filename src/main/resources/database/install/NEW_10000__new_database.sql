@@ -56,7 +56,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Event page button label', 'site.calendar.actionLabel', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Event page button link', 'site.calendar.actionUrl', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (28, 'Event page button link', 'site.calendar.actionUrl', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Require review approval before publishing content', 'content.review.required', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (241, 'Require review approval to publish web pages', 'webPage.review.required', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (242, 'Require review approval to publish blog posts', 'blogPost.review.required', 'false', 'boolean');

@@ -692,6 +692,12 @@
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'site.calendar.actionUrl'}">
+            <p class="help-text" id="siteCalendarActionUrlHelpText">Where the button at the bottom of an event page sends people -- normally whichever page lists your events. A page path (e.g. <code>/trade-shows</code>) keeps the visitor on this site; a full <code>https://</code> URL opens in a new tab instead. Leave it blank and no button is shown, which also leaves the event page with no link back to a listing.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.calendar.actionLabel'}">
+            <p class="help-text" id="siteCalendarActionLabelHelpText">The wording on that button. Defaults to "View all events" when a link is set but this is left blank.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'site.header.page'}">
             <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page.</p>
           </c:if>
