@@ -36,6 +36,7 @@
   <a class="button tiny <c:if test="${!empty duplicatesView}">primary</c:if><c:if test="${empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}?view=duplicates">Duplicates</a>
   <button type="button" id="scanForDuplicatesBtn" class="button tiny secondary radius">Scan for Duplicates</button>
   <button type="button" id="generateMissingSizesBtn" class="button tiny secondary radius">Generate Missing Sizes</button>
+  <button type="button" id="regenerateVariantFormatsBtn" class="button tiny secondary radius">Re-encode Sizes</button>
 </div>
 <c:if test="${empty duplicatesView}">
 <form id="imageSearchForm" method="get" autocomplete="off" class="float-right">
@@ -339,6 +340,12 @@
     if (generateMissingSizesBtn) {
       generateMissingSizesBtn.addEventListener('click', function () {
         postAction('${widgetContext.uri}?command=generateMissingSizes&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');
+      });
+    }
+    var regenerateVariantFormatsBtn = document.getElementById('regenerateVariantFormatsBtn');
+    if (regenerateVariantFormatsBtn) {
+      regenerateVariantFormatsBtn.addEventListener('click', function () {
+        postAction('${widgetContext.uri}?command=regenerateVariantFormats&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');
       });
     }
 

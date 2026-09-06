@@ -19,6 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -254,6 +255,49 @@ class ImageVariantRepositoryTest {
     assertTrue(ImageVariantRepository.findByImageId(image.getId()).isEmpty(),
         "image_variants.image_id's ON DELETE CASCADE must remove orphaned variant rows");
   }
+
+  @Test
+  void findAllWithStaleVariantFormatSelectsOnlyImagesWhoseVariantsAreNotYetTheTargetFormat() {
+    // The format backfill exists because findAllMissingVariant cannot see these: the variants are
+    // present, just in the format the generator used to produce. Selecting the wrong population
+    // either misses an established library entirely or re-encodes work that is already done.
+    Image stale = insertImage();                       // image/png source, png variants -> stale
+    ImageVariantRepository.save(newVariant(stale.getId(), "medium", "images/2026/08/photo-medium.png", 900, 800, 600));
+
+    Image done = insertImage();                        // already re-encoded -> must NOT be selected
+    ImageVariant current = newVariant(done.getId(), "medium", "images/2026/08/photo-medium.webp", 90, 800, 600);
+    current.setFileType("image/webp");
+    ImageVariantRepository.save(current);
+
+    List<Long> ids = ImageRepository.findAllWithStaleVariantFormat("image/webp", "image/gif");
+
+    assertTrue(ids.contains(stale.getId()), "an image whose variants are still PNG must be queued");
+    assertFalse(ids.contains(done.getId()), "an image already re-encoded must not be queued again");
+  }
+
+  @Test
+  void findAllWithStaleVariantFormatExemptsTheSourceFormatTheGeneratorLeavesAlone() {
+    // GenerateImageVariantsCommand keeps GIF variants as GIF so an animation is not flattened, so
+    // a GIF's variants are never stale. Selecting them would queue work that regenerates them
+    // identically, on every click, forever.
+    Image gif = insertImage();
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement("UPDATE images SET file_type = ? WHERE image_id = ?")) {
+      pst.setString(1, "image/gif");
+      pst.setLong(2, gif.getId());
+      pst.executeUpdate();
+    } catch (SQLException e) {
+      throw new IllegalStateException("test setup: could not mark the image as a GIF", e);
+    }
+    ImageVariant gifVariant = newVariant(gif.getId(), "medium", "images/2026/08/photo-medium.gif", 900, 800, 600);
+    gifVariant.setFileType("image/gif");
+    ImageVariantRepository.save(gifVariant);
+
+    List<Long> ids = ImageRepository.findAllWithStaleVariantFormat("image/webp", "image/gif");
+
+    assertFalse(ids.contains(gif.getId()), "a GIF source is exempt and must never be queued");
+  }
+
 
   private static ImageVariant newVariant(long imageId, String variantType, String path, long fileLength, int width,
       int height) {
