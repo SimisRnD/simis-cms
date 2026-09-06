@@ -34,6 +34,7 @@ public class Session extends Entity {
   private String source = null;
   private String userAgent = null;
   private String referer = null;
+  private String host = null;
   private String continent = null;
   private String countryIso = null;
   private String country = null;
@@ -118,6 +119,14 @@ public class Session extends Entity {
 
   public void setReferer(String referer) {
     this.referer = referer;
+  }
+
+  public String getHost() {
+    return host;
+  }
+
+  public void setHost(String host) {
+    this.host = host;
   }
 
   public String getContinent() {
