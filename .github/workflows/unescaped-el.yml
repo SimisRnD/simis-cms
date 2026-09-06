@@ -42,6 +42,18 @@
 #    shrinks, and a NEW inline handler -- or a count bumped above the recorded baseline -- fails
 #    here. JSP/HTML comments and <script> bodies are blanked out first (preserving line numbers),
 #    so prose that merely mentions onclick= or a JS "el.onclick = fn" assignment is not a finding.
+#
+# 6. Application Insights agent config: validates docker/app/applicationinsights.json against the
+#    schema of the agent version docker/app/Dockerfile pins. Nothing else in the repository reads
+#    this file -- not the Ant build, not a test, not another gate -- so a bad value ships unread.
+#    The agent does not stop the JVM when it rejects the file: it logs a startup failure and the
+#    site serves normally with telemetry silently off (verified against the pinned 3.7.9 artifact:
+#    invalid config, "startup failed", JVM exit 0). The sharpest trap is that telemetryType is
+#    accepted only in lowercase -- "DEPENDENCY", the spelling the Java enum's constant names
+#    suggest and the one PR #1906's own verification note records, fails agent startup outright,
+#    while the file it shipped correctly says "dependency". Misspelled property names are quieter
+#    still: one WARN, then the agent starts "successfully" with the setting simply absent. See
+#    tools/check-app-insights-config.py.
 name: Static checks
 
 on:
@@ -118,3 +130,5 @@ jobs:
       # reviewer misses; issue 1763 needed the same pair again for elearningPropertyMap.
       - name: Fail on a page-level request attribute the per-widget reset wipes
         run: python3 tools/check-page-level-attributes.py . --strict
+      - name: Fail on Application Insights config the pinned agent would reject
+        run: python3 tools/check-app-insights-config.py . --strict
