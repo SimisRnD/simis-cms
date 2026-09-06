@@ -414,9 +414,86 @@ public class StructuredDataCommand {
       event.put("eventAttendanceMode", "https://schema.org/OfflineEventAttendanceMode");
     }
 
+    Map<String, Object> organizer = computeEventOrganizer(calendarEvent);
+    if (organizer != null) {
+      event.put("organizer", organizer);
+    }
+
+    Map<String, Object> performer = computeEventPerformer(calendarEvent);
+    if (performer != null) {
+      event.put("performer", performer);
+    }
+
+    Map<String, Object> offers = computeEventOffers(calendarEvent, siteUrl);
+    if (offers != null) {
+      event.put("offers", offers);
+    }
+
     event.put("eventStatus", "https://schema.org/EventScheduled");
 
     return event;
+  }
+
+  /**
+   * Builds the organizer sub-object for an Event. Returns null without a name, which is the
+   * deliberate default: most events on a site like this are third-party ones the organization
+   * attends, so falling back to the site owner would assert it runs conferences it merely exhibits
+   * at. Search Console reports this property as missing until an editor supplies the real
+   * organizer -- an absent recommended property is a suggestion, a wrong one is misleading markup.
+   */
+  static Map<String, Object> computeEventOrganizer(CalendarEvent calendarEvent) {
+    if (StringUtils.isBlank(calendarEvent.getOrganizerName())) {
+      return null;
+    }
+    Map<String, Object> organizer = new LinkedHashMap<>();
+    organizer.put("@type", "Organization");
+    organizer.put("name", calendarEvent.getOrganizerName());
+    if (StringUtils.isNotBlank(calendarEvent.getOrganizerUrl())) {
+      organizer.put("url", calendarEvent.getOrganizerUrl());
+    }
+    return organizer;
+  }
+
+  /**
+   * Builds the performer sub-object for an Event, typed as a Person: schema.org accepts a Person
+   * or an Organization here, and the field is labelled for a speaker in the admin form, which is
+   * what an editor on this platform actually has -- someone presenting at a conference. Returns
+   * null without a name rather than naming the site owner, for the same reason as the organizer.
+   */
+  static Map<String, Object> computeEventPerformer(CalendarEvent calendarEvent) {
+    if (StringUtils.isBlank(calendarEvent.getPerformerName())) {
+      return null;
+    }
+    Map<String, Object> performer = new LinkedHashMap<>();
+    performer.put("@type", "Person");
+    performer.put("name", calendarEvent.getPerformerName());
+    if (StringUtils.isNotBlank(calendarEvent.getPerformerUrl())) {
+      performer.put("url", calendarEvent.getPerformerUrl());
+    }
+    return performer;
+  }
+
+  /**
+   * Builds the Offer sub-object from the event's existing sign-up URL -- no new field is needed,
+   * since a registration link is exactly what Offer.url means. A site-relative link is made
+   * absolute the same way the event image is.
+   *
+   * Deliberately carries only the URL. Offer.price, priceCurrency and availability would each be
+   * an assertion this record cannot support: nothing here knows what registration costs or whether
+   * it is still open, and stating "InStock" for a closed registration is worse than omitting it.
+   */
+  static Map<String, Object> computeEventOffers(CalendarEvent calendarEvent, String siteUrl) {
+    String signUpUrl = StringUtils.trimToNull(calendarEvent.getSignUpUrl());
+    if (signUpUrl == null) {
+      return null;
+    }
+    if (signUpUrl.startsWith("/") && StringUtils.isNotBlank(siteUrl)) {
+      signUpUrl = siteUrl + signUpUrl;
+    }
+    Map<String, Object> offer = new LinkedHashMap<>();
+    offer.put("@type", "Offer");
+    offer.put("url", signUpUrl);
+    return offer;
   }
 
   /**

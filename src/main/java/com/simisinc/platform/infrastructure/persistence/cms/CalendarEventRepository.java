@@ -227,6 +227,10 @@ public class CalendarEventRepository {
         .add("end_date", record.getEndDate())
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
+        .add("organizer_name", StringUtils.trimToNull(record.getOrganizerName()))
+        .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
+        .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
+        .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
         .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
@@ -260,6 +264,10 @@ public class CalendarEventRepository {
         .add("end_date", record.getEndDate())
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
+        .add("organizer_name", StringUtils.trimToNull(record.getOrganizerName()))
+        .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
+        .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
+        .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
         .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
@@ -324,6 +332,10 @@ public class CalendarEventRepository {
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setDetailsUrl(rs.getString("details_url"));
       record.setSignUpUrl(rs.getString("sign_up_url"));
+      record.setOrganizerName(rs.getString("organizer_name"));
+      record.setOrganizerUrl(rs.getString("organizer_url"));
+      record.setPerformerName(rs.getString("performer_name"));
+      record.setPerformerUrl(rs.getString("performer_url"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));

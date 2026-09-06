@@ -40,6 +40,10 @@ public class CalendarEvent extends Entity {
   private Timestamp endDate = null;
   private String detailsUrl = null;
   private String signUpUrl = null;
+  private String organizerName = null;
+  private String organizerUrl = null;
+  private String performerName = null;
+  private String performerUrl = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -202,6 +206,38 @@ public class CalendarEvent extends Entity {
 
   public void setSignUpUrl(String signUpUrl) {
     this.signUpUrl = signUpUrl;
+  }
+
+  public String getOrganizerName() {
+    return organizerName;
+  }
+
+  public void setOrganizerName(String organizerName) {
+    this.organizerName = organizerName;
+  }
+
+  public String getOrganizerUrl() {
+    return organizerUrl;
+  }
+
+  public void setOrganizerUrl(String organizerUrl) {
+    this.organizerUrl = organizerUrl;
+  }
+
+  public String getPerformerName() {
+    return performerName;
+  }
+
+  public void setPerformerName(String performerName) {
+    this.performerName = performerName;
+  }
+
+  public String getPerformerUrl() {
+    return performerUrl;
+  }
+
+  public void setPerformerUrl(String performerUrl) {
+    this.performerUrl = performerUrl;
   }
 
   public double getLatitude() {

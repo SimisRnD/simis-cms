@@ -197,6 +197,35 @@
       </label>
     </div>
   </div>
+  <%-- Optional schema.org Event credits. Each is left out of the page's structured data entirely
+       while blank, so an event nobody has credited says nothing about who runs it rather than
+       implying this organization does. --%>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Organizer
+        <input type="text" placeholder="Who runs this event" name="organizerName" value="<c:out value="${calendarEvent.organizerName}"/>">
+        <p class="help-text">The organization running the event. Leave blank for events you attend but do not host.</p>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Organizer website
+        <input type="text" placeholder="https://" name="organizerUrl" value="<c:out value="${calendarEvent.organizerUrl}"/>">
+      </label>
+    </div>
+  </div>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Speaker
+        <input type="text" placeholder="Who is presenting" name="performerName" value="<c:out value="${calendarEvent.performerName}"/>">
+        <p class="help-text">A person appearing or presenting at the event.</p>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Speaker page
+        <input type="text" placeholder="https://" name="performerUrl" value="<c:out value="${calendarEvent.performerUrl}"/>">
+      </label>
+    </div>
+  </div>
   <label>Video / Meeting Link
     <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
   </label>
