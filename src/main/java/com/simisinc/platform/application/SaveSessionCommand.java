@@ -42,6 +42,7 @@ public class SaveSessionCommand {
     session.setIpAddress(IpAddressCommand.anonymizeForStorage(userSession.getIpAddress()));
     session.setUserAgent(userSession.getUserAgent());
     session.setReferer(userSession.getReferer());
+    session.setHost(userSession.getHost());
     // Reflects actual login state regardless of whether GeoIP resolution succeeded -- a failed
     // or unavailable GeoIP lookup must not silently mark an anonymous visitor as not anonymous.
     boolean isAnonymous = (userSession.getUserId() == UserSession.GUEST_ID);

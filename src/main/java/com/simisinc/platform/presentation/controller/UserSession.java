@@ -56,6 +56,7 @@ public class UserSession implements Serializable {
   private long appId = -1L;
   private String userAgent = null;
   private String referer = null;
+  private String host = null;
   private long visitorId = -1;
   private long userId = GUEST_ID;
   private List<Role> roleList = null;
@@ -159,6 +160,14 @@ public class UserSession implements Serializable {
 
   public void setReferer(String referer) {
     this.referer = referer;
+  }
+
+  public String getHost() {
+    return host;
+  }
+
+  public void setHost(String host) {
+    this.host = host;
   }
 
   public long getVisitorId() {
