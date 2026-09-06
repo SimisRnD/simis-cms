@@ -35,6 +35,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FunnelEventRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -446,6 +447,18 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits / Avg Time"));
+      return TABLE_JSP;
+    } else if ("file-downloads".equalsIgnoreCase(report)) {
+      // Every tab reads the same dated rows. An "all time" tab backed by files.download_count was
+      // tempting -- the counter predates this log, so it would have had history on day one -- but
+      // it counts downloads the log does not, and a reader comparing that tab against a windowed
+      // one would find numbers that cannot be reconciled and nothing on screen explaining why. One
+      // source, consistent meaning; the cumulative counter is still shown in the folder listings.
+      List<StatisticsData> statisticsDataList =
+          FileDownloadRepository.findTopDownloads(intervalValue, intervalType, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "File"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Downloads"));
       return TABLE_JSP;
     } else if ("web-urls".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findTopPaths(intervalValue, intervalType, limit);

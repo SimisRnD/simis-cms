@@ -32,6 +32,7 @@ import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.FileVersion;
+import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -45,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -104,6 +106,34 @@ class DownloadFileWidgetTest extends WidgetBase {
       auditMockedStatic.verify(() -> AuditEventCommand.record(any(WidgetContext.class),
           eq(AuditEventCommand.DATA_ACCESS), eq("folder_file.download"), eq(AuditEventCommand.SUCCESS),
           eq("folder_file"), eq("5"), eq("https://example.com/doc.pdf"), any()), times(1));
+    }
+  }
+
+  @Test
+  void aDownloadIsRecordedWithTheFileItWasFor() {
+    // The cumulative counter beside this has no dates on it, so it can only ever answer "most
+    // downloaded ever". This row is what lets Content Analytics ask the same question over a
+    // window -- without it the report is permanently empty and nothing says why.
+    setRoles(widgetContext, ADMIN);
+    setRequestUri("20240101010101-5/link");
+
+    FileItem record = new FileItem();
+    record.setId(5L);
+    record.setWebPath("20240101010101");
+    record.setFileType("URL");
+    record.setFilename("https://example.com/doc.pdf");
+
+    try (MockedStatic<LoadFileCommand> loadFileMockedStatic = mockStatic(LoadFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepositoryMockedStatic = mockStatic(FileItemRepository.class);
+        MockedStatic<FileDownloadRepository> fileDownloadRepositoryMockedStatic = mockStatic(FileDownloadRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      loadFileMockedStatic.when(() -> LoadFileCommand.loadItemById(5L)).thenReturn(record);
+
+      DownloadFileWidget widget = new DownloadFileWidget();
+      widget.execute(widgetContext);
+
+      fileDownloadRepositoryMockedStatic
+          .verify(() -> FileDownloadRepository.save(argThat(download -> download.getFileId() == 5L)));
     }
   }
 

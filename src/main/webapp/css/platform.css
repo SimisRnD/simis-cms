@@ -2509,6 +2509,62 @@ div.item-image-large img {
   line-height: 1.0;
 }
 
+/* The event-block left rule is a timeline for the calendar LIST, threading many events under a
+   month heading. On the single-event page it is a line running past one item to nowhere, so the
+   detail view drops it and reclaims the indent the rule was holding. The list keeps it. */
+.platform-calendar-details-container .platform-calendar-event-block {
+  border-left: 0;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+/* Actions on one row rather than stacked. wrap keeps them readable on a narrow screen, and the
+   gap replaces the inline margin the Add-to-Calendar control used to carry. align-items keeps
+   buttons of differing heights on a shared baseline. */
+.platform-calendar-details-container .platform-calendar-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+}
+
+.platform-calendar-details-container .platform-calendar-event-actions .platform-calendar-event-buttons,
+.platform-calendar-details-container .platform-calendar-event-actions .add-to-calendar {
+  margin: 0;
+}
+
+/* The leading spacer icons exist to align text with the icon-prefixed lines above (date,
+   location). Inside a flex row they become stray gaps, so they are dropped here only. */
+.platform-calendar-details-container .platform-calendar-event-actions > .platform-calendar-event-buttons > .fa-fw:first-child {
+  display: none;
+}
+
+/* Every margin off the buttons in this row, not just the bottom one. Two libraries disagree about
+   spacing here: Foundation gives .button a 1rem bottom margin, and the vendored Add-to-Calendar
+   control sets "margin: 15px 50px 0 0" on its own button. Both are counted in the flex item's
+   height, so the Add-to-Calendar wrapper measured 56px around a 41px button while Learn More was
+   41px, and align-items centred the wrapper -- leaving the button inside it 7px low with 50px of
+   phantom space beside it. Zeroed here, the two buttons are the same box and the row's gap is the
+   only thing between them. */
+.platform-calendar-details-container .platform-calendar-event-actions .button {
+  margin: 0;
+}
+
+/* The summary is the event's own description -- what the thing actually is -- so it reads as body
+   copy rather than sitting in the 1px box this rule used to draw. That box is why simisinc.com's
+   site CSS hides this element outright, in a rule whose comment says it "read as a form field
+   rather than body copy"; restyling it here removes the reason for that override. Measure is
+   capped so a paragraph does not run the full column width. */
+.platform-calendar-details-container .platform-calendar-event-summary {
+  border: 0;
+  padding: 0;
+  margin: 14px 0 4px;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
 .platform-calendar-details-container .platform-calendar-event-return {
   margin-top: 12px;
 }
