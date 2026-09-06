@@ -282,11 +282,20 @@ public class GenerateImageVariantsCommand {
    * <p>The original upload is never rewritten -- only these derived renditions -- so the lossless
    * source remains available and is still the largest srcset candidate.
    */
-  private static String variantFileTypeFor(Image image) {
-    if ("image/gif".equals(image.getFileType())) {
+  /** The format derived variants are encoded in. See {@link #variantFileTypeFor(Image)}. */
+  public static final String VARIANT_FILE_TYPE = "image/webp";
+
+  /**
+   * The one source format left in its own encoding rather than transcoded. Exposed so a backfill
+   * can select the same population this method exempts, instead of restating the rule in SQL.
+   */
+  public static final String VARIANT_EXEMPT_SOURCE_FILE_TYPE = "image/gif";
+
+  static String variantFileTypeFor(Image image) {
+    if (VARIANT_EXEMPT_SOURCE_FILE_TYPE.equals(image.getFileType())) {
       return image.getFileType();
     }
-    return "image/webp";
+    return VARIANT_FILE_TYPE;
   }
 
   /** Pins the encode quality when the variant is written as WebP; a no-op for GIF. */
