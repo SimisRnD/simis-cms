@@ -112,6 +112,57 @@
     <c:if test="${!empty calendarEvent.location}">
       <p class="platform-calendar-event-location"><i class="fa fa-map-marker fa-fw"></i> <c:out value="${calendarEvent.location}" /></p>
     </c:if>
+    <%-- Organizer and speaker. These two came in with the Event schema work, which added the admin
+         fields and emitted them into the JSON-LD but never rendered them, so a site owner who filled
+         in "Organizer" saw the value accepted, stored, and then absent from the page -- visible only
+         to Google, in markup nobody reads by eye. Credit is the point of recording an organizer, and
+         credit no visitor can see is not credit.
+         Both blocks follow the location pattern above: shown only when set, so an event without them
+         renders exactly as it does today.
+         The URL branch is the same one the action buttons below use, and it is what keeps a stored
+         "javascript:" URL inert -- anything that is not http:// or https:// is treated as
+         site-relative and prefixed with the context path, so it resolves to a harmless path rather
+         than executing. Do not "simplify" this to a bare href. --%>
+    <c:if test="${!empty calendarEvent.organizerName}">
+      <p class="platform-calendar-event-organizer">
+        <i class="fa fa-building fa-fw"></i>
+        <c:choose>
+          <c:when test="${!empty calendarEvent.organizerUrl}">
+            <c:choose>
+              <c:when test="${fn:startsWith(calendarEvent.organizerUrl, 'http://') || fn:startsWith(calendarEvent.organizerUrl, 'https://')}">
+                <a target="_blank" rel="noopener" href="<c:out value="${calendarEvent.organizerUrl}" />"><c:out value="${calendarEvent.organizerName}" /></a>
+              </c:when>
+              <c:otherwise>
+                <a href="<c:out value="${ctx}${calendarEvent.organizerUrl}" />"><c:out value="${calendarEvent.organizerName}" /></a>
+              </c:otherwise>
+            </c:choose>
+          </c:when>
+          <c:otherwise>
+            <c:out value="${calendarEvent.organizerName}" />
+          </c:otherwise>
+        </c:choose>
+      </p>
+    </c:if>
+    <c:if test="${!empty calendarEvent.performerName}">
+      <p class="platform-calendar-event-speaker">
+        <i class="fa fa-microphone fa-fw"></i>
+        <c:choose>
+          <c:when test="${!empty calendarEvent.performerUrl}">
+            <c:choose>
+              <c:when test="${fn:startsWith(calendarEvent.performerUrl, 'http://') || fn:startsWith(calendarEvent.performerUrl, 'https://')}">
+                <a target="_blank" rel="noopener" href="<c:out value="${calendarEvent.performerUrl}" />"><c:out value="${calendarEvent.performerName}" /></a>
+              </c:when>
+              <c:otherwise>
+                <a href="<c:out value="${ctx}${calendarEvent.performerUrl}" />"><c:out value="${calendarEvent.performerName}" /></a>
+              </c:otherwise>
+            </c:choose>
+          </c:when>
+          <c:otherwise>
+            <c:out value="${calendarEvent.performerName}" />
+          </c:otherwise>
+        </c:choose>
+      </p>
+    </c:if>
     <%-- Tags are not shown to visitors. They render as plain <span>s, not links, and no
          tag-filtered calendar view exists to link to -- so "tradeshow" and "2026" were editorial
          metadata on display with nothing to do, and "2026" repeated the date directly above it.
