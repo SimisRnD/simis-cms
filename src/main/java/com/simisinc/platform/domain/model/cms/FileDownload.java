@@ -34,6 +34,10 @@ public class FileDownload extends Entity {
   private long downloadBy = -1;
   private Timestamp downloadDate = null;
   private String sessionId = null;
+  // Recorded per download rather than inferred from the session. A crawler that requests a file URL
+  // directly never gets a session at all, so a session-based check cannot see it -- which is exactly
+  // how automated traffic ended up counted as human in the download reports.
+  private boolean isBot = false;
 
   public FileDownload() {
   }
@@ -84,5 +88,13 @@ public class FileDownload extends Entity {
 
   public void setSessionId(String sessionId) {
     this.sessionId = sessionId;
+  }
+
+  public boolean getIsBot() {
+    return isBot;
+  }
+
+  public void setIsBot(boolean isBot) {
+    this.isBot = isBot;
   }
 }

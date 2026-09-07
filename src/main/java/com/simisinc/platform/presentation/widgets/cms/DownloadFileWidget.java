@@ -32,6 +32,7 @@ import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.FileVersion;
+import com.simisinc.platform.application.SessionCommand;
 import com.simisinc.platform.domain.model.cms.FileDownload;
 import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
@@ -264,6 +265,10 @@ public class DownloadFileWidget extends GenericWidget {
         fileDownload.setDownloadBy(context.getUserId());
       }
     }
+    // Classified from the request's own user agent, not the session. A crawler that requests this
+    // URL directly has no session, so the session's is_bot flag would never be consulted and the
+    // download would be reported as human. Same check SaveSessionCommand uses, so the two agree.
+    fileDownload.setIsBot(SessionCommand.checkForBot(context.getRequest().getHeader("User-Agent")));
     FileDownloadRepository.save(fileDownload);
   }
 }

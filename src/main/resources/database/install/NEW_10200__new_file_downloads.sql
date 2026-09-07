@@ -10,7 +10,9 @@
 -- note "We want to know popular files", with one deliberate change: no ip_address column. The
 -- sketch collected an IP for geolocation, which this report does not need, and an IP is PII that
 -- would then need its own scrub. session_id is kept because the Content Analytics page states that
--- every number on it excludes known bots, and that exclusion is a join to sessions.is_bot.
+-- every number on it excludes known bots, and that exclusion joins to sessions.is_bot. The is_bot
+-- column below covers what that join cannot: a crawler requesting a file URL directly is never
+-- issued a session, so there is no session row to exclude it by.
 --
 -- Rows are pruned by FileDownloadRetentionJob using the same analytics.retentionDays window that
 -- governs web_page_hits, so downloads do not outlive page views.
@@ -24,7 +26,12 @@ CREATE TABLE file_downloads (
   version_id BIGINT,
   download_by BIGINT REFERENCES users(user_id),
   download_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-  session_id VARCHAR(255)
+  session_id VARCHAR(255),
+  -- Recorded per download rather than inferred from the session. A crawler that requests a file URL
+  -- directly is never issued a session, so a session-only check cannot see it; see
+  -- FileDownloadRepository.findTopDownloads.
+  is_bot BOOLEAN DEFAULT false
 );
 CREATE INDEX file_downloads_dt_idx ON file_downloads(download_date);
 CREATE INDEX file_downloads_fid_idx ON file_downloads(file_id);
+CREATE INDEX file_downloads_is_bot_idx ON file_downloads(is_bot);
