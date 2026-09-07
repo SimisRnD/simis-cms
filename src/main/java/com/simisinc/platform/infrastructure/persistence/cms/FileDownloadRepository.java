@@ -53,7 +53,8 @@ public class FileDownloadRepository {
         .add("file_id", record.getFileId())
         .add("version_id", record.getVersionId(), -1)
         .add("download_by", record.getDownloadBy(), -1)
-        .add("session_id", record.getSessionId());
+        .add("session_id", record.getSessionId())
+        .add("is_bot", record.getIsBot());
     try {
       return DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY) > -1;
     } catch (Exception e) {
@@ -66,10 +67,12 @@ public class FileDownloadRepository {
    * The most-downloaded files over a window, labelled with the filename an admin would recognise
    * rather than the numeric id.
    *
-   * <p>Bots are excluded the same way every other report on the Content Analytics page excludes
-   * them -- by the session's is_bot flag -- because that page states up front that every number on
-   * it already has crawlers filtered out. A download with no session at all is kept: it is not
-   * known to be a bot, and dropping it would quietly under-count.
+   * <p>Bots are excluded on two signals. The session's is_bot flag catches a crawler that browsed
+   * the site before downloading, as every other report on the Content Analytics page does. The
+   * download's own is_bot flag catches the case that one cannot: a crawler requesting a file URL
+   * directly is never issued a session, so the session check finds nothing to exclude and the
+   * download was counted as human. Measured against Front Door's logs that was not a rare edge --
+   * it was most of the table, with marketing PDFs ranking top on crawler traffic alone.
    *
    * <p>Joined to files rather than reading the path, so a renamed file reports under its current
    * name; a download of a file that has since been deleted drops out of the report entirely, which
@@ -81,6 +84,7 @@ public class FileDownloadRepository {
             "FROM file_downloads fd " +
             "JOIN files f ON (f.file_id = fd.file_id) " +
             "WHERE fd.download_date > NOW() - INTERVAL '" + value + " " + DB.intervalUnit(intervalType) + "' " +
+            "AND fd.is_bot = FALSE " +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = fd.session_id AND is_bot = TRUE) " +
             "GROUP BY f.filename " +
             "ORDER BY download_count desc " +
