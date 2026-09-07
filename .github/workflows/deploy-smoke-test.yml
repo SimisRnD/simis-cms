@@ -68,6 +68,24 @@ jobs:
         # passed a green pipeline. This step reads the actual bytes.
         run: .github/scripts/check-response-integrity.sh http://localhost
 
+      - name: Check the admin save path
+        # Everything above this line is anonymous, so nothing verified that an admin can still SAVE
+        # after a deploy (#1894). A CSP, form-token, session or migration regression on the write
+        # path leaves every page returning a healthy 200 -- #1188 was exactly that, and the controls
+        # it broke did nothing while the pipeline stayed green.
+        #
+        # This signs in as the admin the app auto-provisions from the variables written above, and
+        # asserts that a changed setting READS BACK. The POST's status is deliberately not the
+        # assertion: a silently-failing save also answers 302.
+        # Credentials are sourced from the .env written above rather than repeated here, so the two
+        # cannot drift apart -- the container and this check must agree on the password or the check
+        # fails for a reason that has nothing to do with the deploy.
+        run: |
+          set -a
+          . ./.env
+          set +a
+          .github/scripts/check-admin-save-path.sh http://localhost
+
       - name: Dump container logs on failure
         if: failure()
         run: docker compose logs --no-color
