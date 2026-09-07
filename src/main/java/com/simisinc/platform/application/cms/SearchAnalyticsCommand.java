@@ -23,6 +23,10 @@ import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 /**
  * Shared recording entry point for all six search-results widgets (issue #424). Each widget calls
  * record() once with its own search type and result count immediately after running its own query,
@@ -69,8 +73,43 @@ public class SearchAnalyticsCommand {
     searchAnalytics.setQuery(query.toLowerCase().trim());
     searchAnalytics.setSearchType(searchType);
     searchAnalytics.setResultCount(Math.max(resultCount, 0));
-    searchAnalytics.setPagePath(context.getRequest().getRequestURI());
+    searchAnalytics.setPagePath(resolveOriginatingPath(context.getRequest()));
     searchAnalytics.setFacetKey(facetKey);
     SearchAnalyticsRepository.save(searchAnalytics);
+  }
+
+  /** The page the visitor searched <em>from</em>, which is the whole point of page_path.
+   *
+   * <p>This was getRequestURI(), but a search executes on the results page, so every row recorded
+   * the results page itself -- findTopSearchPaths and findTopZeroResultPaths, whose stated purpose
+   * is "which pages are sending visitors into a search that comes up empty", could therefore only
+   * ever report /search. The referring page is the one piece of information that makes those two
+   * reports mean anything.
+   *
+   * <p>Referer is client-supplied, so it is only trusted when it names this same host: an off-site
+   * referer falls back to the request URI rather than writing a third-party URL into an
+   * admin-facing report. Only the path is kept -- never the query string, which on a search referral
+   * carries the visitor's previous search terms. The result is truncated to page_path's VARCHAR(255).
+   */
+  static String resolveOriginatingPath(HttpServletRequest request) {
+    String requestUri = request.getRequestURI();
+    String referer = request.getHeader("Referer");
+    if (StringUtils.isBlank(referer)) {
+      return requestUri;
+    }
+    try {
+      URI refererUri = new URI(referer);
+      String host = refererUri.getHost();
+      if (host == null || !host.equalsIgnoreCase(request.getServerName())) {
+        return requestUri;
+      }
+      String path = refererUri.getPath();
+      if (StringUtils.isBlank(path)) {
+        return requestUri;
+      }
+      return path.length() > 255 ? path.substring(0, 255) : path;
+    } catch (URISyntaxException e) {
+      return requestUri;
+    }
   }
 }
