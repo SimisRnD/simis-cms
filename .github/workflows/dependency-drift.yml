@@ -40,6 +40,13 @@ jobs:
       # ubuntu-latest ships python3; no extra setup or network needed.
       - name: Fail on un-allowlisted pom vs vendored-jar drift
         run: python3 tools/check-dependency-drift.py . --strict
+      # The JavaScript half of the same problem. REPORT-ONLY for now, deliberately:
+      # three real drifts exist today (js-cookie, mermaid, prismjs) and --strict would
+      # fail every build until they are re-vendored. This mirrors how the jar check
+      # above was introduced -- report first, reconcile, then flip. Add --strict here
+      # once the drift count reaches zero; a check that can never fail is theatre.
+      - name: Report package.json vs vendored-JavaScript drift
+        run: python3 tools/check-js-dependency-drift.py .
       - name: Fail on pom vs ApplicationInfo project-version drift
         run: python3 tools/check-version-consistency.py . --strict
       - name: Fail on vendored-jar bytes not matching lib/PROVENANCE.sha256
