@@ -71,6 +71,13 @@
 <c:if test="${!empty asOfDate}">
   <p class="text-right"><small>As of <c:out value="${asOfDate}" /></small></p>
 </c:if>
+<c:if test="${!empty optionsList}">
+  <%-- Revealed by the script below once auto-refresh gives up. Rendered hidden rather than built in
+       JavaScript so the text is in the accessibility tree before role="alert" fires. --%>
+  <div class="callout radius warning" id="stopped${widgetContext.uniqueId}" role="alert" hidden>
+    <p class="text-center" style="margin-bottom:0">Live updates stopped. Your session may have expired &mdash; reload the page to resume.</p>
+  </div>
+</c:if>
 </div>
 <c:if test="${!empty optionsList}">
 <script nonce="${cspNonce}">
@@ -83,6 +90,23 @@
   // var updateInterval = setInterval(updateIntervalFunction, 10000);
   // Wait for the first query
   var updateInterval;
+
+  // Auto-refresh gives up after this many consecutive failures instead of retrying forever.
+  // A failure here is usually permanent, not transient: the form token baked into the URL below is
+  // this session's, and several admin widgets renew it as they render, so opening any of those pages
+  // leaves this tab holding a token PageServlet will refuse for the rest of the tab's life. Retrying
+  // that on a timer is not a retry -- it is one request every 30 seconds, forever, invisible to
+  // whoever left the tab open (issue #1920).
+  var maxFailures${widgetContext.uniqueId} = 3;
+  var failures${widgetContext.uniqueId} = 0;
+
+  // Toggle the "live updates stopped" callout rendered above
+  function showStopped${widgetContext.uniqueId}(stopped) {
+    var el = document.getElementById("stopped${widgetContext.uniqueId}");
+    if (el) {
+      el.hidden = !stopped;
+    }
+  }
 
   // Escape a label for safe insertion into the table markup (labels can be user-provided, e.g. search
   // terms or referrers)
@@ -125,9 +149,18 @@
       $('<tbody/>', {
         html: items.join('')
       }).appendTo('#table${widgetContext.uniqueId}');
+      // Recovered -- spend the failure budget again from full
+      failures${widgetContext.uniqueId} = 0;
+      showStopped${widgetContext.uniqueId}(false);
       // Turn on the interval
       updateInterval = setInterval(updateIntervalFunction, 10000);
     }).fail(function() {
+      ++failures${widgetContext.uniqueId};
+      if (failures${widgetContext.uniqueId} >= maxFailures${widgetContext.uniqueId}) {
+        // Out of budget: leave the interval off, and say so rather than failing silently
+        showStopped${widgetContext.uniqueId}(true);
+        return;
+      }
       // Turn on the interval
       updateInterval = setInterval(updateIntervalFunction, 30000);
     });
@@ -149,6 +182,10 @@
         }
       }
     });
+    // Picking a range is a deliberate retry, so hand back a full budget -- otherwise a tab that had
+    // already given up could never be restarted without reloading the page
+    failures${widgetContext.uniqueId} = 0;
+    showStopped${widgetContext.uniqueId}(false);
     query${widgetContext.uniqueId}(value);
   }
 
