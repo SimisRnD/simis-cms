@@ -140,6 +140,44 @@ public class SearchAnalyticsRepository {
     return 0;
   }
 
+  /** Visitor searches over the last {@code daysToLimit} days that found nothing <em>anywhere</em> --
+   * the count behind the zero-result alert.
+   *
+   * <p>Not the same as countZeroResultSearches, which counts rows. One visitor search writes one row
+   * per content type across six types, each with its own result count, so a search that succeeded in
+   * blog and pages still leaves a zero row for every type that had no match. On a site that does not
+   * use a content type at all, that type contributes a guaranteed zero row to every search ever run,
+   * and the row count rises purely with traffic. Comparing that to a threshold makes the alert fire
+   * on volume rather than on visitors failing to find things.
+   *
+   * <p>A search is counted here only when every content type returned zero, which is the thing worth
+   * alerting on. The six rows of one search share a query and land milliseconds apart, so they are
+   * grouped by query and second. Two visitors searching the same term in the same second therefore
+   * count once, and a search straddling a second boundary counts twice; both are rare and neither
+   * moves a daily total meaningfully.
+   *
+   * <p>daysToLimit is an int, so placing it in the interval cannot inject SQL. */
+  public static long countFailedSearches(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS record_count FROM (" +
+            "  SELECT query " +
+            "  FROM " + TABLE_NAME + " " +
+            "  WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "  GROUP BY query, date_trunc('second', created) " +
+            "  HAVING SUM(result_count) = 0" +
+            ") AS failed_searches";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("record_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
   /** Count of all searches over the last {@code daysToLimit} days, the denominator for the facet-
    * adoption-rate tile (issue #638). daysToLimit is an int, so placing it in the interval cannot
    * inject SQL. */

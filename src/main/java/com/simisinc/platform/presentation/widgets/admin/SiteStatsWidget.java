@@ -489,7 +489,10 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Searches"));
       return TABLE_JSP;
     } else if ("zero-result-search-alert".equalsIgnoreCase(report)) {
-      long count = SearchAnalyticsRepository.countZeroResultSearches(1);
+      // countFailedSearches, not countZeroResultSearches: the latter counts one row per content type,
+      // so a content type the site does not use contributes a guaranteed zero row to every search and
+      // the alert tracks traffic instead of failure. This counts searches that found nothing anywhere.
+      long count = SearchAnalyticsRepository.countFailedSearches(1);
       int threshold = SearchAnalyticsRepository.resolveZeroResultAlertThreshold(
           LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"));
       context.getRequest().setAttribute("numberValue", String.valueOf(count));

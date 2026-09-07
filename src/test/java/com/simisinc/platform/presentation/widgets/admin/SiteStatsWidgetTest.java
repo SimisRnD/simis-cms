@@ -900,7 +900,7 @@ class SiteStatsWidgetTest extends WidgetBase {
 
     try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
-      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(5L);
+      repository.when(() -> SearchAnalyticsRepository.countFailedSearches(1)).thenReturn(5L);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
           .thenReturn("20");
       repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
@@ -925,7 +925,7 @@ class SiteStatsWidgetTest extends WidgetBase {
 
     try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
-      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(35L);
+      repository.when(() -> SearchAnalyticsRepository.countFailedSearches(1)).thenReturn(35L);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
           .thenReturn("20");
       repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
