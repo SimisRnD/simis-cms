@@ -218,6 +218,49 @@ class SearchAnalyticsRepositoryTest {
   }
 
   @Test
+  void countFailedSearchesIgnoresASearchThatFoundSomethingInAnyContentType() {
+    // Found 3 in blog, nothing in the other five. The visitor did find something, so this is not a
+    // failed search -- even though it left five zero-result rows behind.
+    addSearchAcrossAllTypes("widgets", 0, 0, 0, 3, 0, 0, 0);
+
+    assertEquals(0, SearchAnalyticsRepository.countFailedSearches(30));
+  }
+
+  @Test
+  void countFailedSearchesCountsASearchThatFoundNothingAnywhere() {
+    addSearchAcrossAllTypes("xylophone", 0, 0, 0, 0, 0, 0, 0);
+
+    assertEquals(1, SearchAnalyticsRepository.countFailedSearches(30));
+  }
+
+  @Test
+  void countFailedSearchesDoesNotScaleWithTheNumberOfContentTypes() {
+    // The regression this exists for. Three visitor searches, each finding nothing, write 18 rows
+    // across six content types. countZeroResultSearches sees 18 and a threshold of 20 is nearly
+    // tripped by three searches; the number that should drive the alert is 3.
+    addSearchAcrossAllTypes("xylophone", 0, 0, 0, 0, 0, 0, 0);
+    addSearchAcrossAllTypes("zither", 0, 0, 0, 0, 0, 0, 0);
+    addSearchAcrossAllTypes("theremin", 0, 0, 0, 0, 0, 0, 0);
+
+    assertEquals(18, SearchAnalyticsRepository.countZeroResultSearches(30));
+    assertEquals(3, SearchAnalyticsRepository.countFailedSearches(30));
+  }
+
+  @Test
+  void countFailedSearchesExcludesSearchesOutsideTheWindow() {
+    addSearchAcrossAllTypes("ancient", 40, 0, 0, 0, 0, 0, 0);
+
+    assertEquals(0, SearchAnalyticsRepository.countFailedSearches(30));
+  }
+
+  @Test
+  void countFailedSearchesReturnsZeroWhenEverySearchSucceeded() {
+    addSearchAcrossAllTypes("widgets", 0, 2, 1, 4, 1, 1, 1);
+
+    assertEquals(0, SearchAnalyticsRepository.countFailedSearches(30));
+  }
+
+  @Test
   void countSearchesCountsEveryEventInTheWindowRegardlessOfFacet() {
     addEvent("widgets", "pages", 3);
     addEvent("gadgets", "items", 5, "categoryId");
@@ -496,6 +539,40 @@ class SearchAnalyticsRepositoryTest {
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the search_analytics schema", se);
     }
+  }
+
+  /** Pins every given row to one identical {@code created} value, so a test representing a single
+   * visitor search groups deterministically. countFailedSearches groups by query and second; letting
+   * the inserts take their own timestamps would make these tests depend on whether they happened to
+   * land either side of a wall-clock second boundary. A single UPDATE evaluates NOW() once, so every
+   * row named here gets the same value. */
+  private static void pinToSameInstant(int daysAgo, long... ids) {
+    StringBuilder sql = new StringBuilder(
+        "UPDATE search_analytics SET created = NOW() - INTERVAL '" + daysAgo + " days' "
+            + "WHERE search_analytics_id IN (");
+    for (int i = 0; i < ids.length; i++) {
+      sql.append(i > 0 ? ",?" : "?");
+    }
+    sql.append(")");
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql.toString())) {
+      for (int i = 0; i < ids.length; i++) {
+        pst.setLong(i + 1, ids[i]);
+      }
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not pin rows", se);
+    }
+  }
+
+  /** The six rows one visitor search writes -- one per content type -- all at the same instant. */
+  private static void addSearchAcrossAllTypes(String query, int daysAgo, int... resultCounts) {
+    String[] types = { "pages", "content", "blog", "wiki", "items", "calendar" };
+    long[] ids = new long[types.length];
+    for (int i = 0; i < types.length; i++) {
+      ids[i] = addEvent(query, types[i], resultCounts[i]).getId();
+    }
+    pinToSameInstant(daysAgo, ids);
   }
 
   private static SearchAnalytics addEvent(String query, String searchType, int resultCount) {
