@@ -110,15 +110,15 @@ body {
    content panels are inside main. */
 body.admin-console nav .sticky {
   background: linear-gradient(180deg,
-    var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #17202d) 100%);
+    var(--sc-chrome-raised, #08302b) 0%,
+    var(--sc-chrome, #052621) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 body.admin-console .admin-menu {
   background: linear-gradient(180deg,
-    var(--sc-chrome-raised, #1f2a39) 0%,
-    var(--sc-chrome, #17202d) 100%);
+    var(--sc-chrome-raised, #08302b) 0%,
+    var(--sc-chrome, #052621) 100%);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -1242,13 +1242,13 @@ ul.pagination li.pagination-next a:hover {
      Both are warm -- red channel highest in each -- which is what stops a very dark rail
      reading as grey. background-color stays as the fallback for anything that cannot
      paint the gradient. */
-  background-color: var(--sc-chrome, #17202d);
-  background-image: linear-gradient(180deg, var(--sc-chrome, #17202d) 0%, var(--sc-chrome-raised, #1f2a39) 100%);
+  background-color: var(--sc-chrome, #052621);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #052621) 0%, var(--sc-chrome-raised, #08302b) 100%);
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-regular, 400);
   font-size: var(--sc-font-sm, 0.8125rem);
   line-height: var(--sc-leading-normal, 1.4);
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #9bbdb6);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -1260,8 +1260,8 @@ ul.pagination li.pagination-next a:hover {
   font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: var(--sc-chrome, #17202d);
-  color: var(--sc-chrome-ink, #e8eef6);
+  background-color: var(--sc-chrome, #052621);
+  color: var(--sc-chrome-ink, #e1f2ee);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -1281,16 +1281,16 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--sc-chrome-border, rgba(232, 238, 246, 0.09));
+  border-bottom: 1px solid var(--sc-chrome-border, rgba(225, 242, 238, 0.09));
   font-family: 'Inter', sans-serif;
   font-weight: var(--sc-weight-medium, 500);
   font-size: var(--sc-font-sm, 0.8125rem);
-  color: var(--sc-chrome-ink, #e8eef6);
+  color: var(--sc-chrome-ink, #e1f2ee);
 }
 .admin-menu .app-user i {
   /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
      2.64:1 on this lighter strip. Issue 1574. */
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #9bbdb6);
 }
 .admin-menu .section-title {
   margin-top: 4px;
@@ -1315,7 +1315,7 @@ ul.pagination li.pagination-next a:hover {
    its ink. */
 body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #9bbdb6);
   font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
@@ -1352,7 +1352,7 @@ body.admin-console .admin-menu a:not(.button) {
 /* Hover moved from the li to the a. On the li it painted the full width of the rail, which
    is the shape this change is getting rid of -- the wash has to follow the pill. */
 .admin-menu li > a:hover {
-  background-color: var(--sc-chrome-hover, rgba(232, 238, 246, 0.06));
+  background-color: var(--sc-chrome-hover, rgba(225, 242, 238, 0.06));
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;
@@ -1367,11 +1367,11 @@ body.admin-console .admin-menu a:not(.button) {
    applied to the two interactive states. Same specificity (0,3,2) as those, which is what
    beats the blanket rule's (0,2,2). */
 body.admin-console .admin-menu a:not(.button) {
-  color: var(--sc-chrome-ink-muted, #aab6c6);
+  color: var(--sc-chrome-ink-muted, #9bbdb6);
 }
 body.admin-console .admin-menu a:not(.button):hover,
 body.admin-console .admin-menu a:not(.button):focus {
-  color: var(--sc-chrome-ink, #e8eef6);
+  color: var(--sc-chrome-ink, #e1f2ee);
 }
 /* The active item overrides both: it carries dark ink on the dove fill, and these two rules
    outrank .admin-menu li.is-active > a on specificity alone. */
@@ -1394,7 +1394,7 @@ body.admin-console .admin-menu li.is-active > a:not(.button):focus {
    then, which meant a theme could restyle the whole rail and leave a blue
    stripe behind it. */
 .admin-menu li.is-active > a {
-  background-color: var(--sc-chrome-selected, #2b3a4e);
+  background-color: var(--sc-chrome-selected, #0a423b);
   color: var(--sc-chrome-ink-selected, #ffffff);
   font-weight: var(--sc-weight-medium, 500);
 }

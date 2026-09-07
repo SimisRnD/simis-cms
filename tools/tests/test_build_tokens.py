@@ -114,3 +114,58 @@ def test_moving_one_seed_repaints_a_whole_family(tokens):
     assert len(chrome) >= 8, f"one seed should move the whole chrome ladder, moved {chrome}"
     assert not any(t.startswith(("--sc-fnd-success", "--sc-fnd-warning")) for t in changed), \
         f"moving chrome must not touch unrelated families: {changed}"
+
+def test_chroma_scale_changes_saturation_without_touching_lightness(tokens):
+    """CHROMA_SCALE is what lets a family be a colour rather than a tinted grey.
+
+    The invariant that matters is LIGHTNESS: it carries contrast, so if changing saturation
+    could shift L, a palette decision would stop being safe to make on judgement alone.
+
+    Chroma is only asserted in aggregate. Per-token it can move either way: at the darkest
+    chrome lightnesses the sRGB gamut allows very little chroma, so a large target clips and
+    a smaller one may land higher. That clipping is the generator working correctly.
+    """
+    import re
+    ns = {}
+    exec(compile((TOOLS_DIR / "_oklch.py").read_text(encoding="utf-8"), "_oklch.py", "exec"), ns)
+    hex_to_oklch = ns["hex_to_oklch"]
+
+    tool = (TOOLS_DIR / TOOL).read_text(encoding="utf-8")
+    halved, n = re.subn(r'("chrome": )[\d.]+(,\s*#\s*Nansemond)',
+                        lambda m: m.group(1) + "0.70" + m.group(2), tool, count=1)
+    assert n == 1, "chrome entry in CHROMA_SCALE not found -- its shape changed"
+    path = tokens / "tools" / "half_chroma.py"
+    path.write_text(halved, encoding="utf-8")
+
+    r = run_tool(str(path), tokens, "--check")
+    assert r.returncode == 1, out(r)
+    moved = re.findall(r"(--sc-chrome[a-z-]*)\s+committed (#[0-9a-f]{6}), seeds give (#[0-9a-f]{6})",
+                       out(r))
+    assert len(moved) >= 8, f"halving chroma should move the whole ladder, moved {len(moved)}"
+
+    for token, old, new in moved:
+        l_old, _c, _h = hex_to_oklch(old)
+        l_new, _c2, _h2 = hex_to_oklch(new)
+        assert abs(l_new - l_old) < 0.01, (
+            f"{token}: lightness moved {l_old:.4f} -> {l_new:.4f}; contrast would no longer be guaranteed"
+        )
+
+    mean_old = sum(hex_to_oklch(o)[1] for _t, o, _n in moved) / len(moved)
+    mean_new = sum(hex_to_oklch(n)[1] for _t, _o, n in moved) / len(moved)
+    assert mean_new < mean_old, f"halving the scale should desaturate overall: {mean_old:.4f} -> {mean_new:.4f}"
+
+
+def test_only_the_named_family_is_affected(tokens):
+    """A scale on one family must not leak into the others."""
+    import re
+    tool = (TOOLS_DIR / TOOL).read_text(encoding="utf-8")
+    patched, n = re.subn(r'("chrome": )[\d.]+(,\s*#\s*Nansemond)',
+                         lambda m: m.group(1) + "0.50" + m.group(2), tool, count=1)
+    assert n == 1
+    path = tokens / "tools" / "scoped.py"
+    path.write_text(patched, encoding="utf-8")
+    r = run_tool(str(path), tokens, "--check")
+    changed = {m.group(1) for m in re.finditer(r"(--sc-[a-z0-9-]+)\s+committed", out(r))}
+    assert changed, "expected some tokens to change"
+    assert all(t.startswith("--sc-chrome") for t in changed), \
+        f"chroma scale leaked outside the chrome family: {sorted(t for t in changed if not t.startswith('--sc-chrome'))}"

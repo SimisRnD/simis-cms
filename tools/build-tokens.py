@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate the colour token values in platform-tokens.css from a small seed set.
 
-A theme is defined by the HUE SEEDS below, not by hand-authoring ~89 hex values.
+A theme is defined by the HUE SEEDS below (and CHROMA_SCALE, where a family needs more or
+less saturation than its tokens author), not by hand-authoring ~89 hex values.
 Lightness and chroma stay authored per token, because those carry the contrast
 decisions check-token-contrast.py enforces; only hue derives. That split is what
 issue 1803's prototype measured: hue snaps to a seed within a just-noticeable
@@ -31,13 +32,24 @@ TOKENS_CSS = "src/main/webapp/css/platform-tokens.css"
 
 SEED_LIGHT = {
     "brand": 36.4,  # SimIS brand orange-red
-    "chrome": 256.6,  # the admin chrome ladder
+    "chrome": 182.0,  # the admin chrome ladder -- Nansemond teal, see issue 1803
     "danger": 25.0,  # error state - kept clear of brand (issue 1803)
     "link": 248.4,  # link, focus ring, info
     "marker": 47.6,  # the active-nav accent
     "neutral": 81.7,  # warm grey: surfaces, borders, body text, tables
     "success": 150.8,
     "warning": 75.7,
+}
+
+# Saturation, per family. Hue alone cannot express "how much colour" -- the same hue at
+# a different chroma is the difference between a teal and a grey that remembers one. Kept
+# separate from the hue seeds because most families never need it: 1.0 means "use the
+# chroma authored on each token", which is what every family did before this existed.
+#
+# Lightness is deliberately NOT scalable. Lightness is what carries contrast, and the whole
+# reason a palette change is safe to make on judgement alone is that L stays authored.
+CHROMA_SCALE = {
+    "chrome": 1.40,  # Nansemond -- a committed teal rather than a tinted grey
 }
 
 SEED_DARK = {
@@ -182,7 +194,7 @@ def generate(rows, literals, seeds):
     for token, family, lightness, chroma in rows:
         if family not in seeds:
             raise SystemExit("no seed for family %r (token %s)" % (family, token))
-        out[token] = oklch_to_hex(lightness, chroma, seeds[family])
+        out[token] = oklch_to_hex(lightness, chroma * CHROMA_SCALE.get(family, 1.0), seeds[family])
     for token, value in literals:
         out[token] = value
     return out
