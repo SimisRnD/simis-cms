@@ -1145,12 +1145,33 @@ public class PageServlet extends HttpServlet {
         }
         pageRenderInfo.setTargetWidget(targetWidget);
 
-        // Verify the token matches this session's form token
+        // Verify the token matches this session's form token.
+        //
+        // 403, not 404 (issue #1921). The page resolved and the caller is very often a signed-in
+        // administrator; what failed is the CSRF/session check, and saying "not found" describes
+        // neither. It misleads in three directions at once:
+        //
+        //   * In traffic analysis a stale token looks like path scanning. In #1920 the symptom was
+        //     thousands of 404s against a valid admin path with a query string, and only reading
+        //     this method showed they were one signed-in browser polling with an expired token.
+        //   * A client cannot tell "this endpoint is gone" from "reload the page", so a widget's
+        //     failure handler has nothing useful to tell the person looking at it.
+        //   * The saveDraftLayout branch above already answers 403 for exactly this condition, so
+        //     the servlet disagreed with itself.
+        //
+        // sendError rather than a JSON body: this path serves ordinary form posts as well as AJAX,
+        // so it keeps the container's error handling instead of returning JSON to a browser
+        // navigation. Audited before changing -- no client code branches on 404 here; the JSPs and
+        // first-party scripts either check for 200 or treat any non-2xx alike.
         String formToken = request.getParameter("token");
         if (!isFormTokenValid(formToken, userSession.getFormToken())) {
-          LOG.error("DEVELOPER: A VALID FORM TOKEN IS REQUIRED " + pagePath + " " + request.getRemoteAddr());
+          // WARN, not ERROR, and not addressed to "DEVELOPER": a token going stale is what happens
+          // when a tab is left open over a session timeout. It is routine, it is not a code defect,
+          // and logging it at ERROR put a steady trickle of ordinary session expiries into the same
+          // stream as real faults -- the log half of the same misreading the status code caused.
+          LOG.warn("Stale or missing form token, rejecting " + pagePath + " from " + request.getRemoteAddr());
           controllerSession.clearAllWidgetData();
-          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          response.sendError(HttpServletResponse.SC_FORBIDDEN);
           return;
         }
       }
