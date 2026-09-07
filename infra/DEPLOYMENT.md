@@ -45,6 +45,7 @@ Create a `deploy-params.json` file (keep secret, do not commit):
 {
   "location": "eastus",
   "environmentName": "pilot",
+  "environmentLabel": "production",
   "postgresAdministratorPassword": "«random-20-char-password»",
   "logRetentionInDays": 90,
   "fileShareQuotaGb": 100,
