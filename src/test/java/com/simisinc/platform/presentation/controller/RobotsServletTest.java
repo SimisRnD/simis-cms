@@ -93,6 +93,7 @@ class RobotsServletTest {
     String body = runDoGet(new HashMap<>());
 
     assertTrue(body.contains("Disallow: /admin/"));
+    assertTrue(body.contains("Disallow: /json/"));
     assertFalse(body.contains("User-Agent: GPTBot"));
     assertFalse(body.contains("User-Agent: OAI-SearchBot"));
     assertFalse(body.contains("User-Agent: ChatGPT-User"));
@@ -103,6 +104,27 @@ class RobotsServletTest {
     assertFalse(body.contains("User-Agent: PerplexityBot"));
     assertFalse(body.contains("User-Agent: Perplexity-User"));
     assertFalse(body.contains("User-Agent: CCBot"));
+  }
+
+  @Test
+  void doGetKeepsTheJsonDisallowInsideTheWildcardUserAgentBlock() throws Exception {
+    // A robots.txt rule applies only to the User-Agent block above it. Disabling any AI crawler
+    // appends a second block, so assert /json/ stays under "User-Agent: *" -- were it emitted
+    // below one of those blocks it would bind to that one crawler, stop applying to Googlebot,
+    // and fail silently while still reading as present in the file.
+    Map<String, String> siteProperties = new HashMap<>();
+    siteProperties.put("robots.ai.claudebot", "false");
+
+    String body = runDoGet(siteProperties);
+
+    int wildcardBlock = body.indexOf("User-Agent: *");
+    int jsonRule = body.indexOf("Disallow: /json/");
+    int nextBlock = body.indexOf("User-Agent: ", wildcardBlock + 1);
+
+    assertTrue(wildcardBlock >= 0, "expected a wildcard User-Agent block");
+    assertTrue(nextBlock > wildcardBlock, "expected the disabled crawler to append a second block");
+    assertTrue(jsonRule > wildcardBlock, "expected the /json/ rule after the wildcard block opens");
+    assertTrue(jsonRule < nextBlock, "the /json/ rule must precede the next User-Agent block");
   }
 
   @Test
