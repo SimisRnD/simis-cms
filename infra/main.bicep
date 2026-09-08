@@ -22,8 +22,11 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources. Azure Commercial (decision #1).')
 param location string = resourceGroup().location
 
-@description('Environment name, used in resource naming and tags, e.g. pilot.')
+@description('Environment token used in resource NAMING only, e.g. pilot. Azure resource names are immutable, so this cannot be changed for an estate that already exists -- changing it produces a second, parallel estate rather than renaming the first. See environmentLabel for what the resources actually serve.')
 param environmentName string = 'pilot'
+
+@description('What the deployed resources actually serve, used in TAGS only. Deliberately separate from environmentName: the live simisinc.com estate is named "pilot" because that is what it was called when it was built, and is tagged "production" because that is what it is.')
+param environmentLabel string = 'production'
 
 @description('Workload name, used in resource naming.')
 param workloadName string = 'simiscms'
@@ -103,9 +106,17 @@ param vpnTenantId string = ''
 
 var namePrefix = '${workloadName}-${environmentName}'
 
+// environment carries environmentLabel, NOT environmentName. The two were one parameter, which
+// meant the only way to correct a misleading tag was to change the value that also builds every
+// resource name -- and that does not rename anything, it deploys a parallel estate beside the
+// live one. Splitting them lets the tag tell the truth while the names stay where they are.
+//
+// Concretely: the resources serving simisinc.com are named simiscms-pilot-* and are production.
+// A reader who trusts the name is wrong, and until this split the tag agreed with the name.
 var tags = {
   workload: workloadName
-  environment: environmentName
+  environment: environmentLabel
+  environmentName: environmentName
   managedBy: 'bicep'
   milestone: 'milestone-4'
 }
