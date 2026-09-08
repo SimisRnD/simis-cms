@@ -333,7 +333,7 @@ class PageServletSecurityHeadersTest {
 
     ArgumentCaptor<String> hsts = ArgumentCaptor.forClass(String.class);
     verify(response, times(1)).setHeader(eq("Strict-Transport-Security"), hsts.capture());
-    assertEquals("max-age=31536000", hsts.getValue());
+    assertEquals("max-age=31536000; includeSubDomains", hsts.getValue());
   }
 
   @Test
