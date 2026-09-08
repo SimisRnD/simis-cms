@@ -284,6 +284,18 @@ p {
    (class="float-right header-item"), a separate widget instance from the
    Home/Solutions-style nav tabs above -- kept at 16px rather than the 17.5px
    those get, per request. */
+/* Was style="font-size: 14px;" on the widget in header-layout.xml. XMLContainerCommands turns a
+   widget's style attribute into an inline style on its wrapper, and an inline style attribute
+   cannot carry a CSP nonce -- so each one keeps 'unsafe-inline' alive in style-src. This renders
+   on every page.
+
+   0.875rem is 14px at the default root size, and unlike the literal it scales with a reader who
+   has raised their browser font size. Note the rule below already overrides this for the anchors
+   inside, so the wrapper size only reaches text that is not a link. */
+.header-item-compact {
+  font-size: var(--sc-font-md, 0.875rem);
+}
+
 #platform-menu .header-item.float-right ul.menu li a {
   font-size: var(--sc-font-base, 1rem);
 }

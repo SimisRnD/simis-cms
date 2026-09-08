@@ -96,13 +96,25 @@
 <c:if test="${empty logoSrcDark}">
   <c:set var="logoSrcDark" scope="request" value="${logoSrcLight}"/>
 </c:if>
+<%-- The maxWidth/maxHeight preferences used to be written onto each <img> as a style
+     attribute. A CSP nonce covers style ELEMENTS and cannot cover style ATTRIBUTES, so every
+     one of those forced style-src to keep 'unsafe-inline' site-wide -- six figures' worth of
+     attributes across the site, and this widget renders on all 133 published pages. Emitting
+     the same declarations here keeps both preferences working unchanged while removing the
+     attribute. Scoped to this widget instance so two logo widgets on one page (header and
+     footer size independently) do not collide. LogoWidget.cssLength() has already rejected
+     anything that is not a plain length, which is what makes it safe to place in a stylesheet
+     rather than an attribute. --%>
+<c:if test="${!empty logoStyle}">
+<style nonce="${cspNonce}">#logo-${widgetContext.uniqueId} img{<c:out value="${logoStyle}"/>}</style>
+</c:if>
 <c:choose>
   <c:when test="${!empty logoSrcLight && !empty logoSrcDark && logoSrcLight ne logoSrcDark}">
     <c:set var="logoSrcsetLight" value="${image:srcset(logoSrcLight)}"/>
     <c:set var="logoSrcsetDark" value="${image:srcset(logoSrcDark)}"/>
-    <a href="${ctx}/"><img alt="Logo" class="platform-logo-light<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" <c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcLight}"/>"
+    <a href="${ctx}/" id="logo-${widgetContext.uniqueId}"><img alt="Logo" class="platform-logo-light<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" src="<c:out value="${logoSrcLight}"/>"
       <c:if test="${not empty logoSrcsetLight}"> srcset="<c:out value="${logoSrcsetLight}"/>" sizes="200px"</c:if>
-      decoding="async" /><img alt="Logo" class="platform-logo-dark<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" <c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcDark}"/>"
+      decoding="async" /><img alt="Logo" class="platform-logo-dark<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" src="<c:out value="${logoSrcDark}"/>"
       <c:if test="${not empty logoSrcsetDark}"> srcset="<c:out value="${logoSrcsetDark}"/>" sizes="200px"</c:if>
       decoding="async" /></a>
     <c:if test="${!empty text}">
@@ -111,7 +123,7 @@
   </c:when>
   <c:when test="${!empty logoSrcLight}">
     <c:set var="logoSrcset" value="${image:srcset(logoSrcLight)}"/>
-    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcLight}"/>"
+    <a href="${ctx}/" id="logo-${widgetContext.uniqueId}"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if>src="<c:out value="${logoSrcLight}"/>"
       <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
       decoding="async" /></a>
     <c:if test="${!empty text}">
