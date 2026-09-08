@@ -874,4 +874,83 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       assertEquals("tagId", facetKeyCaptor.getValue());
     }
   }
+
+  // --- showWhenEmpty -------------------------------------------------------------------------
+  //
+  // The seeded /search page sets showWhenEmpty=false on all six of its result sections. Five
+  // honoured it; this widget did not, so "Resources Found: No items found." appeared on every
+  // search -- and on a search that matched nothing it was the only thing on the page.
+
+  private void stubAnEmptyResultSet(MockedStatic<ItemRepository> repository,
+      MockedStatic<CategoryRepository> categoryRepository, MockedStatic<TagRepository> tagRepository,
+      MockedStatic<LoadSitePropertyCommand> siteProps) {
+    siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+    repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+    categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+    tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
+    repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(new HashMap<>());
+    repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+  }
+
+  @Test
+  void executeHidesTheSectionEntirelyWhenShowWhenEmptyIsFalseAndNothingMatched() {
+    addQueryParameter(widgetContext, "query", "aus");
+    preferences.put("showWhenEmpty", "false");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      stubAnEmptyResultSet(repository, categoryRepository, tagRepository, siteProps);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertNull(result.getJsp(),
+          "showWhenEmpty=false with no results and no filters must render nothing at all -- "
+              + "otherwise a search that matched nothing still shows a section header and a failure");
+    }
+  }
+
+  @Test
+  void executeStillRendersAFilteredEmptyResultEvenWhenShowWhenEmptyIsFalse() {
+    // The escape hatch. With a filter applied, the empty state carries the chips that clear it;
+    // hiding the widget would strand the visitor on a blank page with no way back.
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "categoryId", "5");
+    preferences.put("showWhenEmpty", "false");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      stubAnEmptyResultSet(repository, categoryRepository, tagRepository, siteProps);
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertNotNull(result.getJsp(),
+          "a filtered search that matched nothing must still render, so the filter can be removed");
+    }
+  }
+
+  @Test
+  void executeRendersAnEmptyResultWhenShowWhenEmptyIsNotSet() {
+    // Default is unchanged: a page that never set the preference behaves exactly as before.
+    addQueryParameter(widgetContext, "query", "aus");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      stubAnEmptyResultSet(repository, categoryRepository, tagRepository, siteProps);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertNotNull(result.getJsp(), "unset showWhenEmpty must keep the previous behaviour");
+    }
+  }
 }

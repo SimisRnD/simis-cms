@@ -21,6 +21,13 @@ templates:
 - **`environmentName` is permanent.** It feeds every resource name through
   `uniqueString(resourceGroup().id)`, so changing it later means redeploying the
   whole group rather than renaming anything.
+- **`environmentLabel` is what the estate actually serves, and it is separate on
+  purpose.** The two used to be one parameter, so the `environment` tag could only be
+  corrected by changing the value that also builds every resource name — which does not
+  rename anything, it deploys a parallel estate beside the live one. The live
+  simisinc.com resources are named `simiscms-pilot-*` because that is what the project
+  was called when it was built, and are tagged `environment=production` because that is
+  what they are. A reader who trusts the name is wrong; the tag is the thing to trust.
 
 Operating the deployed environment — releasing an image, reading container logs,
 diagnosing a failed start — is documented internally alongside the other runbooks

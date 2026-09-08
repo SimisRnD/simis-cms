@@ -337,7 +337,7 @@
         <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
         <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
         <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
-        <exclude name="javascript/prism-1.29.0/prism.js"/>
+        <exclude name="javascript/prism-1.30.0/prism.js"/>
         <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
         <!-- TinyMCE resolves its own suffix from the entry script. Every page loads
              tinymce.min.js and no init() sets `suffix`, so it fetches theme.min.js,
@@ -559,7 +559,7 @@
         <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
         <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
         <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
-        <exclude name="javascript/prism-1.29.0/prism.js"/>
+        <exclude name="javascript/prism-1.30.0/prism.js"/>
         <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
         <!-- TinyMCE resolves its own suffix from the entry script. Every page loads
              tinymce.min.js and no init() sets `suffix`, so it fetches theme.min.js,
