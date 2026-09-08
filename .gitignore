@@ -54,3 +54,11 @@ cspell.json
 # tracked until now, so a test run dirtied the tree with binary noise before each commit.
 __pycache__/
 *.pyc
+
+# Ant junitlauncher
+# The `legacy-plain` listener writes one TEST-<class>.txt per class into the basedir.
+# ci-test does not use it -- it uses TestFailureReportingListener -- so a normal run
+# produces none of these. They appear when someone adds a temporary single-class target
+# to debug one test, which is a documented habit here, and then `git add -A` sweeps them
+# into the commit. Three reached main that way (e9dc151e, 516f94dc) before this line.
+TEST-*.txt
