@@ -284,6 +284,18 @@ p {
    (class="float-right header-item"), a separate widget instance from the
    Home/Solutions-style nav tabs above -- kept at 16px rather than the 17.5px
    those get, per request. */
+/* Was style="font-size: 14px;" on the widget in header-layout.xml. XMLContainerCommands turns a
+   widget's style attribute into an inline style on its wrapper, and an inline style attribute
+   cannot carry a CSP nonce -- so each one keeps 'unsafe-inline' alive in style-src. This renders
+   on every page.
+
+   0.875rem is 14px at the default root size, and unlike the literal it scales with a reader who
+   has raised their browser font size. Note the rule below already overrides this for the anchors
+   inside, so the wrapper size only reaches text that is not a link. */
+.header-item-compact {
+  font-size: var(--sc-font-md, 0.875rem);
+}
+
 #platform-menu .header-item.float-right ul.menu li a {
   font-size: var(--sc-font-base, 1rem);
 }
@@ -500,6 +512,27 @@ p {
   background-color: var(--sc-info-light, #e7f4f6);
   border: 1px solid var(--sc-border, #ddd8cf);
   color: var(--sc-info, #03727e);
+}
+
+/* Positioning contexts moved out of inline style attributes.
+ *
+ * These carry no visual opinion -- each one only establishes a containing block for an
+ * absolutely positioned child (a menu dropdown, a chart overlay). They live here rather
+ * than on the element because a CSP nonce covers <style> ELEMENTS and not style
+ * ATTRIBUTES, so every inline style= on the site forces style-src to keep
+ * 'unsafe-inline'. The menu rule alone accounts for six attributes on all 133 published
+ * pages -- 798 of the 1,417 counted site-wide.
+ */
+
+.platform-menu-container {
+  position: relative;
+}
+
+/* Wraps the <canvas> in a progress card; the value overlay is absolutely positioned
+ * against it. A dedicated class rather than .cell, which is Foundation's grid primitive
+ * and used site-wide. */
+.platform-progress-chart {
+  position: relative;
 }
 
 /* Body */

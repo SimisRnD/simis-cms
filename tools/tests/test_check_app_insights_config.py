@@ -7,6 +7,8 @@ it did, so a test that says "fails agent startup" means the agent was observed
 failing startup on exactly that input.
 """
 
+import re
+
 from conftest import run_tool, write
 
 TOOL = "check-app-insights-config.py"
@@ -131,12 +133,34 @@ def test_percentage_above_100_fails_strict(repo):
 
 
 def test_malformed_json_fails_strict_and_names_the_line(repo):
-    seed(repo, '{\n  "sampling": {\n    "percentage": 100,\n  }\n}\n')
+    """Malformed JSON has to be located, not just rejected. Which location, though,
+    is a property of the standard library rather than a contract this tool can hold.
+
+    ``json`` moved its own detection point in Python 3.14. On this input, 3.9-3.13
+    report ``line 4, column 3: Expecting property name enclosed in double quotes``
+    -- the ``}`` where the parser gave up -- while 3.14 reports ``line 3, column 22:
+    Illegal trailing comma before end of object``, which is the comma itself and so
+    is the better of the two: it points at where the fix goes.
+
+    Re-deriving the position inside the tool would not stabilise this. ``exc.pos``
+    moves with the message (43 under 3.12, 39 under 3.14) because it is the
+    *detection point* that changed, not the formatting; only a hand-rolled tokenizer
+    would give a version-independent answer, and it would do so by freezing the less
+    useful location forever. So this asserts what the tool genuinely promises --
+    a labelled finding, a line and column, a real line of the file, and the
+    operational consequence -- and leaves the exact position to the stdlib.
+    """
+    document = '{\n  "sampling": {\n    "percentage": 100,\n  }\n}\n'
+    seed(repo, document)
     r = run_tool(TOOL, repo, "--strict")
     assert r.returncode == 1
     out = r.stdout + r.stderr
     assert "MALFORMED" in out
-    assert "line 4" in out
+    located = re.search(r"line (\d+), column (\d+):", out)
+    assert located, out
+    assert 1 <= int(located.group(1)) <= len(document.splitlines()), out
+    # The finding exists to say what breaks, not to narrate the parse.
+    assert "telemetry disabled" in out
 
 
 def test_optional_override_properties_are_not_flagged(repo):

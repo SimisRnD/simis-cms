@@ -21,6 +21,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Description
@@ -56,13 +57,13 @@ public class LogoWidget extends GenericWidget {
       context.getRequest().setAttribute("logoColorPropertyDark", colorPropertyDark);
     }
     String style = "";
-    String maxWidth = context.getPreferences().get("maxWidth");
-    if (StringUtils.isNotBlank(maxWidth)) {
-      style = appendCSSValue(style, "max-width:" + maxWidth.trim());
+    String maxWidth = cssLength(context.getPreferences().get("maxWidth"));
+    if (maxWidth != null) {
+      style = appendCSSValue(style, "max-width:" + maxWidth);
     }
-    String maxHeight = context.getPreferences().get("maxHeight");
-    if (StringUtils.isNotBlank(maxHeight)) {
-      style = appendCSSValue(style, "max-height:" + maxHeight.trim());
+    String maxHeight = cssLength(context.getPreferences().get("maxHeight"));
+    if (maxHeight != null) {
+      style = appendCSSValue(style, "max-height:" + maxHeight);
     }
     if (StringUtils.isNotBlank(style)) {
       context.getRequest().setAttribute("logoStyle", style);
@@ -75,6 +76,31 @@ public class LogoWidget extends GenericWidget {
     // Show the JSP
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * A plain CSS length, or null when the value is anything else.
+   *
+   * <p>These two preferences used to be concatenated into the value unchecked, which was survivable
+   * while the result went into a style ATTRIBUTE -- the worst a stray character could do there was
+   * produce a malformed declaration the browser drops. logo.jsp now renders them into a
+   * &lt;style&gt; ELEMENT instead, so the page can eventually drop 'unsafe-inline' from style-src
+   * (a nonce covers style elements and cannot cover attributes). A stylesheet is a much wider blast
+   * radius: a value carrying "}" closes the rule and everything after it becomes page-wide CSS.
+   *
+   * <p>Rejected rather than escaped, deliberately. There is no legitimate logo size that is not a
+   * number and a unit, so anything else is a mistake or an attempt, and dropping it fails safe --
+   * the logo renders at its natural size instead of the page rendering someone else's CSS.
+   */
+  private static final Pattern CSS_LENGTH = Pattern.compile(
+      "(?i)^(auto|none|inherit|initial|unset|\\d+(\\.\\d+)?(px|rem|em|ex|ch|vh|vw|vmin|vmax|pt|pc|cm|mm|in|%))$");
+
+  static String cssLength(String value) {
+    if (StringUtils.isBlank(value)) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return CSS_LENGTH.matcher(trimmed).matches() ? trimmed : null;
   }
 
   private static String appendCSSValue(String existingCSS, String newCSS) {
