@@ -23,8 +23,8 @@
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
 <jsp:useBean id="wikiLinkPrefix" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mermaid" class="java.lang.String" scope="request"/>
-<link rel="stylesheet" href="${ctx}/javascript/prism-1.29.0/prism.css">
-<script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
+<link rel="stylesheet" href="${ctx}/javascript/prism-1.30.0/prism.css">
+<script src="${ctx}/javascript/prism-1.30.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
 <script src="${ctx}/javascript/mermaid-10.9.6/mermaid.min.js"></script>
 <script nonce="${cspNonce}">
