@@ -479,12 +479,7 @@ public class DB {
       }
 
       // Apply the constraints
-      if (constraints.getPageNumber() > 1) {
-        sb.append(" OFFSET ").append((constraints.getPageNumber() - 1) * constraints.getPageSize());
-      }
-      if (constraints.getPageSize() > 0) {
-        sb.append(" LIMIT ").append(constraints.getPageSize());
-      }
+      sb.append(pagingClause(constraints));
     }
 
     // Get a connection, execute the query, return the data
@@ -949,12 +944,7 @@ public class DB {
       }
 
       // Apply the constraints
-      if (constraints.getPageNumber() > 1) {
-        sb.append(" OFFSET ").append((constraints.getPageNumber() - 1) * constraints.getPageSize());
-      }
-      if (constraints.getPageSize() > 0) {
-        sb.append(" LIMIT ").append(constraints.getPageSize());
-      }
+      sb.append(pagingClause(constraints));
     }
 
     // Prepare the writer
@@ -1004,6 +994,37 @@ public class DB {
       }
     }
     return row;
+  }
+
+  /**
+   * The OFFSET/LIMIT clause for a paged query, or an empty string when the constraints do not page.
+   *
+   * <p>OFFSET is emitted only alongside a LIMIT. The two used to be guarded independently -- LIMIT on
+   * {@code pageSize > 0}, OFFSET on {@code pageNumber > 1} -- and that gap is how invalid SQL
+   * escaped. {@code DataConstraints.pageSize} defaults to -1, meaning "no limit", so a caller that
+   * advanced the page number without also setting a page size produced {@code OFFSET -1} and
+   * PostgreSQL rejected the entire query with "OFFSET must not be negative". An offset has no
+   * meaning without a page size in any case: page N of an unpaged result set is not a thing.
+   *
+   * <p>The multiplication is done in long deliberately. As an int it overflows past roughly 107
+   * million pages at a page size of 20, wrapping to a negative offset and failing in exactly the
+   * same way -- and the page number is reachable from a query string, where {@code ?page=999999} has
+   * already been observed.
+   *
+   * @param constraints the paging constraints, which may be null
+   * @return the clause to append, beginning with a space, or an empty string
+   */
+  static String pagingClause(DataConstraints constraints) {
+    if (constraints == null || constraints.getPageSize() <= 0) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    long offset = (long) (constraints.getPageNumber() - 1) * constraints.getPageSize();
+    if (offset > 0) {
+      sb.append(" OFFSET ").append(offset);
+    }
+    sb.append(" LIMIT ").append(constraints.getPageSize());
+    return sb.toString();
   }
 
   /**
