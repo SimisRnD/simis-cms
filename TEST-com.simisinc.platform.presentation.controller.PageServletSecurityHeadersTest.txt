@@ -1,0 +1,10 @@
+Testcase: com.simisinc.platform.presentation.controller.PageServletSecurityHeadersTest
+Test: serviceSendsNoReportOnlyHeaderWhenNoCandidateIsConfigured() took 413 milli sec(s)
+Test: serviceSendsTheBaselineSecurityHeadersOnEveryResponse() took 4 milli sec(s)
+Test: serviceSendsTheNonceBasedContentSecurityPolicyExactlyOnceAndDoesNotClobberIt() took 5 milli sec(s)
+Test: serviceSendsStrictReferrerPolicyExactlyOnceAndDoesNotResetItToSameOrigin() took 4 milli sec(s)
+Test: serviceNeverSendsTheHarmfulLegacyXssAuditorValue() took 3 milli sec(s)
+Test: serviceSendsNoHstsWhenSslIsNotConfigured() took 2 milli sec(s)
+Test: serviceSendsTheReportOnlyHeaderWhenACandidatePolicyIsConfigured() took 3 milli sec(s)
+Test: serviceSendsHstsWhenTheDeploymentIsConfiguredForSsl() took 2 milli sec(s)
+Tests run: 8, Failures: 0, Skipped: 0, Aborted: 0, Time elapsed: 443 milli sec(s)
