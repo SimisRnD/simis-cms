@@ -1,0 +1,8 @@
+Testcase: com.simisinc.platform.infrastructure.database.DataConstraintsTest
+Test: theDefaultStartsUnsetSoTheFirstWriterIsWhoeverAsksFirst() took 6 milli sec(s)
+Test: theConstructorSortIsAnApplicationSortNotADefault() took 0 milli sec(s)
+Test: settingTheDefaultStillChains() took 0 milli sec(s)
+Test: aCallerSetDefaultSurvivesTheRepositorySettingItsOwn() took 1 milli sec(s)
+Test: theApplicationFacingSetterStillOutranksTheDefaultEntirely() took 1 milli sec(s)
+Test: theRepositoryDefaultAppliesWhenNothingElseAskedForOne() took 0 milli sec(s)
+Tests run: 6, Failures: 0, Skipped: 0, Aborted: 0, Time elapsed: 14 milli sec(s)

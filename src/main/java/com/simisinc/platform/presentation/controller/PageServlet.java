@@ -282,8 +282,13 @@ public class PageServlet extends HttpServlet {
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
+    // includeSubDomains is scoped to the host that SENT the header. This servlet answers
+    // www.simisinc.com, so the directive covers *.www.simisinc.com -- which is nothing. It is
+    // still the correct directive to send and it is what scanners check for, but do not read this
+    // line as protecting sibling hosts (autodiscover, sip, lyncdiscover): those are subdomains of
+    // the APEX, and the apex is redirected at the edge and never reaches this servlet.
     if ("true".equals(LoadSitePropertyCommand.loadByName("system.ssl"))) {
-      response.setHeader("Strict-Transport-Security", "max-age=31536000");
+      response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     }
 
     try {
