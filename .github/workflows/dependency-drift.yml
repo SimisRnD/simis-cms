@@ -31,6 +31,8 @@ on:
 
 permissions:
   contents: read
+  # The pending-triage feed check reads code scanning alerts.
+  security-events: read
 
 jobs:
   drift:
@@ -51,6 +53,25 @@ jobs:
         run: python3 tools/check-version-consistency.py . --strict
       - name: Fail on vendored-jar bytes not matching lib/PROVENANCE.sha256
         run: python3 tools/check-vendored-provenance.py .
+      # docker/db/.trivyignore holds CVEs awaiting triage, each with an expiry. The file's
+      # header says a lapsed expiry "re-fails the publish gate ... so triage cannot be
+      # forgotten silently" -- but the gate it fails is the publish workflow, whose last
+      # step is the deploy. So a lapse does not prompt anyone, it stops delivery for
+      # everything already merged: three times so far (2026-08-27, 09-03, 09-08, the last
+      # stranding six merged PRs). Checking it here turns the outage back into the prompt
+      # it was meant to be, a week ahead.
+      - name: Fail on a pending-triage CVE that has lapsed or expires within a week
+        run: python3 tools/check-trivyignore-health.py .
+      # The other half, from issue #1935: entries pending triage while code scanning has
+      # zero open Trivy alerts. Both cannot be true -- an entry exists because a CVE awaits
+      # triage, and triage is fed by those alerts. REPORT-ONLY, deliberately: it is true
+      # today, so --strict-feed would fail every unrelated PR until #1935's design change
+      # lands. Same staging the jar and JavaScript drift checks used -- report, reconcile,
+      # then flip. Add --strict-feed when #1935 closes.
+      - name: Report a pending-triage CVE with no alert feed behind it
+        run: python3 tools/check-trivyignore-health.py . --check-alert-feed
+        env:
+          GH_TOKEN: ${{ github.token }}
       # The served Foundation stylesheet is generated from the vendored original, so a
       # re-vendored Foundation that nobody regenerated -- or a hand-edited generated file --
       # would silently ship a stylesheet that no longer matches its source.

@@ -62,6 +62,24 @@ public class SaveCalendarEventCommand {
       FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A title",
           calendarEventBean.getTitle(), MAX_TITLE_LENGTH);
     }
+    // Both dates are required, and neither was checked. calendar_events.end_date is NOT NULL, so a
+    // missing end date reached PostgreSQL and the insert died on the constraint -- the save is lost
+    // and the author sees a system error rather than a field they can fix (issue #1938). A missing
+    // start date was worse because it did not fail: it was backfilled with the publish time further
+    // down, so the event silently moved to today. Both are caught here, in the one place both the
+    // admin form and the full calendar editor go through.
+    if (calendarEventBean.getStartDate() == null) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append("; ");
+      }
+      errorMessages.append("A start date is required");
+    }
+    if (calendarEventBean.getEndDate() == null) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append("; ");
+      }
+      errorMessages.append("An end date is required");
+    }
     if (calendarEventBean.getStartDate() != null && calendarEventBean.getEndDate() != null && calendarEventBean.getEndDate().before(calendarEventBean.getStartDate())) {
       if (errorMessages.length() > 0) {
         errorMessages.append("; ");
@@ -134,9 +152,10 @@ public class SaveCalendarEventCommand {
     calendarEvent.setPublished(calendarEventBean.getPublished());
     calendarEvent.setStartDate(calendarEventBean.getStartDate());
     calendarEvent.setEndDate(calendarEventBean.getEndDate());
-    if (calendarEvent.getStartDate() == null && calendarEvent.getPublished() != null) {
-      calendarEvent.setStartDate(calendarEvent.getPublished());
-    }
+    // The backfill that used to sit here -- a null startDate replaced with the publish time -- is
+    // gone. It is unreachable now that a start date is required above, and it was the mechanism
+    // that turned a date the converter could not read into a silent "today" rather than an error.
+    // Same shape as the blog-post defect in issue #1351, fixed by PR #1353.
 
     CalendarEvent result = CalendarEventRepository.save(calendarEvent);
     if (result != null) {
