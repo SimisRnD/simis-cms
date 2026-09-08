@@ -81,15 +81,32 @@
 </div>
 <c:if test="${!empty optionsList}">
 <script nonce="${cspNonce}">
-  // Interval to update the highlighted tab data
-  var currentValue = '<c:out value="${empty currentValue ? optionsList.entrySet().toArray()[0].value : currentValue}"/>';
-  var updateIntervalFunction = function() {
-    query${widgetContext.uniqueId}(currentValue);
+  // Interval to update the highlighted tab data.
+  //
+  // Everything declared here carries the widget's unique id for the same reason the tab ids do, a
+  // few lines above: an admin page renders several of these tables side by side. Four names were
+  // left unsuffixed and were therefore genuine page globals, redeclared by every tabbed instance
+  // so the last one rendered won (issue #1922). On /admin/content/analytics that meant Top Pages
+  // never auto-refreshed at all -- its interval handle and its interval function were both replaced
+  // by Top Downloads' before either could fire, and the access logs showed only Top Downloads ever
+  // polling. The two also shared one currentValue, so an interval fired for one could query the
+  // range last chosen on the other, and clearInterval in either one's query() cancelled the other's
+  // pending refresh.
+  //
+  // The variables that must stay per-widget are exactly the ones that outlive a single call:
+  // currentValue (the selected range), updateIntervalFunction and updateInterval (the timer), and
+  // buildItemRow (a row formatter, which was harmless in practice only because every instance
+  // defined it identically). Names declared inside a function -- div, items, el -- are already
+  // function-scoped and do not collide.
+  var currentValue${widgetContext.uniqueId} = '<c:out value="${empty currentValue ? optionsList.entrySet().toArray()[0].value : currentValue}"/>';
+  var updateIntervalFunction${widgetContext.uniqueId} = function() {
+    query${widgetContext.uniqueId}(currentValue${widgetContext.uniqueId});
   };
-  // Immediately start polling
-  // var updateInterval = setInterval(updateIntervalFunction, 10000);
-  // Wait for the first query
-  var updateInterval;
+  // Declared without a timer: polling starts only once the first query succeeds, so a widget whose
+  // very first request fails never schedules one. The commented-out "start immediately" line that
+  // used to sit here was removed rather than left as documentation -- it carried its own copy of the
+  // interval, which would quietly go stale the next time the real one below changes.
+  var updateInterval${widgetContext.uniqueId};
 
   // Auto-refresh gives up after this many consecutive failures instead of retrying forever.
   // A failure here is usually permanent, not transient: the form token baked into the URL below is
@@ -117,16 +134,16 @@
   }
 
   // Update the table data
-  function buildItemRow(item) {
+  function buildItemRow${widgetContext.uniqueId}(item) {
     return "<tr><td>" + escapeHtml${widgetContext.uniqueId}(item.label) + "</td><td class=\"text-center\">" + parseFloat(item.value).toLocaleString() + "</td></tr>";
   }
 
   // Query the data
   function query${widgetContext.uniqueId}(value) {
     // Turn off the interval
-    if (updateInterval) {
-      clearInterval(updateInterval);
-      updateInterval = null;
+    if (updateInterval${widgetContext.uniqueId}) {
+      clearInterval(updateInterval${widgetContext.uniqueId});
+      updateInterval${widgetContext.uniqueId} = null;
     }
     // Query the new data
     $.ajax({
@@ -143,7 +160,7 @@
       // Build the new data
       var items = [];
       $.each(data, function (key, item) {
-        items.push(buildItemRow(item));
+        items.push(buildItemRow${widgetContext.uniqueId}(item));
       });
       // Add the new data
       $('<tbody/>', {
@@ -152,8 +169,25 @@
       // Recovered -- spend the failure budget again from full
       failures${widgetContext.uniqueId} = 0;
       showStopped${widgetContext.uniqueId}(false);
-      // Turn on the interval
-      updateInterval = setInterval(updateIntervalFunction, 10000);
+      // Turn on the interval.
+      //
+      // 60s, raised from 10s, because suffixing the globals above is a real behaviour change and
+      // not just hygiene: today exactly ONE report per page polls, and now every tabbed one does.
+      // Per open tab, at the old 10s:
+      //
+      //   /admin/community/analytics          7 tabbed reports   360/hr -> 2,520/hr
+      //   /admin/community/search-analytics   3 tabbed reports   360/hr -> 1,080/hr
+      //   /admin/content/analytics            2 tabbed reports   360/hr ->   720/hr
+      //
+      // Each of those requests runs an analytics query. At 60s the busiest page lands at 420/hr,
+      // near the 360/hr it costs today, so the fix does not buy a working refresh at the price of
+      // seven times the database load.
+      //
+      // 10s was never warranted by the data anyway. These are daily and monthly aggregates -- the
+      // number behind "Monthly Sessions" cannot change meaningfully between two ten-second polls.
+      // If a page ever needs a faster cadence, make it a widget preference rather than raising it
+      // for every report on every admin page at once.
+      updateInterval${widgetContext.uniqueId} = setInterval(updateIntervalFunction${widgetContext.uniqueId}, 60000);
     }).fail(function() {
       ++failures${widgetContext.uniqueId};
       if (failures${widgetContext.uniqueId} >= maxFailures${widgetContext.uniqueId}) {
@@ -162,7 +196,7 @@
         return;
       }
       // Turn on the interval
-      updateInterval = setInterval(updateIntervalFunction, 30000);
+      updateInterval${widgetContext.uniqueId} = setInterval(updateIntervalFunction${widgetContext.uniqueId}, 30000);
     });
   }
 
@@ -174,7 +208,7 @@
       if (li.id === 'val' + value + '-${widgetContext.uniqueId}') {
         if (!li.matches('.is-active')) {
           li.className = li.className + ' is-active';
-          currentValue = value;
+          currentValue${widgetContext.uniqueId} = value;
         }
       } else {
         if (li.matches('.is-active')) {
