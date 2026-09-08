@@ -92,4 +92,51 @@ class DBTest {
 
     assertEquals("\"'=SUM(A1:A1)\"\n\"Acme Corp\"\n", out.toString());
   }
+
+  /**
+   * Issue #1937. PostgreSQL rejects the whole query with "OFFSET must not be negative", so this is
+   * not a cosmetic SQL wart -- the listing returns nothing. Thirty of these were recorded in one
+   * week on the live site once PostgreSQL logging was enabled, at a rising rate.
+   *
+   * <p>The trigger is a page number above 1 with a page size that is not positive. pageSize defaults
+   * to -1 ("no limit"), and the old code guarded LIMIT on {@code pageSize > 0} but OFFSET on
+   * {@code pageNumber > 1}, so those two states could disagree.
+   */
+  @Test
+  void aPageNumberWithNoPageSizeEmitsNoPagingRatherThanANegativeOffset() {
+    assertEquals("", DB.pagingClause(new DataConstraints(2, -1)));
+    assertEquals("", DB.pagingClause(new DataConstraints(2, 0)));
+    assertEquals("", DB.pagingClause(new DataConstraints(99, -20)));
+  }
+
+  @Test
+  void anUnpagedOrFirstPageConstraintEmitsNoOffset() {
+    assertEquals(" LIMIT 20", DB.pagingClause(new DataConstraints(1, 20)));
+    // Below 1 is not reachable through getParameterAsInt, which rejects non-digits, but the
+    // constructor and setter both accept any int, so the clause must not go negative here either.
+    assertEquals(" LIMIT 20", DB.pagingClause(new DataConstraints(0, 20)));
+    assertEquals(" LIMIT 20", DB.pagingClause(new DataConstraints(-1, 20)));
+  }
+
+  @Test
+  void anOrdinaryPagedConstraintIsUnchanged() {
+    assertEquals(" OFFSET 20 LIMIT 20", DB.pagingClause(new DataConstraints(2, 20)));
+    assertEquals(" OFFSET 19960 LIMIT 20", DB.pagingClause(new DataConstraints(999, 20)));
+  }
+
+  /**
+   * (pageNumber - 1) * pageSize overflows int past roughly 107 million pages at a page size of 20,
+   * wrapping negative and failing exactly like the case above. The page number comes from a query
+   * string, and ?page=999999 has already been seen in production.
+   */
+  @Test
+  void aPageNumberLargeEnoughToOverflowIntStillProducesAPositiveOffset() {
+    assertEquals(" OFFSET 3999999980 LIMIT 20", DB.pagingClause(new DataConstraints(200_000_000, 20)));
+    assertEquals(" OFFSET 19999960 LIMIT 20", DB.pagingClause(new DataConstraints(999_999, 20)));
+  }
+
+  @Test
+  void nullConstraintsEmitNothing() {
+    assertEquals("", DB.pagingClause(null));
+  }
 }
