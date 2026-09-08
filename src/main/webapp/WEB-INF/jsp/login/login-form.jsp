@@ -40,18 +40,29 @@
           <label>Authentication code
             <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="123456" autofocus required>
           </label>
+          <p class="login-stay-signed-in">
+            <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
+          </p>
           <p><input type="submit" class="button primary radius expanded" value="Verify"></input></p>
-          <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
         </c:when>
         <c:otherwise>
+          <%-- autocomplete="username" / "current-password" are the standard sign-in pair. The
+               password field previously carried autocomplete="off", which is worth calling out
+               because it looks like the cautious choice and is the opposite: it discourages
+               password managers, and someone who cannot store a password picks one they can
+               remember. NIST SP 800-63B asks verifiers to FACILITATE password manager use for
+               exactly that reason, and WCAG 2.1 SC 1.3.5 (Identify Input Purpose) wants a field's
+               purpose declared. The value was inherited from the initial code drop rather than
+               chosen: the MFA branch above already uses one-time-code correctly, and the codebase
+               uses email, new-password, given-name and cc-number elsewhere. --%>
           <label>Email
-            <input name="email" type="text" placeholder="Email" required>
+            <input name="email" type="text" placeholder="Email" autocomplete="username" required>
           </label>
           <%-- The input sits outside the label rather than inside it: a button nested in a label has
                its clicks forwarded to the labelled control, which would steal focus from the toggle. --%>
           <label for="login-password">Password</label>
           <div class="password-field">
-            <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="off" required>
+            <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="current-password" required>
             <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
                     aria-pressed="false" aria-label="Show the value while typing"
                     title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
@@ -59,11 +70,16 @@
           <p class="help-text text-right">
             <a href="${ctx}/forgot-password">Forgot your password?</a>
           </p>
+          <%-- "Stay logged in" sits BEFORE the submit button. It changes what submitting does, so it
+               has to be readable before the visitor commits. Below a full-width primary action, with
+               nothing after it, it was both out of order and easy to miss entirely. --%>
+          <p class="login-stay-signed-in">
+            <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
+          </p>
           <p><input type="submit" class="button primary radius expanded" value="Sign In"></input></p>
           <c:if test="${!empty oAuthProvider}">
             <p><a href="${ctx}/" class="button secondary radius expanded">Login with <c:out value="${oAuthProvider}" /></a></p>
           </c:if>
-          <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
         </c:otherwise>
       </c:choose>
     </div>
