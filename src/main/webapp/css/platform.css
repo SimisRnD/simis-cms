@@ -502,6 +502,27 @@ p {
   color: var(--sc-info, #03727e);
 }
 
+/* Positioning contexts moved out of inline style attributes.
+ *
+ * These carry no visual opinion -- each one only establishes a containing block for an
+ * absolutely positioned child (a menu dropdown, a chart overlay). They live here rather
+ * than on the element because a CSP nonce covers <style> ELEMENTS and not style
+ * ATTRIBUTES, so every inline style= on the site forces style-src to keep
+ * 'unsafe-inline'. The menu rule alone accounts for six attributes on all 133 published
+ * pages -- 798 of the 1,417 counted site-wide.
+ */
+
+.platform-menu-container {
+  position: relative;
+}
+
+/* Wraps the <canvas> in a progress card; the value overlay is absolutely positioned
+ * against it. A dedicated class rather than .cell, which is Foundation's grid primitive
+ * and used site-wide. */
+.platform-progress-chart {
+  position: relative;
+}
+
 /* Body */
 
 .platform-body {

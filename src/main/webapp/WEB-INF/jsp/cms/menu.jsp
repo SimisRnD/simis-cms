@@ -28,7 +28,7 @@
 <jsp:useBean id="wrap" class="java.lang.String" scope="request"/>
 <jsp:useBean id="cartItemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cartEntryList" class="java.util.ArrayList" scope="request"/>
-<div class="platform-menu-container" style="position: relative;">
+<div class="platform-menu-container">
 <c:if test="${!empty title}">
   <span class="menu-title padding-left-15"><c:out value="${title}" /></span>
 </c:if>

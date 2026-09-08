@@ -53,7 +53,7 @@
   }
 </style>
 <div class="grid-x align-middle text-middle">
-  <div class="small-4 cell" style="position:relative">
+  <div class="small-4 cell platform-progress-chart">
     <canvas id="myChart-${widgetContext.uniqueId}"></canvas>
     <c:if test="${progressCard.maxValue > 0}">
       <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}"><fmt:formatNumber value="${100 * (progressCard.progress / progressCard.maxValue)}" />%</p>
