@@ -59,7 +59,7 @@
         <widget name="logo" class="float-left margin-right-25">
           <maxHeight>50px</maxHeight>
         </widget>
-        <widget name="menu" style="font-size: 14px;" class="float-right header-item">
+        <widget name="menu" class="float-right header-item header-item-compact">
           <class>align-left text-no-wrap menu-button</class>
           <links>
             <link name="Contact Us" class="button primary round" link="/contact-us" />
@@ -233,7 +233,7 @@
         <widget name="logo" class="float-left margin-right-25">
           <maxHeight>50px</maxHeight>
         </widget>
-        <widget name="menu" style="font-size: 14px;" class="float-right header-item">
+        <widget name="menu" class="float-right header-item header-item-compact">
           <class>align-left text-no-wrap menu-button</class>
           <links>
             <link name="Contact Us" class="button primary round" link="/contact-us" />
