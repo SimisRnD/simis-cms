@@ -133,6 +133,26 @@ public class CalendarWidget extends GenericWidget {
       calendarEventBean.setId(-1L);
     }
 
+    // A timestamp the converter cannot parse becomes null rather than raising (PageServlet registers
+    // SqlTimestampConverter with a null default and the single pattern "MM-dd-yyyy HH:mm").
+    // SaveCalendarEventCommand rejects a null date, so nothing reaches the database broken, but it
+    // cannot tell "left blank" from "typed something unreadable". The raw parameter is still here.
+    // See issue #1938, and PR #1353 for the same guard on the blog editor.
+    String startDateParam = context.getParameter("startDate");
+    if (StringUtils.isNotBlank(startDateParam) && calendarEventBean.getStartDate() == null) {
+      context.setErrorMessage(
+          "The start date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
+      context.setRequestObject(calendarEventBean);
+      return context;
+    }
+    String endDateParam = context.getParameter("endDate");
+    if (StringUtils.isNotBlank(endDateParam) && calendarEventBean.getEndDate() == null) {
+      context.setErrorMessage(
+          "The end date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
+      context.setRequestObject(calendarEventBean);
+      return context;
+    }
+
     // Save the event
     CalendarEvent calendarEvent = null;
     try {

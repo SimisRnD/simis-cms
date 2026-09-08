@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -203,4 +204,59 @@ class SaveCalendarEventCommandTest {
     }
   }
 
+  /**
+   * Issue #1938. calendar_events.end_date is NOT NULL, so a missing end date used to reach
+   * PostgreSQL and the insert died on the constraint -- the author lost the event and saw a system
+   * error instead of a field they could fix. Neither date was checked before this.
+   */
+  @Test
+  void aMissingEndDateIsRejectedBeforeItReachesTheDatabase() {
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L); // saveCalendarEvent rejects an unset submitter before it reaches the dates
+    bean.setEndDate(null);
+
+    DataException e = assertThrows(DataException.class, () -> SaveCalendarEventCommand.saveCalendarEvent(bean));
+    assertTrue(e.getMessage().contains("An end date is required"), e.getMessage());
+  }
+
+  /**
+   * The start date failed the opposite way, which was worse because it did not fail: a null was
+   * backfilled with the publish time, so a date the converter could not read saved "successfully"
+   * as today and the event silently moved. Same shape as the blog defect in #1351.
+   */
+  @Test
+  void aMissingStartDateIsRejectedRatherThanBackfilledWithThePublishTime() {
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L); // saveCalendarEvent rejects an unset submitter before it reaches the dates
+    bean.setStartDate(null);
+    bean.setPublished(new Timestamp(System.currentTimeMillis()));
+
+    DataException e = assertThrows(DataException.class, () -> SaveCalendarEventCommand.saveCalendarEvent(bean));
+    assertTrue(e.getMessage().contains("A start date is required"), e.getMessage());
+  }
+
+  @Test
+  void bothMissingDatesAreReportedTogether() {
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L); // saveCalendarEvent rejects an unset submitter before it reaches the dates
+    bean.setStartDate(null);
+    bean.setEndDate(null);
+
+    DataException e = assertThrows(DataException.class, () -> SaveCalendarEventCommand.saveCalendarEvent(bean));
+    assertTrue(e.getMessage().contains("A start date is required"), e.getMessage());
+    assertTrue(e.getMessage().contains("An end date is required"), e.getMessage());
+  }
+
+  /** The pre-existing ordering check still applies, and still only when both dates are present. */
+  @Test
+  void anEndDateBeforeTheStartDateIsStillRejected() {
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L); // saveCalendarEvent rejects an unset submitter before it reaches the dates
+    Timestamp start = new Timestamp(System.currentTimeMillis());
+    bean.setStartDate(start);
+    bean.setEndDate(new Timestamp(start.getTime() - 3_600_000L));
+
+    DataException e = assertThrows(DataException.class, () -> SaveCalendarEventCommand.saveCalendarEvent(bean));
+    assertTrue(e.getMessage().contains("The end date needs to come after the start date"), e.getMessage());
+  }
 }
