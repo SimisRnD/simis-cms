@@ -43,6 +43,12 @@
         </td>
         <td>
           <c:out value="${webRedirect.toUrl}" />
+          <%-- A redirect whose destination stopped resolving still answers 301, so the visitor and
+               every crawler follow it into a 404. Nothing else in the admin says so. --%>
+          <c:if test="${targetStatusMap[webRedirect.id].broken}">
+            <br />
+            <span class="label alert" title="This redirect answers 301, then the visitor lands on a 404. Search engines treat a 301 as permanent, so the dead destination is what they remember."><i class="fa fa-warning"></i> <c:out value="${targetStatusMap[webRedirect.id].label}" /></span>
+          </c:if>
         </td>
         <td>
           <c:out value="${webRedirect.statusCode}" />
