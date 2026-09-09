@@ -147,11 +147,33 @@ public class WebRequestFilter implements Filter {
     // Publicly readable assets are deliberately exempt. Content images and the vendored
     // css/javascript/font files gain nothing -- anyone can already fetch them anonymously -- and
     // same-origin there would stop other sites displaying images this site wants shared.
+    //
+    // Strict-Transport-Security is set here for exactly the reason stated above, and it was missed
+    // when it was first added: PageServlet set it, so only a rendered page carried it. Every
+    // redirect this filter generates returns from do301()/do302() without ever reaching the
+    // servlet, so none of them advertised HSTS -- including the trailing-slash canonical redirect,
+    // which fires constantly, and every admin-managed rule. Verified against production before
+    // this change: a 200 page carried the header while /careers/ and /employee-benefits, both
+    // 301s, carried nosniff and Cross-Origin-Resource-Policy from this very block but no HSTS.
+    //
+    // Gated on system.ssl rather than the per-request scheme, unchanged from how PageServlet gated
+    // it: sending this from a deployment that cannot serve HTTPS would make browsers refuse it for
+    // the whole max-age, and the property stays correct behind a TLS-terminating proxy where the
+    // scheme this filter sees is not the one the browser used. Read per request, not from the
+    // requireSSL field set in init(), so that flipping the property takes effect the same way it
+    // does today instead of waiting for a restart.
+    //
+    // includeSubDomains is scoped to the host that SENT the header, so on www.simisinc.com it
+    // covers *.www.simisinc.com -- which is nothing. It is still the correct directive and it is
+    // what scanners check for, but do not read it as protecting sibling hosts of the apex.
     if (servletResponse instanceof HttpServletResponse) {
       HttpServletResponse securedResponse = (HttpServletResponse) servletResponse;
       securedResponse.setHeader("X-Content-Type-Options", "nosniff");
       securedResponse.setHeader("Cross-Origin-Resource-Policy",
           isPubliclyEmbeddableAsset(resource) ? "cross-origin" : "same-origin");
+      if ("true".equals(LoadSitePropertyCommand.loadByName("system.ssl"))) {
+        securedResponse.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      }
     }
 
     // Assets whose URL already identifies their content can be cached indefinitely, so a repeat

@@ -319,27 +319,19 @@ class PageServletSecurityHeadersTest {
     verify(response, never()).setHeader(eq("X-XSS-Protection"), eq("1"));
   }
 
-  /**
-   * HSTS is gated on the system.ssl property rather than the request scheme, deliberately: the
-   * platform runs behind a TLS-terminating proxy, so the request arrives as http and the scheme
-   * would report the wrong answer. Both directions are pinned, because the failure modes are
-   * opposite and both are bad -- a missing header on an HTTPS site loses the protection, and a
-   * header sent from a site that cannot serve HTTPS makes browsers refuse it for a full year.
-   */
+  // The HSTS tests that were here now live in WebRequestFilterTest, because the header moved to
+  // WebRequestFilter. Setting it in this servlet reached only the pages the servlet renders, which
+  // left every redirect the filter generates -- and every static file -- without it. Both
+  // directions are still pinned there (sent when system.ssl is true, withheld when it is not),
+  // since the failure modes are opposite and both are bad: a missing header on an HTTPS site loses
+  // the protection, and a header sent from a site that cannot serve HTTPS makes browsers refuse it
+  // for a full year.
+  //
+  // This servlet must NOT set it as well. Two places setting the same header is how they drift.
   @Test
-  void serviceSendsHstsWhenTheDeploymentIsConfiguredForSsl() throws Exception {
+  void serviceLeavesHstsToTheFilterRatherThanSettingItItself() throws Exception {
     HttpServletResponse response = mock(HttpServletResponse.class);
     serviceWithSsl(response, "true");
-
-    ArgumentCaptor<String> hsts = ArgumentCaptor.forClass(String.class);
-    verify(response, times(1)).setHeader(eq("Strict-Transport-Security"), hsts.capture());
-    assertEquals("max-age=31536000; includeSubDomains", hsts.getValue());
-  }
-
-  @Test
-  void serviceSendsNoHstsWhenSslIsNotConfigured() throws Exception {
-    HttpServletResponse response = mock(HttpServletResponse.class);
-    serviceWithSsl(response, null);
 
     verify(response, never()).setHeader(eq("Strict-Transport-Security"), anyString());
   }
