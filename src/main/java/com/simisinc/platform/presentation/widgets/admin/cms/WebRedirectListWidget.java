@@ -16,13 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.simisinc.platform.application.cms.CheckWebRedirectTargetCommand;
+import com.simisinc.platform.application.cms.CheckWebRedirectTargetCommand.TargetStatus;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebRedirectRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.Page;
 import com.simisinc.platform.presentation.controller.WebRequestFilter;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.controller.XMLPageLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
@@ -47,8 +55,53 @@ public class WebRedirectListWidget extends GenericWidget {
     List<WebRedirect> webRedirectList = WebRedirectRepository.findAll();
     context.getRequest().setAttribute("webRedirectList", webRedirectList);
 
+    // Flag redirects whose destination no longer resolves. A redirect that was correct when it was
+    // written becomes a permanent dead end as soon as its target is deleted, unpublished or
+    // emptied, and nothing else in the admin says so -- the rule keeps answering 301 and the
+    // visitor lands on a 404. See CheckWebRedirectTargetCommand for what is and is not judged.
+    //
+    // Both maps are built per render rather than cached. This is a small, rarely-opened admin list,
+    // and a stale answer here would be worse than the work: the whole point is to reflect the page
+    // records as they are right now.
+    context.getRequest().setAttribute("targetStatusMap", buildTargetStatusMap(context, webRedirectList));
+
     context.setJsp(JSP);
     return context;
+  }
+
+  /** Destination health per redirect id, for the list to render. */
+  private Map<Long, TargetStatus> buildTargetStatusMap(WidgetContext context,
+      List<WebRedirect> webRedirectList) {
+
+    // Nothing to check: skip loading every page record and the whole XML page config, which is
+    // what a fresh install with no redirects would otherwise pay on every render of this page
+    if (webRedirectList == null || webRedirectList.isEmpty()) {
+      return new HashMap<>();
+    }
+
+    // The built-in pages, which are live without any web_pages row -- loaded the same way
+    // WebPageListWidget loads them so both lists answer "does this resolve" identically
+    Map<String, Page> standardPages = new HashMap<>();
+    XMLPageLoader xmlPageConfig = new XMLPageLoader(standardPages);
+    xmlPageConfig.loadWidgetLibrary(context.getRequest().getServletContext(),
+        "/WEB-INF/widgets/widget-library.xml");
+    xmlPageConfig.addFile("/WEB-INF/web-layouts/page/page-layout.xml");
+    xmlPageConfig.load(context.getRequest().getServletContext());
+
+    // Keyed lower-cased to match WebPageRepository.findByLink, which compares on LOWER(link)
+    Map<String, WebPage> webPageMap = new HashMap<>();
+    for (WebPage webPage : WebPageRepository.findAll()) {
+      if (webPage.getLink() != null) {
+        webPageMap.put(webPage.getLink().toLowerCase(), webPage);
+      }
+    }
+
+    Map<Long, TargetStatus> targetStatusMap = new HashMap<>();
+    for (WebRedirect webRedirect : webRedirectList) {
+      targetStatusMap.put(webRedirect.getId(),
+          CheckWebRedirectTargetCommand.check(webRedirect.getToUrl(), standardPages, webPageMap));
+    }
+    return targetStatusMap;
   }
 
   public WidgetContext post(WidgetContext context) {
