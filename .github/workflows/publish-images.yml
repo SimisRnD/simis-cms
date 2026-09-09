@@ -361,6 +361,57 @@ jobs:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
 
+      # The triage feed (issue #1935). tools/generate-db-vex.py builds the OpenVEX
+      # document from open Trivy alerts in code scanning, and keeps only CVEs with no
+      # fixed version -- `if fixed: continue`, because a fix is something to apply, not
+      # to VEX. The scan above reports the exact complement of that: `ignore-unfixed`
+      # keeps only CVEs that DO have a fix. Composed, the intersection is empty, so the
+      # generator's input has been empty since 9a29795b (2026-08-14) made
+      # `ignore-unfixed` take effect -- the last Trivy alert ever created is dated that
+      # day. Every `.trivyignore` entry says "to resolve: once the alert appears in code
+      # scanning, regenerate", and the alert could not appear. Three delivery outages
+      # (2026-08-27, 09-03, 09-08, the last stranding #1927-#1932) were found by the
+      # gate because nothing upstream of it could see them first.
+      #
+      # This is that complement, under its own category so the two analyses do not
+      # overwrite each other. Neither filter from the scan above is applied, and both
+      # omissions are load-bearing:
+      #
+      #   - no `ignore-unfixed`, so unfixable CVEs -- the only kind a VEX document may
+      #     describe -- reach the feed at all;
+      #   - no `trivyignores`, because that file IS the pending-triage queue. Suppressing
+      #     it here would hide exactly the entries that need triaging, and relaxing only
+      #     one of the two filters just hands the job to the other.
+      #
+      # The VEX document is deliberately not applied either, and not only because this
+      # pinned action declares no `vex` input. The generator regenerates the whole
+      # document from this feed, so the feed has to carry every unfixable CVE, not just
+      # the untriaged ones -- filtering it to the pending set would shrink the document
+      # from ~60 statements to a handful, which #1470's shrink guard refuses.
+      #
+      # Cost, stated plainly: this returns roughly a hundred unfixable Debian CVEs to
+      # the Security tab, which is where they sat until 2026-08-14 and the state in
+      # which triage demonstrably worked. Trivy has no inverse of `ignore-unfixed`, so
+      # this set also re-reports any *fixed* CVE already alerted above under the other
+      # category. In practice that overlap is near-zero -- every current finding on this
+      # image is an unfixable Debian package -- but it is a duplicate, not an illusion.
+      - name: Scan the database image for unfixable CVEs (VEX triage feed)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/simis-cms-db:${{ github.sha }}
+          format: sarif
+          output: trivy-simis-cms-db-triage.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          # Report scan, exit 0 -- the gate below is what enforces.
+          exit-code: '0'
+
+      - name: Publish the database triage feed
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          sarif_file: trivy-simis-cms-db-triage.sarif
+          category: image-simis-cms-db-triage
+
       # The commit tag goes up first so the gate below can scan the registry
       # artifact. :latest -- the tag deployments follow -- is pushed only after
       # the gate passes, so a failing gate never advances what gets deployed.
