@@ -762,6 +762,87 @@ class WebRequestFilterTest {
     }
   }
 
+  // HSTS used to be set by PageServlet, so only a rendered page carried it. A redirect returns from
+  // do301()/do302() without reaching the servlet, so none of them advertised HTTPS-only -- including
+  // the trailing-slash canonical redirect, which fires on ordinary traffic constantly. Confirmed in
+  // production before the fix: a 200 page had the header, /careers/ and /employee-benefits (both
+  // 301s) had nosniff and Cross-Origin-Resource-Policy from the same filter block but no HSTS.
+  @Test
+  void aRedirectAdvertisesHstsRatherThanOnlyRenderedPagesDoing() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/old-db-page"))
+          .thenReturn(dbRedirect("/old-db-page", "/new-db-page", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      filter.doFilter(requestForResource("/old-db-page"), response, chain);
+
+      // The redirect still happens, and now says HTTPS-only on the way out
+      verify(response).setHeader("Location", "/new-db-page");
+      verify(response).setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+      verify(response).setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+  }
+
+  // Gated on system.ssl, unchanged from how PageServlet gated it: advertising HTTPS-only from a
+  // deployment that cannot serve HTTPS makes browsers refuse the site for the whole max-age.
+  @Test
+  void hstsIsWithheldWhenTheDeploymentIsNotConfiguredForSsl() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/old-db-page"))
+          .thenReturn(dbRedirect("/old-db-page", "/new-db-page", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/old-db-page"), response, chain);
+
+      verify(response).setHeader("Location", "/new-db-page");
+      verify(response, never()).setHeader(eq("Strict-Transport-Security"), anyString());
+    }
+  }
+
+  // The same block already covers static files for nosniff; HSTS rides along, which matters because
+  // a stylesheet or image is often the first response a browser gets from the site.
+  @Test
+  void aStaticResourceAlsoAdvertisesHsts() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      filter.doFilter(requestForResource("/css/platform.css"), response, chain);
+
+      verify(response).setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+  }
+
   @Test
   void dbBackedRedirectTakesPrecedenceOverACsvRedirectForTheSamePath() throws Exception {
     HttpServletResponse response = mock(HttpServletResponse.class);
