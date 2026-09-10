@@ -934,6 +934,39 @@ ul.pagination li.pagination-next a:hover {
   padding-bottom: 20px;
 }
 
+/* Tag labels in a post byline, at narrow widths.
+
+   The byline is a grid row: author and date sit in .cell.shrink, the tags in .cell.auto.
+   On a 375px screen that leaves the tag cell about 99px, and Foundation's .label carries
+   white-space: nowrap -- so a label such as "Autonomous & Unmanned Systems" lays out at its
+   full 229px and is clipped by the card. The text is lost with no horizontal scrollbar to
+   reveal it, which is also why a page-level scrollWidth check does not see this: the
+   document still measures exactly the viewport width while the label runs 97px past it.
+
+   Two parts, and both are needed. Letting the label wrap on its own would reflow
+   "Autonomous & Unmanned Systems" into four lines of a 99px column; giving the cells the
+   full row on its own would not help, because nowrap would still push a long enough label
+   past the edge. So: stack the byline below Foundation's medium breakpoint, then let a
+   label wrap once it has the width to wrap into. overflow-wrap handles a single tag longer
+   than the card. */
+@media screen and (max-width: 39.99875em) {
+  .platform-blog-byline .grid-x > .cell.shrink,
+  .platform-blog-byline .grid-x > .cell.auto {
+    /* calc(100% - 1.25rem), not 100%. A .grid-margin-x row carries a -0.625rem margin on each
+       side and Foundation pays for it with `.grid-margin-x > .cell { width: calc(100% - 1.25rem) }`.
+       A flat 100% overrides that width while leaving the cell's own 0.625rem margins in place, so
+       the cell ends 0.625rem past its row -- 10px of horizontal overflow at the small gutter.
+       Subtracting the gutter here keeps Foundation's arithmetic intact. */
+    flex: 0 0 calc(100% - 1.25rem);
+    max-width: calc(100% - 1.25rem);
+  }
+}
+
+.platform-blog-byline .label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .platform-blog-list-container .platform-blog-body {
   padding-top: 10px;
   margin-bottom: 30px;
@@ -2527,6 +2560,17 @@ div.item-image-large img {
 .platform-calendar-event-block p {
   margin: 0;
   padding: 0;
+}
+
+/* The event's title is the line a reader scans a list for; the date, venue and summary
+   under it are support. Today the title carries the global heading weight
+   (--sc-weight-medium) against 400 metadata -- one step apart at 24px versus 18px, which
+   reads as two sizes of the same thing rather than a title and its details.
+
+   Scoped to h3 on purpose. The list and the search results title an event with h3; the
+   single-event page uses h1, which is already unmistakable and is left alone. */
+.platform-calendar-event-block h3 {
+  font-weight: var(--sc-weight-bold, 700);
 }
 
 .platform-calendar-details-container p {
