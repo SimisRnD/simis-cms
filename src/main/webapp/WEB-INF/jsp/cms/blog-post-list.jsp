@@ -77,7 +77,7 @@
                 <c:when test="${blogPost.hasSourceUrl}"><%--
                   #1420: a curated post points at someone else's article, so the headline goes
                   straight there. The post keeps its own permalink for the feed's <id>. --%>
-                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-fw fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
+                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-arrow-up-right-from-square platform-external-indicator" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
                 </c:when>
                 <c:otherwise>
                   <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
@@ -138,8 +138,22 @@
               <div class="small-12 cell">
                   ${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}
                 <c:choose>
-                  <c:when test="${blogPost.hasSourceUrl}">
+                  <c:when test="${blogPost.hasSourceUrl}"><%--
+                    #1966: the headline of a curated post goes to the source (deliberately, per
+                    #1420) and so did this link, which left the post's own page linked from nowhere
+                    on the site -- published, listed in sitemap.xml, and reachable by no internal
+                    link. "Edit Post" lives on that page, so a content manager had no route from the
+                    listing to the editor, and a mistyped source URL could be neither noticed nor
+                    corrected from where posts are read.
+
+                    The source stays the primary destination; this adds the way back. Deliberately
+                    not class="read-more": a site may restyle that (the pilot renders it uppercase,
+                    in the brand color, with a trailing arrow), and a second link wearing the same
+                    treatment would compete with the real call to action while its arrow described an
+                    internal link as an outbound one. --%>
                     <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the article<span class="show-for-sr"> (opens in a new tab)</span></a>
+                    <span class="platform-blog-permalink-separator" aria-hidden="true">&middot;</span>
+                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="platform-blog-permalink">Summary on this site</a>
                   </c:when>
                   <c:otherwise>
                     <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>

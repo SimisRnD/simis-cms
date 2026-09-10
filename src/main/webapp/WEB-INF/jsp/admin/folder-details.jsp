@@ -30,8 +30,8 @@
   <i class="fa fa-folder-open"></i> <c:out value="${folder.name}" />
   <c:if test="${userSession.hasRole('admin')}">
     <small>
-      <a href="${ctx}/admin/folder?folderId=${folder.id}&returnPage=${widgetContext.uri}?folderId=${folder.id}"><i class="${font:fas()} fa-edit"></i></a>
-      <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${folder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&folderId=${folder.id}"><i class="fa fa-remove"></i></a>
+      <a aria-label="Edit ${fn:escapeXml(folder.name)}" href="${ctx}/admin/folder?folderId=${folder.id}&returnPage=${widgetContext.uri}?folderId=${folder.id}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Delete ${fn:escapeXml(folder.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${folder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&folderId=${folder.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>

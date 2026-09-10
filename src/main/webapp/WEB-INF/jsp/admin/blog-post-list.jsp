@@ -125,7 +125,7 @@
         </td>
         <td class="text-center">
           <c:if test="${!empty postBlog}">
-            <a href="${ctx}/blog-editor?blogUniqueId=${postBlog.uniqueId}&returnPage=/admin/blog-posts&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i></a>
+            <a aria-label="Edit ${fn:escapeXml(blogPost.title)}" href="${ctx}/blog-editor?blogUniqueId=${postBlog.uniqueId}&returnPage=/admin/blog-posts&blogPostId=${blogPost.id}"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </c:if>
         </td>
       </tr>

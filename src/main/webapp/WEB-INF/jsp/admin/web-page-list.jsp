@@ -82,14 +82,14 @@
         <c:when test="${fn:contains(standardPages, menuTab.link)}">
           <td>
             <%--<a href="${ctx}${menuTab.link}"><i class="fa fa-check-circle"></i></a>--%>
-            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+            <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </td>
           <td><span class="success label">live</span></td>
         </c:when>
         <c:when test="${fn:contains(webPageMap, menuTab.link)}">
           <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-            <a href="${ctx}/admin/web-page?webPageId=${webPageMap[menuTab.link].id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+            <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuTab.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </td>
           <td>
             <c:choose>
@@ -110,7 +110,7 @@
         </c:when>
         <c:otherwise>
           <td>
-            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
+            <a aria-label="Add a page at ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-plus"></i></a>
           </td>
           <td>
             <span class="alert label">404</span>
@@ -165,14 +165,14 @@
         <c:choose>
           <c:when test="${fn:contains(standardPages, menuItem.link)}">
             <td>
-              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+              <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
             </td>
             <td><span class="success label">live</span></td>
           </c:when>
           <c:when test="${fn:contains(webPageMap, menuItem.link)}">
             <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-              <a href="${ctx}/admin/web-page?webPageId=${webPageMap[menuItem.link].id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+              <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuItem.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
             </td>
             <td>
             <c:choose>
@@ -196,7 +196,7 @@
           </c:when>
           <c:otherwise>
             <td>
-              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
+              <a aria-label="Add a page at ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-plus"></i></a>
             </td>
             <td>
               <c:choose>
@@ -353,9 +353,9 @@
       <td><input type="checkbox" class="pageRowCheckbox" value="${webPage.id}" data-title="${fn:escapeXml(webPage.title)}" aria-label="Select ${fn:escapeXml(webPage.title)}"></td>
       <td nowrap="true">
         <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-        <a href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+        <a aria-label="Edit page settings for ${fn:escapeXml(webPage.link)}" href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
         <c:if test="${userSession.hasRole('admin')}">
-          <a href="${ctx}/admin/web-page-designer?webPage=${webPage.link}&returnPage=/admin/web-pages"><i class="fa fa-code"></i></a>
+          <a aria-label="Edit the layout for ${fn:escapeXml(webPage.link)}" href="${ctx}/admin/web-page-designer?webPage=${webPage.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-code"></i></a>
         </c:if>
       </td>
       <td>

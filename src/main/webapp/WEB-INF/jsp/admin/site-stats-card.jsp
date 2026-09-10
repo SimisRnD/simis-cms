@@ -52,7 +52,7 @@
   </div>
   <c:if test="${!empty link}">
     <div class="small-1 cell">
-      <a href="<c:out value="${link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>
+      <a aria-label="View details" href="<c:out value="${link}" />"><i aria-hidden="true" class="fa fa-2x fa-chevron-right"></i></a>
     </div>
   </c:if>
 </div>

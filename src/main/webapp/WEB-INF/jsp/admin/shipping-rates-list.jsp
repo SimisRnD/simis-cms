@@ -69,8 +69,8 @@
         <fmt:formatNumber value="${shippingRate.minWeightOz}" />
       </td>
       <td>
-        <a href="${ctx}/admin/shipping-rate?shippingRateId=${shippingRate.id}&returnPage=/admin/shipping-rates"><i class="fa fa-edit"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${shippingRate.shippingCode}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit shipping rate ${fn:escapeXml(shippingRate.shippingCode)}" href="${ctx}/admin/shipping-rate?shippingRateId=${shippingRate.id}&returnPage=/admin/shipping-rates"><i aria-hidden="true" class="fa fa-edit"></i></a>
+        <a aria-label="Delete shipping rate ${fn:escapeXml(shippingRate.shippingCode)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${shippingRate.shippingCode}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

@@ -47,8 +47,8 @@
       <td><c:out value="${address.postalCode}" /></td>
       <td><c:out value="${address.country}" /></td>
       <td>
-        <a href="${ctx}/admin/sales-tax-nexus-address?addressId=${address.id}&returnPage=/admin/sales-tax-nexus"><i class="fa fa-edit"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${address.street}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(address.street)}" href="${ctx}/admin/sales-tax-nexus-address?addressId=${address.id}&returnPage=/admin/sales-tax-nexus"><i aria-hidden="true" class="fa fa-edit"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(address.street)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${address.street}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

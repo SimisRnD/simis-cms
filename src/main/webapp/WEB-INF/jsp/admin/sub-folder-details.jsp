@@ -29,8 +29,8 @@
   <i class="fa fa-folder-open"></i> <c:out value="${subFolder.name}" />
   <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
     <small>
-      <a href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i class="fa fa-edit"></i></a>
-      <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${subFolder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}"><i class="fa fa-remove"></i></a>
+      <a aria-label="Edit ${fn:escapeXml(subFolder.name)}" href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i aria-hidden="true" class="fa fa-edit"></i></a>
+      <a aria-label="Delete ${fn:escapeXml(subFolder.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${subFolder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>
