@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -376,5 +377,33 @@ class FeedServletTest {
 
     assertTrue(constraintsCaptor.getValue().getPageSize() <= 0,
         "the feed must not apply a SQL row limit");
+  }
+
+  @Test
+  void doGetStatesAnExplicitCacheLifetime() throws Exception {
+    // Without Cache-Control the response is still cached -- a CDN just applies its own default TTL,
+    // so how long a new post stays invisible to subscribers is decided by configuration nobody
+    // chose. 300s, not the sitemap's 3600s: feed delay is additive with the reader's poll interval.
+    Blog blog = blog(1L, "news", true);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+
+    runDoGet(siteProperties(true, true), null, List.of(post(1L, "first-post", "First Post")),
+        blog, blog, response, null);
+
+    verify(response).setHeader("Cache-Control", "public, max-age=300");
+  }
+
+  @Test
+  void doGetDoesNotMakeAnErrorResponseCacheable() throws Exception {
+    // The header is set on the success path only. A cacheable 404 would pin the feed as missing at
+    // the edge for the whole max-age, long after whatever caused it was fixed.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+
+    runDoGet(siteProperties(false, true), null, List.of(post(1L, "first-post", "First Post")),
+        blog(1L, "news", true), blog(1L, "news", true), response, null);
+
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+    verify(response, never()).setHeader(org.mockito.ArgumentMatchers.eq("Cache-Control"),
+        org.mockito.ArgumentMatchers.anyString());
   }
 }
