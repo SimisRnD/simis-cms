@@ -1681,47 +1681,22 @@ a.read-more {
   text-decoration: underline;
 }
 
-/* Thumbnail in the blog list "overview" view (issue 1971).
+/* The "this headline leaves the site" mark on a curated post (issue 1420).
 
-   A fixed 1.91:1 box, which is the ratio a share card is authored at and the one Open Graph and
-   twitter:card crop to -- so the same asset serves the link preview and this list, and a column of
-   these lines up however tall or wide each source image happens to be. object-fit keeps the crop
-   from distorting; the widget supplies object-position from the image's focal point where an editor
-   has set one, so the crop can be steered rather than always taking the centre.
+   It renders inside the h2, so it inherited the heading's full font size -- 32px on the pilot -- and
+   fa-fw padded a glyph about 15px wide out to 1.25em, or 40px. That is wider than the word beside it,
+   and at heading weight it read as a control rather than a mark: it was reported as a stray "edit
+   button" on the one post that had it. fa-fw is for icons stacked in a column, which this is not, so
+   it comes off the markup rather than being overridden here.
 
-   No colour and no border are set: this sits in whatever panel a site places the widget in. */
-a.platform-blog-overview-thumbnail {
-  display: block;
-  position: relative;
-  aspect-ratio: 1.91 / 1;
-  overflow: hidden;
-  /* Full width by default, and centred if a site narrows it. The auto margins do nothing at 100%
-     width, so this costs nothing here, and it means a site that sets a max-width -- to bring a
-     column's height into line with its neighbours, say -- gets the thumbnail centred rather than
-     stranded against the left edge, without having to restate the margins itself. */
-  max-width: 100%;
-  margin: 0 auto 0.5rem;
-}
-
-/* The image is positioned out of flow inside a fixed-ratio box rather than sized in flow, because a
-   site's own rules for content images win over anything this file says about `img` -- they load
-   after platform.css and are far more specific. The pilot carries
-     body:not(:has(.admin-web-content)) .home-highlights img { aspect-ratio: 3/2; height: auto }
-   and with the image in flow that `height: auto` stretched this box to 3/2 no matter what ratio the
-   anchor asked for. Measured: 347x231 instead of 347x181.
-
-   That site rule is not gratuitous. srcset gives content images sizes="auto", and with that present
-   the browser ignores the file's intrinsic dimensions and falls back to a 300x150 default object
-   size, so a site has to state a ratio somewhere. Taking the image out of flow lets that rule keep
-   doing its job on ordinary content images while this thumbnail holds its own shape: inset pins all
-   four edges, so `height: auto` resolves to the box rather than to the picture. */
-a.platform-blog-overview-thumbnail img {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+   Sized in em so it tracks whatever a site sets its headings to, and no color is set so it stays the
+   headline's own ink and cannot fall out of contrast when a theme is repainted. The accessible text
+   is unaffected -- the glyph is aria-hidden and the adjacent show-for-sr span carries "(opens in a
+   new tab)". */
+.platform-external-indicator {
+  font-size: 0.55em;
+  vertical-align: 0.08em;
+  margin-left: 0.15em;
 }
 
 /* Callout */
