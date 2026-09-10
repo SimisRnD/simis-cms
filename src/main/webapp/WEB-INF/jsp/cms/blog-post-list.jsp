@@ -137,28 +137,21 @@
             <div class="grid-x grid-margin-x">
               <div class="small-12 cell">
                   ${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}
-                <c:choose>
-                  <c:when test="${blogPost.hasSourceUrl}"><%--
-                    #1966: the headline of a curated post goes to the source (deliberately, per
-                    #1420) and so did this link, which left the post's own page linked from nowhere
-                    on the site -- published, listed in sitemap.xml, and reachable by no internal
-                    link. "Edit Post" lives on that page, so a content manager had no route from the
-                    listing to the editor, and a mistyped source URL could be neither noticed nor
-                    corrected from where posts are read.
+                <%-- Every card's read-more goes to the post, curated or not (#1966).
 
-                    The source stays the primary destination; this adds the way back. Deliberately
-                    not class="read-more": a site may restyle that (the pilot renders it uppercase,
-                    in the brand color, with a trailing arrow), and a second link wearing the same
-                    treatment would compete with the real call to action while its arrow described an
-                    internal link as an outbound one. --%>
-                    <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the article<span class="show-for-sr"> (opens in a new tab)</span></a>
-                    <span class="platform-blog-permalink-separator" aria-hidden="true">&middot;</span>
-                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="platform-blog-permalink">Summary on this site</a>
-                  </c:when>
-                  <c:otherwise>
-                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
-                  </c:otherwise>
-                </c:choose>
+                     A curated post's headline goes to the cited article and is marked with the
+                     outbound glyph, so the source is already one click from here. This link used to
+                     go there as well, which meant both of a curated card's links led off-site and
+                     nothing on the site linked to the post at all -- the orphan #1966 was filed for.
+                     The first fix kept this link on the source and added a third, separately styled
+                     one beside it, which made curated cards the only ones in the list that scan
+                     differently and wrapped onto a second line on a narrow column.
+
+                     Repointing the link that was already here is the smaller change and the more
+                     consistent one: "Read more" means the same thing on every card, and a reader who
+                     wants the original still reaches it from the headline, or from "Read the full
+                     article" on the post itself (#1958). --%>
+                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
               </div>
             </div>
           </div>
