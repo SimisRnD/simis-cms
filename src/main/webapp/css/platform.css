@@ -952,8 +952,13 @@ ul.pagination li.pagination-next a:hover {
 @media screen and (max-width: 39.99875em) {
   .platform-blog-byline .grid-x > .cell.shrink,
   .platform-blog-byline .grid-x > .cell.auto {
-    flex: 0 0 100%;
-    max-width: 100%;
+    /* calc(100% - 1.25rem), not 100%. A .grid-margin-x row carries a -0.625rem margin on each
+       side and Foundation pays for it with `.grid-margin-x > .cell { width: calc(100% - 1.25rem) }`.
+       A flat 100% overrides that width while leaving the cell's own 0.625rem margins in place, so
+       the cell ends 0.625rem past its row -- 10px of horizontal overflow at the small gutter.
+       Subtracting the gutter here keeps Foundation's arithmetic intact. */
+    flex: 0 0 calc(100% - 1.25rem);
+    max-width: calc(100% - 1.25rem);
   }
 }
 
