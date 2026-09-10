@@ -387,8 +387,8 @@
         </div>
         <div class="small-6 medium-3 cell">
           <label>Tax Code
-            <a target="_blank" href="https://taxcode.avatax.avalara.com"><i class="fa fa-info-circle"></i></a>
-            <a target="_blank" href="https://developers.taxjar.com/api/reference/#get-list-tax-categories"><i class="fa fa-info-circle"></i></a>
+            <a aria-label="Avalara tax code reference (opens in a new tab)" target="_blank" href="https://taxcode.avatax.avalara.com"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
+            <a aria-label="TaxJar tax category reference (opens in a new tab)" target="_blank" href="https://developers.taxjar.com/api/reference/#get-list-tax-categories"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
             <input type="text" name="taxCode" value="<c:out value="${product.taxCode}"/>" />
           </label>
         </div>

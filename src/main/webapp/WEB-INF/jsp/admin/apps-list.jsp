@@ -92,9 +92,9 @@
         <a href="${historyUrl}" title="View audit history for this app">History</a>
       </td>
       <td>
-        <a href="${ctx}/admin/app?appId=${app.id}"><i class="${font:fas()} fa-edit"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(app.name)}" href="${ctx}/admin/app?appId=${app.id}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
         <c:if test="${userSession.hasRole('admin')}">
-          <a href="#" data-js-call="deleteApp" data-js-arg1="${app.id}"><i class="fa fa-remove"></i></a>
+          <a aria-label="Delete ${fn:escapeXml(app.name)}" href="#" data-js-call="deleteApp" data-js-arg1="${app.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

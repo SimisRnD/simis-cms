@@ -45,6 +45,10 @@ known, still-to-be-named controls. A count ABOVE the recorded number fails; a
 count BELOW is reported as a note, not a failure, so a PR that improves matters
 is never blocked and merge order is not load-bearing.
 
+It is currently **empty** -- all 83 are named, so any finding at all is a
+regression. Keep it that way if you can; an entry added here should come with a
+plan to remove it.
+
 This is a read-only reporter. It changes no files.
 
 Exit status is 1 under --strict when a finding is reported.
@@ -58,41 +62,12 @@ import sys
 
 JSP_ROOT = os.path.join("src", "main", "webapp", "WEB-INF", "jsp")
 
-# Known, still-to-be-named controls, by path relative to JSP_ROOT. These are the
-# admin console's own list and detail pages -- a separate sweep from the layout and
-# cms templates, which render on public pages for signed-in editors and are fixed.
-BACKLOG: dict[str, int] = {
-    "admin/allowed-ip-list.jsp": 1,
-    "admin/apps-list.jsp": 2,
-    "admin/blocked-ip-list.jsp": 1,
-    "admin/blog-list.jsp": 2,
-    "admin/blog-post-list.jsp": 1,
-    "admin/blog-tags-list.jsp": 1,
-    "admin/bot-list.jsp": 1,
-    "admin/calendar-event-list.jsp": 1,
-    "admin/calendar-list.jsp": 2,
-    "admin/collection-categories-list.jsp": 1,
-    "admin/collection-relationships-list.jsp": 1,
-    "admin/collection-tags-list.jsp": 1,
-    "admin/datasets-list.jsp": 2,
-    "admin/folder-details.jsp": 2,
-    "admin/forms.jsp": 2,
-    "admin/groups-list.jsp": 2,
-    "admin/items-list.jsp": 1,
-    "admin/mailing-lists.jsp": 2,
-    "admin/product-categories-list.jsp": 2,
-    "admin/product-form.jsp": 2,
-    "admin/product-list.jsp": 3,
-    "admin/sales-tax-nexus-list.jsp": 2,
-    "admin/shipping-rates-list.jsp": 2,
-    "admin/site-properties-editor.jsp": 1,
-    "admin/site-stats-card.jsp": 1,
-    "admin/social-media-link-list.jsp": 2,
-    "admin/sub-folder-details.jsp": 2,
-    "admin/theme-editor.jsp": 1,
-    "admin/web-page-list.jsp": 8,
-    "admin/wiki-list.jsp": 2,
-}
+# Known, still-to-be-named controls, by path relative to JSP_ROOT. Empty: the layout and
+# cms templates were named first, the admin console's own 54 followed, and the whole tree
+# is clean. Anything added here later is debt with a deadline, not a permanent exemption --
+# a count ABOVE the recorded number fails, a count BELOW is only a note, so a PR that
+# improves matters is never blocked.
+BACKLOG: dict[str, int] = {}
 
 COMMENT_RE = re.compile(r"<%--.*?--%>|<!--.*?-->", re.S)
 SCRIPT_RE = re.compile(r"<script\b.*?</script\s*>", re.S | re.I)

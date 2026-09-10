@@ -113,7 +113,7 @@
     <c:forEach items="${fileList}" var="file">
     <tr>
       <c:if test="${canDelete eq 'true'}">
-        <td><input type="checkbox" class="fileRowCheckbox" value="${file.id}" data-filename="${fn:escapeXml(file.title)}" aria-label="Select <c:out value="${file.title}"/>"></td>
+        <td><input type="checkbox" class="fileRowCheckbox" value="${file.id}" data-filename="${fn:escapeXml(file.title)}" aria-label="Select ${fn:escapeXml(file.title)}"></td>
       </c:if>
       <td>
         <c:if test="${fn:toLowerCase(file.fileType) eq 'image'}">

@@ -154,7 +154,7 @@
           </c:choose>
         </td>
         <td class="text-center">
-          <a href="${ctx}/edit/${item.uniqueId}?returnPage=/admin/collection-records%3FcollectionId%3D${collection.id}"><i class="fa fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(item.name)}" href="${ctx}/edit/${item.uniqueId}?returnPage=/admin/collection-records%3FcollectionId%3D${collection.id}"><i aria-hidden="true" class="fa fa-edit"></i></a>
         </td>
       </c:if>
     </tr>
