@@ -72,12 +72,12 @@
         </c:choose>
       </td>
       <td class="text-center">
-        <a href="${ctx}/admin/mailing-list?mailingListId=${mailingList.id}&returnPage=/admin/mailing-lists"><i class="${font:fas()} fa-edit"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(not empty mailingList.title ? mailingList.title : mailingList.name)}" href="${ctx}/admin/mailing-list?mailingListId=${mailingList.id}&returnPage=/admin/mailing-lists"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
         <%-- Issue #1730: name the list the way the row above does (title) -- naming the internal
              key here meant an irreversible delete was confirmed against a name the admin may not
              recognise after a rename --%>
         <c:if test="${mailingList.memberCount lt 11}">
-          <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${not empty mailingList.title ? mailingList.title : mailingList.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}"><i class="fa fa-remove"></i></a>
+          <a aria-label="Delete ${fn:escapeXml(not empty mailingList.title ? mailingList.title : mailingList.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${not empty mailingList.title ? mailingList.title : mailingList.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

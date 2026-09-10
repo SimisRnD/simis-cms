@@ -55,8 +55,8 @@
       </td>
       <td class="text-center"><fmt:formatNumber value="${group.userCount}" /></td>
       <td>
-        <a href="${ctx}/admin/group?groupId=${group.id}"><i class="${font:fas()} fa-edit"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${group.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(group.name)}" href="${ctx}/admin/group?groupId=${group.id}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(group.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${group.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

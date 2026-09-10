@@ -79,7 +79,7 @@
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
-        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.ipAddress}" /> from the allow list?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&allowedIPListId=${record.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Remove ${fn:escapeXml(record.ipAddress)} from the allow list" href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.ipAddress}" /> from the allow list?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&allowedIPListId=${record.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
       <td><c:choose><c:when test="${fn:contains(record.ipAddress, '/')}"><small>Range</small></c:when><c:otherwise><c:out value='${geoip:location(record.ipAddress, " ")}'/></c:otherwise></c:choose></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>

@@ -110,9 +110,9 @@
           <fmt:formatNumber value="${empty calendarEventCount[calendar.id] ? 0 : calendarEventCount[calendar.id]}" />
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/calendar?calendarId=${calendar.id}&returnPage=/admin/calendars"><i class="${font:fas()} fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(calendar.name)}" href="${ctx}/admin/calendar?calendarId=${calendar.id}&returnPage=/admin/calendars"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="#" data-js-call="deleteCalendar" data-js-arg1="${calendar.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(calendar.name)}" href="#" data-js-call="deleteCalendar" data-js-arg1="${calendar.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>
