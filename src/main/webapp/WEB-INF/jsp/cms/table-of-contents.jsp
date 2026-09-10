@@ -26,7 +26,7 @@
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
     <c:choose>
       <c:when test="${!empty tableOfContents.entries}">
-        <div class="platform-toc-editor"><a class="hollow button small secondary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
+        <div class="platform-toc-editor"><a aria-label="Edit this table of contents" class="hollow button small secondary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
       </c:when>
       <c:otherwise>
         <a class="button tiny radius primary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i> Add Table of Contents Here</a>

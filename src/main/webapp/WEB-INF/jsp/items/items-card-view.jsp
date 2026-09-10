@@ -153,10 +153,10 @@
                   </c:if>
                   <c:choose>
                     <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                      <a target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="<c:out value="${item.name}"/>" target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:when test="${useInfoLink eq 'true'}">
-                      <a href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="<c:out value="${item.name}"/>" href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:otherwise>
                       <p style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></p>

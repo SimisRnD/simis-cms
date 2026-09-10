@@ -19,7 +19,7 @@
     <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && userSession.hasRole('admin')}">
       <div class="platform-content-container">
         <div class="platform-content-editor">
-          <a class="hollow button small secondary" href="/admin/web-container-designer?name=<c:out value="${footerRenderInfo.name}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i class="fa-fw fa fa-code"></i></a>
+          <a aria-label="Edit the footer layout" class="hollow button small secondary" href="/admin/web-container-designer?name=<c:out value="${footerRenderInfo.name}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i aria-hidden="true" class="fa-fw fa fa-code"></i></a>
         </div>
       </div>
     </c:if>

@@ -68,7 +68,7 @@
         </c:choose>
       </c:forEach>
       <c:if test="${userSession.hasRole('admin')}">
-        <li><a href="${ctx}/admin/collection-details?collectionId=${collection.id}"><i class="fa fa-arrow-circle-right"></i></a></li>
+        <li><a aria-label="Manage this collection" href="${ctx}/admin/collection-details?collectionId=${collection.id}"><i aria-hidden="true" class="fa fa-arrow-circle-right"></i></a></li>
       </c:if>
     </ul>
   </div>

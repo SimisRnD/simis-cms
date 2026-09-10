@@ -53,7 +53,7 @@
         <tr>
           <td>
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
-              <a href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i class="${font:fal()} fa-edit"></i></a>
+              <a aria-label="Edit <c:out value="${item.name}"/>" href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i aria-hidden="true" class="${font:fal()} fa-edit"></i></a>
             </c:if>
             <strong><c:out value="${text:trim(item.name, 50, true)}"/></strong><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if>
             <br /><a href="${ctx}/show/${item.uniqueId}">View Job Description</a>

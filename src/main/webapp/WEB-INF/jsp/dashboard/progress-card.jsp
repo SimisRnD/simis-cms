@@ -71,7 +71,7 @@
   </div>
   <c:if test="${!empty progressCard.link}">
     <div class="small-1 cell">
-      <a href="<c:out value="${progressCard.link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>
+      <a aria-label="View <c:out value="${progressCard.label}"/> details" href="<c:out value="${progressCard.link}" />"><i aria-hidden="true" class="fa fa-2x fa-chevron-right"></i></a>
     </div>
   </c:if>
 </div>

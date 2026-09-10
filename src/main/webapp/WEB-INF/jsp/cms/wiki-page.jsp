@@ -61,7 +61,7 @@
 <hr />
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty wikiPage.uniqueId}">
-    <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
+    <div class="platform-content-editor"><a aria-label="Edit this wiki page" class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
   </c:if>
   <div class="markdown-body">${contentHtml}</div>
 </div>
