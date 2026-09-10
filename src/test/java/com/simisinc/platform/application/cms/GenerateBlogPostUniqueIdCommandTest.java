@@ -73,6 +73,36 @@ class GenerateBlogPostUniqueIdCommandTest {
   }
 
   @Test
+  void aNewPostWithEntityEncodedTitleGetsAReadableSlug() {
+    // The reported defect, at the level the slug is actually generated: the entity name used to
+    // survive into the URL as "whatandrsquos-in-americaandrsquos-code-...".
+    try (MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class)) {
+      blogPostRepository.when(() -> BlogPostRepository.findByUniqueId(anyLong(), anyString())).thenReturn(null);
+
+      BlogPost blogPost = new BlogPost();
+      blogPost.setTitle("What&rsquo;s in America&rsquo;s Code");
+      String uniqueId = GenerateBlogPostUniqueIdCommand.generateUniqueId(null, blogPost);
+      Assertions.assertEquals("whats-in-americas-code", uniqueId);
+    }
+  }
+
+  @Test
+  void anExistingPostKeepsItsEntityEncodedSlugAfterThisFix() {
+    // Existing posts are already published and indexed: the corrected slug must apply to new
+    // posts only, never retroactively to a post that already has a URL.
+    BlogPost previousBlogPost = new BlogPost();
+    previousBlogPost.setUniqueId("whatandrsquos-in-americaandrsquos-code");
+    previousBlogPost.setTitle("What&rsquo;s in America&rsquo;s Code");
+
+    BlogPost edited = new BlogPost();
+    edited.setTitle("What&rsquo;s in America&rsquo;s Code");
+
+    String uniqueId = GenerateBlogPostUniqueIdCommand.generateUniqueId(previousBlogPost, edited);
+    Assertions.assertEquals("whatandrsquos-in-americaandrsquos-code", uniqueId,
+        "a published post's URL must not change as a side effect of fixing the slug generator");
+  }
+
+  @Test
   void generateUniqueIdForDuplicateBlogPost() {
     String existingUniqueId = "monthly-update";
     BlogPost existingPost = new BlogPost();
