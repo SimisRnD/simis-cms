@@ -63,6 +63,9 @@ public class BlogPost extends Entity implements Reviewable {
   private String postalCode = null;
   private String county = null;
   private String imageUrl = null;
+  // Share card (#1974). The 1200x630 image a link preview and the compact list views use. Optional:
+  // shareImageUrl() falls back to imageUrl, so a post without one behaves exactly as before.
+  private String shareImageUrl = null;
   private String videoUrl = null;
   // Curated link posts (#1420): the original article this post points at. When set, the headline,
   // "read more" and the feed entry's rel="alternate" link resolve here instead of this post's own
@@ -316,6 +319,25 @@ public class BlogPost extends Entity implements Reviewable {
 
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
+  }
+
+  public String getShareImageUrl() {
+    return shareImageUrl;
+  }
+
+  public void setShareImageUrl(String shareImageUrl) {
+    this.shareImageUrl = shareImageUrl;
+  }
+
+  /**
+   * The image to use where a 1.91:1 social card is expected -- og:image, twitter:image and the
+   * compact list views. Falls back to the banner so that callers never have to decide, and so a post
+   * with no share image renders exactly as it did before the field existed.
+   *
+   * @return the share image when set, otherwise the banner image, otherwise null
+   */
+  public String getShareImageUrlOrDefault() {
+    return StringUtils.isNotBlank(shareImageUrl) ? shareImageUrl : imageUrl;
   }
 
   public String getSourceUrl() {
