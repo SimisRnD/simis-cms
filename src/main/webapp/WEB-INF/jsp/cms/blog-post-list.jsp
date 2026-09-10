@@ -93,10 +93,10 @@
               <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}" /></span></c:if>
             </h2>
           </div>
-          <c:if test="${!empty blogPost.imageUrl}">
-            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
+          <c:if test="${!empty blogPostListImageUrl[blogPost.id]}">
+            <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPostListImageUrl[blogPost.id], imageVariantsByImageId, imageWidthsByImageId)}"/>
             <div class="platform-blog-image">
-              <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="<c:out value="${ctx}${blogPost.imageUrl}"/>"
+              <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="<c:out value="${ctx}${blogPostListImageUrl[blogPost.id]}"/>"
                 <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="100vw"</c:if>
                 <c:set var="blogImageFocal" value="${blogPostImageFocalPoint[blogPost.id]}"/><c:if test="${not empty blogImageFocal}"> style="object-position: <c:out value="${blogImageFocal}"/>"</c:if> decoding="async" loading="lazy"/></a>
             </div>

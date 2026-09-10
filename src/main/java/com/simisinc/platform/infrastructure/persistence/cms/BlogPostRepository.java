@@ -221,6 +221,7 @@ public class BlogPostRepository {
         .add("summary", StringUtils.trimToNull(record.getSummary()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
+        .add("share_image_url", StringUtils.trimToNull(record.getShareImageUrl()))
         .add("source_url", StringUtils.trimToNull(record.getSourceUrl()))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
@@ -274,6 +275,7 @@ public class BlogPostRepository {
         .add("summary", StringUtils.trimToNull(record.getSummary()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
+        .add("share_image_url", StringUtils.trimToNull(record.getShareImageUrl()))
         .add("source_url", StringUtils.trimToNull(record.getSourceUrl()))
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()))
@@ -383,6 +385,7 @@ public class BlogPostRepository {
       record.setBody(rs.getString("body"));
       record.setSummary(rs.getString("summary"));
       record.setImageUrl(rs.getString("image_url"));
+      record.setShareImageUrl(rs.getString("share_image_url"));
       record.setSourceUrl(rs.getString("source_url"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));

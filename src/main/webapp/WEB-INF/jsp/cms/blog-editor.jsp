@@ -208,8 +208,16 @@
   </c:if>
   <div class="full-container">
     <div class="grid-x grid-margin-x callout box">
+      <%-- The label says "Banner", which reads as an image at the top of the post. It is not:
+           blog-post-details.jsp and blog-post-name.jsp never render it. Its only uses are the list
+           views and, through BlogPostWidget, og:image/twitter:image and the JSON-LD Article image.
+           Say so, because an editor who believes the label picks the image for the wrong job -- a
+           tall poster is fine as a banner and is badly cropped as a link preview. The label itself
+           is left alone: it is on every existing install and renaming it is a separate decision. --%>
       <div class="auto cell text-right">
-        <small>Banner Image</small>
+        <small>Banner Image</small><br/>
+        <small class="subheader">Shown on news and list pages, not on the post itself. Also used for
+          link previews when no share image is set.</small>
       </div>
       <div class="small-6 cell">
         <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${blogPost.imageUrl}"/>">
@@ -220,7 +228,31 @@
         <img id="imageUrlPreview" src="<c:out value="${blogPost.imageUrl}"/>" style="max-height: 50px; max-width: 150px"/>
       </div>
       <div class="small-2 cell text-right">
-        <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
+        <a class="button small primary radius no-gap" data-open="imageBrowserReveal"
+           data-target-input="imageUrl">Browse Images</a>
+      </div>
+    </div>
+    <%-- Share card (#1974). The banner above is authored at whatever size the post needs; this is
+         the 1200x630 image a link preview crops to and the compact list views show. Leaving it empty
+         is fine and is the old behaviour exactly -- everything falls back to the banner. Upload runs
+         through Browse Images rather than a second file input, so there is one upload path to
+         maintain rather than two. --%>
+    <div class="grid-x grid-margin-x callout box">
+      <div class="auto cell text-right">
+        <small>Share Image</small><br/>
+        <small class="subheader">1200&times;630. Used for link previews on LinkedIn, Facebook and X,
+          and for list thumbnails. Optional &mdash; falls back to the banner. A link preview is
+          cropped to this shape, so a taller image loses its top and bottom.</small>
+      </div>
+      <div class="small-6 cell">
+        <input type="text" class="no-gap" placeholder="Local Image URL (optional)" id="shareImageUrl" name="shareImageUrl" value="<c:out value="${blogPost.shareImageUrl}"/>">
+      </div>
+      <div class="small-2 cell">
+        <img id="shareImageUrlPreview" src="<c:out value="${blogPost.shareImageUrl}"/>" style="max-height: 50px; max-width: 150px"/>
+      </div>
+      <div class="small-2 cell text-right">
+        <a class="button small primary radius no-gap" data-open="imageBrowserReveal"
+           data-target-input="shareImageUrl">Browse Images</a>
       </div>
     </div>
   </div>
@@ -308,8 +340,16 @@
   // stripped the nonce (issue #1207) and reinterpreted the fetched markup as HTML
   // (CodeQL js/xss-through-dom). The iframe src is a server-rendered constant; the fragment
   // itself closes this modal via top.jQuery once an image is selected.
+  // One browser serves both image fields (#1974). The trigger records which input it is filling;
+  // without this the share-image button would silently overwrite the banner, since the frame's
+  // inputId used to be a hard-coded constant.
+  var imageBrowserTargetInput = 'imageUrl';
+  $(document).on('click', '[data-open="imageBrowserReveal"][data-target-input]', function () {
+    imageBrowserTargetInput = this.getAttribute('data-target-input');
+  });
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
-    document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl&view=reveal';
+    document.getElementById('imageBrowserFrame').src =
+        '${ctx}/image-browser?inputId=' + encodeURIComponent(imageBrowserTargetInput) + '&view=reveal';
   });
   $('#imageBrowserReveal').on('closed.zf.reveal', function () {
     document.getElementById('imageBrowserFrame').removeAttribute('src');

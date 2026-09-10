@@ -272,7 +272,8 @@
      data-reveal data-close-on-click="true">
   <h4 id="altTextRevealTitle">Set Alt Text</h4>
   <p class="callout secondary radius" style="padding:8px 12px;">
-    Used for library management; not yet shown on public pages.
+    Shown to visitors. Blog list views read this as the image's alt text, falling back to the
+    post title when it is blank, so what is typed here is what a screen reader announces.
   </p>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

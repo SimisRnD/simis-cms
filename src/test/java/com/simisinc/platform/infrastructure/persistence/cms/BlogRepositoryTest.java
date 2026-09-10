@@ -290,6 +290,7 @@ class BlogRepositoryTest {
           + "start_date TIMESTAMP(3) DEFAULT NULL, "
           + "end_date TIMESTAMP(3) DEFAULT NULL, "
           + "image_url VARCHAR(255), "
+          + "share_image_url VARCHAR(255), "
           + "video_url VARCHAR(255), "
           + "video_embed VARCHAR(512), "
           // #1420: curated link posts
