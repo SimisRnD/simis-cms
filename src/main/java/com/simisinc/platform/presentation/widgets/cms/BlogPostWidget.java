@@ -93,8 +93,14 @@ public class BlogPostWidget extends GenericWidget {
     // A blog post is an article, not a generic page -- PageServlet defaults every page that is not
     // an Item or Collection to "website", and it decides before this widget runs (issue #1355).
     context.setPageType("article");
-    if (StringUtils.isNotBlank(blogPost.getImageUrl())) {
-      context.setPageImageUrl(blogPost.getImageUrl());
+    // og:image and twitter:image, which main.jsp renders off pageRenderInfo. Prefer the share card
+    // (#1974): twitter:card is summary_large_image and Open Graph previews are 1.91:1, so a banner
+    // authored at any other shape is centre-cropped to fit. Measured on the pilot before this
+    // change, two event graphics at 0.80:1 lost 58% of their height -- the event name off the top
+    // and the date off the bottom. getShareImageUrlOrDefault falls back to the banner, so a post
+    // without a share card is unchanged.
+    if (StringUtils.isNotBlank(blogPost.getShareImageUrlOrDefault())) {
+      context.setPageImageUrl(blogPost.getShareImageUrlOrDefault());
     }
 
     // Set Article schema fields for JSON-LD (issue #403); a post that isn't actually published
