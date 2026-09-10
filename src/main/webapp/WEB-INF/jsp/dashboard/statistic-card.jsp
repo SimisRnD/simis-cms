@@ -39,7 +39,7 @@
   </div>
   <c:if test="${!empty statisticCard.link}">
     <div class="small-1 cell">
-      <a aria-label="View <c:out value="${statisticCard.label}"/> details" href="<c:out value="${statisticCard.link}" />"><i aria-hidden="true" class="fa fa-2x fa-chevron-right"></i></a>
+      <a aria-label="View ${fn:escapeXml(statisticCard.label)} details" href="<c:out value="${statisticCard.link}" />"><i aria-hidden="true" class="fa fa-2x fa-chevron-right"></i></a>
     </div>
   </c:if>
 </div>
