@@ -1681,6 +1681,21 @@ a.read-more {
   text-decoration: underline;
 }
 
+/* The way back to a curated post's own page, beside its outbound "Read the article" (issue 1966).
+
+   Quieter than .read-more on purpose. The cited article is the primary destination on these cards,
+   and .read-more is a class sites restyle -- the pilot renders it uppercase, in the brand color,
+   with a trailing arrow. Reusing it here would put two equally loud calls to action side by side and
+   would stamp an outbound arrow on an internal link. No color is set, so this inherits the site's
+   own link ink and cannot fall out of contrast when a theme is repainted. */
+a.platform-blog-permalink {
+  text-decoration: underline;
+}
+
+.platform-blog-permalink-separator {
+  margin: 0 0.4rem;
+}
+
 /* Callout */
 
 /* A callout carries its own background, so it must also own the colour of the text on it.
