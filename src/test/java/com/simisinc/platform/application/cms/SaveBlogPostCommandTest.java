@@ -17,8 +17,10 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -173,6 +175,76 @@ class SaveBlogPostCommandTest {
     assertEquals(-1L, reloaded.getSubmittedBy());
     assertEquals(-1L, reloaded.getApprovedBy());
     assertNull(reloaded.getReleaseReference());
+  }
+
+  @Test
+  void newPostPersistsTheSourceUrlAndFeedOptOutFromTheBean() throws Exception {
+    // Both fields arrive on the bean from the editor form -- sourceUrl is even validated by this
+    // command -- but neither was copied onto the record being saved, so a new post stored the
+    // BlogPost defaults instead. On the live site that meant every curated link post was written
+    // with source_url NULL, and the feed fell back to linking the post's own page.
+    long blogId = addBlog();
+
+    BlogPost bean = new BlogPost();
+    bean.setBlogId(blogId);
+    bean.setUniqueId("a-curated-post");
+    bean.setTitle("A Curated Post");
+    bean.setBody("Commentary on someone else's article");
+    bean.setCreatedBy(1);
+    bean.setModifiedBy(1);
+    bean.setSourceUrl("https://example.org/the-original-article");
+    bean.setExcludeFromFeed(true);
+
+    BlogPost result = SaveBlogPostCommand.saveBlogPost(bean);
+    assertNotNull(result);
+
+    BlogPost reloaded = BlogPostRepository.findById(result.getId());
+    assertNotNull(reloaded);
+    assertEquals("https://example.org/the-original-article", reloaded.getSourceUrl(),
+        "the source article link must reach the database, not just the in-memory bean");
+    assertTrue(reloaded.getExcludeFromFeed(),
+        "the feed opt-out must reach the database too");
+  }
+
+  @Test
+  void editingAPostCanPutItBackIntoTheFeedAndChangeItsSourceUrl() throws Exception {
+    // The other direction, and the one a load-then-copy save gets wrong most quietly: because the
+    // record is re-read from the database before the copy, an uncopied field keeps its stored value
+    // however the form was filled in. An excluded post could never be un-excluded, and a wrong
+    // source link could never be corrected.
+    long blogId = addBlog();
+
+    BlogPost existing = new BlogPost();
+    existing.setBlogId(blogId);
+    existing.setUniqueId("an-excluded-post");
+    existing.setTitle("Excluded Post");
+    existing.setBody("Body");
+    existing.setCreatedBy(1);
+    existing.setModifiedBy(1);
+    existing.setSourceUrl("https://example.org/the-wrong-article");
+    existing.setExcludeFromFeed(true);
+    BlogPost saved = BlogPostRepository.add(existing);
+    assertNotNull(saved);
+
+    BlogPost editBean = new BlogPost();
+    editBean.setId(saved.getId());
+    editBean.setBlogId(blogId);
+    editBean.setUniqueId("an-excluded-post");
+    editBean.setTitle("Excluded Post");
+    editBean.setBody("Body");
+    editBean.setCreatedBy(1);
+    editBean.setModifiedBy(1);
+    editBean.setSourceUrl("https://example.org/the-right-article");
+    editBean.setExcludeFromFeed(false);
+
+    assertNotNull(SaveBlogPostCommand.saveBlogPost(editBean));
+
+    BlogPost reloaded = BlogPostRepository.findById(saved.getId());
+    assertNotNull(reloaded);
+    assertEquals("https://example.org/the-right-article", reloaded.getSourceUrl(),
+        "a corrected source link must overwrite the stored one");
+    assertFalse(reloaded.getExcludeFromFeed(),
+        "unticking the opt-out must put the post back into the feed");
   }
 
   @Test

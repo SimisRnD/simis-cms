@@ -117,6 +117,22 @@ public class FeedServlet extends HttpServlet {
 
       response.setContentType("application/atom+xml");
       response.setCharacterEncoding("UTF-8");
+      // State a cache lifetime rather than leaving one to be inferred. With no Cache-Control the
+      // response is still cached -- a CDN in front of the site simply applies its own default TTL,
+      // so how long a newly published post stays invisible to subscribers is decided by edge
+      // configuration nobody chose and nobody can see from here. Observed on the pilot: /feed.xml
+      // returned TCP_MISS then TCP_HIT seconds later, with no Cache-Control and no Age on either.
+      //
+      // 300s, not the 3600s SitemapServlet uses, because the two have opposite jobs. A sitemap is
+      // pulled by crawlers on their own schedule and an hour of staleness costs nothing. A feed
+      // exists to deliver new posts promptly, and its delay is additive: edge TTL first, then the
+      // reader's own poll interval, which is typically 15-60 minutes on its own. Five minutes keeps
+      // the part we control small without making every subscriber poll re-run the post query.
+      //
+      // No ETag/304 here deliberately. SitemapServlet has that, but its isNotModified/gzip helpers
+      // are private to it, so conditional requests would mean duplicating them or extracting a
+      // shared helper -- worth doing, but a larger change than stating a TTL, and independent of it.
+      response.setHeader("Cache-Control", "public, max-age=300");
       response.getWriter().print(feedXml);
     } catch (Exception e) {
       LOG.error("Error generating feed: " + e.getMessage());
