@@ -122,6 +122,27 @@ class RenderedReflowTest {
           </div>
           """),
       new Fixture(
+          "admin settings table: label cell beside a nowrap input cell",
+          "src/main/webapp/WEB-INF/jsp/admin/collection-theme-editor.jsp",
+          List.of("unstriped", "nowrap"),
+          """
+          <div class="admin-web-content">
+          <table class="unstriped">
+            <thead><tr><th width="200">Name</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Header Background Color</td>
+                <td nowrap><input id="headerBgColor" type="text" name="headerBgColor" value="#123456"></td>
+              </tr>
+              <tr>
+                <td>Menu Active Border Color</td>
+                <td nowrap><input id="menuActiveBorderColor" type="text" name="menuActiveBorderColor" value="#abcdef"></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          """),
+      new Fixture(
           "upcoming event block with a long title and venue",
           "src/main/webapp/WEB-INF/jsp/calendar/upcoming-events.jsp",
           List.of("platform-calendar-list-container", "platform-calendar-event-block"),
@@ -288,6 +309,17 @@ class RenderedReflowTest {
               + (el.className && typeof el.className === 'string' && el.className.trim()
                   ? '.' + el.className.trim().split(/\\s+/).join('.') : '');
             const out = [];
+            // Content inside a horizontally scrollable ancestor is reachable, not lost, so it
+            // is not this check's failure mode. The admin shell relies on this:
+            // .admin-web-content is overflow-x:auto, so a wide data table scrolls instead of
+            // clipping. Without this the gate reports every such table as clipped text.
+            const scrollable = (el) => {
+              for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+                const ox = getComputedStyle(n).overflowX;
+                if (ox === 'auto' || ox === 'scroll') return true;
+              }
+              return false;
+            };
             for (const el of document.querySelectorAll('body *')) {
               let holdsText = false;
               for (const node of el.childNodes) {
@@ -298,7 +330,7 @@ class RenderedReflowTest {
               if (style.display === 'none' || style.visibility === 'hidden') continue;
               const rect = el.getBoundingClientRect();
               if (rect.width === 0 && rect.height === 0) continue;
-              if (rect.right > viewport + tolerance) {
+              if (rect.right > viewport + tolerance && !scrollable(el)) {
                 out.push(describe(el) + ' "' + el.textContent.trim().slice(0, 44) + '" ends at '
                   + Math.round(rect.right) + 'px, ' + Math.round(rect.right - viewport)
                   + 'px past the ' + viewport + 'px viewport');
