@@ -456,6 +456,7 @@ class BlogPostRepositoryTest {
           + "blog_id BIGINT REFERENCES blogs(blog_id) NOT NULL, "
           + "post_unique_id VARCHAR(255) NOT NULL, "
           + "title VARCHAR(255) NOT NULL, "
+          + "share_image_url VARCHAR(255), "
           + "body TEXT, "
           + "summary TEXT, "
           + "created_by BIGINT NOT NULL, "

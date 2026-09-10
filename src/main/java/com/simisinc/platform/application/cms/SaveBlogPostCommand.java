@@ -120,6 +120,10 @@ public class SaveBlogPostCommand {
     blogPost.setSummary(blogPostBean.getSummary());
     blogPost.setKeywords(blogPostBean.getKeywords());
     blogPost.setImageUrl(blogPostBean.getImageUrl());
+    // #1974. Copied here for the reason the comment below spells out: a field that reaches the bean
+    // but is never copied onto the record being saved is discarded in silence, which is exactly how
+    // sourceUrl and excludeFromFeed stayed inert until #1957. Covered by a save/read-back test.
+    blogPost.setShareImageUrl(blogPostBean.getShareImageUrl());
     blogPost.setModifiedBy(blogPostBean.getModifiedBy());
     blogPost.setPublished(blogPostBean.getPublished());
     blogPost.setStartDate(blogPostBean.getStartDate());

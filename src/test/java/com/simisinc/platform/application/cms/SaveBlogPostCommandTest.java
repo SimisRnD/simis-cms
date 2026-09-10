@@ -207,6 +207,99 @@ class SaveBlogPostCommandTest {
   }
 
   @Test
+  void newPostPersistsTheShareImageFromTheBean() throws Exception {
+    // The share card (#1974) reaches the bean the same way sourceUrl does -- BeanUtils.populate
+    // maps the editor's shareImageUrl field onto it -- so it fails the same way if the save does
+    // not copy it onto the record: the editor keeps the value on screen, the save reports success,
+    // and the column stays NULL. That is exactly what #1957 fixed for sourceUrl, and it is why this
+    // test reloads from the database rather than asserting on the returned object.
+    long blogId = addBlog();
+
+    BlogPost bean = new BlogPost();
+    bean.setBlogId(blogId);
+    bean.setUniqueId("a-post-with-a-share-card");
+    bean.setTitle("A Post With A Share Card");
+    bean.setBody("Body copy");
+    bean.setCreatedBy(1);
+    bean.setModifiedBy(1);
+    bean.setImageUrl("/assets/img/1/banner.jpg");
+    bean.setShareImageUrl("/assets/img/2/share-card-1200x630.png");
+
+    BlogPost result = SaveBlogPostCommand.saveBlogPost(bean);
+    assertNotNull(result);
+
+    BlogPost reloaded = BlogPostRepository.findById(result.getId());
+    assertNotNull(reloaded);
+    assertEquals("/assets/img/2/share-card-1200x630.png", reloaded.getShareImageUrl(),
+        "the share image must reach the database, not just the in-memory bean");
+    assertEquals("/assets/img/1/banner.jpg", reloaded.getImageUrl(),
+        "setting a share image must not disturb the post's own banner");
+    assertEquals("/assets/img/2/share-card-1200x630.png", reloaded.getShareImageUrlOrDefault(),
+        "with a share image set, that is what og:image and the list views resolve to");
+  }
+
+  @Test
+  void aPostWithoutAShareImageFallsBackToItsBanner() throws Exception {
+    // The property the whole feature rests on: every consumer calls getShareImageUrlOrDefault, so a
+    // post that predates the column -- which is all of them -- keeps rendering exactly as it did.
+    long blogId = addBlog();
+
+    BlogPost bean = new BlogPost();
+    bean.setBlogId(blogId);
+    bean.setUniqueId("a-post-without-a-share-card");
+    bean.setTitle("A Post Without A Share Card");
+    bean.setBody("Body copy");
+    bean.setCreatedBy(1);
+    bean.setModifiedBy(1);
+    bean.setImageUrl("/assets/img/1/banner.jpg");
+
+    BlogPost reloaded = BlogPostRepository.findById(SaveBlogPostCommand.saveBlogPost(bean).getId());
+    assertNotNull(reloaded);
+    assertNull(reloaded.getShareImageUrl(), "no share image was set, so the column stays null");
+    assertEquals("/assets/img/1/banner.jpg", reloaded.getShareImageUrlOrDefault(),
+        "the banner is what og:image and the list views must fall back to");
+  }
+
+  @Test
+  void editingAPostCanSetAndThenClearItsShareImage() throws Exception {
+    // The direction a load-then-copy save gets wrong most quietly: the record is re-read from the
+    // database before the copy, so an uncopied field keeps its stored value and CLEARING it appears
+    // to do nothing. Blank must round-trip back to the banner.
+    long blogId = addBlog();
+
+    BlogPost bean = new BlogPost();
+    bean.setBlogId(blogId);
+    bean.setUniqueId("a-post-to-edit");
+    bean.setTitle("A Post To Edit");
+    bean.setBody("Body copy");
+    bean.setCreatedBy(1);
+    bean.setModifiedBy(1);
+    bean.setImageUrl("/assets/img/1/banner.jpg");
+    bean.setShareImageUrl("/assets/img/2/share-card-1200x630.png");
+    long postId = SaveBlogPostCommand.saveBlogPost(bean).getId();
+
+    BlogPost edit = new BlogPost();
+    edit.setId(postId);
+    edit.setBlogId(blogId);
+    edit.setUniqueId("a-post-to-edit");
+    edit.setTitle("A Post To Edit");
+    edit.setBody("Body copy");
+    edit.setCreatedBy(1);
+    edit.setModifiedBy(1);
+    edit.setImageUrl("/assets/img/1/banner.jpg");
+    edit.setShareImageUrl("");
+
+    SaveBlogPostCommand.saveBlogPost(edit);
+
+    BlogPost reloaded = BlogPostRepository.findById(postId);
+    assertNotNull(reloaded);
+    assertNull(reloaded.getShareImageUrl(),
+        "clearing the share image must reach the database, not be masked by the reloaded record");
+    assertEquals("/assets/img/1/banner.jpg", reloaded.getShareImageUrlOrDefault(),
+        "and the post falls back to its banner again");
+  }
+
+  @Test
   void editingAPostCanPutItBackIntoTheFeedAndChangeItsSourceUrl() throws Exception {
     // The other direction, and the one a load-then-copy save gets wrong most quietly: because the
     // record is re-read from the database before the copy, an uncopied field keeps its stored value
@@ -393,6 +486,7 @@ class SaveBlogPostCommandTest {
           + "start_date TIMESTAMP(3) DEFAULT NULL, "
           + "end_date TIMESTAMP(3) DEFAULT NULL, "
           + "image_url VARCHAR(255), "
+          + "share_image_url VARCHAR(255), "
           + "video_url VARCHAR(255), "
           + "video_embed VARCHAR(512), "
           // #1420: curated link posts

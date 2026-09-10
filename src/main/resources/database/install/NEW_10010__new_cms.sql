@@ -550,6 +550,12 @@ CREATE TABLE blog_posts (
   geom geometry(Point,4326),
   tsv TSVECTOR,
   image_url VARCHAR(255),
+  -- Share card (#1974): the 1200x630 image used for og:image, twitter:image and the compact list
+  -- views. image_url is the post's own banner, authored at whatever size the content needs, so it
+  -- is usually the wrong shape for a social card -- a tall poster loses well over half its height
+  -- when a 1.91:1 preview crops it. Optional: every consumer falls back to image_url, so a post
+  -- without one behaves exactly as before.
+  share_image_url VARCHAR(255),
   video_url VARCHAR(255),
   video_embed VARCHAR(512),
   -- Curated link posts (#1420): when set, the headline, "read more" and the feed entry's
