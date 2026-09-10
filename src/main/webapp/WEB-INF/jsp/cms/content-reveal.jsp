@@ -44,7 +44,15 @@
     <button id="reveal-button${widgetContext.uniqueId}" class="reveal-button-text" data-toggle="modal${widgetContext.uniqueId}"><div class="button-reveal-content">${card1}</div></button>
     <c:if test="${!empty card2}">
       <div class="reveal<c:if test="${!empty size}"> <c:out value="${size}" /></c:if>" id="modal${widgetContext.uniqueId}"
-           role="dialog" aria-modal="true"
+           <%-- aria-labelledby points at the trigger button rendered just above, whose text is
+                card1 -- the same value that serves as this dialog's visible title. A role="dialog"
+                with aria-modal but no name announces only as "dialog", which is what a screen
+                reader user got here (WCAG 4.1.2). Every other Reveal in the codebase names itself
+                from an h4 inside it; this widget has no heading element to point at, and the
+                trigger already carries a stable per-widget id, so it is the natural source. The
+                button is emitted unconditionally inside the same c:if that guards card1, and this
+                dialog additionally requires card2, so the reference can never dangle. --%>
+           role="dialog" aria-modal="true" aria-labelledby="reveal-button${widgetContext.uniqueId}"
            data-reveal
            data-reset-on-close="true"
            <%-- No data-animation-in/data-animation-out (issue #1320, same as #1318): Foundation's
