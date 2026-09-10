@@ -195,6 +195,14 @@ public class BlogEditorWidget extends GenericWidget {
     blogPostBean.setCreatedBy(context.getUserId());
     blogPostBean.setModifiedBy(context.getUserId());
 
+    // "Leave this post out of the RSS feed?" (#1419) is read straight from the parameter rather
+    // than left to BeanUtils.populate, for the reason every unchecked checkbox needs: the browser
+    // submits nothing at all for it, so populate leaves whatever value the bean already carries.
+    // The bean is loaded from the database for an edit, so unticking the box would otherwise be a
+    // no-op and an excluded post could never be put back into the feed. Same shape as the "enabled"
+    // checkbox read immediately below.
+    blogPostBean.setExcludeFromFeed(StringUtils.isNotBlank(context.getParameter("excludeFromFeed")));
+
     String enabled = context.getParameter("enabled");
     boolean isPublished = StringUtils.isNotBlank(enabled);
     boolean justPublished = isPublished && !wasAlreadyPublished;

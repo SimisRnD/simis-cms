@@ -19,6 +19,7 @@
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
@@ -84,6 +85,22 @@
     <div class="grid-x grid-margin-x">
       <div class="small-12 cell">
         ${blogPostBodyHtml}
+        <%-- A curated link post (#1420) cites someone else's article, and until now its own page was
+             the one place that never said so: blog-post-list.jsp sends the headline and "Read the
+             article" straight to the source, and the feed points rel="alternate" there, but a reader
+             arriving at the permalink -- from the feed's rel="related", a search result or a shared
+             link -- reached a summary with no way through to the original.
+
+             Markup mirrors blog-post-list.jsp's link deliberately: url:sanitize inside c:out so a
+             stored value can only ever be an http(s) href, rel="noopener noreferrer" with
+             target="_blank", and the show-for-sr note so the new tab is announced rather than just
+             happening (WCAG 3.2.5 is Level AAA and not a 508 gap, but the list already does this and
+             the two should not disagree). --%>
+        <c:if test="${blogPost.hasSourceUrl}">
+          <p>
+            <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the full article<span class="show-for-sr"> (opens in a new tab)</span></a>
+          </p>
+        </c:if>
       </div>
     </div>
   </div>
