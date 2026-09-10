@@ -62,8 +62,13 @@
         </c:if>
         <c:if test="${!empty blogPost.tagsList}">
           <div class="cell auto">
+            <%-- data-tag carries the per-tag colour: site CSS keys its category colours off
+                 [data-tag="..."] rather than off a class, so a tag rendered without the attribute
+                 falls back to Foundation's grey .label.secondary. blog-post-list.jsp already emits
+                 it, which is why the same tag was coloured in the listing and grey on the post's
+                 own page. Same markup as there, deliberately -- keep the two in step. --%>
             <c:forEach items="${blogPost.tagsList}" var="tag">
-              <span class="label secondary"><c:out value="${tag}"/></span>
+              <span class="label secondary" data-tag="<c:out value="${tag}"/>"><c:out value="${tag}"/></span>
             </c:forEach>
           </div>
         </c:if>
