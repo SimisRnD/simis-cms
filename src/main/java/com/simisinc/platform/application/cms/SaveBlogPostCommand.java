@@ -134,6 +134,13 @@ public class SaveBlogPostCommand {
     blogPost.setReleaseReference(blogPostBean.getReleaseReference());
     // Tag assignments (issue #633)
     blogPost.setTagIdList(blogPostBean.getTagIdList());
+    // Curated link post and syndication opt-out (#1420 / #1419). Both reach this method on the bean
+    // and sourceUrl is even validated above, but neither was copied onto the record being saved, so
+    // both were discarded exactly the way the comment above warns about: a new post stored the
+    // BlogPost defaults (null / false) and an edit silently kept whatever the freshly-reloaded
+    // record already had, which made the editor's two fields inert in both directions.
+    blogPost.setSourceUrl(blogPostBean.getSourceUrl());
+    blogPost.setExcludeFromFeed(blogPostBean.getExcludeFromFeed());
     if (blogPost.getStartDate() == null && blogPost.getPublished() != null) {
       blogPost.setStartDate(blogPost.getPublished());
     }
