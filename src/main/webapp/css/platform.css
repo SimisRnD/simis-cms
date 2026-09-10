@@ -2562,6 +2562,17 @@ div.item-image-large img {
   padding: 0;
 }
 
+/* The event's title is the line a reader scans a list for; the date, venue and summary
+   under it are support. Today the title carries the global heading weight
+   (--sc-weight-medium) against 400 metadata -- one step apart at 24px versus 18px, which
+   reads as two sizes of the same thing rather than a title and its details.
+
+   Scoped to h3 on purpose. The list and the search results title an event with h3; the
+   single-event page uses h1, which is already unmistakable and is left alone. */
+.platform-calendar-event-block h3 {
+  font-weight: var(--sc-weight-bold, 700);
+}
+
 .platform-calendar-details-container p {
   margin-bottom: 12px;
 }
