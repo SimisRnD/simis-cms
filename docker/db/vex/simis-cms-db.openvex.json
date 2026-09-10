@@ -1163,6 +1163,24 @@
     },
     {
       "vulnerability": {
+        "name": "CVE-2026-74860"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
         "name": "CVE-2026-14456"
       },
       "products": [

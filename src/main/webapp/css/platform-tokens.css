@@ -731,16 +731,38 @@
    mouse click, per spec, and (0,2,1) also outranks Foundation's
    [data-whatinput=mouse] :focus reset -- so mouse-clicked text fields show
    the ring too, in both modes. That matches what Chrome, Firefox and Safari
-   do natively for text inputs. */
-a:focus-visible,
-button:focus-visible,
-[role="button"]:focus-visible,
-input:focus-visible,
-input[type]:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-[tabindex]:focus-visible {
+   do natively for text inputs.
+
+   The :root prefix generalizes that same fix to the rest of the list (issue
+   #1953). Foundation ships a second, broader reset -- [data-whatinput="mouse"]
+   and [data-whatintent="mouse"]/[touch] descendant :focus, at (0,2,0) -- and
+   raising only input[type] left a, button, select, textarea and summary at
+   (0,1,1), where they lost to it. That is SC 2.4.7 Focus Visible, Level AA, and
+   so a Section 508 gap, since 508 incorporates WCAG 2.0 AA.
+
+   It reaches real users because whatintent is not whatinput: whatintent also
+   tracks pointer MOVEMENT, so the failing state is whatinput="keyboard" with
+   whatintent="mouse" -- anyone who moves the mouse and then tabs. Touch devices
+   get whatintent="touch" and lose the ring the same way.
+
+   :root is a pseudo-class, so ":root a:focus-visible" is (0,2,1) and outranks
+   the reset on specificity rather than on load order. Every element is a
+   descendant of the root element, so the matched set is unchanged. Applied to
+   the whole list on purpose: it also lifts [role="button"] and [tabindex] from
+   (0,2,0) to (0,3,0), which were winning only because this file happens to load
+   after Foundation -- a tie a future reordering would silently flip.
+
+   Fixed in the token layer, not the vendored Foundation build, which is
+   re-vendored on upgrade and would bring the reset back. */
+:root a:focus-visible,
+:root button:focus-visible,
+:root [role="button"]:focus-visible,
+:root input:focus-visible,
+:root input[type]:focus-visible,
+:root select:focus-visible,
+:root textarea:focus-visible,
+:root summary:focus-visible,
+:root [tabindex]:focus-visible {
   outline: var(--sc-focus-ring-width) solid var(--sc-focus-ring);
   outline-offset: var(--sc-focus-ring-offset);
   border-radius: var(--sc-radius-sm);
