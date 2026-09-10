@@ -77,7 +77,7 @@
                 <c:when test="${blogPost.hasSourceUrl}"><%--
                   #1420: a curated post points at someone else's article, so the headline goes
                   straight there. The post keeps its own permalink for the feed's <id>. --%>
-                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-fw fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
+                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-arrow-up-right-from-square platform-external-indicator" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
                 </c:when>
                 <c:otherwise>
                   <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
