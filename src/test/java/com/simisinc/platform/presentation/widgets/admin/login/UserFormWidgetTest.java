@@ -289,6 +289,75 @@ class UserFormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postWithoutStepUpKeepsTheBreakGlassToggle() throws Exception {
+    // Regression for issue #1986. The step-up prompt carried the submitted bean back, but
+    // breakGlass is not a BeanUtils-populated field -- the form posts "breakGlassAccount" and the
+    // property is "breakGlass" -- so the bean arrived at the redisplay with the flag false. The
+    // checkbox then re-rendered unchecked, an unchecked checkbox posts as absent, and the second
+    // submit (the one carrying the credential) read that as "clear". Editing any field on a
+    // break-glass account silently dropped the flag; on the pilot it left no break-glass account
+    // at all. Roles and groups survived because they are set onto the bean before the gate.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "breakGlassAccount", "true");
+
+    User target = new User();
+    target.setId(42L);
+    target.setBreakGlass(true);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verifyNoInteractions();
+    }
+
+    Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"),
+        "this test is only meaningful while the save is actually being gated by step-up");
+    User redisplayed = (User) widgetContext.getRequestObject();
+    Assertions.assertNotNull(redisplayed, "the submitted record must travel with the prompt");
+    Assertions.assertTrue(redisplayed.getBreakGlass(),
+        "user-form.jsp renders the checkbox from this bean; if it comes back false the toggle "
+            + "re-renders unchecked and the credential-bearing submit clears break-glass");
+  }
+
+  @Test
+  void postWithoutStepUpDoesNotInventBreakGlassThatWasNotSubmitted() throws Exception {
+    // The other direction, so the fix cannot be "always true": a submit with the toggle off must
+    // still redisplay it off, or an editor clearing break-glass could never complete the prompt.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+
+    User target = new User();
+    target.setId(42L);
+    target.setBreakGlass(true);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verifyNoInteractions();
+    }
+
+    User redisplayed = (User) widgetContext.getRequestObject();
+    Assertions.assertNotNull(redisplayed);
+    Assertions.assertFalse(redisplayed.getBreakGlass(),
+        "the redisplay must show what was submitted, not what the record currently holds");
+  }
+
+  @Test
   void postWithoutStepUpKeepsTheRecordBeingEdited() throws Exception {
     // Regression: the step-up prompt used to re-render the form without carrying the submitted bean,
     // and the redirect dropped the userId. execute() then fell back to new User(), so the prompt came
