@@ -273,6 +273,22 @@ public class UserFormWidget extends GenericWidget {
    * next submit into a create -- so the two-step prompt could never be completed for an existing user.
    */
   private void redisplayForStepUp(WidgetContext context, User userBean) {
+    // breakGlass is deliberately not a BeanUtils-populated field: the form posts
+    // "breakGlassAccount" while the property is "breakGlass", so populate() never matches it and
+    // a crafted parameter cannot reach the database through the bean. applyBreakGlass() is the
+    // only writer, and it is admin-scoped and step-up-gated.
+    //
+    // The cost of that is this: the bean reaches the redisplay with the field at its default, so
+    // the checkbox re-renders unchecked no matter what was submitted -- and an unchecked checkbox
+    // posts as absent, so the second, credential-bearing submit read it as "clear" and silently
+    // dropped break-glass from any account that had it (issue #1986). Roles and groups do not
+    // have this problem because they are set onto the bean before the gate; this was the one
+    // field read after it.
+    //
+    // Set it here for rendering only. The write path is unchanged: applyBreakGlass() still reads
+    // the request parameter itself rather than trusting the bean, so the security property above
+    // still holds.
+    userBean.setBreakGlass("true".equals(context.getParameter("breakGlassAccount")));
     context.addSharedRequestValue("stepUpRequired", "true");
     context.setRequestObject(userBean);
     context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
