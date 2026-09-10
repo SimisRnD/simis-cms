@@ -175,7 +175,7 @@
           </c:if>
           <c:if test="${userSession.hasRole('admin')}">
             <li class="has-submenu">
-              <a href="#"><i class="fa-fw fa fa-cog"></i></a>
+              <a aria-label="Item options" href="#"><i aria-hidden="true" class="fa-fw fa fa-cog"></i></a>
               <ul class="submenu menu vertical">
                 <li><a href="${ctx}/edit/${item.uniqueId}?returnPage=/show/${item.uniqueId}">Edit Item Details</a></li>
                 <li><a href="${ctx}/show/${item.uniqueId}/settings">Edit Item Settings</a></li>

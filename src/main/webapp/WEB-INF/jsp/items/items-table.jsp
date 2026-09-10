@@ -47,7 +47,7 @@
         <tr>
           <td translate="no">
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
-              <a href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i class="${font:fal()} fa-edit"></i></a>
+              <a aria-label="Edit ${fn:escapeXml(item.name)}" href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i aria-hidden="true" class="${font:fal()} fa-edit"></i></a>
             </c:if>
             <c:out value="${text:trim(item.name, 30, true)}"/><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if>
           </td>
