@@ -1681,6 +1681,24 @@ a.read-more {
   text-decoration: underline;
 }
 
+/* The "this headline leaves the site" mark on a curated post (issue 1420).
+
+   It renders inside the h2, so it inherited the heading's full font size -- 32px on the pilot -- and
+   fa-fw padded a glyph about 15px wide out to 1.25em, or 40px. That is wider than the word beside it,
+   and at heading weight it read as a control rather than a mark: it was reported as a stray "edit
+   button" on the one post that had it. fa-fw is for icons stacked in a column, which this is not, so
+   it comes off the markup rather than being overridden here.
+
+   Sized in em so it tracks whatever a site sets its headings to, and no color is set so it stays the
+   headline's own ink and cannot fall out of contrast when a theme is repainted. The accessible text
+   is unaffected -- the glyph is aria-hidden and the adjacent show-for-sr span carries "(opens in a
+   new tab)". */
+.platform-external-indicator {
+  font-size: 0.55em;
+  vertical-align: 0.08em;
+  margin-left: 0.15em;
+}
+
 /* Callout */
 
 /* A callout carries its own background, so it must also own the colour of the text on it.
