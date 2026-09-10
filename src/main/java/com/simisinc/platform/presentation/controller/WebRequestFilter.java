@@ -37,6 +37,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.jsp.jstl.core.Config;
 
@@ -64,6 +65,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
@@ -127,6 +129,71 @@ public class WebRequestFilter implements Filter {
     String contextPath = request.getServletContext().getContextPath();
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
+
+    // Security headers for every response, set here for the same reason the caching wrapper below
+    // is: PageServlet sets them for the pages it renders, but static files are served by the
+    // container's default servlet and never reach it, so /css, /javascript and the generated text
+    // endpoints (sitemap.xml, robots.txt, llms.txt, security.txt) carried neither of these.
+    //
+    // nosniff is unconditional. It only forbids the browser second-guessing a Content-Type the
+    // application already sets, so there is no response it can harm. Uploaded images already
+    // carried it via MultipartFileSender; this closes the rest.
+    //
+    // Cross-Origin-Resource-Policy defaults to same-origin, which is where it earns its place: a
+    // resource whose delivery depends on the caller's session. The documents under /assets/file
+    // are served according to the folder's permissions, and same-origin stops another origin
+    // causing a signed-in visitor's browser to fetch one into its process.
+    //
+    // Publicly readable assets are deliberately exempt. Content images and the vendored
+    // css/javascript/font files gain nothing -- anyone can already fetch them anonymously -- and
+    // same-origin there would stop other sites displaying images this site wants shared.
+    //
+    // Strict-Transport-Security is set here for exactly the reason stated above, and it was missed
+    // when it was first added: PageServlet set it, so only a rendered page carried it. Every
+    // redirect this filter generates returns from do301()/do302() without ever reaching the
+    // servlet, so none of them advertised HSTS -- including the trailing-slash canonical redirect,
+    // which fires constantly, and every admin-managed rule. Verified against production before
+    // this change: a 200 page carried the header while /careers/ and /employee-benefits, both
+    // 301s, carried nosniff and Cross-Origin-Resource-Policy from this very block but no HSTS.
+    //
+    // Gated on system.ssl rather than the per-request scheme, unchanged from how PageServlet gated
+    // it: sending this from a deployment that cannot serve HTTPS would make browsers refuse it for
+    // the whole max-age, and the property stays correct behind a TLS-terminating proxy where the
+    // scheme this filter sees is not the one the browser used. Read per request, not from the
+    // requireSSL field set in init(), so that flipping the property takes effect the same way it
+    // does today instead of waiting for a restart.
+    //
+    // includeSubDomains is scoped to the host that SENT the header, so on www.simisinc.com it
+    // covers *.www.simisinc.com -- which is nothing. It is still the correct directive and it is
+    // what scanners check for, but do not read it as protecting sibling hosts of the apex.
+    if (servletResponse instanceof HttpServletResponse) {
+      HttpServletResponse securedResponse = (HttpServletResponse) servletResponse;
+      securedResponse.setHeader("X-Content-Type-Options", "nosniff");
+      securedResponse.setHeader("Cross-Origin-Resource-Policy",
+          isPubliclyEmbeddableAsset(resource) ? "cross-origin" : "same-origin");
+      if ("true".equals(LoadSitePropertyCommand.loadByName("system.ssl"))) {
+        securedResponse.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      }
+    }
+
+    // Assets whose URL already identifies their content can be cached indefinitely, so a repeat
+    // visit revalidates nothing instead of re-fetching. Wrapping the response here, rather than
+    // setting the header at each chain.doFilter site, means every path through this filter gets
+    // the same treatment; the wrapper withdraws the header if the response turns out not to be a
+    // successful read.
+    if (servletResponse instanceof HttpServletResponse) {
+      if (isImmutableAsset(resource)
+          || isStampedPlatformAsset(resource, httpServletRequest.getQueryString())) {
+        servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
+      } else if (isRevalidatedAsset(resource)) {
+        // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above, and so are
+        // the platform's own stamped assets. What is left under /css, /javascript and /images is
+        // everything with no trustworthy stamp -- the vendored libraries, which are referenced
+        // without any ?v= at all -- and that still has to revalidate.
+        servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse,
+            REVALIDATE_CACHE_CONTROL);
+      }
+    }
     String ipAddress = request.getRemoteAddr();
     String referer = httpServletRequest.getHeader("Referer");
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
@@ -215,6 +282,20 @@ public class WebRequestFilter implements Filter {
       if (redirect != null) {
         // Handle a redirect immediately
         do301(servletResponse, redirect);
+        return;
+      }
+    }
+
+    // Send a trailing-slash URL to its canonical form. /news/ used to 404 while /news served the
+    // page, so anyone arriving from an older link, a bookmark or a search result with the slash on
+    // the end hit a dead end -- 17 distinct visitors on /news/ alone in six hours, and the same for
+    // every other page. Placed AFTER the admin-managed redirect lookup above so an explicit rule for
+    // a slashed path still wins, and 301 rather than serving the same page at both URLs, which would
+    // split search ranking between them.
+    if (("GET".equals(httpServletRequest.getMethod()) || "HEAD".equals(httpServletRequest.getMethod()))) {
+      String canonical = trailingSlashRedirect(resource, httpServletRequest.getQueryString());
+      if (canonical != null) {
+        do301(servletResponse, canonical);
         return;
       }
     }
@@ -385,7 +466,7 @@ public class WebRequestFilter implements Filter {
           LOG.debug("Creating user session...");
           // Start a new session
           userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(),
-              ipAddress, referer, userAgent);
+              ipAddress, referer, userAgent, httpServletRequest.getServerName());
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
           if (httpServletRequest.getHeader("X-Monitor") == null && !doNotTrack) {
@@ -490,7 +571,30 @@ public class WebRequestFilter implements Filter {
       // Attempt to login the user
       if (cookieUserToken != null) {
         User user = AuthenticateLoginCommand.getAuthenticatedUser(cookieUserToken);
-        if (user != null) {
+        // "Show login?" (site.login) is enforced here as well as in LoginWidget.finalizeLogin.
+        // Restoring a remember-me cookie is a sign-in by this codebase's own reckoning -- it emits
+        // authentication.login.success, raises the break-glass alert, and writes a user_logins row --
+        // so leaving it ungated let a non-admin who ticked "Stay logged in" before the toggle was
+        // turned off keep minting authenticated sessions from the cookie. Not merely for the
+        // fortnight the cookie was issued for, either: every restore re-extends both the token row
+        // and the cookie by another two weeks (below), so visiting once a fortnight renewed the
+        // bypass indefinitely. Evaluating the CURRENT setting at restore time rather than freezing
+        // it at issue time matches how this same block already re-checks MFA enrollment.
+        // Deliberately NOT the same as revoking the token: the cookie and its user_tokens row are
+        // left intact, so flipping the setting back on restores these users without a fresh sign-in.
+        // The admin exemption mirrors finalizeLogin so a misconfigured toggle can never lock the
+        // site owner out. An already-established HttpSession is out of scope by design -- site.login
+        // governs becoming authenticated, not staying so (compare site.online, which PageServlet
+        // explicitly exempts logged-in users from) -- so a live session persists until it times out.
+        boolean signInsDisabled = user != null && !user.hasRole("admin")
+            && !"true".equals(LoadSitePropertyCommand.loadByName("site.login"));
+        if (signInsDisabled) {
+          // The enclosing isCookieChecked() guard runs this at most once per HttpSession, so the
+          // refusal is audited once per session rather than on every request
+          SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", user.getId(),
+              user.getEmail(), ipAddress, userSession.getSessionId(), "Sign-ins are currently disabled");
+        }
+        if (user != null && !signInsDisabled) {
           // Let the request know an authenticated user was retrieved
           userVerifiedThisRequest = true;
           // Log the user in
@@ -513,6 +617,9 @@ public class WebRequestFilter implements Filter {
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
+          // A remember-me cookie establishes a session without anyone typing a password, so this
+          // path needs the break-glass alert just as much as the sign-in form does
+          BreakGlassAlertCommand.recordLogin(user, ipAddress, userSession.getSessionId(), "token");
           // Enforce org-level MFA before the user accesses any page (IA-2(1))
           if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
             String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
@@ -533,7 +640,7 @@ public class WebRequestFilter implements Filter {
           cookie.setPath("/");
           cookie.setMaxAge(twoWeeksSecondsInt);
           ((HttpServletResponse) servletResponse).addCookie(cookie);
-        } else {
+        } else if (user == null) {
           // Cleanup the cookie since the token is no longer valid
           Cookie cookie = new Cookie(CookieConstants.USER_TOKEN, "");
           if (request.isSecure()) {
@@ -665,14 +772,266 @@ public class WebRequestFilter implements Filter {
    * @param resource the request path, relative to the context path
    * @return true if the path is one of the always-allowed browser resource paths
    */
-  private static boolean isBrowserResourcePath(String resource) {
+  /** One year, plus immutable so a reload does not even revalidate. */
+  static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
+  /**
+   * True for assets whose URL already identifies their content, so a changed asset is necessarily
+   * a changed URL and a year-long cache cannot serve anything stale:
+   *
+   * <ul>
+   * <li>{@code /assets/img/<upload-timestamp>-<id>/...} -- re-uploading yields a new directory.</li>
+   * <li>{@code /fonts/...} -- the version is in the filename (inter-v11-latin-regular.woff2).</li>
+   * <li>{@code /css/<vendor>/webfonts/...} -- the version is in the vendor directory name
+   * (fontawesome-free-6.1.1-web).</li>
+   * </ul>
+   *
+   * <p>Stylesheets and scripts are deliberately excluded. They are cache-busted by a {@code ?v=}
+   * stamp read from ApplicationInfo.VERSION, which is edited by hand and is currently stale --
+   * platform.css has changed since the value it carries. Caching those for a year would mean a
+   * deployed CSS fix never reaching anyone who had already visited the site. They keep the existing
+   * revalidation behaviour, which stays correct whether or not that stamp is remembered. The site
+   * stylesheet is separate again: StylesheetServlet already serves it with Last-Modified and an
+   * ETag, so an admin edit is picked up on the next conditional request.
+   *
+   * <p>Each prefix carries a trailing slash so it is anchored at a path boundary, for the same
+   * reason isBrowserResourcePath() documents: a bare startsWith would also match an ordinary page
+   * slug such as /fonts-of-the-world.
+   */
+  /**
+   * Resources any origin may embed: the content images an editor uploads for a page, and the
+   * vendored browser assets. All are readable anonymously, so Cross-Origin-Resource-Policy
+   * protects nothing there -- while same-origin would stop another site displaying an image this
+   * one publishes on purpose.
+   *
+   * Deliberately does NOT cover /assets/file: those are documents served according to a folder's
+   * permissions, which is exactly the case CORP exists for.
+   *
+   * Anchored on a path boundary for the same reason isBrowserResourcePath is: an unanchored
+   * prefix would also match an ordinary page whose slug merely starts with these letters.
+   */
+  static boolean isPubliclyEmbeddableAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/assets/img/")
+        || resource.startsWith("/css/")
+        || resource.startsWith("/javascript/")
+        || resource.startsWith("/images/")
+        || resource.startsWith("/fonts/")
+        || "/favicon.ico".equals(resource);
+  }
+
+  static boolean isImmutableAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/assets/img/")
+        || resource.startsWith("/fonts/")
+        || (resource.startsWith("/css/") && resource.contains("/webfonts/"));
+  }
+
+  /** Cache, but check with the server before every use. */
+  static final String REVALIDATE_CACHE_CONTROL = "no-cache";
+
+  /**
+   * True for the bundled static assets that must NOT be cached blind: stylesheets, scripts and the
+   * bundled images.
+   *
+   * <p>Most of what is left here carries no {@code ?v=} stamp at all: the vendored libraries under
+   * /css and /javascript (animate.min.css, ace.js, spectrum.css and the rest) are referenced from
+   * the JSPs by bare path, so there is no token that could ever bust them and they must not be
+   * cached blind. The platform's own assets used to be in the same position -- their stamp came
+   * from the hand-edited ApplicationInfo.VERSION and had gone stale -- but since #1872 it is
+   * derived from their modification times, so {@link #isStampedPlatformAsset} claims those before
+   * this method is reached. Sending no header at all is not the neutral choice
+   * it looks like: with neither an expiry nor a validator, browsers fall back to HEURISTIC
+   * freshness, typically a fraction of the file's age, and a visitor can be served a stale
+   * stylesheet for an unpredictable stretch after a deploy. {@code no-cache} keeps the copy but
+   * requires a conditional request before reuse, so a deploy always lands and the usual answer is a
+   * cheap 304 rather than a re-download.
+   *
+   * <p>Checked only after {@link #isImmutableAsset}, which claims the webfonts living under
+   * {@code /css/<vendor>/webfonts/}; those are content-addressed by their vendor directory and keep
+   * the year-long cache.
+   *
+   * <p>Prefixes are anchored at a path boundary for the reason isBrowserResourcePath() documents: a
+   * bare startsWith would also match an ordinary page slug such as /images-of-our-team.
+   */
+  /**
+   * True for a platform asset that may be cached for a year because its URL genuinely identifies
+   * its content.
+   *
+   * <p>Two conditions, and both are load-bearing:
+   *
+   * <p><b>The path must be one the stamp is computed from.</b> The {@code ?v=} token is the newest
+   * modification time across {@link ContextListener#STAMPED_ASSET_PATHS}, so a change to any of
+   * those files moves the token for all of them -- over-invalidating, never under-invalidating.
+   * An asset outside that set has no such guarantee: it either carries no stamp (every vendored
+   * library) or carries one that does not track its own content, so a year-long cache could pin a
+   * stale copy with no way to recall it.
+   *
+   * <p><b>The request must actually carry a stamp.</b> The JSPs always append one, but a bare
+   * {@code /css/platform.css} -- typed, bookmarked, or requested by a monitor -- addresses no
+   * particular version, and answering that with {@code immutable} would freeze whatever happened to
+   * be current for a year. Without a {@code v} parameter the request falls through to
+   * revalidation, which is correct rather than merely cautious.
+   */
+  static boolean isStampedPlatformAsset(String resource, String queryString) {
+    return resource != null
+        && ContextListener.STAMPED_ASSET_PATH_SET.contains(resource)
+        && hasVersionStamp(queryString);
+  }
+
+  /**
+   * True when the query string carries a non-empty {@code v} parameter.
+   *
+   * <p>Parsed by hand rather than through {@code request.getParameter}: this filter runs on every
+   * request, and asking the container for a parameter forces it to parse the request body on a
+   * POST, which would consume the stream before anything downstream can read it.
+   */
+  static boolean hasVersionStamp(String queryString) {
+    if (queryString == null || queryString.isEmpty()) {
+      return false;
+    }
+    for (String pair : queryString.split("&")) {
+      int equals = pair.indexOf('=');
+      if (equals <= 0 || !"v".equals(pair.substring(0, equals))) {
+        continue;
+      }
+      return equals + 1 < pair.length();
+    }
+    return false;
+  }
+
+  static boolean isRevalidatedAsset(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    return resource.startsWith("/css/")
+        || resource.startsWith("/javascript/")
+        || resource.startsWith("/images/");
+  }
+
+  /**
+   * Sets the immutable cache header up front, then withdraws it if the response is not a successful
+   * read. Without the withdrawal a transient 404 -- a variant not yet generated, a file missing
+   * after a bad deploy -- would be cached for a year by every browser that saw it, with no way to
+   * recall it.
+   */
+  static final class ImmutableAssetResponse extends HttpServletResponseWrapper {
+
+    ImmutableAssetResponse(HttpServletResponse response) {
+      this(response, IMMUTABLE_CACHE_CONTROL);
+    }
+
+    ImmutableAssetResponse(HttpServletResponse response, String cacheControl) {
+      super(response);
+      response.setHeader("Cache-Control", cacheControl);
+    }
+
+    @Override
+    public void sendError(int sc) throws IOException {
+      withdrawCaching(sc);
+      super.sendError(sc);
+    }
+
+    @Override
+    public void sendError(int sc, String msg) throws IOException {
+      withdrawCaching(sc);
+      super.sendError(sc, msg);
+    }
+
+    @Override
+    public void setStatus(int sc) {
+      withdrawCaching(sc);
+      super.setStatus(sc);
+    }
+
+    /**
+     * Only an error withdraws the caching. The first version of this tested "not 200 and not 304",
+     * which withdrew on every other status a container may legitimately set on its way to serving a
+     * 200 -- and Tomcat's DefaultServlet, which serves /fonts and /css, does exactly that. The
+     * result was that fonts went out with no-store: a guaranteed re-download on every visit, worse
+     * than the missing header this was meant to fix. Assets under /assets/img go through PageServlet
+     * instead, never hit that path, and cached correctly, which is what made the bug look
+     * path-specific rather than logical.
+     */
+    private void withdrawCaching(int sc) {
+      if (sc >= 400 && !isCommitted()) {
+        setHeader("Cache-Control", "no-store");
+      }
+    }
+  }
+
+  /**
+   * The canonical location for a path that arrived with a trailing slash, or null to leave the
+   * request alone.
+   *
+   * <p>Only GET and HEAD reach this (the caller checks): redirecting a POST would drop the body.
+   *
+   * <p>Deliberately does not check whether the target exists. A slashed URL for a page that is gone
+   * ends at a 404 either way, and probing first would put a lookup on every request to buy nothing.
+   *
+   * <p>The Location is a path, never an absolute URL, so nothing here can be steered onto another
+   * host by a Host header. It is still run through {@link HostnameCommand#safeRedirectPath} for the
+   * protocol-relative ("//evil.example") and control-character cases, and a query string is only
+   * carried over once it is known to hold no control characters -- a header value is being built.
+   */
+  static String trailingSlashRedirect(String resource, String queryString) {
+    if (resource == null || !resource.endsWith("/")) {
+      return null;
+    }
+    String stripped = StringUtils.stripEnd(resource, "/");
+    if (stripped.isEmpty()) {
+      // "/" and "//" -- the site root is served, and there is nothing shorter to send them to
+      return null;
+    }
+    if (isPathOrPrefix(stripped, "/api")) {
+      // REST clients are not browsers; a 301 is not theirs to follow and the path may be meaningful
+      return null;
+    }
+    if (isBrowserResourcePath(stripped)) {
+      // Static directories belong to the default servlet, not to page routing
+      return null;
+    }
+    String path = HostnameCommand.safeRedirectPath(stripped);
+    if ("/".equals(path)) {
+      // The sanitiser rejected it; send nothing rather than bouncing the visitor to the home page
+      return null;
+    }
+    if (StringUtils.isNotEmpty(queryString) && !hasControlCharacter(queryString)) {
+      return path + "?" + queryString;
+    }
+    return path;
+  }
+
+  private static boolean hasControlCharacter(String value) {
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      if (c < 0x20 || c == 0x7f) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static boolean isBrowserResourcePath(String resource) {
     // Path-boundary anchored, not a bare startsWith: web.xml maps /css/*, /fonts/*, /html/*,
     // /images/*, /javascript/* as directories, so an unanchored prefix match here would also
     // exempt any ordinary page whose slug merely starts with the same letters (e.g.
     // /images-of-our-team, /css-tutorial-2026, /javascript-basics) from the IP-block check
     // entirely -- a full, unmitigated bypass, since WebRequestFilter is the only place
     // BlockedIPListCommand.passesCheck() is called.
-    return isPathOrPrefix(resource, "/favicon") ||
+    //
+    // /favicon.ico is matched exactly rather than as a prefix. It is a single file at the site
+    // root, not a directory, so there is no /favicon/ tree to cover -- and an exact match cannot
+    // be the bypass the anchoring above exists to prevent. This entry used to read "/favicon",
+    // which an earlier bare startsWith did match /favicon.ico with; anchoring the prefixes left it
+    // matching only a "/favicon" path that no mapping serves, so the real request stopped being
+    // exempt and began falling through to the full page pipeline. See web.xml, which maps
+    // /favicon.ico to the default servlet.
+    return resource.equals("/favicon.ico") ||
         isPathOrPrefix(resource, "/css") ||
         isPathOrPrefix(resource, "/fonts") ||
         isPathOrPrefix(resource, "/html") ||

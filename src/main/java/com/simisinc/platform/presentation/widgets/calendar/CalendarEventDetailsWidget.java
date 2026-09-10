@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.calendar;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadCalendarCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
@@ -82,9 +84,16 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     context.getRequest().setAttribute("calendar", calendar);
     context.getRequest().setAttribute("calendarEvent", calendarEvent);
 
-    // Set Add-To-Calendar requirements
-    String timezone = LoadSitePropertyCommand.loadByName("site.timezone");
-    context.getRequest().setAttribute("timezone", timezone);
+    // An optional action link for the event page, replacing the Add-to-Calendar control that CSP
+    // made inert (see the JSP). Site properties rather than widget preferences, because
+    // /calendar-event{/event-unique-id} is a platform layout: WebPageXmlLayoutCommand checks the
+    // XML pages before it looks at a database page, so that layout always wins for this path and
+    // a site cannot override it to pass a preference. Site Settings can be edited by an admin.
+    // Both blank by default, in which case the JSP renders no button at all.
+    context.getRequest().setAttribute("actionUrl",
+        LoadSitePropertyCommand.loadByName("site.calendar.actionUrl"));
+    context.getRequest().setAttribute("actionLabel",
+        LoadSitePropertyCommand.loadByName("site.calendar.actionLabel"));
 
     // Determine the view
     context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
@@ -94,6 +103,13 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     // cannot resolve the event itself -- /calendar-event{/event-unique-id} is a wildcard page and
     // this widget performs the lookup -- which is the same reason Product schema is bridged.
     context.setCalendarEvent(calendarEvent);
+    // og:image for this event rather than the site-wide default. main.jsp reads it off
+    // pageRenderInfo, which WebContainerCommand fills from here (issue #1355), so an event with
+    // its own artwork shares as itself instead of as the generic site card. Same one line
+    // BlogPostWidget uses.
+    if (StringUtils.isNotBlank(calendarEvent.getImageUrl())) {
+      context.setPageImageUrl(calendarEvent.getImageUrl());
+    }
     context.setJsp(JSP);
     return context;
   }

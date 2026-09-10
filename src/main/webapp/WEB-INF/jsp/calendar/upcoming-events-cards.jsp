@@ -26,7 +26,7 @@
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <div class="platform-content-container">
   <div class="platform-content">
@@ -36,7 +36,7 @@
           <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
             <c:if test="${!empty titles && fn:length(titles) > status.index }">
               <div class="event-designation">
-                <h4><c:out value="${titles[status.index]}" /></h4>
+                <h3 class="h4"><c:out value="${titles[status.index]}" /></h3>
               </div>
             </c:if>
             <div class="card-section event-date">

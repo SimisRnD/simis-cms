@@ -23,7 +23,7 @@
 <jsp:useBean id="shopUrl" class="java.lang.String" scope="request"/>
 <div class="text-center margin-100">
   <c:if test="${!empty title}">
-    <h3><c:out value="${title}"/></h3>
+    <h2 class="widget-title"><c:out value="${title}"/></h2>
   </c:if>
   <c:if test="${!empty emptyMessage}">
     <p><c:out value="${emptyMessage}"/></p>

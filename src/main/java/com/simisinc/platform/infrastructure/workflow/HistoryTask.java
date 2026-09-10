@@ -64,7 +64,7 @@ public class HistoryTask implements Work {
     // Validate the requirements
     if (StringUtils.isBlank(message)) {
       LOG.error("Message is required");
-      return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+      return TaskReports.failure(workContext, "Message is required");
     }
 
     // Log the history
@@ -102,6 +102,6 @@ public class HistoryTask implements Work {
     } catch (Exception e) {
       LOG.error("decode values", e);
     }
-    return new DefaultWorkReport(WorkStatus.FAILED, workContext);
+    return TaskReports.failure(workContext, "The history entry could not be decoded");
   }
 }

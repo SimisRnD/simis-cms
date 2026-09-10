@@ -20,11 +20,11 @@
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
-<h4><c:out value="${wikiPage.title}" /></h4>
+<h2 class="h4"><c:out value="${wikiPage.title}" /></h2>
 <hr />
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty wikiPage.uniqueId}">
-    <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
+    <div class="platform-content-editor"><a aria-label="Edit this wiki page" class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
   </c:if>
   <div class="platform-content">
     <em>This wiki page has not been created.</em>

@@ -23,6 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -128,6 +129,12 @@ public class HttpPostCommand {
     }
     int status = response.statusCode();
     if (status < 200 || status >= 300) {
+      // DEBUG here, WARN on the execute() path above, and the difference is deliberate. This
+      // overload posts to a url someone else configured -- a subscriber's webhook endpoint being
+      // down is routine and self-inflicted, so warning on every one would be noise in a log that
+      // has to stay readable. The fixed endpoints execute() talks to are ours, and a non-2xx from
+      // one is a misconfiguration worth surfacing. Callers here that need the body already have
+      // executeUserUrlWithResponse, which is what webhook delivery uses.
       LOG.debug("Received status: " + status);
       return null;
     }
@@ -157,7 +164,7 @@ public class HttpPostCommand {
       int httpMethod) {
     RemoteUrlValidationCommand.ValidationResult validation = RemoteUrlValidationCommand.validate(url);
     if (!validation.isAllowed()) {
-      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + url);
+      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + redactUrl(url));
       return null;
     }
     if (!PIN_RESOLVER_AVAILABLE) {
@@ -189,7 +196,91 @@ public class HttpPostCommand {
 
   public static String execute(String url, Map<String, String> headers, Map<String, String> parameters,
       int httpMethod) {
-    return execute(url, headers, getFormDataAsString(parameters), httpMethod);
+    return execute(url, withFormContentType(headers), getFormDataAsString(parameters), httpMethod);
+  }
+
+  /**
+   * Declares the encoding this class just applied, unless the caller already said something.
+   *
+   * <p>
+   * Both overloads that call {@code getFormDataAsString} must route through this. They are the only
+   * two places a Map becomes a form body, and they are the only two that can know it -- which is
+   * exactly how this was missed once: issue 1616 added executeWithResponse as a second encoding
+   * entry point and moved the captcha onto it, and the fix for issue 1624 then landed on the
+   * overload the captcha had stopped calling. The header was declared on a path nothing used while
+   * Turnstile kept answering 415.
+   * </p>
+   *
+   * <p>
+   * The parameters overloads turn a Map into an {@code a=1&b=2} body and then sent it with no
+   * {@code Content-Type} at all, because Java's HttpClient adds none. Whether that works is up to
+   * the remote: Google's reCAPTCHA siteverify accepts it, and Cloudflare's Turnstile siteverify
+   * answers {@code 415 Unsupported Media Type} with "This API expects Content-Type to be
+   * application/json, application/x-www-form-urlencoded, or multipart/form-data".
+   * </p>
+   *
+   * <p>
+   * So Turnstile verification could never have succeeded, on any secret -- the request was rejected
+   * before the credentials were read (issue 1624). Two callers had already found this the hard way
+   * and set the header themselves ({@code OAuthHttpCommand}, {@code PERLSAccessTokenCommand}),
+   * which is the tell: the default was missing, and each caller was paying for it separately.
+   * </p>
+   *
+   * <p>
+   * A caller's own Content-Type always wins -- MailChimp posts JSON through the string overload and
+   * must not be second-guessed -- and the caller's map is copied rather than mutated.
+   * </p>
+   */
+  private static Map<String, String> withFormContentType(Map<String, String> headers) {
+    if (headers != null) {
+      for (String name : headers.keySet()) {
+        if ("content-type".equalsIgnoreCase(name)) {
+          return headers;
+        }
+      }
+    }
+    Map<String, String> withType = new HashMap<>();
+    if (headers != null) {
+      withType.putAll(headers);
+    }
+    withType.put("Content-Type", "application/x-www-form-urlencoded");
+    return withType;
+  }
+
+  /**
+   * Posts form parameters and returns the status code alongside the body, rather than discarding
+   * the body of a non-2xx response.
+   * <p>
+   * The {@code execute} overloads return the body or null, which is the right contract when a
+   * failed call has nothing to say. It is the wrong one when the remote reports the failure
+   * <em>in</em> the body of a 4xx -- the explanation is then thrown away one layer below the code
+   * that needs it. Cloudflare's Turnstile verification does exactly that: a wrong secret comes back
+   * as {@code 400} with {@code {"error-codes":["invalid-input-secret"]}}, so
+   * {@code CaptchaCommand} could only report "Remote content is empty" and an operator had no way
+   * to tell a bad secret from a network fault (issue 1616). Google returns 200 with
+   * {@code success:false} for the same class of error, which is why the reCAPTCHA path was
+   * diagnosable and the Turnstile path was not.
+   * </p>
+   * <p>
+   * This mirrors {@link #executeUserUrlWithResponse}, which already exists for the same reason on
+   * the SSRF-guarded path -- see its javadoc, "a non-2xx that still has a body worth recording".
+   * That variant is for untrusted URLs; this one is for the fixed endpoints an integration talks to.
+   * </p>
+   *
+   * @return the status and body, or null if the request could not be sent at all
+   */
+  public static HttpPostResult executeWithResponse(String url, Map<String, String> parameters) {
+    return executeWithResponse(url, withFormContentType(null), getFormDataAsString(parameters), POST);
+  }
+
+  /** @see #executeWithResponse(String, Map) */
+  public static HttpPostResult executeWithResponse(String url, Map<String, String> headers, String data,
+      int httpMethod) {
+    HttpResponse<String> response = sendRequest(url, headers, data, httpMethod);
+    if (response == null) {
+      return null;
+    }
+    return new HttpPostResult(response.statusCode(), response.body());
   }
 
   public static String execute(String url, Map<String, String> headers, String data, int httpMethod) {
@@ -199,7 +290,10 @@ public class HttpPostCommand {
     }
     int status = response.statusCode();
     if (status < 200 || status >= 300) {
-      LOG.debug("Received status: " + status);
+      // WARN, not DEBUG: this is the branch that silently drops a remote's explanation of its own
+      // failure, and a caller using this overload has no other way to learn the status. Callers
+      // that need the body of a non-2xx should use executeWithResponse (issue 1616).
+      LOG.warn("Received status " + status + " from " + redactUrl(url) + " -- response body discarded");
       return null;
     }
     String content = response.body();
@@ -221,6 +315,27 @@ public class HttpPostCommand {
     return response != null ? response.statusCode() : -1;
   }
 
+
+  /**
+   * A url safe to write to a log: any credential carried in the query string is masked.
+   *
+   * <p>
+   * Most APIs here authenticate with a header, but not all can. Google's reCAPTCHA Enterprise
+   * assessment endpoint takes its API key as {@code ?key=...}, which is the form Google's own
+   * integration instructions print, so the credential is part of the url by design. Every url this
+   * class logs therefore passes through here first -- including the DEBUG lines, since a secret in
+   * a debug log is still a secret in a log, and DEBUG is exactly the level someone turns on while
+   * chasing a failure.
+   * </p>
+   */
+  static String redactUrl(String url) {
+    if (url == null) {
+      return null;
+    }
+    return url.replaceAll("(?i)([?&](?:key|api[-_]?key|access[-_]?token|token|secret)=)[^&]*",
+        "$1REDACTED");
+  }
+
   private static HttpResponse<String> sendRequest(String url, Map<String, String> headers, String data,
       int httpMethod) {
     // Validate the url
@@ -231,12 +346,12 @@ public class HttpPostCommand {
     String[] schemes = { "http", "https" };
     UrlValidator urlValidator = new UrlValidator(schemes);
     if (!urlValidator.isValid(url)) {
-      LOG.debug("Invalid url: " + url);
+      LOG.debug("Invalid url: " + redactUrl(url));
       return null;
     }
 
     try {
-      LOG.debug("Posting to: " + url);
+      LOG.debug("Posting to: " + redactUrl(url));
       // Build the request
       HttpRequest.Builder builder = HttpRequest.newBuilder();
       builder.uri(URI.create(url));

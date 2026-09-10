@@ -24,6 +24,8 @@ import com.simisinc.platform.domain.model.Entity;
  * @author matt rajkowski
  * @created 4/30/18 3:48 PM
  */
+import java.util.List;
+
 public class MenuItem extends Entity {
 
   private Long id = -1L;
@@ -39,6 +41,13 @@ public class MenuItem extends Entity {
   private boolean enabled = false;
   private String[] roleIdList = null;
   private String comments = null;
+  /**
+   * The item this one hangs under, or -1 when it sits directly beneath its tab (issue #1728).
+   * Every item that existed before nesting is -1, so -1 is the unchanged, two-level behaviour.
+   */
+  private Long parentMenuItemId = -1L;
+  /** Children of this item, populated only by the callers that render a third level. */
+  private List<MenuItem> menuItemList = null;
 
   public MenuItem() {
   }
@@ -137,5 +146,34 @@ public class MenuItem extends Entity {
 
   public void setComments(String comments) {
     this.comments = comments;
+  }
+
+  public Long getParentMenuItemId() {
+    return parentMenuItemId;
+  }
+
+  public void setParentMenuItemId(Long parentMenuItemId) {
+    this.parentMenuItemId = parentMenuItemId;
+  }
+
+  public List<MenuItem> getMenuItemList() {
+    return menuItemList;
+  }
+
+  public void setMenuItemList(List<MenuItem> menuItemList) {
+    this.menuItemList = menuItemList;
+  }
+
+  /** True when this item hangs under another item rather than directly under its tab. */
+  public boolean hasParentMenuItem() {
+    // > 0, not > -1: -1 is the unset marker, but 0 is not a valid id either -- no BIGSERIAL
+    // issues it -- and treating 0 as a real parent would write a foreign key that cannot
+    // resolve, producing an item nested under nothing.
+    return parentMenuItemId != null && parentMenuItemId > 0;
+  }
+
+  /** True when a third level should be rendered beneath this item. */
+  public boolean hasMenuItemList() {
+    return menuItemList != null && !menuItemList.isEmpty();
   }
 }

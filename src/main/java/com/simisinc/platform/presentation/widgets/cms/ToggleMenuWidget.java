@@ -42,11 +42,9 @@ public class ToggleMenuWidget extends GenericWidget {
       context.getRequest().setAttribute("view", view);
     }
 
-    Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
-    context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
-
-    Map<String, String> themePropertyMap = LoadSitePropertyCommand.loadAsMap("theme");
-    context.getRequest().setAttribute("themePropertyMap", themePropertyMap);
+    // site/themePropertyMap come from PageServlet, which publishes them once per request and has
+    // them exempted from the per-widget reset so toggle-menu.jsp can read them on its own turn.
+    // Setting them here made this widget authoritative over values main.jsp reads later (#1799).
 
     // Show the JSP
     context.setJsp(JSP);

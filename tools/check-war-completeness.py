@@ -56,6 +56,13 @@ Modes
 Report-only by default: prints findings, always exits 0. Pass ``--strict`` (or
 set ``STRICT=1``) to exit 1 when a non-allowlisted class is missing.
 
+Exit codes: 0 = nothing unexpected (or report-only), 1 = a missing or forbidden
+class under --strict, 2 = bad usage, or the inputs this check needs are absent --
+no WAR, no jars inside it, or no usable jdeps. Exit 2 matters here more than most:
+the whole reason this script explodes the WAR into one class tree is that an
+ABORTED analysis once read as a clean WAR, so a broken run must never be able to
+wear the same exit code as a successful one.
+
 This is a read-only reporter. It changes no files.
 """
 from __future__ import annotations
@@ -191,6 +198,17 @@ FORBIDDEN: dict[str, str] = {
 }
 
 
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- a run that could not
+    analyse the WAR at all must be visibly broken rather than indistinguishable
+    from a --strict finding (or, in report-only mode, from a clean WAR).
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def forbidden_present(owner: dict[str, str]) -> dict[str, list[str]]:
     """Classes present in the exploded WAR that must never ship there, grouped by FORBIDDEN prefix."""
     hits: dict[str, list[str]] = collections.defaultdict(list)
@@ -283,7 +301,7 @@ def explode(war: str, dest: str) -> tuple[dict[str, str], int]:
         libs = [n for n in w.namelist()
                 if n.startswith("WEB-INF/lib/") and n.endswith(".jar")]
         if not libs:
-            sys.exit("error: no WEB-INF/lib/*.jar entries in %s" % war)
+            fail("no WEB-INF/lib/*.jar entries in %s" % war)
         jardir = os.path.join(dest, "_jars")
         os.makedirs(jardir, exist_ok=True)
         for name in libs:
@@ -319,15 +337,15 @@ def run_jdeps(tree: str) -> str:
         proc = subprocess.run([jdeps, "--missing-deps", "-cp", tree, tree],
                               capture_output=True, text=True)
     except (FileNotFoundError, NotADirectoryError):
-        sys.exit("error: jdeps not found at '%s' -- set JAVA_HOME to a JDK 21 "
-                 "installation (a JRE does not include jdeps)" % jdeps)
+        fail("jdeps not found at '%s' -- set JAVA_HOME to a JDK 21 "
+             "installation (a JRE does not include jdeps)" % jdeps)
     # A crashed analysis must never read as a clean WAR. This is the exact trap
     # the per-jar version of this script fell into.
     if proc.returncode != 0:
-        sys.exit("error: jdeps failed (exit %d)\n%s"
-                 % (proc.returncode, proc.stderr.strip()))
+        fail("jdeps failed (exit %d)\n%s"
+             % (proc.returncode, proc.stderr.strip()))
     if "Exception in thread" in proc.stderr:
-        sys.exit("error: jdeps aborted\n%s" % proc.stderr.strip())
+        fail("jdeps aborted\n%s" % proc.stderr.strip())
     return proc.stdout
 
 
@@ -370,8 +388,8 @@ def main() -> int:
     args = ap.parse_args()
 
     if not os.path.exists(args.war):
-        sys.exit("error: %s not found -- run `ant -lib lib/war package` first"
-                 % args.war)
+        fail("%s not found -- run `ant -lib lib/war package` first"
+             % args.war)
 
     tree = tempfile.mkdtemp(prefix="warcheck-")
     try:

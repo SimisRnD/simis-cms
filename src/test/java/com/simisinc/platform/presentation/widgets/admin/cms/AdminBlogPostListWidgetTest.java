@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -78,4 +79,44 @@ class AdminBlogPostListWidgetTest extends WidgetBase {
     Assertions.assertEquals(blogA, blogMap.get(5L));
     Assertions.assertEquals(blogB, blogMap.get(9L));
   }
+
+  @Test
+  void executeSetsAPostOrderTheRepositoryCannotOverwrite() {
+    // Issue 1604. This list asked for "start_date DESC NULLS LAST, post_id DESC" through
+    // setDefaultColumnToSortBy, which belongs to the repository -- BlogPostRepository#findAll
+    // writes "post_id" over it one line after receiving these constraints. So the screen an editor
+    // uses to find recent work has been ordered by insertion id, oldest first, the whole time.
+    //
+    // Asserted on columnsToSortBy, not defaultColumnToSortBy: the old spelling would satisfy a
+    // test written against the setter that was called, while the SQL kept its own order. That is
+    // exactly how this class of bug survived in FeedServletTest.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminBlogPostList\"/>");
+    ArgumentCaptor<DataConstraints> captor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<BlogRepository> blogRepositoryMockedStatic = mockStatic(BlogRepository.class)) {
+      blogRepositoryMockedStatic.when(BlogRepository::findAll).thenReturn(new ArrayList<Blog>());
+
+      try (MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
+        blogPostRepositoryMockedStatic.when(() -> BlogPostRepository.findAll(any(), any(DataConstraints.class)))
+            .thenReturn(new ArrayList<BlogPost>());
+
+        new AdminBlogPostListWidget().execute(widgetContext);
+
+        blogPostRepositoryMockedStatic.verify(() -> BlogPostRepository.findAll(any(), captor.capture()));
+      }
+    }
+
+    DataConstraints constraints = captor.getValue();
+    Assertions.assertNotNull(constraints.getColumnsToSortBy(),
+        "the admin blog post list must set the application-facing sort, which the repository cannot overwrite");
+    String sort = String.join(", ", constraints.getColumnsToSortBy());
+    Assertions.assertTrue(sort.contains("start_date"), "the list must order by date, got: " + sort);
+    Assertions.assertTrue(sort.toUpperCase().contains("DESC"), "newest first, got: " + sort);
+
+    // Exactly what findAll does next. The order has to survive it.
+    constraints.setDefaultColumnToSortBy("post_id");
+    Assertions.assertEquals(sort, String.join(", ", constraints.getColumnsToSortBy()),
+        "the repository's own default must not displace the list's order");
+  }
+
 }

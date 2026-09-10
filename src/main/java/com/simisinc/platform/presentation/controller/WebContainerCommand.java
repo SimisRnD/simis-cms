@@ -73,7 +73,10 @@ public class WebContainerCommand implements Serializable {
   private static final Set<String> PAGE_LEVEL_ATTRIBUTE_NAMES = Set.of(
       "pageEditMode", "pageLayoutMode", "hasDraft", "previewingDraft", "widgetLibraryJson", "widgetSchemaJson", "cspNonce",
       "systemPropertyMap", "sitePropertyMap", "themePropertyMap", "socialPropertyMap",
-      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap");
+      "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap",
+      // Derived from systemPropertyMap alongside it; activity-list.jsp reads it during its own
+      // widget turn, so it has to survive the per-widget reset exactly as that map does
+      "brandedAssetContext");
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
@@ -161,12 +164,29 @@ public class WebContainerCommand implements Serializable {
             if (!thisWidgetUniqueId.equals(containerRenderInfo.getTargetWidget())) {
               continue;
             }
-            // Validate the token and fail immediately
+            // Validate the token and fail immediately.
+            //
+            // This is the second copy of PageServlet's check and is currently UNREACHABLE: that one
+            // runs on the same isTargeted() condition and returns before processWidgets is called.
+            // It is kept as a backstop rather than deleted, so a future reordering cannot silently
+            // drop the CSRF check on this path.
+            //
+            // Two things changed with issue #1921. It answers 403 now, matching PageServlet -- one
+            // condition returning two different statuses from two places is the inconsistency that
+            // issue is about, and a dead copy is exactly where such a divergence survives unnoticed.
+            // And it delegates to PageServlet.isFormTokenValid instead of calling equals() on the
+            // session's token, which was a latent NPE the moment a null session token reached it.
+            //
+            // What was here before was a redirect carrying "Your session may have expired before
+            // submitting the form, please try again" -- friendlier than a bare 403 for an ordinary
+            // form post, and no visitor has ever seen it, because this branch does not run. If that
+            // experience is wanted it should be built once, deliberately, where the check actually
+            // executes -- not left behind here as a second contract nothing exercises.
             String formToken = request.getParameter("token");
-            if (!userSession.getFormToken().equals(formToken)) {
+            if (!PageServlet.isFormTokenValid(formToken, userSession.getFormToken())) {
+              LOG.warn("Stale or missing form token, rejecting " + containerRenderInfo.getName());
               controllerSession.clearAllWidgetData();
-              controllerSession.addWidgetData(thisWidgetUniqueId, MESSAGE, "Your session may have expired before submitting the form, please try again");
-              response.sendRedirect(contextPath + containerRenderInfo.getName());
+              response.sendError(HttpServletResponse.SC_FORBIDDEN);
               return true;
             }
           }
@@ -405,6 +425,11 @@ public class WebContainerCommand implements Serializable {
             // already means the event is publicly viewable
             if (widgetContext.getCalendarEvent() != null) {
               pageRenderInfo.setCalendarEvent(widgetContext.getCalendarEvent());
+            }
+            // VideoObject schema (issue #1795), from ContentWidget -- additive like the FAQ
+            // questions above, since each content block reports only the videos it renders
+            if (widgetContext.getVideos() != null && !widgetContext.getVideos().isEmpty()) {
+              pageRenderInfo.addVideos(widgetContext.getVideos());
             }
           }
 

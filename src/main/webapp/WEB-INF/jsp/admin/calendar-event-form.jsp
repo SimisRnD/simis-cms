@@ -32,10 +32,10 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">
+  <p class="help-text page-help">
     <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> This is a single,
     independent event -- there's no way to make it repeat weekly/monthly automatically. A calendar's
     own full page view offers a "Duplicate" button, but that only creates one more standalone copy,
@@ -43,7 +43,7 @@
   </p>
   <%-- Form Content --%>
   <label>Name
-    <input type="text" placeholder="Name of event" name="title" value="<c:out value="${calendarEvent.title}"/>">
+    <input type="text" placeholder="Name of event" name="title" maxlength="255" value="<c:out value="${calendarEvent.title}"/>">
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${calendarEvent.summary}"/>">
@@ -81,7 +81,6 @@
       <small class="help-text"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
     </div>
   </div>
-  <link rel="stylesheet" href="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.css" />
   <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
   <script nonce="${cspNonce}">
     $(function () {
@@ -156,7 +155,36 @@
   <label>Location
     <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>">
   </label>
-  <small class="help-text"><i class="fa fa-info-circle"></i> A free-text label only (e.g. "Main Auditorium" or "Zoom"), not a lookup -- there's no address/map field on this form.</small>
+  <small class="help-text"><i class="fa fa-info-circle"></i> The venue's name (e.g. "Main Auditorium" or "Zoom"). Put the street address in the fields below rather than in here -- search engines read them as a structured address, and a whole address typed into this one box is just an opaque string to them.</small>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Street address
+        <input type="text" placeholder="Street" name="street" value="<c:out value="${calendarEvent.street}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>City
+        <input type="text" placeholder="City" name="city" value="<c:out value="${calendarEvent.city}"/>">
+      </label>
+    </div>
+  </div>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-4 cell">
+      <label>State / region
+        <input type="text" placeholder="State" name="state" value="<c:out value="${calendarEvent.state}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-4 cell">
+      <label>Postal code
+        <input type="text" placeholder="Postal Code" name="postalCode" value="<c:out value="${calendarEvent.postalCode}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-4 cell">
+      <label>Country
+        <input type="text" placeholder="Country" name="country" value="<c:out value="${calendarEvent.country}"/>">
+      </label>
+    </div>
+  </div>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
       <label>URL for more information
@@ -169,10 +197,49 @@
       </label>
     </div>
   </div>
+  <%-- Optional schema.org Event credits. Each is left out of the page's structured data entirely
+       while blank, so an event nobody has credited says nothing about who runs it rather than
+       implying this organization does. --%>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Organizer
+        <input type="text" placeholder="Who runs this event" name="organizerName" value="<c:out value="${calendarEvent.organizerName}"/>">
+        <p class="help-text">The organization running the event. Leave blank for events you attend but do not host.</p>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Organizer website
+        <input type="text" placeholder="https://" name="organizerUrl" value="<c:out value="${calendarEvent.organizerUrl}"/>">
+      </label>
+    </div>
+  </div>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Speaker
+        <input type="text" placeholder="Who is presenting" name="performerName" value="<c:out value="${calendarEvent.performerName}"/>">
+        <p class="help-text">A person appearing or presenting at the event.</p>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Speaker page
+        <input type="text" placeholder="https://" name="performerUrl" value="<c:out value="${calendarEvent.performerUrl}"/>">
+      </label>
+    </div>
+  </div>
   <label>Video / Meeting Link
     <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
   </label>
   <small class="help-text"><i class="fa fa-info-circle"></i> Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</small>
+  <label>Event image
+    <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${calendarEvent.imageUrl}"/>">
+  </label>
+  <p>
+    <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
+  </p>
+  <c:if test="${!empty calendarEvent.imageUrl}">
+    <img id="imageUrlPreview" alt="" src="<c:out value="${calendarEvent.imageUrl}"/>" style="max-height: 150px; max-width: 150px">
+  </c:if>
+  <small class="help-text"><i class="fa fa-info-circle"></i> Shown on the event's page, and used as its social card when the event is shared. Without one, a shared link falls back to the site-wide default image.</small>
   <label>Tags
     <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" value="<c:out value="${tagsListValue}"/>" maxlength="255">
   </label>
@@ -193,3 +260,23 @@
     </c:choose>
   </div>
 </form>
+<%-- No data-animation-in (issue #1318): Foundation's Motion-UI animateIn path leaves this
+     display:none forever -- a CSS transition can't start on an element that's still display:none
+     when the animation class is added, so the transitionend it waits for to reveal the element
+     never fires. Omitting it uses Foundation's default, non-animated open, which works. --%>
+<div class="reveal large" id="imageBrowserReveal" data-reveal role="dialog" aria-modal="true" aria-label="Image Browser">
+  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
+</div>
+<script nonce="${cspNonce}">
+    // Load the image browser in an iframe so its own nonce-valid script runs and can populate the
+    // parent field via top.document. Injecting the fragment's HTML with .html() instead stripped
+    // the nonce (issue #1207) and reinterpreted the fetched markup as HTML
+    // (CodeQL js/xss-through-dom). The iframe src is a server-rendered constant; the fragment
+    // itself closes this modal via top.jQuery once an image is selected.
+    $('#imageBrowserReveal').on('open.zf.reveal', function () {
+        document.getElementById('imageBrowserFrame').src = '${ctx}/image-browser?inputId=imageUrl&view=reveal';
+    });
+    $('#imageBrowserReveal').on('closed.zf.reveal', function () {
+        document.getElementById('imageBrowserFrame').removeAttribute('src');
+    });
+</script>

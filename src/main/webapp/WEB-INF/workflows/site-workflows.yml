@@ -37,7 +37,11 @@
       subject: 'Thank you for registering'
       template: 'cms/registration-confirmation'
     - email:
-      to-role: 'community-manager'
+      # Addressed by capability, not role: a System Administrator holds community:manage and is
+      # just as responsible for a new registration, but sits in the admin role, so a mail sent to
+      # 'community-manager' reached them only through the empty-role fallback. to-capability also
+      # picks up anyone holding it through a direct grant, for as long as that grant is valid.
+      to-capability: 'community:manage'
       subject: 'User id {{ user.id }} registered'
       template: 'cms/admin-user-registered-notification'
     - history:

@@ -459,7 +459,7 @@ class UsersListWidgetTest extends WidgetBase {
   @Test
   void agingPasswordFilterUsesTheConfiguredThreshold() {
     try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
-      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("password.maxAgeDays")).thenReturn("180");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.password.maxAgeDays")).thenReturn("180");
 
       UserSpecification spec = captureSpecification(() -> addQueryParameter(widgetContext, "agingPasswordFilter", "1"));
 

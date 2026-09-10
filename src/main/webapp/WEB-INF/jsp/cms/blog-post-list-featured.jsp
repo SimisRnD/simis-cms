@@ -40,7 +40,7 @@
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!blog.enabled}">
@@ -63,7 +63,7 @@
           </c:if>
           <div class="small-12 medium-auto cell">
             <div class="featured-blog-title">
-              <h4><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h4>
+              <h2><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h2>
             </div>
             <c:if test="${showSummary eq 'true'}">
               <div class="featured-blog-intro">

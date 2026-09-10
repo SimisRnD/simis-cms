@@ -3,6 +3,7 @@
   font-family: 'Source Sans Pro';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/source-sans-pro/source-sans-pro-v12-latin-regular.eot'); /* IE9 Compat Modes */
   src: local('Source Sans Pro Regular'), local('SourceSansPro-Regular'),
   url('../../fonts/source-sans-pro/source-sans-pro-v12-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
@@ -16,6 +17,7 @@
   font-family: 'Source Sans Pro';
   font-style: normal;
   font-weight: 700;
+  font-display: swap;
   src: url('../../fonts/source-sans-pro/source-sans-pro-v12-latin-700.eot'); /* IE9 Compat Modes */
   src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'),
   url('../../fonts/source-sans-pro/source-sans-pro-v12-latin-700.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */

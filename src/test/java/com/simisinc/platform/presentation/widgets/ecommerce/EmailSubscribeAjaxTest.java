@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
@@ -246,6 +247,33 @@ class EmailSubscribeAjaxTest extends WidgetBase {
 
       Assertions.assertEquals("{\"status\":\"0\"}", widgetContext.getJson());
       saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(onlineLists)));
+    }
+  }
+
+  /**
+   * Issue #1724: this used to answer "[]" for any DataException, which the inline form's handler
+   * renders as its generic "re-enter your email in a proper format" -- wrong and unactionable when
+   * the signup failed because its mailing list doesn't exist.
+   */
+  @Test
+  void returnsTheActualReasonWhenTheSignupCannotBeSaved() {
+    addValidParams();
+
+    try (MockedStatic<CaptchaCommand> captcha = mockStatic(CaptchaCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      captcha.when(() -> CaptchaCommand.validateRequest(any())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      listRepo.when(MailingListRepository::findOnlineLists).thenReturn(new ArrayList<>());
+      saveEmail.when(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any()))
+          .thenThrow(new DataException(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE));
+
+      new EmailSubscribeAjax().execute(widgetContext);
+
+      Assertions.assertEquals(
+          "{\"status\":\"1\",\"message\":\"Sorry, this signup isn't available right now.\"}",
+          widgetContext.getJson());
     }
   }
 }

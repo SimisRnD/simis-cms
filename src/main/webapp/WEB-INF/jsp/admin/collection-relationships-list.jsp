@@ -23,10 +23,10 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="relationshipList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">A relationship here only declares that this collection and another one are allowed to link records to each other -- it doesn't link any specific record itself. Linking an individual record in this collection to one in the related collection happens later, on that item's own page, not on this admin screen. Relationships are one-directional: declaring that this collection relates to another does not automatically make the reverse true, so if records need to link both ways, add a relationship on the other collection too.</p>
+<p class="help-text page-help">A relationship here only declares that this collection and another one are allowed to link records to each other -- it doesn't link any specific record itself. Linking an individual record in this collection to one in the related collection happens later, on that item's own page, not on this admin screen. Relationships are one-directional: declaring that this collection relates to another does not automatically make the reverse true, so if records need to link both ways, add a relationship on the other collection too.</p>
 <table class="unstriped">
   <thead>
     <tr>
@@ -60,7 +60,7 @@
             <a href="${ctx}/admin/collection-details?collectionId=${relationship.relatedCollectionId}"><c:out value="${collection:name(relationship.relatedCollectionId)}" /></a>
           </c:otherwise>
         </c:choose>
-        <a href="#" data-confirm-post="Are you sure you want to remove this relationship?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relationshipId=${relationship.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Remove this relationship" href="#" data-confirm-post="Are you sure you want to remove this relationship?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relationshipId=${relationship.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

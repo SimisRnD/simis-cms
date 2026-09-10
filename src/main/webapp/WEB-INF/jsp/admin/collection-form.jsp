@@ -43,14 +43,14 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-4 cell">
       <label>Collection Name <span class="required">*</span>
-        <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${collection.name}"/>" required>
+        <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${collection.name}"/>" required>
       </label>
     </div>
     <div class="small-12 medium-3 cell">

@@ -43,6 +43,7 @@ public class SecretSitePropertiesCommand {
       "oauth.clientSecret",
       "mail.password",
       "captcha.google.secretkey",
+      "captcha.google.apikey",
       "captcha.turnstile.secretkey",
       // Server-side integration keys and tokens
       "mailing-list.mailchimp.apiKey",

@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.cms;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 /**
  * Generates a URL compatible id
  *
@@ -28,8 +30,19 @@ public class MakeContentUniqueIdCommand {
 
   public static String parseToValidValue(String originalName) {
 
-    // Use lowercase
-    String name = originalName.toLowerCase();
+    // Decode HTML entities before anything else. Titles reach this method verbatim -- nothing on
+    // the save path decodes them -- so a title carrying "&rsquo;" (pasted from an HTML source, or
+    // submitted as a character reference) used to be slugified character by character: the "&"
+    // became "and", the ";" was dropped, and the entity name survived as literal text, turning
+    // "What&rsquo;s in America&rsquo;s Code" into "whatandrsquos-in-americaandrsquos-code".
+    // Decoding first means the entity becomes the character it stands for, and that character is
+    // then handled by the rules below -- so a smart quote is dropped, "&amp;" becomes "and" just
+    // as a typed "&" already does, and no entity name can leak into a URL.
+    //
+    // This is deliberately not done earlier in the pipeline: the stored title is the site owner's
+    // content and must not be rewritten as a side effect of saving. Decoding here also covers
+    // every slug generator at once -- all of them call this one method.
+    String name = StringEscapeUtils.unescapeHtml4(originalName).toLowerCase();
 
     // Create a new one
     StringBuilder sb = new StringBuilder();
@@ -43,7 +56,7 @@ public class MakeContentUniqueIdCommand {
       } else if (c == '&') {
         sb.append("and");
         lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
+      } else if (c == ' ' || c == '-' || c == '/' || isDecodedSeparator(c)) {
         if (lastChar != '-') {
           sb.append("-");
         }
@@ -57,6 +70,21 @@ public class MakeContentUniqueIdCommand {
       value = value.substring(0, value.length() - 1);
     }
     return value;
+  }
+
+  /**
+   * Typographic characters that separate words and so must behave like a space rather than being
+   * dropped. Decoding entities is what makes these reachable in quantity -- "&mdash;" and
+   * "&nbsp;" previously arrived here as entity text -- and dropping them would run the words on
+   * either side together, so "Design&mdash;Build" would slugify to "designbuild".
+   *
+   * @param c the character to test
+   * @return true when the character should be treated as a word separator
+   */
+  private static boolean isDecodedSeparator(char c) {
+    return c == '\u2013' // en dash
+        || c == '\u2014' // em dash
+        || c == '\u00a0'; // non-breaking space
   }
 
 }

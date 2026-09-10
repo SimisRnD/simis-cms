@@ -33,7 +33,7 @@
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/calendar?returnPage=/admin/calendars">Add a Calendar <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
@@ -45,7 +45,7 @@
   <code>calendar</code>, <code>upcomingCalendarEvents</code>, or <code>calendarSearchResults</code>
   widget.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> Every event is a single,
   independent record -- there's no built-in way to schedule something like "every Monday"
   automatically on any calendar. If you need that, you'll be creating and maintaining each
@@ -110,9 +110,9 @@
           <fmt:formatNumber value="${empty calendarEventCount[calendar.id] ? 0 : calendarEventCount[calendar.id]}" />
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/calendar?calendarId=${calendar.id}&returnPage=/admin/calendars"><i class="${font:fas()} fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(calendar.name)}" href="${ctx}/admin/calendar?calendarId=${calendar.id}&returnPage=/admin/calendars"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="#" data-js-call="deleteCalendar" data-js-arg1="${calendar.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(calendar.name)}" href="#" data-js-call="deleteCalendar" data-js-arg1="${calendar.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

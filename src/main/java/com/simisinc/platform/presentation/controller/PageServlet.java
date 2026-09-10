@@ -20,6 +20,7 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.AllowedIframeHostCommand;
+import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
@@ -27,8 +28,7 @@ import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
-import com.simisinc.platform.domain.model.cms.CalendarEvent;
-import com.simisinc.platform.domain.model.cms.FaqQuestion;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -169,8 +169,28 @@ public class PageServlet extends HttpServlet {
     }
     response.setHeader("X-Frame-Options", "SAMEORIGIN");
     response.setHeader("X-Content-Type-Options", "nosniff");
-    response.setHeader("X-XSS-Protection", "1; mode=block");
+    // 0, not 1: the legacy auditor this header enables has itself been a source of
+    // information-disclosure bugs, and modern browsers have removed it outright. Where it is still
+    // honoured, 0 turns it off and leaves XSS defence to the nonce-based CSP built below, which is
+    // the real protection. ContentWidget used to set 0 on blocks containing <script>/<iframe>;
+    // those overrides never won because this ran first, and are removed with this change.
+    response.setHeader("X-XSS-Protection", "0");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Disclaim capabilities the platform never uses, so neither author-supplied HTML nor a
+    // third-party embed (YouTube, Vimeo, the careers iframe) can request them: an embed cannot ask
+    // for a capability the top-level document has already given up. Each was verified unused
+    // before being disclaimed -- no navigator.geolocation (the Leaflet map JSPs ship no locate
+    // control), no getUserMedia, no navigator.usb, and no browser Payment Request API. The
+    // *PaymentRequest types under application/ecommerce are the server-side Square SDK, not the
+    // browser API; the Stripe/Square card fields tokenize in-page and post the token back here.
+    response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    // same-origin severs window.opener for cross-origin popups, which closes tabnabbing against
+    // target="_blank" links -- and those can appear in author-supplied content. Verified rather
+    // than assumed: nothing in the checkout JSPs opens a popup, the payment SDKs tokenize in-page
+    // and post same-origin, and the platform's only window.open calls (the two calendar views)
+    // target same-origin URLs, which this does not sever. If a payment SDK ever needs an
+    // opener-bearing cross-origin popup, same-origin-allow-popups is the weaker fallback.
+    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     byte[] nonceBytes = new byte[16];
     SECURE_RANDOM.nextBytes(nonceBytes);
     String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);
@@ -208,6 +228,14 @@ public class PageServlet extends HttpServlet {
       // reveal either, because this pilot happens not to use the widget -- the requirement is in
       // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
       //
+      // api.weather.gov is the third of that kind. WeatherWidget renders the National Weather
+      // Service's own forecast icons as <img> elements straight from that host, so without it
+      // the widget half-works: temperatures and conditions render, every icon becomes a broken
+      // placeholder, and nothing errors anywhere a developer would look. It went unnoticed
+      // because curl fetches the icon URL happily -- only a browser enforces CSP (issue #1805).
+      // Unlike the tile server below it, this is a fixed government host with nothing to
+      // configure, so it is a constant rather than a lookup.
+      //
       // frame-src is emitted from AllowedIframeHostCommand, the same list HtmlCommand enforces
       // when content is saved. Two layers on one list: the sanitizer stops a disallowed embed
       // becoming stored content and tells the author while they can still fix it, and this stops
@@ -222,18 +250,39 @@ public class PageServlet extends HttpServlet {
       // it would back-stop must be set first, or the content it governs falls through to it.
       // connect-src has had no inventory taken -- video.jsp alone calls Vimeo's oEmbed endpoint
       // from the browser -- and must not be inherited from a backstop before it does.
+      // Leaflet fetches map tiles as images, so the configured tile host has to be here or the
+      // map widget renders its controls and marker over an empty grey square -- the same class of
+      // gap as the two video hosts above, and one a content crawl cannot find either, because the
+      // requirement is in the platform rather than in any page.
+      String tileSource = FindMapTilesCredentialsCommand.cspImageSource();
+      String mapTileImageSource = tileSource == null ? "" : " " + tileSource;
+
       response.setHeader("Content-Security-Policy",
           "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
               + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com; "
+              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
+              + "https://api.weather.gov"
+              + mapTileImageSource + "; "
               + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
               + "script-src 'self' 'nonce-" + cspNonce + "'");
-    // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
-    // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
-    // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
-    if ("true".equals(LoadSitePropertyCommand.loadByName("system.ssl"))) {
-      response.setHeader("Strict-Transport-Security", "max-age=31536000");
-    }
+
+      // The candidate policy from Security Settings, when one is configured. Report-only cannot
+      // block a resource, so this is safe to run against live traffic -- which is the point: the
+      // directives #1430 still needs (connect-src, and default-src behind it) cannot be written by
+      // reading the source, because the hosts a third-party script calls only exist at runtime.
+      //
+      // Reporting-Endpoints goes with it. report-to names an endpoint; without this header the
+      // name resolves to nothing and the browser evaluates the policy and reports to nobody, which
+      // is indistinguishable from a policy that found no violations.
+      String reportOnlyPolicy = CspPolicyCommand.reportOnlyPolicy(cspNonce);
+      if (reportOnlyPolicy != null) {
+        response.setHeader("Content-Security-Policy-Report-Only", reportOnlyPolicy);
+        response.setHeader("Reporting-Endpoints", CspPolicyCommand.reportingEndpointsHeader());
+      }
+    // Strict-Transport-Security is set in WebRequestFilter, not here. Setting it here reached only
+    // the pages this servlet renders, which left every redirect the filter generates -- and every
+    // static file -- without it. See that filter's security-header block for the gating and the
+    // includeSubDomains caveat.
 
     try {
       // Determine the resource
@@ -258,7 +307,7 @@ public class PageServlet extends HttpServlet {
 
       if (!pagePath.startsWith("/assets")) {
         // Apply caching strategy: public pages cached, authenticated pages not cached
-        CacheStrategy.setCacheHeaders(request, response, null);
+        CacheStrategy.setNoCache(response);
       }
 
       // Determine if this is a JSON service (shares similarities as a page)
@@ -311,6 +360,15 @@ public class PageServlet extends HttpServlet {
             return;
           }
         }
+        // Internal pages (#1688): refuse here, ahead of the redirect below -- a gate placed after it
+        // would still hand an internal page's redirect target to anyone who asked. Deliberately NOT
+        // wrapped in !validPreviewToken: a preview link is handed to reviewers by design, and letting
+        // it bypass a staff-only gate would turn every preview link into an anonymous handout.
+        if (InternalPageAccessCommand.isBlocked(webPage, userSession)) {
+          controllerSession.clearAllWidgetData();
+          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          return;
+        }
         // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {
@@ -356,7 +414,9 @@ public class PageServlet extends HttpServlet {
       // (ItemsListWidget) throughout the rest of this request, including inside
       // WebContainerCommand.processWidgets()'s per-widget loop -- their names must stay in sync
       // with WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, which exempts them from that loop's
-      // per-widget request attribute reset.
+      // per-widget request attribute reset. A name published above the walk and left out of that
+      // set is wiped by the first widget and reads as the empty string with no error anywhere
+      // (issue #944); tools/check-page-level-attributes.py fails CI when the two drift apart.
       //
       // pageEditMode must be published unconditionally, like pageLayoutMode below -- leaving it
       // unset on the false path lets JSP EL's implicit page/request/session/application scope
@@ -873,6 +933,11 @@ public class PageServlet extends HttpServlet {
       // whole page/header/footer walk is done. WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES
       // must keep exempting these names from that walk's per-widget request attribute reset.
       request.setAttribute("systemPropertyMap", systemPropertyMap);
+      // Where branded assets (favicon, apple-touch-icon, the logo variants) may be overridden.
+      // Null when there is nowhere real to look, which is what stops the layouts probing a path
+      // that cannot answer -- see resolveBrandedAssetContext.
+      request.setAttribute("brandedAssetContext",
+          resolveBrandedAssetContext(systemPropertyMap.get("system.www.context")));
       request.setAttribute("sitePropertyMap", sitePropertyMap);
       request.setAttribute("themePropertyMap", themePropertyMap);
       request.setAttribute("socialPropertyMap", socialPropertyMap);
@@ -1041,7 +1106,8 @@ public class PageServlet extends HttpServlet {
 
       // Set canonical URL for SEO (issue #401)
       String siteUrl = (String) sitePropertyMap.get("site.url");
-      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection);
+      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection,
+          request.getParameter("page"));
       if (StringUtils.isNotBlank(canonicalUrl)) {
         pageRenderInfo.setCanonicalUrl(canonicalUrl);
       }
@@ -1077,12 +1143,33 @@ public class PageServlet extends HttpServlet {
         }
         pageRenderInfo.setTargetWidget(targetWidget);
 
-        // Verify the token matches this session's form token
+        // Verify the token matches this session's form token.
+        //
+        // 403, not 404 (issue #1921). The page resolved and the caller is very often a signed-in
+        // administrator; what failed is the CSRF/session check, and saying "not found" describes
+        // neither. It misleads in three directions at once:
+        //
+        //   * In traffic analysis a stale token looks like path scanning. In #1920 the symptom was
+        //     thousands of 404s against a valid admin path with a query string, and only reading
+        //     this method showed they were one signed-in browser polling with an expired token.
+        //   * A client cannot tell "this endpoint is gone" from "reload the page", so a widget's
+        //     failure handler has nothing useful to tell the person looking at it.
+        //   * The saveDraftLayout branch above already answers 403 for exactly this condition, so
+        //     the servlet disagreed with itself.
+        //
+        // sendError rather than a JSON body: this path serves ordinary form posts as well as AJAX,
+        // so it keeps the container's error handling instead of returning JSON to a browser
+        // navigation. Audited before changing -- no client code branches on 404 here; the JSPs and
+        // first-party scripts either check for 200 or treat any non-2xx alike.
         String formToken = request.getParameter("token");
         if (!isFormTokenValid(formToken, userSession.getFormToken())) {
-          LOG.error("DEVELOPER: A VALID FORM TOKEN IS REQUIRED " + pagePath + " " + request.getRemoteAddr());
+          // WARN, not ERROR, and not addressed to "DEVELOPER": a token going stale is what happens
+          // when a tab is left open over a session timeout. It is routine, it is not a code defect,
+          // and logging it at ERROR put a steady trickle of ordinary session expiries into the same
+          // stream as real faults -- the log half of the same misreading the status code caused.
+          LOG.warn("Stale or missing form token, rejecting " + pagePath + " from " + request.getRemoteAddr());
           controllerSession.clearAllWidgetData();
-          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          response.sendError(HttpServletResponse.SC_FORBIDDEN);
           return;
         }
       }
@@ -1102,8 +1189,13 @@ public class PageServlet extends HttpServlet {
       // processWidgets so it can see page metadata a content widget (e.g. BlogPostWidget) bridged
       // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
       // the generic item/collection/webPage title & description, never a widget-specific one.
+      // Computed here rather than further down where the nav uses it, because the breadcrumb
+      // trail below needs the same menu the nav gets, gated the same way (issue #1795).
+      boolean siteVisibleToUser = userSession.isLoggedIn()
+          || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage, socialMediaLinkList);
+        String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage, socialMediaLinkList,
+            resolveMasterMenuTabList(siteVisibleToUser));
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -1163,7 +1255,6 @@ public class PageServlet extends HttpServlet {
       // MainMenuWidget and LlmsTxtServlet gate this same data the same way. This version shows
       // just the header/branding shell to a guest on these 3 pages, with an empty nav underneath.
       boolean isGuestAuthPage = isGuestAuthPage(pagePath);
-      boolean siteVisibleToUser = userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
       if (siteVisibleToUser || isGuestAuthPage) {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
@@ -1243,498 +1334,6 @@ public class PageServlet extends HttpServlet {
     return siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : new ArrayList<>();
   }
 
-  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
-                                    Map<String, String> sitePropertyMap,
-                                    Item item, Collection collection, WebPage webPage,
-                                    List<SocialMediaLink> socialMediaLinkList) {
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      Map<String, Object> jsonLd = new LinkedHashMap<>();
-      jsonLd.put("@context", "https://schema.org");
-
-      List<Map<String, Object>> graph = new ArrayList<>();
-
-      // Add Organization schema (for homepage) - include on every page for consistency
-      if (StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        Map<String, Object> organization = new LinkedHashMap<>();
-        organization.put("@type", "Organization");
-        organization.put("@id", siteUrl + "#organization");
-        organization.put("name", sitePropertyMap.get("site.name"));
-        organization.put("url", siteUrl);
-
-        String siteLogo = sitePropertyMap.get("site.image");
-        if (StringUtils.isNotBlank(siteLogo)) {
-          if (siteLogo.startsWith("/")) {
-            organization.put("logo", siteUrl + siteLogo);
-          } else {
-            organization.put("logo", siteLogo);
-          }
-        }
-
-        // sameAs links this Organization to its social profiles (issue #403). Passed in rather
-        // than queried here -- the caller already loaded this same list once for the page's own
-        // footer/socialMediaLinks-widget rendering (PageServlet.service()); re-querying it a
-        // second time per request was a redundant, uncached DB round trip on every page view.
-        if (socialMediaLinkList != null && !socialMediaLinkList.isEmpty()) {
-          List<String> sameAs = new ArrayList<>();
-          for (SocialMediaLink socialMediaLink : socialMediaLinkList) {
-            if (StringUtils.isNotBlank(socialMediaLink.getUrl())) {
-              sameAs.add(socialMediaLink.getUrl());
-            }
-          }
-          if (!sameAs.isEmpty()) {
-            organization.put("sameAs", sameAs);
-          }
-        }
-
-        graph.add(organization);
-      }
-
-      // Add WebPage schema for all pages
-      Map<String, Object> webPageSchema = new LinkedHashMap<>();
-      webPageSchema.put("@type", "WebPage");
-      if (StringUtils.isNotBlank(pageRenderInfo.getPageUrl())) {
-        webPageSchema.put("url", pageRenderInfo.getPageUrl());
-      }
-      if (StringUtils.isNotBlank(pageRenderInfo.getTitle())) {
-        webPageSchema.put("name", pageRenderInfo.getTitle());
-      }
-      if (StringUtils.isNotBlank(pageRenderInfo.getDescription())) {
-        webPageSchema.put("description", pageRenderInfo.getDescription());
-      }
-      webPageSchema.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
-
-      // Add image if available
-      if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
-        String imageUrl = pageRenderInfo.getImageUrl();
-        if (imageUrl.startsWith("/")) {
-          imageUrl = siteUrl + imageUrl;
-        }
-        webPageSchema.put("image", imageUrl);
-      }
-
-      // dateModified/datePublished are freshness signals AI answer engines weigh for citation
-      // (issue #403). datePublished prefers publishAt (the page's actual go-live date, which can
-      // differ from when the row was first created via scheduled publishing) over created.
-      if (webPage != null) {
-        if (webPage.getModified() != null) {
-          webPageSchema.put("dateModified", webPage.getModified().toInstant().toString());
-        }
-        Timestamp publishedDate = webPage.getPublishAt() != null ? webPage.getPublishAt() : webPage.getCreated();
-        if (publishedDate != null) {
-          webPageSchema.put("datePublished", publishedDate.toInstant().toString());
-        }
-      }
-
-      graph.add(webPageSchema);
-
-      // Add Article schema for blog post pages (issue #403)
-      Map<String, Object> article = computeArticleSchema(pageRenderInfo, siteUrl);
-      if (article != null) {
-        graph.add(article);
-      }
-
-      // Add BreadcrumbList schema for pages more than one level deep (issue #403)
-      List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection);
-      if (breadcrumbItemList != null && !breadcrumbItemList.isEmpty()) {
-        Map<String, Object> breadcrumbList = new LinkedHashMap<>();
-        breadcrumbList.put("@type", "BreadcrumbList");
-        breadcrumbList.put("itemListElement", breadcrumbItemList);
-        graph.add(breadcrumbList);
-      }
-
-      // Add FAQPage schema if this page has a FaqWidget (issue #416)
-      Map<String, Object> faqPage = computeFaqSchema(pageRenderInfo);
-      if (faqPage != null) {
-        graph.add(faqPage);
-      }
-
-      // Add Product schema for a real ecommerce product page (issue #403); bridged from
-      // pageRenderInfo the same way Article is, since a product's identity is never resolvable
-      // from the URL the way an Item/Collection's is (see computeProductSchema)
-      Map<String, Object> product = computeProductSchema(pageRenderInfo, siteUrl);
-      if (product != null) {
-        graph.add(product);
-      }
-
-      // Add Event schema for a single calendar event page (issue #1181); bridged like Product,
-      // since a calendar event is not resolvable from the URL by PageServlet itself
-      Map<String, Object> event = computeEventSchema(pageRenderInfo, siteUrl);
-      if (event != null) {
-        graph.add(event);
-      }
-
-      jsonLd.put("@graph", graph);
-      return escapeForInlineScript(mapper.writeValueAsString(jsonLd));
-    } catch (Exception e) {
-      LOG.warn("Error generating JSON-LD data: " + e.getMessage());
-      return null;
-    }
-  }
-
-  /**
-   * Builds the Article schema for a blog post page (issue #403). Gated on articleHeadline since
-   * that's only set by a content widget (BlogPostWidget) for a post that's actually published --
-   * every other page type leaves it blank, so this doubles as the "is this a blog post" check.
-   */
-  static Map<String, Object> computeArticleSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
-    if (StringUtils.isBlank(pageRenderInfo.getArticleHeadline())) {
-      return null;
-    }
-    Map<String, Object> article = new LinkedHashMap<>();
-    // NewsArticle rather than the generic Article parent (issue #1366): this schema is only built
-    // for blog posts, and Google's news surfaces look for the specific subtype. BlogPosting is the
-    // other candidate -- if a site ever runs a blog that is not news (engineering notes, say), the
-    // right answer is to derive this per blog rather than to fall back to the generic parent.
-    article.put("@type", "NewsArticle");
-    article.put("headline", pageRenderInfo.getArticleHeadline());
-    if (pageRenderInfo.getArticlePublishedDate() != null) {
-      article.put("datePublished", pageRenderInfo.getArticlePublishedDate().toInstant().toString());
-    }
-    if (pageRenderInfo.getArticleModifiedDate() != null) {
-      article.put("dateModified", pageRenderInfo.getArticleModifiedDate().toInstant().toString());
-    }
-    if (StringUtils.isNotBlank(pageRenderInfo.getArticleAuthorName())) {
-      Map<String, Object> author = new LinkedHashMap<>();
-      author.put("@type", "Person");
-      author.put("name", pageRenderInfo.getArticleAuthorName());
-      article.put("author", author);
-    }
-    // Google's Article guidance treats an image as strongly recommended -- without one a post is
-    // unlikely to qualify for rich results however correct the rest is. Absolutised the same way
-    // the WebPage node above does it, since a relative path is not resolvable by a consumer that
-    // only has the JSON-LD.
-    String imageUrl = pageRenderInfo.getImageUrl();
-    if (StringUtils.isNotBlank(imageUrl) && StringUtils.isNotBlank(siteUrl)) {
-      article.put("image", imageUrl.startsWith("/") ? siteUrl + imageUrl : imageUrl);
-    }
-    // Referenced by @id rather than repeating the object -- the Organization node is already in
-    // the graph, and duplicating it would let the two copies drift.
-    if (StringUtils.isNotBlank(siteUrl)) {
-      article.put("publisher", Collections.singletonMap("@id", siteUrl + "#organization"));
-    }
-    return article;
-  }
-
-  /**
-   * Builds the Product schema for a real ecommerce product page (issue #403). Gated on
-   * productName since that's only set by an ecommerce widget (e.g. ProductNameWidget) for a page
-   * that actually has one -- every other page type leaves it blank. A single-SKU product (or one
-   * where every SKU shares the same price) gets a plain Offer; a product with multiple,
-   * differently-priced SKUs gets an AggregateOffer instead, since there's no one price to quote.
-   */
-  static Map<String, Object> computeProductSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
-    if (StringUtils.isBlank(pageRenderInfo.getProductName())) {
-      return null;
-    }
-    Map<String, Object> product = new LinkedHashMap<>();
-    product.put("@type", "Product");
-    product.put("name", pageRenderInfo.getProductName());
-    if (StringUtils.isNotBlank(pageRenderInfo.getProductDescription())) {
-      product.put("description", pageRenderInfo.getProductDescription());
-    }
-    if (StringUtils.isNotBlank(pageRenderInfo.getProductImageUrl())) {
-      String imageUrl = pageRenderInfo.getProductImageUrl();
-      if (imageUrl.startsWith("/")) {
-        imageUrl = siteUrl + imageUrl;
-      }
-      product.put("image", imageUrl);
-    }
-
-    BigDecimal price = pageRenderInfo.getProductPrice();
-    BigDecimal lowPrice = pageRenderInfo.getProductLowPrice();
-    if (price != null || lowPrice != null) {
-      Map<String, Object> offer = new LinkedHashMap<>();
-      String currency = StringUtils.isNotBlank(pageRenderInfo.getProductCurrency()) ? pageRenderInfo.getProductCurrency() : "USD";
-      if (price != null) {
-        offer.put("@type", "Offer");
-        offer.put("price", price.stripTrailingZeros().toPlainString());
-      } else {
-        offer.put("@type", "AggregateOffer");
-        offer.put("lowPrice", lowPrice.stripTrailingZeros().toPlainString());
-        if (pageRenderInfo.getProductOfferCount() != null) {
-          offer.put("offerCount", pageRenderInfo.getProductOfferCount());
-        }
-      }
-      offer.put("priceCurrency", currency);
-      if (StringUtils.isNotBlank(pageRenderInfo.getProductAvailability())) {
-        offer.put("availability", pageRenderInfo.getProductAvailability());
-      }
-      product.put("offers", offer);
-    }
-
-    return product;
-  }
-
-  /**
-   * Builds the Event schema for a single calendar event page (issue #1181). Gated on the bridged
-   * CalendarEvent, which CalendarEventDetailsWidget only sets after its own calendar-enabled
-   * visibility check -- so a non-null event here is already one the visitor can read. Like Product,
-   * the record is bridged rather than resolved here: /calendar-event{/event-unique-id} is a
-   * wildcard page and only the widget performs the uniqueId lookup.
-   */
-  static Map<String, Object> computeEventSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
-    CalendarEvent calendarEvent = pageRenderInfo.getCalendarEvent();
-    if (calendarEvent == null || StringUtils.isBlank(calendarEvent.getTitle())) {
-      return null;
-    }
-
-    Map<String, Object> event = new LinkedHashMap<>();
-    event.put("@type", "Event");
-    event.put("name", calendarEvent.getTitle());
-
-    if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(calendarEvent.getUniqueId())) {
-      event.put("url", siteUrl + "/calendar-event/" + calendarEvent.getUniqueId());
-    }
-
-    // startDate is required by Google for Event rich results; endDate is optional but strongly
-    // recommended. An all-day event is a calendar date rather than an instant, so it's emitted as
-    // a bare yyyy-MM-dd resolved in the site's timezone -- rendering it as a UTC instant would
-    // shift the day for any site west of Greenwich.
-    String startDate = formatEventDate(calendarEvent.getStartDate(), calendarEvent.getAllDay());
-    if (startDate != null) {
-      event.put("startDate", startDate);
-    }
-    String endDate = formatEventDate(calendarEvent.getEndDate(), calendarEvent.getAllDay());
-    if (endDate != null) {
-      event.put("endDate", endDate);
-    }
-
-    // Prefer the curated summary; fall back to the body with markup stripped, since JSON-LD
-    // description is plain text and raw HTML there is ignored at best
-    String description = StringUtils.trimToNull(calendarEvent.getSummary());
-    if (description == null && StringUtils.isNotBlank(calendarEvent.getBody())) {
-      description = StringUtils.trimToNull(HtmlCommand.text(calendarEvent.getBody()));
-    }
-    if (description != null) {
-      event.put("description", description);
-    }
-
-    if (StringUtils.isNotBlank(calendarEvent.getImageUrl())) {
-      String imageUrl = calendarEvent.getImageUrl();
-      if (imageUrl.startsWith("/") && StringUtils.isNotBlank(siteUrl)) {
-        imageUrl = siteUrl + imageUrl;
-      }
-      event.put("image", imageUrl);
-    }
-
-    Map<String, Object> location = computeEventLocation(calendarEvent);
-    if (location != null) {
-      event.put("location", location);
-      // Only claim an attendance mode when there's a real place backing it; asserting "offline"
-      // for an event with no location at all would be inventing data
-      event.put("eventAttendanceMode", "https://schema.org/OfflineEventAttendanceMode");
-    }
-
-    event.put("eventStatus", "https://schema.org/EventScheduled");
-
-    return event;
-  }
-
-  /**
-   * Formats a calendar event date for schema.org: a bare calendar date for an all-day event
-   * (resolved in the site timezone) and a full ISO-8601 instant otherwise. Returns null for a
-   * missing date so the caller can omit the property rather than emit an empty one.
-   */
-  static String formatEventDate(Timestamp timestamp, boolean allDay) {
-    if (timestamp == null) {
-      return null;
-    }
-    if (allDay) {
-      return timestamp.toInstant().atZone(FormatDateCommand.getSiteZoneId()).toLocalDate().toString();
-    }
-    return timestamp.toInstant().toString();
-  }
-
-  /**
-   * Builds the Place sub-object for an Event (issue #1181). Returns null when the record carries
-   * neither a location name nor any address line, since a Place with no identifying detail adds
-   * nothing and Google treats an empty location as a validation error.
-   */
-  static Map<String, Object> computeEventLocation(CalendarEvent calendarEvent) {
-    boolean hasAddress = StringUtils.isNotBlank(calendarEvent.getStreet())
-        || StringUtils.isNotBlank(calendarEvent.getCity())
-        || StringUtils.isNotBlank(calendarEvent.getState())
-        || StringUtils.isNotBlank(calendarEvent.getPostalCode())
-        || StringUtils.isNotBlank(calendarEvent.getCountry());
-    if (StringUtils.isBlank(calendarEvent.getLocation()) && !hasAddress) {
-      return null;
-    }
-
-    Map<String, Object> place = new LinkedHashMap<>();
-    place.put("@type", "Place");
-    if (StringUtils.isNotBlank(calendarEvent.getLocation())) {
-      place.put("name", calendarEvent.getLocation());
-    }
-
-    if (hasAddress) {
-      Map<String, Object> address = new LinkedHashMap<>();
-      address.put("@type", "PostalAddress");
-      if (StringUtils.isNotBlank(calendarEvent.getStreet())) {
-        address.put("streetAddress", calendarEvent.getStreet());
-      }
-      if (StringUtils.isNotBlank(calendarEvent.getCity())) {
-        address.put("addressLocality", calendarEvent.getCity());
-      }
-      if (StringUtils.isNotBlank(calendarEvent.getState())) {
-        address.put("addressRegion", calendarEvent.getState());
-      }
-      if (StringUtils.isNotBlank(calendarEvent.getPostalCode())) {
-        address.put("postalCode", calendarEvent.getPostalCode());
-      }
-      if (StringUtils.isNotBlank(calendarEvent.getCountry())) {
-        address.put("addressCountry", calendarEvent.getCountry());
-      }
-      place.put("address", address);
-    }
-
-    // 0.0/0.0 is the model's default for "never geocoded", not a real point in the Atlantic
-    if (calendarEvent.getLatitude() != 0.0 || calendarEvent.getLongitude() != 0.0) {
-      Map<String, Object> geo = new LinkedHashMap<>();
-      geo.put("@type", "GeoCoordinates");
-      geo.put("latitude", calendarEvent.getLatitude());
-      geo.put("longitude", calendarEvent.getLongitude());
-      place.put("geo", geo);
-    }
-
-    return place;
-  }
-
-  /**
-   * Builds the BreadcrumbList itemListElement array for pages at a URL depth of two or more
-   * (issue #403); shallower pages return null since a single-level trail is redundant with the
-   * site nav. Each ancestor segment's name is resolved the same way the page itself would be
-   * resolved (LoadWebPageCommand, including wildcard/template pages) so a breadcrumb never shows
-   * a path segment that the app wouldn't actually route to; a segment with no matching page falls
-   * back to a humanized version of the URL segment rather than leaving a gap in the trail.
-   */
-  static List<Map<String, Object>> computeBreadcrumbList(String siteUrl, String pagePath, Item item, Collection collection) {
-    if (StringUtils.isBlank(siteUrl) || StringUtils.isBlank(pagePath)) {
-      return null;
-    }
-    List<String> segments = new ArrayList<>();
-    for (String segment : pagePath.split("/")) {
-      if (StringUtils.isNotBlank(segment)) {
-        segments.add(segment);
-      }
-    }
-    if (segments.size() < 2) {
-      return null;
-    }
-
-    List<Map<String, Object>> itemListElement = new ArrayList<>();
-    itemListElement.add(breadcrumbListItem(1, "Home", siteUrl));
-
-    StringBuilder pathSoFar = new StringBuilder();
-    for (int i = 0; i < segments.size(); i++) {
-      String segment = segments.get(i);
-      pathSoFar.append('/').append(segment);
-      boolean isLeaf = (i == segments.size() - 1);
-
-      String name = null;
-      if (isLeaf && item != null && StringUtils.isNotBlank(item.getName())) {
-        name = item.getName();
-      } else if (collection != null && segment.equalsIgnoreCase(collection.getUniqueId())) {
-        // The collection's own segment, whether it's the leaf (collection listing page) or an
-        // ancestor of the leaf (an item detail page nested under it)
-        name = collection.getName();
-      }
-      if (StringUtils.isBlank(name)) {
-        WebPage segmentPage = LoadWebPageCommand.loadByLink(pathSoFar.toString());
-        if (segmentPage != null && StringUtils.isNotBlank(segmentPage.getTitle())) {
-          name = segmentPage.getTitle();
-        }
-      }
-      if (StringUtils.isBlank(name)) {
-        name = humanizeUrlSegment(segment);
-      }
-
-      itemListElement.add(breadcrumbListItem(i + 2, name, siteUrl + pathSoFar));
-    }
-    return itemListElement;
-  }
-
-  private static Map<String, Object> breadcrumbListItem(int position, String name, String url) {
-    Map<String, Object> listItem = new LinkedHashMap<>();
-    listItem.put("@type", "ListItem");
-    listItem.put("position", position);
-    listItem.put("name", name);
-    listItem.put("item", url);
-    return listItem;
-  }
-
-  /**
-   * Builds the FAQPage schema for a page with one or more FaqWidgets (issue #416). Uses
-   * FaqQuestion's pre-stripped answerText, not the widget's own rendered HTML, since Google's FAQ
-   * rich result requires the acceptedAnswer text to contain no markup.
-   */
-  static Map<String, Object> computeFaqSchema(PageRenderInfo pageRenderInfo) {
-    List<FaqQuestion> faqQuestionList = pageRenderInfo.getFaqQuestions();
-    if (faqQuestionList == null || faqQuestionList.isEmpty()) {
-      return null;
-    }
-    List<Map<String, Object>> mainEntity = new ArrayList<>();
-    for (FaqQuestion faqQuestion : faqQuestionList) {
-      Map<String, Object> question = new LinkedHashMap<>();
-      question.put("@type", "Question");
-      question.put("name", faqQuestion.getQuestion());
-      Map<String, Object> acceptedAnswer = new LinkedHashMap<>();
-      acceptedAnswer.put("@type", "Answer");
-      acceptedAnswer.put("text", faqQuestion.getAnswerText());
-      question.put("acceptedAnswer", acceptedAnswer);
-      mainEntity.add(question);
-    }
-    Map<String, Object> faqPage = new LinkedHashMap<>();
-    faqPage.put("@type", "FAQPage");
-    faqPage.put("mainEntity", mainEntity);
-    return faqPage;
-  }
-
-  /**
-   * Turns a URL segment like "getting-started" into "Getting Started" for use as a breadcrumb
-   * label when no page title is available to describe that part of the path.
-   */
-  static String humanizeUrlSegment(String segment) {
-    String decoded;
-    try {
-      decoded = java.net.URLDecoder.decode(segment, java.nio.charset.StandardCharsets.UTF_8);
-    } catch (Exception e) {
-      decoded = segment;
-    }
-    String[] words = decoded.replace('-', ' ').replace('_', ' ').split(" ");
-    StringBuilder result = new StringBuilder();
-    for (String word : words) {
-      if (word.isEmpty()) {
-        continue;
-      }
-      if (result.length() > 0) {
-        result.append(' ');
-      }
-      result.append(Character.toUpperCase(word.charAt(0)));
-      if (word.length() > 1) {
-        result.append(word.substring(1));
-      }
-    }
-    return result.length() > 0 ? result.toString() : segment;
-  }
-
-  /**
-   * Jackson's JSON escaping only guarantees syntactically valid JSON (quotes, backslashes,
-   * control characters) -- it has no notion of the surrounding HTML, so a value containing
-   * "</script>" passes straight through. The browser's HTML parser looks for that literal byte
-   * sequence regardless of JSON string context, so an unescaped "</script>" inside e.g. a
-   * product name closes the tag early and lets an attacker-controlled payload execute. Escaping
-   * every '<', '>' and '&' to its JSON \\uXXXX form (valid inside a JSON string, and decodes back
-   * to the original character on parse) neutralizes that and any other HTML/comment breakout,
-   * without changing the parsed JSON-LD content.
-   */
-  static String escapeForInlineScript(String json) {
-    if (json == null) {
-      return null;
-    }
-    return json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
-  }
-
   /**
    * Computes the canonical URL for a page response (issue #401), or null when there's nothing to
    * canonicalize (blank site.url, or no page-identity source matched). pagePath is always safe to
@@ -1742,24 +1341,63 @@ public class PageServlet extends HttpServlet {
    * this can't reflect attacker-controlled query parameters into the tag. A wildcard/dynamic-page
    * match (see LoadWebPageCommand#loadByLink) returns the template's own link (e.g. "/news/*"),
    * not a real URL, so that case is excluded in favor of the actual pagePath.
+   *
+   * <p>Page 2 and beyond of a paginated listing canonicalize to themselves rather than to page 1.
+   * Every paginated page used to emit page 1's URL, which tells a search engine the deeper pages are
+   * duplicates -- so the links they carry count for nothing, and the entries reachable only from them
+   * read as orphans. Measured on simisinc.com: 86 of 88 news posts had zero incoming internal links
+   * and zero organic traffic, because 79 of them appear only on /news?page=2 through ?page=10.
+   *
+   * <p>pageParameter is the raw "page" request parameter, and the one piece of caller-controlled
+   * input reaching this method, so it is parsed to an int and the URL rebuilt from that int rather
+   * than concatenating the string -- the no-query-string guarantee above still holds. Absent,
+   * non-numeric, negative or 1 leaves the URL exactly as it was, which is also how the listing
+   * widgets treat those inputs (?page=abc renders page 1).
+   *
+   * <p>Known residual: a hand-crafted page number past the end of a listing (?page=999) renders an
+   * empty listing with a 200 and will now self-canonicalize. Nothing links there -- the pagination
+   * control never emits a link past the last page -- so it is unreachable by crawling; making
+   * out-of-range pagination return a 404 is the proper fix and is tracked separately.
    */
-  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
+  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection,
+      String pageParameter) {
     if (StringUtils.isBlank(siteUrl)) {
       return null;
     }
     if (item != null && collection != null) {
-      return siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId();
+      return withPageNumber(siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId(), pageParameter);
     }
     if (collection != null) {
-      return siteUrl + "/items/" + collection.getUniqueId();
+      return withPageNumber(siteUrl + "/items/" + collection.getUniqueId(), pageParameter);
     }
     if (webPage != null && StringUtils.isNotBlank(webPage.getLink()) && !webPage.getLink().endsWith("/*")) {
-      return siteUrl + webPage.getLink();
+      return withPageNumber(siteUrl + webPage.getLink(), pageParameter);
     }
     if (StringUtils.isNotBlank(pagePath)) {
-      return siteUrl + pagePath;
+      return withPageNumber(siteUrl + pagePath, pageParameter);
     }
     return null;
+  }
+
+  /**
+   * Appends the pagination parameter to a canonical URL for page 2 and beyond. The value is rebuilt
+   * from the parsed int rather than echoed, so nothing caller-controlled reaches the tag; anything
+   * that is not a number greater than 1 returns the URL untouched.
+   */
+  private static String withPageNumber(String canonicalUrl, String pageParameter) {
+    if (StringUtils.isBlank(pageParameter)) {
+      return canonicalUrl;
+    }
+    int pageNumber;
+    try {
+      pageNumber = Integer.parseInt(pageParameter.trim());
+    } catch (NumberFormatException e) {
+      return canonicalUrl;
+    }
+    if (pageNumber <= 1) {
+      return canonicalUrl;
+    }
+    return canonicalUrl + "?page=" + pageNumber;
   }
 
   /**
@@ -1847,5 +1485,37 @@ public class PageServlet extends HttpServlet {
     } catch (NumberFormatException e) {
       return defaultValue;
     }
+  }
+
+  /** The seeded value of system.www.context, which nothing in this codebase serves. */
+  static final String UNSERVED_ASSET_CONTEXT = "/web-content";
+
+  /**
+   * Where to look for operator-supplied branded assets, or null when there is nowhere to look.
+   *
+   * <p>The layouts prefer an operator's own favicon, apple-touch-icon and logo variants over the
+   * bundled ones, discovering them by probing with an {@code Image()} before swapping. That is
+   * worth a request only when the probe can succeed.
+   *
+   * <p>{@link #UNSERVED_ASSET_CONTEXT} is the seeded default, and no servlet mapping, static
+   * resource or proxy in this codebase serves it -- so probing it 404s on every page load, for
+   * every install that never configured a real asset host. Eleven probes fire across the header,
+   * footer and checkout layouts, so this is several failed requests per page, not one. Treating
+   * the shipped default as "not configured" is what it has always meant in practice.
+   *
+   * <p>Consequence worth stating: a deployment that added its own proxy serving exactly
+   * {@code /web-content} stops being probed. Such a deployment should point this property at the
+   * host actually serving those assets, which is what the property is for; leaving it on a value
+   * the platform seeds and never serves cannot be distinguished from never having set it.
+   */
+  static String resolveBrandedAssetContext(String configured) {
+    if (configured == null) {
+      return null;
+    }
+    String trimmed = configured.trim();
+    if (trimmed.isEmpty() || UNSERVED_ASSET_CONTEXT.equals(trimmed)) {
+      return null;
+    }
+    return trimmed;
   }
 }

@@ -3,6 +3,7 @@
   font-family: 'Abel';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/abel/abel-v8-latin-regular.eot'); /* IE9 Compat Modes */
   src: local('Abel Regular'), local('Abel-Regular'),
   url('../../fonts/abel/abel-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */

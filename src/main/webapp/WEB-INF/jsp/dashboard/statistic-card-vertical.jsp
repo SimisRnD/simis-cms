@@ -25,24 +25,12 @@
 <jsp:useBean id="statisticCard" class="com.simisinc.platform.domain.model.dashboard.StatisticCard" scope="request"/>
 <jsp:useBean id="iconColor" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<style>
-  <c:if test="${!empty iconColor}">
-  .statistic-card-icon${widgetContext.uniqueId} {
-    color: <c:out value="${iconColor}" />;
-  }
-  </c:if>
-  .statistic-card-value {
-      font-size: 40px;
-      font-weight: bold;
-      line-height: 1;
-  }
-</style>
 <div class="grid-y align-middle text-middle">
   <c:if test="${!empty statisticCard.icon}">
     <div class="small-5 cell padding-width-30 text-center">
-      <i id="icon${widgetContext.uniqueId}" class="fa fa-<c:out value="${statisticCard.icon}" /> statistic-card-icon${widgetContext.uniqueId}"></i>
+      <i id="icon${widgetContext.uniqueId}" class="fa fa-<c:out value="${statisticCard.icon}" /> statistic-card-icon"<c:if test="${!empty iconColor}"> style="color:<c:out value="${iconColor}" />"</c:if>></i>
     </div>
   </c:if>
   <div class="small-4 cell padding-top-20">

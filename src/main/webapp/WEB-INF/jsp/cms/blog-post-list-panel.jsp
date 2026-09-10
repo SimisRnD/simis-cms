@@ -30,7 +30,7 @@
 <jsp:useBean id="viewAllUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="viewAllText" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <c:if test="${!blog.enabled}">
   <div class="callout warning">Currently marked offline</div>

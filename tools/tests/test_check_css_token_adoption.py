@@ -54,6 +54,69 @@ def test_a_var_fallback_is_not_a_hardcoded_colour(repo):
     assert "0 " + CSS in (repo / BASELINE).read_text()
 
 
+def test_a_hex_in_a_comment_is_not_a_hardcoded_colour(repo):
+    """Nothing inside /* */ renders, so nothing inside it is a colour the theme misses.
+
+    Both shapes get counted by a naive hex scan: an issue reference in prose is
+    hex-shaped (#1483 is four hex digits), and a real value can be quoted in prose or
+    left behind in a commented-out rule. Charging a file for either inflates its
+    baseline, and since the baseline is a floor, that inflation is permanent slack.
+    """
+    seed(repo, "\n".join([
+        "/* Routed to var(--sc-link) in issue #1483; was #1779ba. */",
+        "/* .old { color: #56C4CE; }  disabled, see #772 */",
+        ".a{color:#ffffff}",
+    ]))
+    run_tool(TOOL, repo, "--write")
+    assert "1 " + CSS in (repo / BASELINE).read_text()
+
+
+def test_a_multiline_comment_is_stripped_whole(repo):
+    """A block comment is the usual place a rationale -- and its hexes -- gets written."""
+    seed(repo, "/*\n * Was #1779ba, see issue #1364.\n * #609ACE stayed for now.\n */\n.a{color:#ffffff}")
+    run_tool(TOOL, repo, "--write")
+    assert "1 " + CSS in (repo / BASELINE).read_text()
+
+
+def test_a_fallback_and_a_comment_in_one_file_each_stay_excluded(repo):
+    """Adding the comment rule must not cost the fallback rule, or the reverse."""
+    seed(repo, "\n".join([
+        "/* Routed to var(--sc-text) in issue #1483. */",
+        ".a{color:var(--sc-surface, #ffffff)}",
+        ".b{background:#cacaca}",
+    ]))
+    run_tool(TOOL, repo, "--write")
+    assert "1 " + CSS in (repo / BASELINE).read_text()
+
+
+def test_prose_naming_a_fallback_does_not_swallow_the_rules_after_it(repo):
+    """Comments are stripped first, and the order is load-bearing.
+
+    The fallback pattern runs to the next ``)``, which in a comment may be a paren
+    belonging to live CSS further down. Stripping fallbacks first would let an
+    unclosed ``var(`` in prose consume everything up to that paren -- here the whole
+    ``.a`` rule -- so real literals would vanish and the file would be handed even
+    more slack than counting comment hexes gave it.
+    """
+    seed(repo, "\n".join([
+        "/* Written as a var(--sc-link, fallback pair; see the docstring. */",
+        ".a{color:#ffffff}",
+        ".b{box-shadow:0 0 0 1px rgba(0,0,0,.2)}",
+    ]))
+    run_tool(TOOL, repo, "--write")
+    assert "1 " + CSS in (repo / BASELINE).read_text()
+
+
+def test_commenting_out_a_rule_lowers_the_count(repo):
+    """A disabled rule ships no colour, so the ratchet must see the file improve."""
+    seed(repo)
+    run_tool(TOOL, repo, "--write")
+    write(repo, CSS, ".a{color:#ffffff}/* .b{border:1px solid #cacaca} */")
+    r = run_tool(TOOL, repo)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "improved" in r.stdout
+
+
 def test_shorthand_hex_counts(repo):
     seed(repo, ".a{color:#fff}.b{color:#abc}")
     run_tool(TOOL, repo, "--write")

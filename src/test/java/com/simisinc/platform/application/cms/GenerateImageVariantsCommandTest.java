@@ -163,6 +163,45 @@ class GenerateImageVariantsCommandTest {
   }
 
   @Test
+  void generateVariantsEncodesEveryRenditionAsWebP(@TempDir Path tempDir) throws Exception {
+    // Variants used to inherit the original's format, so a PNG illustration stayed a PNG at every
+    // size. Those are the bytes a visitor downloads, because srcset selects a variant rather than
+    // the original: measured on a live site, the "large" rendition of a PNG diagram was 1,002 KB
+    // where the same tier generated from a WebP source was 98 KB.
+    Image image = insertImageWithRealFile(tempDir, "diagram.png", 2000, 1500);
+
+    List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
+
+    assertFalse(variants.isEmpty(), "a 2000x1500 original should produce variants");
+    for (ImageVariant variant : variants) {
+      assertEquals("image/webp", variant.getFileType(),
+          "the " + variant.getVariantType() + " variant should be recorded as WebP");
+      assertTrue(variant.getFileServerPath().endsWith(".webp"),
+          "the " + variant.getVariantType() + " variant should be written as WebP: "
+              + variant.getFileServerPath());
+    }
+  }
+
+  @Test
+  void generateVariantsRecordsTheFormatItActuallyWrote(@TempDir Path tempDir) throws Exception {
+    // The extension drives ImageMagick's output encoder while StreamImageWidget serves
+    // variant.getFileType(), so the two disagreeing would write one format and label it another --
+    // the shape of issue #1445. Both now derive from one method; this asserts they cannot drift.
+    Image image = insertImageWithRealFile(tempDir, "consistency.png", 2000, 1500);
+
+    List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
+
+    assertFalse(variants.isEmpty());
+    for (ImageVariant variant : variants) {
+      String path = variant.getFileServerPath();
+      String extension = path.substring(path.lastIndexOf('.') + 1);
+      assertEquals(DetectContentTypeCommand.imageExtensionFor(variant.getFileType()), extension,
+          "stored fileType and file extension must describe the same format for the "
+              + variant.getVariantType() + " variant");
+    }
+  }
+
+  @Test
   void generateVariantsKeepsTransparencyWhenTheFilenameMisdescribesTheFormat(@TempDir Path tempDir)
       throws Exception {
     // Issue #1445: an editor uploaded PNG data named "gsa-alt.jpg". ImageMagick chooses its output
@@ -175,9 +214,12 @@ class GenerateImageVariantsCommandTest {
 
     assertFalse(variants.isEmpty(), "a 2000x1500 original should produce variants");
     for (ImageVariant variant : variants) {
-      assertTrue(variant.getFileServerPath().endsWith(".png"),
-          "the variant must be named for its real format, not the misleading upload name: "
-              + variant.getFileServerPath());
+      // Variants are encoded as WebP regardless of the source format, so the guard against #1445
+      // is unchanged in substance: the name must describe a format that actually carries an alpha
+      // channel, never the misleading ".jpg" the file was uploaded under.
+      assertTrue(variant.getFileServerPath().endsWith(".webp"),
+          "the variant must be named for the format it was encoded in, not the misleading upload"
+              + " name: " + variant.getFileServerPath());
       File variantFile = new File(tempDir.toString() + "/" + variant.getFileServerPath());
       assertEquals(0, cornerAlpha(variantFile),
           "transparency must survive the resize for the " + variant.getVariantType() + " variant");
@@ -291,7 +333,9 @@ class GenerateImageVariantsCommandTest {
     // directory at exactly the "medium" variant's expected output path forces convert to fail to
     // write only that one variant, while thumbnail and large -- unaffected -- must still succeed.
     Image image = insertImageWithRealFile(tempDir, "large-original.png", 2000, 1500);
-    File blockedPath = tempDir.resolve("images/2026/08/large-original-medium.png").toFile();
+    // Named .webp because that is the extension variants are written with; a .png blocker here
+    // would sit beside the real target and block nothing.
+    File blockedPath = tempDir.resolve("images/2026/08/large-original-medium.webp").toFile();
     assertTrue(blockedPath.mkdirs(), "test setup: could not create the blocking directory");
 
     List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
@@ -539,9 +583,20 @@ class GenerateImageVariantsCommandTest {
   }
 
   /** Alpha of the top-left pixel: 0 when transparency survived, 255 once it has been flattened. */
-  private static int cornerAlpha(File imageFile) throws IOException {
-    BufferedImage variant = ImageIO.read(imageFile);
-    assertTrue(variant != null, "could not read the variant file: " + imageFile);
+  private static int cornerAlpha(File imageFile) throws Exception {
+    // Variants are written as WebP, which javax.imageio cannot decode, so the file is transcoded
+    // to PNG through ImageMagick -- the same tool that produced it -- and the pixel read from
+    // that. Only the decoder changed; this still asserts the alpha of the original corner pixel.
+    File decoded = File.createTempFile("variant-alpha-", ".png");
+    decoded.deleteOnExit();
+    Process process = new ProcessBuilder("convert", imageFile.getAbsolutePath(), decoded.getAbsolutePath())
+        .redirectErrorStream(true).start();
+    String output = new String(process.getInputStream().readAllBytes()).trim();
+    if (process.waitFor() != 0) {
+      throw new IllegalStateException("Could not transcode the variant for reading: " + output);
+    }
+    BufferedImage variant = ImageIO.read(decoded);
+    assertTrue(variant != null, "could not read the transcoded variant of: " + imageFile);
     return (variant.getRGB(0, 0) >>> 24) & 0xFF;
   }
 

@@ -26,8 +26,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -35,7 +37,6 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -76,11 +77,11 @@ public class UserFormWidget extends GenericWidget {
     context.setPageTitle(user.getFullName());
 
     // Shows any roles -- the JSP only offers/enables roles the editor is allowed to grant or revoke
-    // (see highestRoleLevel() below; matches the same request attribute UsersListWidget sets).
+    // (see RoleLevelCommand.highestRoleLevel(); matches the same request attribute UsersListWidget sets).
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
     context.getRequest().setAttribute("actingRoleLevel",
-        highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
+        RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Show any groups
     List<Group> groupList = GroupRepository.findAll();
@@ -106,7 +107,7 @@ public class UserFormWidget extends GenericWidget {
     // one it does not control. Group delegation is unranked and deferred to the deny-by-default work (#299).
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
-      int actingLevel = highestRoleLevel(context.getUserSession(), roleList);
+      int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList);
       Set<String> retainedHigherRoleCodes = higherRolesTargetAlreadyHolds(userBean.getId(), roleList, actingLevel);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
@@ -179,6 +180,10 @@ public class UserFormWidget extends GenericWidget {
       return context;
     }
 
+    // Break-glass, applied after the save because it cannot travel through it -- see
+    // applyBreakGlass. Only reached once the step-up above is satisfied.
+    applyBreakGlass(context, user);
+
     // Record the change with the effective roles and groups
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, eventType, AuditEventCommand.SUCCESS,
         "user", String.valueOf(user.getId()), user.getEmail(), AuditEventCommand.describeRolesAndGroups(user));
@@ -188,6 +193,53 @@ public class UserFormWidget extends GenericWidget {
     context.setRedirect("/admin/user-details?userId=" + user.getId());
     return context;
 
+  }
+
+  /**
+   * Applies the break-glass checkbox, if it changed.
+   *
+   * <p>
+   * Deliberately not routed through {@code SaveUserCommand}: that command copies an explicit
+   * allowlist of fields onto a fresh {@link User}, and {@code break_glass} is in neither that list
+   * nor the repository's insert/update column set. Only {@code updateBreakGlass} writes it. That is
+   * why {@code BeanUtils.populate} setting {@code breakGlass} from a crafted parameter has never
+   * reached the database, and this method keeps it that way -- the flag moves only on an explicit,
+   * admin-scoped, step-up-gated call.
+   * </p>
+   *
+   * <p>
+   * Offered for admin accounts only, checked against the SAVED roles rather than the submitted
+   * form: the role list is filtered for escalation above, so what the editor asked for and what the
+   * account ends up holding are not always the same thing.
+   * </p>
+   */
+  private void applyBreakGlass(WidgetContext context, User user) {
+    if (!user.hasRole("admin")) {
+      // The form does not render the toggle for a non-admin, so a value here was not offered.
+      return;
+    }
+    boolean requested = "true".equals(context.getParameter("breakGlassAccount"));
+    if (requested == user.getBreakGlass()) {
+      return;
+    }
+
+    if (!requested && UserRepository.countBreakGlassAccounts() <= 1) {
+      // Allowed, not refused: refusing would leave no way to clear the flag without marking another
+      // account first, and the warning is the part that actually helps. Said before the write so the
+      // message is accurate whether or not the update then succeeds.
+      context.setWarningMessage("Break-glass was cleared on " + user.getEmail()
+          + ", and no break-glass account remains. If MFA enforcement is turned on for a role every"
+          + " administrator holds, there is now no account exempt from the enrollment redirect.");
+    }
+
+    if (UserRepository.updateBreakGlass(user, requested) == null) {
+      LOG.error("Could not update break_glass for user " + user.getId());
+      context.setWarningMessage("The account was saved, but the break-glass setting could not be changed.");
+      return;
+    }
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT,
+        requested ? "user.break-glass.set" : "user.break-glass.cleared", AuditEventCommand.SUCCESS,
+        "user", String.valueOf(user.getId()), user.getEmail(), null);
   }
 
   /**
@@ -224,25 +276,6 @@ public class UserFormWidget extends GenericWidget {
     context.addSharedRequestValue("stepUpRequired", "true");
     context.setRequestObject(userBean);
     context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
-  }
-
-  /**
-   * The highest role level the acting user holds, found by matching their session role codes against
-   * the authoritative role list (which carries the levels). Returns 0 when nothing matches, which
-   * fails closed -- no role above 0 can then be granted. Package-private so UsersListWidget's New User
-   * flow can enforce the same rule when creating a user, instead of duplicating the logic.
-   */
-  static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
-    int max = 0;
-    if (userSession == null) {
-      return max;
-    }
-    for (Role role : allRoles) {
-      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
   }
 
   /**

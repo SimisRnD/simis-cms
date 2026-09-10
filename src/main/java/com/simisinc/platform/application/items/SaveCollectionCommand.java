@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.items;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +32,10 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveCollectionCommand {
 
+  // @column collections.name
+  private static final int MAX_NAME_LENGTH = 255;
+
+
   private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveCollectionCommand.class);
 
@@ -40,6 +45,9 @@ public class SaveCollectionCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(collectionBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name",
+          collectionBean.getName(), MAX_NAME_LENGTH);
     }
 
     if (collectionBean.getCreatedBy() == -1) {

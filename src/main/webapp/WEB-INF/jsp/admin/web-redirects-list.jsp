@@ -20,10 +20,10 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webRedirectList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">Redirects send an incoming request path to another URL with a 301 (permanent) or 302 (temporary) status. They are checked before the legacy CMS_PATH/config/cms/redirects.csv file, so a redirect added here can shadow a not-yet-migrated CSV entry for the same path. They're also checked before anything else on the site, including an actual live page -- there's nothing stopping a From Path here from matching a page that already works, and if it does, this redirect wins: every visitor hits the redirect instead, silently, with no warning at save time.</p>
+<p class="help-text page-help">Redirects send an incoming request path to another URL with a 301 (permanent) or 302 (temporary) status. They are checked before the legacy CMS_PATH/config/cms/redirects.csv file, so a redirect added here can shadow a not-yet-migrated CSV entry for the same path. They're also checked before anything else on the site, including an actual live page -- there's nothing stopping a From Path here from matching a page that already works, and if it does, this redirect wins: every visitor hits the redirect instead, silently, with no warning at save time.</p>
 <a class="button small radius primary float-left" href="${ctx}/admin/web-redirect">Add a Redirect <i class="fa fa-arrow-circle-right"></i></a>
 <table class="unstriped">
   <thead>
@@ -43,6 +43,12 @@
         </td>
         <td>
           <c:out value="${webRedirect.toUrl}" />
+          <%-- A redirect whose destination stopped resolving still answers 301, so the visitor and
+               every crawler follow it into a 404. Nothing else in the admin says so. --%>
+          <c:if test="${targetStatusMap[webRedirect.id].broken}">
+            <br />
+            <span class="label alert" title="This redirect answers 301, then the visitor lands on a 404. Search engines treat a 301 as permanent, so the dead destination is what they remember."><i class="fa fa-warning"></i> <c:out value="${targetStatusMap[webRedirect.id].label}" /></span>
+          </c:if>
         </td>
         <td>
           <c:out value="${webRedirect.statusCode}" />

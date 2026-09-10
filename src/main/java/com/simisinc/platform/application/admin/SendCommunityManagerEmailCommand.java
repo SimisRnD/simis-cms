@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.mail.ImageHtmlEmail;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,14 +44,34 @@ public class SendCommunityManagerEmailCommand {
     if (role == null) {
       return null;
     }
-    List<User> userList = UserRepository.findAllByRole(role);
-    if (userList.isEmpty()) {
-      // Fallback to Admin
-      role = RoleRepository.findByCode("admin");
-      if (role == null) {
-        return null;
+    List<User> userList = new ArrayList<>(UserRepository.findAllByRole(role));
+
+    // Administrators are always included, rather than only when the named role is empty.
+    //
+    // This used to be a fallback: if nobody held the role, the mail went to admins instead. The
+    // effect was that a site with no community manager -- the common case -- had its administrators
+    // receiving these, and the first person ever granted that role silently took the mail away from
+    // them. Nothing announced the change, and nothing in the interface predicted it: the capability
+    // page shows System Administrator holding community:manage, but recipients are resolved by role
+    // membership, not capability, so holding the capability never put an admin on the list.
+    //
+    // Adding rather than replacing keeps today's behaviour permanent instead of accidental. An
+    // administrator who can grant, revoke and reset every account is a reasonable recipient of
+    // "somebody registered" regardless of who else is watching.
+    Role adminRole = RoleRepository.findByCode("admin");
+    if (adminRole != null) {
+      for (User admin : UserRepository.findAllByRole(adminRole)) {
+        boolean alreadyListed = false;
+        for (User existing : userList) {
+          if (existing.getId() == admin.getId()) {
+            alreadyListed = true;
+            break;
+          }
+        }
+        if (!alreadyListed) {
+          userList.add(admin);
+        }
       }
-      userList = UserRepository.findAllByRole(role);
     }
     return userList;
   }

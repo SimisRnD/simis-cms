@@ -22,15 +22,15 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="subFolder" class="com.simisinc.platform.domain.model.cms.SubFolder" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <h3>
   <i class="fa fa-folder-open"></i> <c:out value="${subFolder.name}" />
   <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
     <small>
-      <a href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i class="fa fa-edit"></i></a>
-      <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${subFolder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}"><i class="fa fa-remove"></i></a>
+      <a aria-label="Edit ${fn:escapeXml(subFolder.name)}" href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i aria-hidden="true" class="fa fa-edit"></i></a>
+      <a aria-label="Delete ${fn:escapeXml(subFolder.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${subFolder.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>

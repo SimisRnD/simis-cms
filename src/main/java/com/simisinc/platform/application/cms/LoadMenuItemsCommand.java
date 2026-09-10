@@ -41,4 +41,12 @@ public class LoadMenuItemsCommand {
   public static List<MenuItem> findAllByMenuTab(MenuTab menuTab) {
     return MenuItemRepository.findAllByMenuTab(menuTab);
   }
+
+  public static List<MenuItem> findAllActiveByParent(MenuItem parentMenuItem) {
+    return MenuItemRepository.findAllActiveByParent(parentMenuItem);
+  }
+
+  public static List<MenuItem> findAllByParent(MenuItem parentMenuItem) {
+    return MenuItemRepository.findAllByParent(parentMenuItem);
+  }
 }

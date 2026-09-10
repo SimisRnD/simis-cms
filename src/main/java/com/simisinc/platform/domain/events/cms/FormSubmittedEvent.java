@@ -62,6 +62,14 @@ public class FormSubmittedEvent extends Event {
   @Getter
   private boolean sendConfirmationToSubmitter = false;
 
+  /**
+   * The resolved admin-notification subject. Resolved and sanitised before the event is raised
+   * rather than in the playbook, so submitted text is made safe for a header in exactly one place.
+   */
+  @Setter
+  @Getter
+  private String notificationSubject = null;
+
   @Setter
   @Getter
   private String confirmationSubject = null;

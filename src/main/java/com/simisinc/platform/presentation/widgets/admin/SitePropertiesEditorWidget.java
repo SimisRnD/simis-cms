@@ -21,11 +21,16 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
+import com.simisinc.platform.application.cms.InternalPageAccessCommand;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
+import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
+import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
@@ -44,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -63,7 +69,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   // Prefixes controlling security-sensitive behaviour; changes require a recent step-up (IA-2 / AC-6).
   private static final Set<String> SECURITY_PREFIXES =
-      new HashSet<>(Arrays.asList("mfa", "content.review", "security"));
+      // oauth included for the same reason as mfa: turning on an external identity provider, or
+      // repointing oauth.serviceUrl at a different one, decides who can get into the site.
+      new HashSet<>(Arrays.asList("mfa", "content.review", "security", "oauth"));
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -90,6 +98,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // Lets the JSP special-case content (e.g. help text) for one exact settings page without
     // guessing from the display title, and without affecting the other pages that share this widget.
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
 
     // The visual logo-color picker needs real thumbnails for Full color / All white / Mixed --
     // findAllByPrefix("theme") above only returns theme.* rows, not the site.logo* values that
@@ -231,6 +240,23 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       }
     }
 
+    // Refuse an MFA enforcement policy that would lock everyone out. Enforcement redirects every
+    // non-exempt request to the enrollment page and exempts only that page, so naming roles while
+    // the enrollment page cannot actually enroll anyone leaves no way back in -- not even to this
+    // screen to undo it. Validated against the values being submitted, so it also catches changing
+    // the enrollment URL to a broken page while enforcement is already on.
+    if (context.getErrorMessage() == null) {
+      validateMfaEnforcement(context, siteProperties);
+    }
+
+    // Refuse an internal-page group that does not resolve. Unlike the MFA check above this one can
+    // only ever be an inconvenience rather than a lockout -- the content-editor tier always passes
+    // InternalPageAccessCommand -- but a typo would silently restrict every internal page to nobody,
+    // and the operator would see no symptom because they are in the tier that bypasses it.
+    if (context.getErrorMessage() == null) {
+      validateInternalPageGroup(context, siteProperties);
+    }
+
     // If there's an error, pass the form values back
     if (context.getErrorMessage() != null) {
       context.setRequestObject(siteProperties);
@@ -300,6 +326,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
 
     context.getRequest().setAttribute("mailChimpTestResult", MailChimpCommand.testConnection());
 
@@ -307,8 +334,67 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     return context;
   }
 
+  /** Rejects a submitted {@code mfa.required.roles} value when the submitted
+   * {@code mfa.enrollment.url} does not resolve to a page carrying the enrollment widget. Only a
+   * non-blank role list is checked -- clearing the roles is how enforcement is turned off, and must
+   * always be allowed through even when the enrollment page is broken. */
+  private void validateMfaEnforcement(WidgetContext context, List<SiteProperty> siteProperties) {
+    String requiredRoles = null;
+    String enrollmentUrl = null;
+    for (SiteProperty siteProperty : siteProperties) {
+      if (MfaEnforcementCommand.PROPERTY_REQUIRED_ROLES.equals(siteProperty.getName())) {
+        requiredRoles = siteProperty.getValue();
+      } else if (MfaEnforcementCommand.PROPERTY_ENROLLMENT_URL.equals(siteProperty.getName())) {
+        enrollmentUrl = siteProperty.getValue();
+      }
+    }
+    if (StringUtils.isBlank(requiredRoles)) {
+      return;
+    }
+    if (StringUtils.isBlank(enrollmentUrl)) {
+      enrollmentUrl = MfaEnforcementCommand.DEFAULT_ENROLLMENT_URL;
+    }
+    if (!MfaEnrollmentPageCommand.isUsableEnrollmentPage(enrollmentUrl)) {
+      context.setErrorMessage("MFA enforcement was not enabled: the enrollment page " + enrollmentUrl
+          + " does not exist or does not contain the two-factor authentication widget, so anyone "
+          + "required to enroll would be locked out with no way to reach it. Create that page with "
+          + "the \"Two-Factor Authentication\" widget first, then set the roles.");
+    }
+  }
+
   /** Re-loads the current (saved, not submitted) properties and re-renders the editor -- used when
    * a step-up re-authentication prompt needs to interrupt post() before any save is attempted. */
+  /**
+   * Overlay the values the admin just submitted onto the stored properties before the editor is
+   * re-rendered. The step-up gate returns before the save loop runs, so without this the
+   * re-authentication prompt hands back a form rebuilt from the database: the pending edit is
+   * discarded, and the admin's next save silently writes the unchanged values with no error at all
+   * (issue #1816). Mirrors the submitted-values behavior the save path already applies on its
+   * validation-error branch.
+   *
+   * <p>Secret properties are deliberately skipped. The JSP always renders a secret with an empty
+   * value and keys its "not set" / "value hidden" placeholder off the stored value, so overlaying a
+   * submitted secret would echo it back into the form, and overlaying a blank one would misreport a
+   * configured secret as unset. A secret is re-entered after re-authentication either way.
+   *
+   * @param siteProperties the stored properties about to be rendered, modified in place
+   * @param parameterLookup resolves a submitted request parameter by property name
+   */
+  static void applySubmittedValues(List<SiteProperty> siteProperties, Function<String, String> parameterLookup) {
+    if (siteProperties == null) {
+      return;
+    }
+    for (SiteProperty siteProperty : siteProperties) {
+      if (SecretSitePropertiesCommand.isSecret(siteProperty.getName())) {
+        continue;
+      }
+      String submittedValue = parameterLookup.apply(siteProperty.getName());
+      if (submittedValue != null) {
+        siteProperty.setValue(submittedValue.trim());
+      }
+    }
+  }
+
   private void redisplayEditor(WidgetContext context, String prefix) {
     List<SiteProperty> siteProperties = new ArrayList<>();
     String[] prefixList = prefix.split(",");
@@ -318,12 +404,53 @@ public class SitePropertiesEditorWidget extends GenericWidget {
         siteProperties.addAll(sitePropertiesList);
       }
     }
+    applySubmittedValues(siteProperties, context::getParameter);
     context.getRequest().setAttribute("sitePropertyList", siteProperties);
     context.getRequest().setAttribute("secretPropertyNames", SecretSitePropertiesCommand.getSecretPropertyNames());
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("prefix", prefix);
+    attachGroupList(context, siteProperties);
     context.setJsp(JSP);
+  }
+
+  /** Supplies the group picker for any {@code group}-typed property (issue #1688) with the groups it
+   * can offer. Called from every path that renders the editor JSP -- a fresh load, the MailChimp
+   * connection test, and the step-up re-authentication prompt -- because a picker whose option list
+   * is missing renders as empty, and saving an empty select would silently clear the restriction. */
+  private void attachGroupList(WidgetContext context, List<SiteProperty> siteProperties) {
+    for (SiteProperty siteProperty : siteProperties) {
+      if ("group".equals(siteProperty.getType())) {
+        context.getRequest().setAttribute("groupList", GroupRepository.findAll());
+        return;
+      }
+    }
+  }
+
+  /** Rejects a submitted {@code security.internalPages.group} that names no existing group. Blank is
+   * always accepted: blank is the off switch, and it has to stay reachable even from a state where
+   * the named group has since been deleted. A group with no members saves with a warning rather than
+   * an error -- it is a legitimate intermediate step when setting up staff access. */
+  private void validateInternalPageGroup(WidgetContext context, List<SiteProperty> siteProperties) {
+    String uniqueId = null;
+    for (SiteProperty siteProperty : siteProperties) {
+      if (InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP.equals(siteProperty.getName())) {
+        uniqueId = StringUtils.trimToNull(siteProperty.getValue());
+      }
+    }
+    if (uniqueId == null) {
+      return;
+    }
+    Group group = GroupRepository.findByUniqueId(uniqueId);
+    if (group == null) {
+      context.setErrorMessage("Internal page access was not changed: there is no group \"" + uniqueId
+          + "\". Pick a group from the list, or leave it blank to keep \"Internal\" as a label only.");
+      return;
+    }
+    if (group.getUserCount() == 0) {
+      context.setWarningMessage("Internal pages are now restricted to \"" + group.getName()
+          + "\", which has no members yet. Until someone is added, only content editors can view them.");
+    }
   }
 
   private static boolean isSecuritySensitivePrefix(String prefix) {

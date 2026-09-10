@@ -17,6 +17,14 @@
 # is not. The five filesystem-pure tools are covered here, plus
 # detect_unsafe_migrations.py (issue #399), which drives real git commits in a
 # synthetic tmp_path repo since its Java-removal detection reads `git diff`.
+#
+# check-token-contrast.py is covered here too, and its fixture is the real
+# platform-tokens.css rather than a synthetic stylesheet: that tool's tables quote
+# the real file's comments by design, so a made-up stylesheet would exercise a
+# contract nothing depends on. Its own contrast calculator is pinned to the
+# published reference points (black on white 21.00:1, #767676 on white 4.54:1,
+# #777777 on white 4.48:1) -- the last of those is what proves it resolves the
+# pass/fail boundary instead of rounding past it.
 name: Tools tests
 
 on:
@@ -28,11 +36,62 @@ on:
 permissions:
   contents: read
 
+# Interpreter coverage (issue #1943). Nothing in .github/ uses setup-python: every
+# Python gate -- roughly 38 invocations across six workflows -- runs under whatever
+# interpreter the runner image ships. That was deliberate (no setup step, no network,
+# fast gates), and this does not change it. All of those gates still run on the runner
+# default.
+#
+# What it changes is that a version break is no longer discovered by a runner-image
+# rollout reddening `main` on an unrelated PR. That is how #1942 was found: `json` moved
+# its error-detection point in 3.14, so a test coupled to the stdlib's own message passed
+# on 3.12 and failed on 3.14.
+#
+# Two choices here are the whole design, and both are deliberate:
+#
+#   - The runner-default leg STAYS. Replacing it with a pin would test the tools under an
+#     interpreter the ~38 production gates do not use, which is precisely the contract
+#     this suite exists to hold. The next-version leg is additive.
+#   - The second leg floats: `3.x` resolves to the current stable release, so it follows
+#     Python forward on its own. A pinned number would have to be bumped by hand, and a
+#     leg nobody bumps stops being early warning and becomes a second copy of the default.
+#
+# Scope, stated honestly: this catches breaks in tools/ and its tests. It does not cover
+# the gate invocations in the other five workflows, which run tools this suite covers but
+# invoke them in ways it does not reproduce.
+#
+# NOTE: this job is not currently in the "Protect Main" ruleset's required checks, so a
+# red leg reports without blocking a merge. Adding `pytest (runner-default)` and
+# `pytest (next)` to that list is a repository-settings change, not something this file
+# can do. Until then the signal is advisory -- which is worth knowing before relying on it.
 jobs:
   pytest:
+    name: pytest (${{ matrix.label }})
     runs-on: ubuntu-latest
+    strategy:
+      # Both legs always run. A failure on one is a fact about that interpreter, and
+      # cancelling the other would destroy the one thing this matrix exists to answer:
+      # whether a break is version-specific or applies everywhere.
+      fail-fast: false
+      matrix:
+        include:
+          - label: runner-default
+            python-version: ''
+          - label: next
+            python-version: '3.x'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Skipped on the runner-default leg, which is what keeps that leg an honest
+      # reproduction of what the production gates actually run under.
+      - name: Pin the interpreter (next-version leg only)
+        if: matrix.python-version != ''
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Printed, not assumed. When the floating leg goes red, the first question is which
+      # version it just moved to, and the log should answer it without a re-run.
+      - name: Report the interpreter under test
+        run: python3 -VV
       - name: Install pytest
         run: python3 -m pip install --quiet pytest
       - name: Run the tools test suite

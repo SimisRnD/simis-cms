@@ -47,9 +47,10 @@ class SystemAlertWidgetTest extends WidgetBase {
       widget.execute(widgetContext);
 
       Assertions.assertEquals(SystemAlertWidget.JSP, widgetContext.getJsp());
-      Map requestSitePropertyMap = (Map) request.getAttribute("sitePropertyMap");
-      Assertions.assertEquals(1, requestSitePropertyMap.size());
-      Assertions.assertEquals(siteHeaderLine1, requestSitePropertyMap.get("site.header.line1"));
+      // The widget no longer republishes sitePropertyMap (issue #1799): PageServlet publishes it
+      // once per request and it is exempt from the per-widget reset, so system-alert.jsp reads
+      // that copy. What this widget decides is whether to render at all.
+      Assertions.assertNull(request.getAttribute("sitePropertyMap"));
     }
   }
 }

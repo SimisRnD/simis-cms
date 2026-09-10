@@ -26,6 +26,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
@@ -57,11 +59,31 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
  */
 public class AllowedIframeHostCommand {
 
-  /** Hosts the platform's own widgets embed. Always permitted; a site cannot remove these. */
+  /**
+   * Hosts a video embed can legitimately come from. Always permitted; a site cannot remove these.
+   *
+   * <p>
+   * This list was first written from what VideoWidget emits, which was the wrong question and shipped
+   * a regression: the widget renders youtube-nocookie.com, but an author pasting YouTube's own share
+   * markup gets www.youtube.com/embed, and three published news posts on the pilot carried exactly
+   * that. Those embeds were stripped on save and refused by frame-src on render. The requirement
+   * lives in authored content, not only in the platform.
+   * </p>
+   *
+   * <p>
+   * The point of the allowlist is to refuse frames from arbitrary third parties, not to enforce which
+   * of a video vendor's own domains an author used. Both YouTube forms are therefore permitted, with
+   * and without the www prefix, since content carries both.
+   * </p>
+   */
   private static final List<String> PLATFORM_HOSTS = List.of(
-      // VideoWidget's YouTube player -- the nocookie domain, which is what that widget emits
+      // VideoWidget renders the nocookie domain
       "www.youtube-nocookie.com",
-      // VideoWidget's Vimeo player
+      "youtube-nocookie.com",
+      // What YouTube's own "Copy embed code" produces, and what authored content actually contains
+      "www.youtube.com",
+      "youtube.com",
+      // VideoWidget's Vimeo player, and what Vimeo's own embed code produces
       "player.vimeo.com");
 
   public static final String SITE_PROPERTY = "security.iframe.allowedHosts";
@@ -89,6 +111,21 @@ public class AllowedIframeHostCommand {
       }
     }
 
+    // A hosted captcha renders as a vendor iframe, so it needs the same treatment Metabase gets
+    // above: switching the shipped captcha on must not also require discovering this setting.
+    // Without the host, frame-src refuses the widget, no token is ever produced, and the form's
+    // submit button does nothing at all -- no error, no log line, no stored submission.
+    // The branches mirror CaptchaCommand#validateRequest exactly: Turnstile wins when selected,
+    // and Google is only in play when a service is named AND a site key is set. Otherwise the
+    // built-in text captcha is used, which draws no iframe and needs no host.
+    String captchaService = LoadSitePropertyCommand.loadByName("captcha.service");
+    if ("turnstile".equals(captchaService)) {
+      hosts.add("challenges.cloudflare.com");
+    } else if (StringUtils.isNotBlank(captchaService)
+        && StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"))) {
+      hosts.add("www.google.com");
+    }
+
     // Accepts commas, whitespace or newlines, and tolerates a full URL where a host was meant --
     // "https://example.com/embed" is what someone pastes when the label says host, and rejecting it
     // silently would be a worse answer than understanding it.
@@ -113,7 +150,23 @@ public class AllowedIframeHostCommand {
    * @return true when the iframe may be kept
    */
   public static boolean isAllowed(String src) {
-    if (StringUtils.isBlank(src)) {
+    return isAllowed(src, allowedHosts());
+  }
+
+  /**
+   * Whether an iframe {@code src} may load, against a list the caller already has.
+   *
+   * <p>
+   * Callers checking several iframes should read {@link #allowedHosts()} once and pass it here, so a
+   * document with many embeds does not repeat the site-property lookup per element.
+   * </p>
+   *
+   * @param src the raw src attribute
+   * @param allowed the hosts to check against
+   * @return true when the iframe may be kept
+   */
+  public static boolean isAllowed(String src, List<String> allowed) {
+    if (StringUtils.isBlank(src) || allowed == null) {
       return false;
     }
     String value = src.trim();
@@ -136,7 +189,56 @@ public class AllowedIframeHostCommand {
       }
     }
     String host = hostOf(value);
-    return host != null && allowedHosts().contains(host);
+    return host != null && allowed.contains(host);
+  }
+
+  /**
+   * The distinct hosts that iframes in this content would load from and which the site has not
+   * allowed, in the order they appear.
+   *
+   * <p>
+   * This exists so a refusal can be shown to the person who caused it. The allowlist is applied
+   * when content is saved and again by {@code frame-src} in the browser, and neither says anything
+   * an author can see: the embed simply does not appear. Issue 1632 is what that costs -- an embed
+   * absent from a published page for two days while the page source still contained it and the
+   * designer still displayed it.
+   * </p>
+   *
+   * <p>
+   * A host that cannot be parsed is reported as the raw src rather than skipped, since an author
+   * looking at a warning needs to recognise what it refers to. A failed property lookup returns an
+   * empty list: not knowing which hosts are allowed is not the same as knowing one is refused, and
+   * warning on incomplete information would be worse than staying quiet.
+   * </p>
+   *
+   * @param html the content to inspect
+   * @return the refused hosts, without duplicates; empty when there are none or when the allowed
+   *         list could not be read
+   */
+  public static List<String> disallowedHostsIn(String html) {
+    if (StringUtils.isBlank(html) || !StringUtils.containsIgnoreCase(html, "<iframe")) {
+      return new ArrayList<>();
+    }
+    List<String> allowed;
+    try {
+      allowed = allowedHosts();
+    } catch (Exception configException) {
+      return new ArrayList<>();
+    }
+    Set<String> refused = new LinkedHashSet<>();
+    for (Element element : Jsoup.parseBodyFragment(html).getElementsByTag("iframe")) {
+      String src = element.attr("src");
+      if (StringUtils.isBlank(src) || isAllowed(src, allowed)) {
+        continue;
+      }
+      String host = hostOf(src);
+      // An unparseable src is reported as itself so the author can recognise it, abbreviated
+      // because a data: URI runs to kilobytes and this ends up in a one-line callout. The value is
+      // author-controlled but reaches the page through <c:out> in global-message.jsp, so the cap
+      // is about readability, not escaping.
+      refused.add(host != null ? host : StringUtils.abbreviate(src.trim(), 120));
+    }
+    return new ArrayList<>(refused);
   }
 
   /** The CSP frame-src source list: 'self' plus every allowed host as an https origin. */

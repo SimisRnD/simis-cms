@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -343,12 +344,26 @@ class FeedServletTest {
 
     DataConstraints constraints = constraintsCaptor.getValue();
     assertNotNull(constraints, "the feed must ask for an explicit order, not whatever the table returns");
-    String sort = constraints.getDefaultColumnToSortBy();
-    assertNotNull(sort, "a sort column is required");
+
+    // Asserted on columnsToSortBy, not defaultColumnToSortBy. That distinction is the whole bug:
+    // this test used to check the default setter had been called, which it had -- and the sort
+    // still never reached the SQL, because BlogPostRepository#findAll overwrites that field with
+    // "post_id" one line after receiving the constraints. Checking the call rather than the effect
+    // is why the feed stayed in insertion order through a fix, a review and a green suite.
+    String[] sortColumns = constraints.getColumnsToSortBy();
+    assertNotNull(sortColumns, "the feed must set the application-facing sort, which the repository cannot overwrite");
+    String sort = String.join(", ", sortColumns);
     assertTrue(sort.toUpperCase().contains("DESC"), "newest first, got: " + sort);
     // <published> falls back from startDate to published, so the ordering must key on the same value
     assertTrue(sort.contains("start_date") && sort.contains("published"),
         "ordering must match the date the feed actually publishes, got: " + sort);
+
+    // And prove the repository cannot displace it. This is exactly what findAll does next.
+    constraints.setDefaultColumnToSortBy("post_id");
+    assertNotNull(constraints.getColumnsToSortBy(),
+        "the repository's own default must not displace the feed's order");
+    assertEquals(sort, String.join(", ", constraints.getColumnsToSortBy()),
+        "the feed's order must survive the repository setting its default");
   }
 
   @Test
@@ -362,5 +377,33 @@ class FeedServletTest {
 
     assertTrue(constraintsCaptor.getValue().getPageSize() <= 0,
         "the feed must not apply a SQL row limit");
+  }
+
+  @Test
+  void doGetStatesAnExplicitCacheLifetime() throws Exception {
+    // Without Cache-Control the response is still cached -- a CDN just applies its own default TTL,
+    // so how long a new post stays invisible to subscribers is decided by configuration nobody
+    // chose. 300s, not the sitemap's 3600s: feed delay is additive with the reader's poll interval.
+    Blog blog = blog(1L, "news", true);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+
+    runDoGet(siteProperties(true, true), null, List.of(post(1L, "first-post", "First Post")),
+        blog, blog, response, null);
+
+    verify(response).setHeader("Cache-Control", "public, max-age=300");
+  }
+
+  @Test
+  void doGetDoesNotMakeAnErrorResponseCacheable() throws Exception {
+    // The header is set on the success path only. A cacheable 404 would pin the feed as missing at
+    // the edge for the whole max-age, long after whatever caused it was fixed.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+
+    runDoGet(siteProperties(false, true), null, List.of(post(1L, "first-post", "First Post")),
+        blog(1L, "news", true), blog(1L, "news", true), response, null);
+
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+    verify(response, never()).setHeader(org.mockito.ArgumentMatchers.eq("Cache-Control"),
+        org.mockito.ArgumentMatchers.anyString());
   }
 }

@@ -57,6 +57,11 @@ public class ValidateUserAccessToWebPageCommand {
     if (pageRef == null) {
       return false;
     }
+    // Internal pages (#1688). This is the single point that carries the gate into sitemap.xml,
+    // llms.txt, the main menu and the REST page services, all of which route through hasAccess.
+    if (InternalPageAccessCommand.isBlocked(webPage, userSession)) {
+      return false;
+    }
     // Best to place the group list at the page level, to cover the whole page
     if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
       return false;

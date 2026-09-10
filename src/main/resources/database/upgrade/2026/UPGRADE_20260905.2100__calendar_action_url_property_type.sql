@@ -1,0 +1,22 @@
+-- site.calendar.actionUrl was seeded as property_type 'url', which made it impossible to set to the
+-- thing it exists for.
+--
+-- SitePropertiesEditorWidget validates a 'url' property with commons-validator UrlValidator over
+-- {http, https}, so a site-relative path is rejected outright: entering /trade-shows fails the save
+-- with "Event page button link has an invalid URL" and the whole Site Settings form is refused.
+-- calendar-event-details.jsp, added in the same change, branches on the value -- an absolute http(s)
+-- URL renders target="_blank", anything else renders site-relative -- so the JSP has always handled
+-- paths that the field would not let anyone save.
+--
+-- The other typed option is no better. 'web-page' prepends a slash to any value that lacks one, which
+-- would silently turn https://example.com/events into /https://example.com/events and break the
+-- external case the JSP supports.
+--
+-- So the field is untyped: no validation, no rewriting, and the JSP keeps doing the branching it was
+-- written to do. That matches site.calendar.actionLabel beside it, which was already untyped.
+--
+-- Idempotent on purpose. On a freshly installed database the row is created with no property_type by
+-- NEW_10000, so this UPDATE matches it and sets NULL to NULL -- no error, no upgrade-replay exception
+-- needed. Any value a site already saved stays as it is; an absolute URL saved under the old type
+-- remains valid, because the JSP accepts both forms.
+UPDATE site_properties SET property_type = NULL WHERE property_name = 'site.calendar.actionUrl';

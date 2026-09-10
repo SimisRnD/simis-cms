@@ -42,6 +42,18 @@
 #    shrinks, and a NEW inline handler -- or a count bumped above the recorded baseline -- fails
 #    here. JSP/HTML comments and <script> bodies are blanked out first (preserving line numbers),
 #    so prose that merely mentions onclick= or a JS "el.onclick = fn" assignment is not a finding.
+#
+# 6. Application Insights agent config: validates docker/app/applicationinsights.json against the
+#    schema of the agent version docker/app/Dockerfile pins. Nothing else in the repository reads
+#    this file -- not the Ant build, not a test, not another gate -- so a bad value ships unread.
+#    The agent does not stop the JVM when it rejects the file: it logs a startup failure and the
+#    site serves normally with telemetry silently off (verified against the pinned 3.7.9 artifact:
+#    invalid config, "startup failed", JVM exit 0). The sharpest trap is that telemetryType is
+#    accepted only in lowercase -- "DEPENDENCY", the spelling the Java enum's constant names
+#    suggest and the one PR #1906's own verification note records, fails agent startup outright,
+#    while the file it shipped correctly says "dependency". Misspelled property names are quieter
+#    still: one WARN, then the agent starts "successfully" with the setting simply absent. See
+#    tools/check-app-insights-config.py.
 name: Static checks
 
 on:
@@ -73,3 +85,59 @@ jobs:
         run: python3 tools/check-duplicate-migration-versions.py . --strict
       - name: Fail on inline on*= event handlers that the CSP makes dead
         run: python3 tools/check-inline-handlers.py . --strict
+      - name: Fail on a theme colour rule that reaches the admin console
+        run: python3 tools/check-theme-scope.py . --strict
+      - name: Fail on a themed button colour that reaches a hollow or clear button
+        run: python3 tools/check-button-variant-scope.py . --strict
+      # The adoption ratchet counts hex literals, which a runtime theme rule does not have -- it
+      # points at a custom property. That is how 22 theme rules reached the admin console with the
+      # adoption number unmoved across three PRs (issue 1598). This compares the two layers
+      # directly instead of counting literals.
+      - name: Fail on a new overlap between the runtime theme and the token layer
+        run: python3 tools/check-theme-token-overlap.py . --strict
+      # main.jsp emits a screen-reader h1 on admin-console pages, so an authored h4 there is an
+      # h1 -> h4 jump and an authored h1 is a second h1 on the page. Both happened and neither
+      # was detected: issue 1622 catalogued the skips by hand and had the count wrong twice over,
+      # and the duplicate h1s (issue 1660) were never catalogued at all.
+      - name: Fail on a skipped heading level or a duplicate h1 in the admin console
+        run: python3 tools/check-heading-levels.py . --strict
+      # A link or button holding nothing but a Font Awesome glyph announces as "link" and
+      # stops there (WCAG 4.1.2, 2.4.4 -- Level A in WCAG 2.0, so in 508 scope). This stayed
+      # invisible because the PUBLIC site is clean: the signed-out homepage reaches 57
+      # controls, all named, while the same page signed in with edit rights reaches 103, 35
+      # of them nameless. The layout and cms templates are fixed; the admin console's own
+      # pages are recorded in BACKLOG as a per-file count that may only shrink, so a new
+      # nameless control cannot merge but a PR that fixes one is never blocked (issue 1962).
+      - name: Fail on an icon-only control with no accessible name
+        run: python3 tools/check-icon-link-names.py . --strict
+      # Who sees an admin menu row (main.jsp) and who may open the page it links to
+      # (the layout XML) are decided in two files, usually in two different PRs, with
+      # nothing connecting them. A row wider than its page is a link the user is denied
+      # on click, and no error is raised anywhere. Issue #1764 moves the CSP Violations
+      # row into the Access section, whose gate admits admin:manage while
+      # /admin/csp-violations is role="admin" only -- PR #1768 spotted that by hand and
+      # wrapped the row in its own hasRole('admin') test. This makes that requirement
+      # enforced rather than remembered. ENFORCING (--strict) against an ALLOWLIST of
+      # the three pre-existing rows, which only shrinks.
+      - name: Fail on an admin menu row that links to a page its viewer cannot open
+        run: python3 tools/check-admin-nav-permissions.py . --strict
+      # A Save*Command's length limit is a second copy of a number whose truth is in the DDL. A
+      # migration that widens a column leaves a stale constant; one that narrows a column leaves a
+      # check that passes values the database then rejects, putting issue #1740 straight back in
+      # the place it was fixed. Nothing else in the build compares the two.
+      - name: Fail on a field-length limit that no longer matches its column width
+        run: python3 tools/check-column-length-limits.py . --strict
+      - name: Fail on a wildcard CORS origin or an unallowlisted printStackTrace
+        run: python3 tools/check-server-hygiene.py . --strict
+      # PageServlet publishes a dozen values before the section/column/widget walk, and
+      # WebContainerCommand clears every request attribute between widgets. A name missing from
+      # PAGE_LEVEL_ATTRIBUTE_NAMES is removed by the FIRST widget on the page, so main.jsp's EL
+      # and every later widget read it as the empty string -- no exception, no log line, a 200
+      # with a correct-looking body. That shipped as issue 944: every nonce="${cspNonce}"
+      # rendered as nonce="" and matched no nonce in the CSP header. The two halves of the
+      # invariant are one line each in two different files, which is exactly the pairing a
+      # reviewer misses; issue 1763 needed the same pair again for elearningPropertyMap.
+      - name: Fail on a page-level request attribute the per-widget reset wipes
+        run: python3 tools/check-page-level-attributes.py . --strict
+      - name: Fail on Application Insights config the pinned agent would reject
+        run: python3 tools/check-app-insights-config.py . --strict

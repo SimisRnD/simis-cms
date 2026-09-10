@@ -90,6 +90,7 @@
   <widget name="metabase" class="com.simisinc.platform.presentation.widgets.dashboard.MetabaseWidget" />
   <!-- User Profile and Management -->
   <widget name="emailSubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.EmailSubscribeWidget" />
+  <widget name="upcomingFederalHolidays" class="com.simisinc.platform.presentation.widgets.cms.UpcomingFederalHolidaysWidget" />
   <widget name="myInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyInfoWidget" />
   <widget name="mySiteInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MySiteInfoWidget" />
   <widget name="mySettings" class="com.simisinc.platform.presentation.widgets.userProfile.MySettingsWidget" />
@@ -249,6 +250,7 @@
   <widget name="webhookSubscriptionForm" class="com.simisinc.platform.presentation.widgets.admin.webhooks.WebhookSubscriptionFormWidget" />
   <widget name="webhookDeliveryList" class="com.simisinc.platform.presentation.widgets.admin.webhooks.WebhookDeliveryListWidget" />
   <widget name="integrationsHub" class="com.simisinc.platform.presentation.widgets.admin.IntegrationsHubWidget" />
+  <widget name="settingsHub" class="com.simisinc.platform.presentation.widgets.admin.SettingsHubWidget" />
   <widget name="integrationRegistry" class="com.simisinc.platform.presentation.widgets.admin.IntegrationRegistryWidget" />
   <widget name="socialMediaLinkList" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkListWidget" />
   <widget name="socialMediaLinkForm" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkFormWidget" />
@@ -271,6 +273,7 @@
   <widget name="siteStats" class="com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget" />
   <widget name="analyticsRetention" class="com.simisinc.platform.presentation.widgets.admin.AnalyticsRetentionWidget" />
   <widget name="webVitals" class="com.simisinc.platform.presentation.widgets.admin.WebVitalsWidget" />
+  <widget name="cspViolations" class="com.simisinc.platform.presentation.widgets.admin.CspViolationsWidget" />
   <widget name="communityStats" class="com.simisinc.platform.presentation.widgets.admin.cms.CommunityStatsWidget" />
   <widget name="ecommerceStats" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.EcommerceStatsWidget" />
   <widget name="productList" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.ProductListWidget" />

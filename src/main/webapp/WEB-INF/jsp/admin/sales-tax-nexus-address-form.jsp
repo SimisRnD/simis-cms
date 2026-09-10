@@ -20,9 +20,9 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="address" class="com.simisinc.platform.domain.model.ecommerce.SalesTaxNexusAddress" scope="request"/>
 <c:choose>
-  <c:when test="${address.id eq -1}"><h4>New Address</h4></c:when>
+  <c:when test="${address.id eq -1}"><h2 class="h4">New Address</h2></c:when>
   <c:otherwise>
-    <h4>Update Address</h4>
+    <h2 class="h4">Update Address</h2>
   </c:otherwise>
 </c:choose>
 <form method="post" autocomplete="off">
@@ -33,7 +33,7 @@
   <input type="hidden" name="id" value="${address.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>

@@ -32,7 +32,7 @@
   }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <%--<small><c:out value="${webPage.link}" /></small>--%>
@@ -65,7 +65,7 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>Widgets</h4>
+        <h3 class="h4">Widgets</h3>
         <dl>
           <dt>systemAlert</dt>
           <dd></dd>

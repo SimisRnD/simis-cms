@@ -45,6 +45,33 @@ public class AccountValidationWidget extends GenericWidget {
   static String NOT_FOUND_JSP = "/login/account-confirmation-not-found.jsp";
   static String FINISHED_JSP = "/login/account-confirmation-finished.jsp";
 
+  static final String BASE_PATH = "/validate-account";
+
+  /**
+   * Resolve the account token from the request. Prefer it as a path segment
+   * ({@code /validate-account/<token>}): a unique path per token, so an intermediary that caches by
+   * path -- ignoring the query string and no-store headers, as some corporate proxies do -- cannot
+   * serve one token's page (often a stale "expired" error) for another. Fall back to the legacy
+   * {@code ?confirmation=<token>} query parameter so links already delivered before this change, and
+   * the hidden field the password form posts back, keep working. See issue #1812.
+   */
+  static String resolveConfirmation(String uri, String queryConfirmation) {
+    if (uri != null) {
+      int idx = uri.indexOf(BASE_PATH + "/");
+      if (idx != -1) {
+        String segment = uri.substring(idx + BASE_PATH.length() + 1);
+        int slash = segment.indexOf('/');
+        if (slash != -1) {
+          segment = segment.substring(0, slash);
+        }
+        if (StringUtils.isNotBlank(segment)) {
+          return segment;
+        }
+      }
+    }
+    return queryConfirmation;
+  }
+
   public WidgetContext execute(WidgetContext context) {
 
     // Standard request items
@@ -58,7 +85,7 @@ public class AccountValidationWidget extends GenericWidget {
     }
 
     // Check for an account token
-    String confirmation = context.getParameter("confirmation");
+    String confirmation = resolveConfirmation(context.getUri(), context.getParameter("confirmation"));
     if (StringUtils.isBlank(confirmation)) {
       LOG.warn("No account token was found!");
       return null;
@@ -68,8 +95,7 @@ public class AccountValidationWidget extends GenericWidget {
     User user = UserRepository.findByAccountToken(confirmation);
     if (user == null) {
       LOG.warn("No user was found for token!");
-      context.setJsp(NOT_FOUND_JSP);
-      return context;
+      return notFound(context, confirmation);
     }
 
     // User needs to change their password to login
@@ -90,13 +116,33 @@ public class AccountValidationWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * Render the "link did not work" page, distinguishing a lapsed link from an unrecognised one
+   * (#1836).
+   *
+   * <p>The page previously guessed "already validated, or the request expired" for every failure.
+   * At least five causes land here -- never issued, superseded by a newer link, expired, already
+   * used, or a truncated URL -- and the guess was frequently wrong, which sent people looking for
+   * the wrong remedy.
+   *
+   * <p>Only "expired" is separable from the data: an account holds a single token, so a superseded
+   * link leaves no trace to distinguish it from one that never existed. The unknown case therefore
+   * names the realistic causes and points at the newest email rather than asserting one.
+   */
+  private WidgetContext notFound(WidgetContext context, String confirmation) {
+    boolean expired = UserRepository.findExpiredByAccountToken(confirmation) != null;
+    context.getRequest().setAttribute("notFoundReason", expired ? "expired" : "unknown");
+    context.setJsp(NOT_FOUND_JSP);
+    return context;
+  }
+
   public WidgetContext post(WidgetContext context) {
 
     // Don't accept multiple form posts
     context.getUserSession().renewFormToken();
 
     // Check for an account token
-    String confirmation = context.getParameter("confirmation");
+    String confirmation = resolveConfirmation(context.getUri(), context.getParameter("confirmation"));
     if (StringUtils.isBlank(confirmation)) {
       LOG.warn("No account token was found!");
       return null;
@@ -106,8 +152,7 @@ public class AccountValidationWidget extends GenericWidget {
     User user = UserRepository.findByAccountToken(confirmation);
     if (user == null) {
       LOG.warn("No user was found for token!");
-      context.setJsp(NOT_FOUND_JSP);
-      return context;
+      return notFound(context, confirmation);
     }
 
     // User needs to change their password to login, or they requested to
@@ -116,13 +161,13 @@ public class AccountValidationWidget extends GenericWidget {
       String password2 = context.getParameter("password2");
       if (!StringUtils.equals(password, password2)) {
         context.setWarningMessage("The password fields did not match, please try again");
-        context.setRedirect("/validate-account?confirmation=" + confirmation);
+        context.setRedirect(BASE_PATH + "/" + confirmation);
         return context;
       }
       String passwordViolation = PasswordPolicyCommand.validate(password.trim());
       if (passwordViolation != null) {
         context.setWarningMessage(passwordViolation);
-        context.setRedirect("/validate-account?confirmation=" + confirmation);
+        context.setRedirect(BASE_PATH + "/" + confirmation);
         return context;
       }
 

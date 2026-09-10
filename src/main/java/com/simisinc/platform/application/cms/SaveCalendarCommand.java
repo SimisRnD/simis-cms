@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +38,10 @@ public class SaveCalendarCommand {
   public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveCalendarCommand.class);
 
+  // Issue #1740: see SaveBlogCommand -- same shape, same generic system-error message.
+  // @column calendars.name
+  private static final int MAX_NAME_LENGTH = 255;
+
   public static Calendar saveCalendar(Calendar calendarBean) throws DataException {
 
     // Required dependencies
@@ -48,6 +53,11 @@ public class SaveCalendarCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(calendarBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      // issue #1740 -- chained onto the blank check; this command joins messages with no
+      // separator, so two appended messages would run together
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name", calendarBean.getName(),
+          MAX_NAME_LENGTH);
     }
     if (!StringUtils.isBlank(calendarBean.getColor())) {
       String color = calendarBean.getColor();

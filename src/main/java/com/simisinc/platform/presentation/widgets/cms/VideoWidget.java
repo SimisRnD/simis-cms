@@ -20,8 +20,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -73,6 +76,8 @@ import jakarta.servlet.http.Cookie;
  */
 public class VideoWidget extends GenericWidget {
 
+  private static Log LOG = LogFactory.getLog(VideoWidget.class);
+
   static final long serialVersionUID = -8484048371911908897L;
 
   static String JSP = "/cms/video.jsp";
@@ -83,9 +88,21 @@ public class VideoWidget extends GenericWidget {
   private static final String ANALYTICS_CONSENT_COOKIE = "analytics-consent";
   private static final String ANALYTICS_CONSENT_ACCEPTED = "accepted";
 
+  /**
+   * The URL forms YouTube hands out, which is what an author pastes (issue #1797). {@code live/} is
+   * what the Share dialog gives for a stream and for its archive afterwards; {@code v/} is the
+   * legacy form still sitting in old content. Host is matched as a substring so m./music. and any
+   * other subdomain come along.
+   */
   private static final Pattern YOUTUBE_ID_PATTERN = Pattern.compile(
-      "youtube(?:-nocookie)?\\.com/(?:watch\\?(?:\\S*&)?v=|embed/|shorts/)([A-Za-z0-9_-]{6,})|youtu\\.be/([A-Za-z0-9_-]{6,})");
-  private static final Pattern VIMEO_ID_PATTERN = Pattern.compile("vimeo\\.com/(?:video/)?(\\d+)");
+      "youtube(?:-nocookie)?\\.com/(?:watch\\?(?:\\S*&)?v=|embed/|shorts/|live/|v/)([A-Za-z0-9_-]{6,})|youtu\\.be/([A-Za-z0-9_-]{6,})");
+  /**
+   * Vimeo's forms (issue #1797). Group 2 is the privacy hash an <b>unlisted</b> video carries as a
+   * second path segment -- without it the player URL below is rejected, which is worse than not
+   * matching at all: the widget would report success and the visitor would get a broken player.
+   */
+  private static final Pattern VIMEO_ID_PATTERN = Pattern.compile(
+      "vimeo\\.com/(?:video/|channels/[A-Za-z0-9_-]+/|groups/[A-Za-z0-9_-]+/videos/)?(\\d+)(?:/([A-Za-z0-9]+))?");
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -116,20 +133,38 @@ public class VideoWidget extends GenericWidget {
         context.getRequest().setAttribute("embedUrl", "https://www.youtube-nocookie.com/embed/" + youTubeId + "?rel=0");
         context.getRequest().setAttribute("thumbnailUrl", "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg");
       } else {
-        String vimeoId = extractId(VIMEO_ID_PATTERN, videoUrl, 1);
-        if (vimeoId != null) {
+        Matcher vimeoMatcher = VIMEO_ID_PATTERN.matcher(videoUrl);
+        if (vimeoMatcher.find()) {
+          String vimeoId = vimeoMatcher.group(1);
+          // An unlisted video's privacy hash has to travel with the id on both URLs below, or Vimeo
+          // refuses the embed and returns nothing for the thumbnail (issue #1797).
+          String vimeoHash = vimeoMatcher.group(2);
+          String hashParameter = vimeoHash != null ? "?h=" + vimeoHash : "";
           context.getRequest().setAttribute("provider", "vimeo");
-          context.getRequest().setAttribute("embedUrl", "https://player.vimeo.com/video/" + vimeoId);
+          context.getRequest().setAttribute("embedUrl", "https://player.vimeo.com/video/" + vimeoId + hashParameter);
           // No static thumbnail URL for Vimeo -- video.jsp fetches one client-side via Vimeo's
           // oEmbed endpoint, using this page URL. See the class Javadoc for why that call is made
           // from the browser rather than from here.
-          context.getRequest().setAttribute("videoPageUrl", "https://vimeo.com/" + vimeoId);
+          context.getRequest().setAttribute("videoPageUrl",
+              "https://vimeo.com/" + vimeoId + (vimeoHash != null ? "/" + vimeoHash : ""));
+        } else {
+          // Neither pattern matched. This used to be indistinguishable from a widget nobody had
+          // configured yet: embedUrl stayed unset, video.jsp rendered the same placeholder, and
+          // nothing was said anywhere. An author has no reason to doubt a URL they copied from the
+          // site itself, so the one thing that helps is being told (issue #1797). The page still
+          // shows the same placeholder to a visitor -- only the log and the builder-only note below
+          // change.
+          LOG.warn("Video url is not a recognized YouTube or Vimeo address: " + videoUrl);
+          context.getRequest().setAttribute("videoUrlRecognized", "false");
         }
-        // Neither pattern matched -- videoUrl isn't a recognized YouTube/Vimeo URL. embedUrl is
-        // left unset, so video.jsp renders its "no video configured" placeholder, same as if the
-        // preference were blank.
       }
     }
+
+    // Whether to show that note. The videoUrl is a page-layout preference, so the tier that can act
+    // on it is the layout builder -- a content editor cannot reach it, and a visitor should not be
+    // reading about the site's own misconfiguration.
+    context.getRequest().setAttribute("canBuildLayout",
+        String.valueOf(EditorPermissionCommand.canBuildLayout(context.getUserSession())));
 
     context.setJsp(JSP);
     return context;
@@ -141,11 +176,6 @@ public class VideoWidget extends GenericWidget {
       return null;
     }
     return matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
-  }
-
-  private static String extractId(Pattern pattern, String url, int group) {
-    Matcher matcher = pattern.matcher(url);
-    return matcher.find() ? matcher.group(group) : null;
   }
 
   /**

@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.controller;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
@@ -41,6 +42,7 @@ import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -62,10 +64,10 @@ class PageServletTest {
 
   @Test
   void escapeForInlineScriptNeutralizesHtmlBreakoutCharacters() {
-    assertEquals("\\u003c/script\\u003e", PageServlet.escapeForInlineScript("</script>"));
-    assertEquals("\\u003c!--", PageServlet.escapeForInlineScript("<!--"));
-    assertEquals("a \\u0026\\u0026 b", PageServlet.escapeForInlineScript("a && b"));
-    assertNull(PageServlet.escapeForInlineScript(null));
+    assertEquals("\\u003c/script\\u003e", StructuredDataCommand.escapeForInlineScript("</script>"));
+    assertEquals("\\u003c!--", StructuredDataCommand.escapeForInlineScript("<!--"));
+    assertEquals("a \\u0026\\u0026 b", StructuredDataCommand.escapeForInlineScript("a && b"));
+    assertNull(StructuredDataCommand.escapeForInlineScript(null));
   }
 
   @Test
@@ -74,7 +76,7 @@ class PageServletTest {
     // \u003c/\u003e/\u0026 are ordinary JSON string escapes, not a different encoding.
     String original = "<script>alert(document.cookie)</script> & \"quoted\"";
     String json = MAPPER.writeValueAsString(original);
-    String escaped = PageServlet.escapeForInlineScript(json);
+    String escaped = StructuredDataCommand.escapeForInlineScript(json);
     JsonNode parsed = MAPPER.readTree(escaped);
     assertEquals(original, parsed.asText());
   }
@@ -119,7 +121,7 @@ class PageServletTest {
       // "/products" isn't a real WebPage link (it's the collection's own segment, with no
       // Collection given here) -- computeBreadcrumbList falls back to loadByLink for it
       loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/products/widget", sitePropertyMap, item, null, null, Collections.emptyList());
+      jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/products/widget", sitePropertyMap, item, null, null, Collections.emptyList());
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
@@ -129,7 +131,7 @@ class PageServletTest {
     // Still valid, semantically unchanged JSON once parsed
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     // @graph = [Organization, WebPage, BreadcrumbList, Product] -- /products/widget is 2 levels deep
-    JsonNode product = parsed.get("@graph").get(3);
+    JsonNode product = parsed.get("@graph").get(4);
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
   }
@@ -138,7 +140,7 @@ class PageServletTest {
   void computeArticleSchemaReturnsNullWhenNotABlogPostPage() {
     // articleHeadline is only ever set by a content widget like BlogPostWidget; a plain page
     // (or one whose bridged data hasn't run yet) must not get a fabricated Article entry
-    assertNull(PageServlet.computeArticleSchema(new PageRenderInfo(), "https://example.org"));
+    assertNull(StructuredDataCommand.computeArticleSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
@@ -149,7 +151,7 @@ class PageServletTest {
     pageRenderInfo.setArticleModifiedDate(Timestamp.from(java.time.Instant.parse("2026-07-15T14:30:00Z")));
     pageRenderInfo.setArticleAuthorName("Jane Author");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("NewsArticle", article.get("@type"));
     assertEquals("Launch Announcement", article.get("headline"));
@@ -167,7 +169,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertNull(article.get("author"));
     assertNull(article.get("dateModified"));
@@ -181,7 +183,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setImageUrl("/assets/img/12345-1/banner.png");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     // a relative path is not resolvable by a consumer that only has the JSON-LD
     assertEquals("https://example.org/assets/img/12345-1/banner.png", article.get("image"));
@@ -197,7 +199,7 @@ class PageServletTest {
     pageRenderInfo.setArticleHeadline("Launch Announcement");
     pageRenderInfo.setImageUrl("https://cdn.example.net/banner.png");
 
-    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> article = StructuredDataCommand.computeArticleSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("https://cdn.example.net/banner.png", article.get("image"));
   }
@@ -220,14 +222,14 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(
+      jsonLd = StructuredDataCommand.generateJsonLdData(
           pageRenderInfo, "https://example.org", "/launch-announcement", sitePropertyMap, null, null, null,
           Collections.emptyList());
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     // @graph = [Organization, WebPage, Article] -- single-segment path, no BreadcrumbList
-    JsonNode article = parsed.get("@graph").get(2);
+    JsonNode article = parsed.get("@graph").get(3);
     assertEquals("NewsArticle", article.get("@type").asText());
     assertEquals("Launch Announcement", article.get("headline").asText());
     assertEquals("Jane Author", article.get("author").get("name").asText());
@@ -235,7 +237,7 @@ class PageServletTest {
 
   @Test
   void computeFaqSchemaReturnsNullWhenThereAreNoQuestions() {
-    assertNull(PageServlet.computeFaqSchema(new PageRenderInfo()));
+    assertNull(StructuredDataCommand.computeFaqSchema(new PageRenderInfo()));
   }
 
   @Test
@@ -254,7 +256,7 @@ class PageServletTest {
     faqQuestionList.add(second);
     pageRenderInfo.addFaqQuestions(faqQuestionList);
 
-    Map<String, Object> faqPage = PageServlet.computeFaqSchema(pageRenderInfo);
+    Map<String, Object> faqPage = StructuredDataCommand.computeFaqSchema(pageRenderInfo);
 
     assertEquals("FAQPage", faqPage.get("@type"));
     @SuppressWarnings("unchecked")
@@ -285,14 +287,14 @@ class PageServletTest {
 
     // "/faq" is a single segment -- computeBreadcrumbList returns null, so @graph stays
     // [Organization, WebPage, FAQPage]
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/faq", sitePropertyMap, null, null, null, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/faq", sitePropertyMap, null, null, null, Collections.emptyList());
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
         "a poisoned question must not be able to close the surrounding <script> tag: " + jsonLd);
     assertFalse(jsonLd.contains("<script>"), "a poisoned question must not open a new <script> tag: " + jsonLd);
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode faqPage = parsed.get("@graph").get(2);
+    JsonNode faqPage = parsed.get("@graph").get(3);
     assertEquals("FAQPage", faqPage.get("@type").asText());
     assertTrue(faqPage.get("mainEntity").get(0).get("name").asText().contains("</script><script>"));
   }
@@ -301,7 +303,7 @@ class PageServletTest {
   void computeProductSchemaReturnsNullWhenNotAProductPage() {
     // productName is only ever set by an ecommerce widget like ProductNameWidget; a plain page
     // must not get a fabricated Product entry
-    assertNull(PageServlet.computeProductSchema(new PageRenderInfo(), "https://example.org"));
+    assertNull(StructuredDataCommand.computeProductSchema(new PageRenderInfo(), "https://example.org"));
   }
 
   @Test
@@ -314,7 +316,7 @@ class PageServletTest {
     pageRenderInfo.setProductCurrency("USD");
     pageRenderInfo.setProductAvailability("https://schema.org/InStock");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     assertEquals("Product", product.get("@type"));
     assertEquals("Widget", product.get("name"));
@@ -337,7 +339,7 @@ class PageServletTest {
     pageRenderInfo.setProductOfferCount(3);
     pageRenderInfo.setProductCurrency("USD");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> offer = (Map<String, Object>) product.get("offers");
@@ -352,7 +354,7 @@ class PageServletTest {
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
     pageRenderInfo.setProductName("Widget");
 
-    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+    Map<String, Object> product = StructuredDataCommand.computeProductSchema(pageRenderInfo, "https://example.org");
 
     assertNull(product.get("offers"));
   }
@@ -375,7 +377,7 @@ class PageServletTest {
     links.add(linkedIn);
     links.add(twitter);
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, links);
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, links);
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode organization = parsed.get("@graph").get(0);
@@ -394,7 +396,7 @@ class PageServletTest {
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode organization = parsed.get("@graph").get(0);
@@ -414,10 +416,13 @@ class PageServletTest {
     webPage.setPublishAt(Timestamp.from(java.time.Instant.parse("2026-02-01T00:00:00Z")));
     webPage.setModified(Timestamp.from(java.time.Instant.parse("2026-03-15T12:30:00Z")));
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    // NB: these assertions address @graph nodes by position. Index 0 is the Organization, 1 the
+    // WebSite, 2 the WebPage; anything inserted into the graph shifts them. Addressing by @type
+    // would be sturdier -- see the helper in StructuredDataCommandWebSiteTest.
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("WebPage", webPageNode.get("@type").asText());
     assertEquals("2026-03-15T12:30:00Z", webPageNode.get("dateModified").asText());
     // datePublished prefers publishAt over created when both are present
@@ -435,10 +440,10 @@ class PageServletTest {
     WebPage webPage = new WebPage();
     webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage, Collections.emptyList());
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("2026-01-01T00:00:00Z", webPageNode.get("datePublished").asText());
     assertNull(webPageNode.get("dateModified"));
   }
@@ -455,11 +460,11 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
       loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/items/staff/jane-doe", sitePropertyMap, null, null, null, Collections.emptyList());
+      jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/items/staff/jane-doe", sitePropertyMap, null, null, null, Collections.emptyList());
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode webPageNode = parsed.get("@graph").get(1);
+    JsonNode webPageNode = parsed.get("@graph").get(2);
     assertEquals("WebPage", webPageNode.get("@type").asText());
     assertNull(webPageNode.get("dateModified"));
     assertNull(webPageNode.get("datePublished"));
@@ -488,8 +493,8 @@ class PageServletTest {
 
   @Test
   void computeCanonicalUrlReturnsNullWhenSiteUrlIsBlank() {
-    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null));
-    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null, null));
   }
 
   @Test
@@ -497,13 +502,13 @@ class PageServletTest {
     // Regression test for issue #401: the homepage previously fell through every branch (an
     // explicit !pagePath.equals("/") check excluded it, and there's no WebPage/Item/Collection
     // for a plain root request), so it was the one page that never got a canonical tag at all.
-    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null));
+    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null, null));
   }
 
   @Test
   void computeCanonicalUrlUsesThePagePathWhenNothingElseIdentifiesThePage() {
     assertEquals("https://example.org/legal/privacy",
-        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null, null));
   }
 
   @Test
@@ -515,7 +520,7 @@ class PageServletTest {
     webPage.setLink("/about-us");
 
     assertEquals("https://example.org/about-us",
-        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null, null));
   }
 
   @Test
@@ -528,7 +533,7 @@ class PageServletTest {
     webPage.setLink("/news/*");
 
     assertEquals("https://example.org/news/some-post-slug",
-        PageServlet.computeCanonicalUrl("https://example.org", "/news/some-post-slug", webPage, null, null));
+        PageServlet.computeCanonicalUrl("https://example.org", "/news/some-post-slug", webPage, null, null, null));
   }
 
   @Test
@@ -537,7 +542,7 @@ class PageServletTest {
     collection.setUniqueId("staff");
 
     assertEquals("https://example.org/items/staff",
-        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection));
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection, null));
   }
 
   @Test
@@ -548,7 +553,73 @@ class PageServletTest {
     item.setUniqueId("jane-doe");
 
     assertEquals("https://example.org/items/staff/jane-doe",
-        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection));
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection, null));
+  }
+
+  @Test
+  void computeCanonicalUrlSelfCanonicalizesPageTwoAndBeyond() {
+    // Regression test for the orphan-page defect: every paginated page used to emit page 1's URL as
+    // its canonical, which tells a search engine the deeper pages are duplicates. The links those
+    // pages carry then count for nothing, so entries reachable only from them read as orphans --
+    // measured on simisinc.com as 86 of 88 news posts with no incoming internal links.
+    assertEquals("https://example.org/news?page=2",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "2"));
+    assertEquals("https://example.org/news?page=10",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "10"));
+  }
+
+  @Test
+  void computeCanonicalUrlLeavesPageOneUnchanged() {
+    // Page 1 is the listing's own URL; adding ?page=1 would create a second URL for identical
+    // content and undo the collapsing the canonical tag exists to do.
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "1"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, null));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, ""));
+  }
+
+  @Test
+  void computeCanonicalUrlIgnoresANonNumericPageParameter() {
+    // The page parameter is the one caller-controlled value reaching the canonical tag. It is parsed
+    // to an int and the URL rebuilt from that int, so a non-numeric value cannot be reflected into
+    // the markup -- it simply falls back to the unpaginated URL, which is also what the listing
+    // widgets render for ?page=abc.
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "abc"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "2\" onload=\"alert(1)"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "1e9999"));
+  }
+
+  @Test
+  void computeCanonicalUrlIgnoresAZeroOrNegativePageParameter() {
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "0"));
+    assertEquals("https://example.org/news",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news", null, null, null, "-3"));
+  }
+
+  @Test
+  void computeCanonicalUrlPaginatesEveryPageIdentitySource() {
+    // Pagination is appended to whichever branch produced the URL, not just the pagePath fallback,
+    // so a paginated collection listing behaves the same way as a paginated web page.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/about-us");
+    assertEquals("https://example.org/about-us?page=3",
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null, "3"));
+
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+    assertEquals("https://example.org/items/staff?page=4",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection, "4"));
+  }
+
+  @Test
+  void computeCanonicalUrlStillReturnsNullForABlankSiteUrlRegardlessOfPage() {
+    assertNull(PageServlet.computeCanonicalUrl("", "/news", null, null, null, "2"));
   }
 
   /** A logged-in session whose user holds exactly the given role codes. */
@@ -756,5 +827,213 @@ class PageServletTest {
 
     assertTrue(menuTabList instanceof ArrayList, "expected an ArrayList, got " + menuTabList.getClass());
     assertTrue(menuTabList.isEmpty());
+  }
+
+  // --- breadcrumbs from the navigation, for pages whose URL cannot supply one (issue #1795) ---
+
+  private static MenuItem menuItem(String name, String link, MenuItem... children) {
+    MenuItem menuItem = new MenuItem();
+    menuItem.setName(name);
+    menuItem.setLink(link);
+    if (children.length > 0) {
+      menuItem.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(children)));
+    }
+    return menuItem;
+  }
+
+  private static List<MenuTab> threeLevelMenu() {
+    MenuTab menuTab = new MenuTab();
+    menuTab.setName("Solutions");
+    menuTab.setLink("/solutions");
+    menuTab.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(
+        menuItem("Autonomous Solutions", "/autonomous-solutions",
+            menuItem("Human Type Targets (HTT)", "/htt-human-type-targets")),
+        menuItem("Cybersecurity", "/cybersecurity"))));
+    return new ArrayList<>(java.util.Arrays.asList(menuTab));
+  }
+
+  private static List<String> names(List<Map<String, Object>> trail) {
+    List<String> out = new ArrayList<>();
+    for (Map<String, Object> entry : trail) {
+      out.add(String.valueOf(entry.get("name")));
+    }
+    return out;
+  }
+
+  @Test
+  void aThirdLevelPageGetsTheFullTrail() {
+    // The case the whole change exists for: one URL segment, three levels deep in the nav.
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
+        "https://example.com", "/htt-human-type-targets", threeLevelMenu());
+    assertNotNull(trail);
+    assertEquals(List.of("Home", "Solutions", "Autonomous Solutions", "Human Type Targets (HTT)"),
+        names(trail));
+    assertEquals(1, trail.get(0).get("position"));
+    assertEquals(4, trail.get(3).get("position"));
+    assertEquals("https://example.com/htt-human-type-targets", trail.get(3).get("item"));
+  }
+
+  @Test
+  void aSecondLevelPageGetsHomeTabAndItself() {
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
+        "https://example.com", "/cybersecurity", threeLevelMenu());
+    assertEquals(List.of("Home", "Solutions", "Cybersecurity"), names(trail));
+  }
+
+  @Test
+  void aPageThatIsItselfATabGetsNoTrail() {
+    // Home + one is a single-level trail, which computeBreadcrumbList already calls redundant with
+    // the nav; this must not contradict that.
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList(
+        "https://example.com", "/solutions", threeLevelMenu()));
+  }
+
+  @Test
+  void aPageNotInTheMenuGetsNoTrail() {
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList(
+        "https://example.com", "/some-orphan-page", threeLevelMenu()));
+  }
+
+  @Test
+  void aTabLinkingToItsOwnItemIsNotRepeated() {
+    // A trail listing the same URL twice is worse than a shorter one.
+    MenuTab menuTab = new MenuTab();
+    menuTab.setName("Data Center");
+    menuTab.setLink("/data-center");
+    menuTab.setMenuItemList(new ArrayList<>(java.util.Arrays.asList(
+        menuItem("Data Center", "/data-center",
+            menuItem("The Facility", "/the-facility")))));
+    List<Map<String, Object>> trail = StructuredDataCommand.computeMenuBreadcrumbList(
+        "https://example.com", "/the-facility", new ArrayList<>(java.util.Arrays.asList(menuTab)));
+    assertEquals(List.of("Home", "Data Center", "The Facility"), names(trail));
+  }
+
+  @Test
+  void noMenuIsNotAnError() {
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList("https://example.com", "/x", null));
+    assertNull(StructuredDataCommand.computeMenuBreadcrumbList("https://example.com", "/x", new ArrayList<>()));
+  }
+
+  @Test
+  void theOrganizationCarriesTheSiteDescription() {
+    // issue #1795: site.description already feeds the meta description, OG tags, llms.txt and the
+    // feeds; the Organization node was the one place it was missing.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.description", "Veteran-owned small business delivering modeling and simulation.");
+
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertEquals("Organization", organization.get("@type").asText());
+    assertEquals("Veteran-owned small business delivering modeling and simulation.",
+        organization.get("description").asText());
+  }
+
+  @Test
+  void anUnsetSiteDescriptionLeavesTheKeyOffRatherThanEmpty() {
+    // An empty string is worse than an absent key: consumers read it as a description that is blank.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.description", "   ");
+
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertNull(organization.get("description"));
+  }
+
+  @Test
+  void theOrganizationCarriesTheAddressAndFoundingYear() {
+    // issue #1795: an administrator enters these on Site Settings; before this they had nowhere to
+    // put an address at all, and the Organization node could say only name/url/logo/sameAs.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.address.street", "100 Example Way");
+    sitePropertyMap.put("site.address.city", "Suffolk");
+    sitePropertyMap.put("site.address.state", "VA");
+    sitePropertyMap.put("site.address.postalCode", "23435");
+    sitePropertyMap.put("site.address.country", "US");
+    sitePropertyMap.put("site.founded", "2007");
+
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertEquals("2007", organization.get("foundingDate").asText());
+    JsonNode address = organization.get("address");
+    assertEquals("PostalAddress", address.get("@type").asText());
+    assertEquals("100 Example Way", address.get("streetAddress").asText());
+    assertEquals("Suffolk", address.get("addressLocality").asText());
+    assertEquals("VA", address.get("addressRegion").asText());
+    assertEquals("23435", address.get("postalCode").asText());
+    assertEquals("US", address.get("addressCountry").asText());
+  }
+
+  @Test
+  void aPartialAddressEmitsOnlyThePartsThatAreSet() {
+    // A site that fills in only a city and country should say exactly that, not carry empty keys
+    // that read as "we have a street address and it is blank".
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+    sitePropertyMap.put("site.address.city", "Suffolk");
+    sitePropertyMap.put("site.address.country", "US");
+    sitePropertyMap.put("site.address.street", "  ");
+
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode address = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0).get("address");
+    assertEquals("Suffolk", address.get("addressLocality").asText());
+    assertEquals("US", address.get("addressCountry").asText());
+    assertNull(address.get("streetAddress"));
+    assertNull(address.get("postalCode"));
+  }
+
+  @Test
+  void anUnsetAddressLeavesNoAddressNodeAtAll() {
+    // The upgrade seeds these empty, so every existing site takes this path and its output must be
+    // exactly what it was before the properties existed. An address node holding only @type would
+    // be worse than none.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    String jsonLd = StructuredDataCommand.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap,
+        null, null, null, new ArrayList<>());
+
+    JsonNode organization = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd)).get("@graph").get(0);
+    assertNull(organization.get("address"));
+    assertNull(organization.get("foundingDate"));
+  }
+
+  @Test
+  void brandedAssetContextIsNullWhenThereIsNowhereRealToProbe() {
+    // The layouts probe this path with an Image() before preferring an operator's own favicon,
+    // apple-touch-icon and logo variants over the bundled ones. /web-content is the seeded default
+    // and nothing in this codebase serves it, so probing it 404s on every page load -- thirteen
+    // times across the header, footer, checkout and activity layouts.
+    assertNull(PageServlet.resolveBrandedAssetContext("/web-content"));
+    assertNull(PageServlet.resolveBrandedAssetContext("  /web-content  "));
+    assertNull(PageServlet.resolveBrandedAssetContext(""));
+    assertNull(PageServlet.resolveBrandedAssetContext("   "));
+    assertNull(PageServlet.resolveBrandedAssetContext(null));
+  }
+
+  @Test
+  void brandedAssetContextIsKeptWhenAnOperatorConfiguredOne() {
+    // A deployment that actually serves branded assets must still be probed -- this change is about
+    // not probing a path that cannot answer, not about dropping the feature.
+    assertEquals("https://cdn.example.com",
+        PageServlet.resolveBrandedAssetContext("https://cdn.example.com"));
+    assertEquals("/branding", PageServlet.resolveBrandedAssetContext("  /branding  "));
+    // Merely containing the unserved default is not the same as being it
+    assertEquals("/web-content-cdn", PageServlet.resolveBrandedAssetContext("/web-content-cdn"));
   }
 }

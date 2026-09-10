@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="productList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <a class="button small radius primary float-left" href="${ctx}/admin/product?returnPage=/admin/products">Add a Product <i class="fa fa-arrow-circle-right"></i></a>
@@ -134,11 +134,11 @@
         </td>
         <td class="text-center" nowrap>
           <c:if test="${!empty product.productUrl}">
-            <a href="${ctx}<c:out value="${product.productUrl}" />"><i class="fa fa-link"></i></a>
+            <a aria-label="View ${fn:escapeXml(product.name)} on the site" href="${ctx}<c:out value="${product.productUrl}" />"><i aria-hidden="true" class="fa fa-link"></i></a>
           </c:if>
-          <a href="${ctx}/admin/product?productId=${product.id}&returnPage=/admin/products"><i class="fa fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(product.name)}" href="${ctx}/admin/product?productId=${product.id}&returnPage=/admin/products"><i aria-hidden="true" class="fa fa-edit"></i></a>
           <c:if test="${product.orderCount eq 0}">
-            <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${product.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(product.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${product.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

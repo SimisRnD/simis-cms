@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.ecommerce.ShippingMethod;
 import com.simisinc.platform.domain.model.ecommerce.ShippingRate;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ShippingMethodRepository;
@@ -32,6 +33,9 @@ import org.apache.commons.logging.LogFactory;
  * @created 6/26/19 9:57 PM
  */
 public class SaveShippingRateCommand {
+
+  // @column shipping_rates.display_text
+  private static final int MAX_DISPLAY_TEXT_LENGTH = 255;
 
   private static Log LOG = LogFactory.getLog(SaveShippingRateCommand.class);
 
@@ -53,6 +57,10 @@ public class SaveShippingRateCommand {
     }
     if (StringUtils.isBlank(shippingRateBean.getPostalCode())) {
       appendMessage(errorMessages, "A postal code value or * is required");
+    }
+    if (FieldLengthCommand.exceedsLimit(shippingRateBean.getDisplayText(), MAX_DISPLAY_TEXT_LENGTH)) {
+      appendMessage(errorMessages,
+          FieldLengthCommand.tooLongMessage("The display text", MAX_DISPLAY_TEXT_LENGTH));
     }
     if (shippingRateBean.getShippingFee() == null) {
       appendMessage(errorMessages, "A shipping fee or 0 is required");

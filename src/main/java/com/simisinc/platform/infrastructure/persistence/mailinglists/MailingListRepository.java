@@ -93,13 +93,45 @@ public class MailingListRepository {
         MailingListRepository::buildRecord);
   }
 
+  /**
+   * Issue #1724: name has no unique constraint, so a site can hold more than one list under the
+   * same name -- exactly the state the auto-creating signup form used to produce. This used to
+   * take whichever row the database happened to return first, so which list a signup landed on was
+   * not deterministic; ordering by list_id makes it always the oldest one. New duplicates are
+   * refused by {@code SaveMailingListCommand}, but the rows an existing site already has cannot be
+   * merged from here.
+   * <p>
+   * Prefer {@link #findByUniqueId(String)}: unique_id is unique by constraint and, unlike name, is
+   * not something an admin can rename out from under the pages pointing at it.
+   */
   public static MailingList findByName(String name) {
     if (StringUtils.isBlank(name)) {
       return null;
     }
-    return (MailingList) DB.selectRecordFrom(
+    DataResult result = DB.selectAllFrom(
         TABLE_NAME,
         new SqlUtils().add("LOWER(name) = ?", name.toLowerCase().trim()),
+        new DataConstraints(1, 1, "list_id").setUseCount(false),
+        MailingListRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (MailingList) result.getRecords().get(0);
+    }
+    return null;
+  }
+
+  /**
+   * The stable counterpart of {@link #findByName(String)} -- unique_id is assigned once when a list
+   * is created and never rewritten, so a page pointed at it keeps working across a rename (issue
+   * #1724). Generated ids are always lowercase, so a value hand-typed into page XML is lowercased
+   * here rather than being treated as a different id.
+   */
+  public static MailingList findByUniqueId(String uniqueId) {
+    if (StringUtils.isBlank(uniqueId)) {
+      return null;
+    }
+    return (MailingList) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils().add("unique_id = ?", uniqueId.toLowerCase().trim()),
         MailingListRepository::buildRecord);
   }
 
@@ -130,6 +162,7 @@ public class MailingListRepository {
   public static MailingList add(MailingList record) {
     SqlUtils insertValues = new SqlUtils()
         .add("list_order", record.getOrder())
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", record.getName().trim())
         .add("title", record.getTitle().trim())
         .addIfExists("description", record.getDescription())
@@ -147,6 +180,13 @@ public class MailingListRepository {
     return record;
   }
 
+  /**
+   * Note what is <em>not</em> here: unique_id. It is assigned once by
+   * {@code GenerateMailingListUniqueIdCommand} when the list is created and must survive every
+   * later rename, since page configuration points at it (issue #1724). Leaving it out of the UPDATE
+   * statement makes that structural rather than merely conventional -- no save path, however it
+   * populates the bean, can rewrite an id that pages already depend on.
+   */
   public static MailingList update(MailingList record) {
     SqlUtils updateValues = new SqlUtils()
         .add("list_order", record.getOrder())
@@ -190,6 +230,7 @@ public class MailingListRepository {
       MailingList record = new MailingList();
       record.setId(rs.getLong("list_id"));
       record.setOrder(rs.getInt("list_order"));
+      record.setUniqueId(rs.getString("unique_id"));
       record.setName(rs.getString("name"));
       record.setTitle(rs.getString("title"));
       record.setDescription(rs.getString("description"));

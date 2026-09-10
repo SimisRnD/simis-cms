@@ -74,6 +74,13 @@ public class InstallIntegrationCommand {
       case API_KEY -> installApiKey(definition, credentialValues, userId);
       case WEBHOOK_URL -> installWebhook(definition, credentialValues, eventTypeIds, userId);
       case OAUTH -> throw new DataException(definition.getName() + " cannot be installed yet (OAuth is not supported).");
+      // Unreachable for the constants above; a future IntegrationAuthType lands here rather than
+      // silently installing nothing, because a statement switch over an enum is not exhaustiveness-
+      // checked by the compiler the way the switch *expressions* in IntegrationStatusCommand and
+      // UninstallIntegrationCommand are.
+      default -> throw new DataException(
+          definition.getName() + " cannot be installed (unsupported authentication type: "
+              + definition.getAuthType() + ").");
     }
   }
 

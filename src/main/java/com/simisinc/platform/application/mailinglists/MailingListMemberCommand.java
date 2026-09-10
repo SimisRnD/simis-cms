@@ -56,6 +56,17 @@ public class MailingListMemberCommand {
    * consent benefit. A third trusted bypass, alongside CSV import and admin manual-add.
    */
   public static void subscribe(MailingList mailingList, User user, UserSession userSession) throws DataException {
+    subscribe(mailingList, user, userSession, userSession == null ? null : userSession.getIpAddress());
+  }
+
+  /**
+   * As above, with the address of the request performing the subscribe (issue #1782). The session's own
+   * address describes where the session began, which can be an hour and a network earlier; what belongs on
+   * a record of who subscribed is where the subscribe came from. Everything else here is legitimately
+   * session-scoped -- the session id, referer and user agent do describe the session.
+   */
+  public static void subscribe(MailingList mailingList, User user, UserSession userSession,
+      String actionIpAddress) throws DataException {
 
     if (mailingList == null) {
       throw new DataException("Mailing list was not found");
@@ -68,7 +79,7 @@ public class MailingListMemberCommand {
     Email emailBean = new Email();
     emailBean.setEmail(user.getEmail());
     emailBean.setSubscribed(new Timestamp(System.currentTimeMillis()));
-    emailBean.setIpAddress(userSession.getIpAddress());
+    emailBean.setIpAddress(actionIpAddress);
     emailBean.setSessionId(userSession.getSessionId());
     emailBean.setReferer(userSession.getReferer());
     emailBean.setUserAgent(userSession.getUserAgent());

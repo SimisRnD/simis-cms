@@ -20,8 +20,8 @@
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="mailingLists" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${blog.id eq -1}"><h4>New Blog</h4></c:when>
-  <c:otherwise><h4>Update Blog</h4></c:otherwise>
+  <c:when test="${blog.id eq -1}"><h2 class="h4">New Blog</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Blog</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
@@ -34,7 +34,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <c:if test="${blog.id != -1}">
@@ -52,13 +52,17 @@
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Blog, News, Press Releases..." name="name" aria-describedby="blogNameHelpText" value="<c:out value="${blog.name}"/>" required>
+    <input type="text" placeholder="Blog, News, Press Releases..." name="name" maxlength="255" aria-describedby="blogNameHelpText" value="<c:out value="${blog.name}"/>" required>
   </label>
   <p class="help-text" id="blogNameHelpText">Also generates this category's Unique Id (shown in the
     blog list, and used in every post's URL) the first time it's saved -- see the warning above
     before renaming a category that already has posts in it.</p>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
+  </label>
+  <label>Feed title
+    <input type="text" placeholder="Leave blank to use the site name and this blog's name" name="feedTitle" aria-describedby="blogFeedTitleHelpText" value="<c:out value="${blog.feedTitle}"/>">
+    <p class="help-text" id="blogFeedTitleHelpText">What this blog's RSS/Atom feed calls itself in a reader, where it appears beside titles like "Dark Reading" and "Ars Technica". Leave blank and the feed is titled "<c:out value="${sitePropertyMap['site.name']}"/> - <c:out value="${blog.name}"/>". Set it to name the feed like a publication instead.</p>
   </label>
   <label>Mailing List
     <select name="mailingListId">

@@ -17,8 +17,11 @@
 package com.simisinc.platform.presentation.widgets.admin.login;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -123,6 +127,146 @@ class UserFormWidgetTest extends WidgetBase {
 
       Assertions.assertEquals(100, widgetContext.getRequest().getAttribute("actingRoleLevel"),
           "an admin must still be offered every role, including admin itself");
+    }
+  }
+
+  // --- break-glass toggle ---
+
+  /** A saved user with the given roles and break-glass state, as SaveUserCommand would return it. */
+  private User savedUser(long id, boolean breakGlass, String... roleCodes) {
+    User user = new User();
+    user.setId(id);
+    user.setEmail("target@example.com");
+    user.setBreakGlass(breakGlass);
+    List<Role> roles = new ArrayList<>();
+    for (String code : roleCodes) {
+      roles.add(new Role(code, code));
+    }
+    user.setRoleList(roles);
+    return user;
+  }
+
+  @Test
+  void breakGlassIsSetOnAnAdminWhenTheToggleIsChecked() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "breakGlassAccount", "true");
+    User saved = savedUser(42L, false, ADMIN);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any(User.class))).thenReturn(saved);
+      userRepo.when(() -> UserRepository.updateBreakGlass(eq(saved), eq(true))).thenReturn(saved);
+
+      new UserFormWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.updateBreakGlass(eq(saved), eq(true)));
+    }
+  }
+
+  /**
+   * The security case. The form does not render the toggle for a non-admin, but the parameter can
+   * still be sent -- and BeanUtils.populate would happily set it on the bean. It must not reach the
+   * database: break-glass exempts an account from the MFA enrollment redirect, and there is no
+   * reason for a non-administrator to hold that exemption.
+   */
+  @Test
+  void aNonAdminNeverGetsBreakGlassEvenWhenTheParameterIsSent() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "breakGlassAccount", "true");
+    User saved = savedUser(42L, false, CONTENT_MANAGER);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any(User.class))).thenReturn(saved);
+
+      new UserFormWidget().post(widgetContext);
+
+      // Not verifyNoInteractions: the post path legitimately reaches UserRepository through
+      // LoadUserCommand for the role-escalation guard. What must never happen is the write.
+      userRepo.verify(() -> UserRepository.updateBreakGlass(any(User.class), anyBoolean()), never());
+    }
+  }
+
+  @Test
+  void clearingTheLastBreakGlassAccountWarnsButStillClearsIt() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "42");
+    // no breakGlassAccount parameter: an unchecked checkbox submits nothing
+    User saved = savedUser(42L, true, ADMIN);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any(User.class))).thenReturn(saved);
+      userRepo.when(UserRepository::countBreakGlassAccounts).thenReturn(1L);
+      userRepo.when(() -> UserRepository.updateBreakGlass(eq(saved), eq(false))).thenReturn(saved);
+
+      new UserFormWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.updateBreakGlass(eq(saved), eq(false)));
+    }
+    Assertions.assertNotNull(widgetContext.getWarningMessage(),
+        "clearing the last one must warn -- an MFA policy could then strand every administrator");
+    Assertions.assertTrue(widgetContext.getWarningMessage().contains("no break-glass account remains"));
+  }
+
+  @Test
+  void clearingOneOfSeveralDoesNotWarn() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "42");
+    User saved = savedUser(42L, true, ADMIN);
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any(User.class))).thenReturn(saved);
+      userRepo.when(UserRepository::countBreakGlassAccounts).thenReturn(3L);
+      userRepo.when(() -> UserRepository.updateBreakGlass(eq(saved), eq(false))).thenReturn(saved);
+
+      new UserFormWidget().post(widgetContext);
+    }
+    Assertions.assertNull(widgetContext.getWarningMessage());
+  }
+
+  @Test
+  void anUnchangedToggleDoesNotWriteAtAll() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "breakGlassAccount", "true");
+    User saved = savedUser(42L, true, ADMIN); // already true
+
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any(User.class))).thenReturn(saved);
+
+      new UserFormWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.updateBreakGlass(any(User.class), anyBoolean()), never());
     }
   }
 

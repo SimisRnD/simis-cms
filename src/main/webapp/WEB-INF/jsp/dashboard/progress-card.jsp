@@ -25,7 +25,7 @@
 <jsp:useBean id="progressColor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="remainderColor" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <script src="${ctx}/javascript/chartjs-4.4.1/chart.umd.min.js"></script>
@@ -53,7 +53,7 @@
   }
 </style>
 <div class="grid-x align-middle text-middle">
-  <div class="small-4 cell" style="position:relative">
+  <div class="small-4 cell platform-progress-chart">
     <canvas id="myChart-${widgetContext.uniqueId}"></canvas>
     <c:if test="${progressCard.maxValue > 0}">
       <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}"><fmt:formatNumber value="${100 * (progressCard.progress / progressCard.maxValue)}" />%</p>
@@ -71,7 +71,7 @@
   </div>
   <c:if test="${!empty progressCard.link}">
     <div class="small-1 cell">
-      <a href="<c:out value="${progressCard.link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>
+      <a aria-label="View ${fn:escapeXml(progressCard.label)} details" href="<c:out value="${progressCard.link}" />"><i aria-hidden="true" class="fa fa-2x fa-chevron-right"></i></a>
     </div>
   </c:if>
 </div>

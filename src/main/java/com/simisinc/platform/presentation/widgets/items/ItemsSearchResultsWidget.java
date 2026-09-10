@@ -326,6 +326,31 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     context.getRequest().setAttribute("activeFilters", activeFilters);
 
     if (itemList == null || itemList.isEmpty()) {
+      // Honour showWhenEmpty. This widget was the only one on the seeded /search page that
+      // ignored it: all six sections there declare showWhenEmpty=false, five hid themselves,
+      // and this one rendered "Resources Found: No items found." on every single search --
+      // including searches that DID match pages. On a search with no matches at all it was
+      // the only thing left on the page, so the site appeared to answer every query with a
+      // section header and a failure, whether or not anything had been found.
+      //
+      // Six sibling widgets in this package already read the preference (ItemsListWidget,
+      // ItemFileListWidget, ItemMembersListWidget, ItemRelationshipsListWidget,
+      // ItemsMapAppWidget); this brings the last one into line rather than inventing a rule.
+      //
+      // The default stays "true" -- the behaviour up to now -- so a page that never set the
+      // preference renders exactly as it did. Only an explicit showWhenEmpty=false changes,
+      // which is what the three consumers of this widget all ask for and none of them got.
+      //
+      // activeFilters is deliberately part of the condition. When a visitor has filtered down
+      // to nothing, this empty state is what carries the facet chips that let them clear the
+      // filter. Hiding the widget there would remove the only way back and strand them on a
+      // blank page -- the same dead end this change exists to remove, arrived at from the
+      // other direction. A filtered-to-empty result therefore always renders.
+      boolean showWhenEmpty = !"false"
+          .equalsIgnoreCase(context.getPreferences().getOrDefault("showWhenEmpty", "true"));
+      if (!showWhenEmpty && activeFilters.isEmpty()) {
+        return context;
+      }
       context.getRequest().setAttribute("itemList", new ArrayList<Item>());
       context.getRequest().setAttribute("searchResultList", new ArrayList<SearchResult>());
       context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));

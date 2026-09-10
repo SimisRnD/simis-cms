@@ -18,12 +18,16 @@ package com.simisinc.platform.presentation.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -118,5 +122,45 @@ class ContextListenerAssetVersionTest {
     File file = path.toFile();
     file.setLastModified(lastModified);
     return file;
+  }
+
+  @Test
+  void everyStampedAssetPathResolvesToARealFile() {
+    // resolveAssetVersion skips a path it cannot find, so a typo in the list fails silently: the
+    // entry simply stops contributing to the token and nothing reports it. With eleven hand-typed
+    // paths (#1872) that is the likeliest way this breaks, and it would look exactly like working.
+    List<String> missing = new ArrayList<>();
+    for (String path : ContextListener.STAMPED_ASSET_PATHS) {
+      if (!Files.isRegularFile(Paths.get("src/main/webapp" + path))) {
+        missing.add(path);
+      }
+    }
+    assertTrue(missing.isEmpty(), "listed for cache-busting but not present in the webapp: " + missing);
+  }
+
+  @Test
+  void noJspStillStampsAnAssetWithTheHandEditedReleaseConstant() {
+    // All eleven got onto ApplicationInfo.VERSION by copying a neighbouring line, so removing the
+    // interpolations matters as much as fixing them -- otherwise the next asset arrives the same
+    // way. VERSION remains correct for DISPLAYING the release, which is why this looks for the
+    // "?v=" stamp specifically rather than any mention of the constant.
+    List<String> offenders = new ArrayList<>();
+    try (var paths = Files.walk(Paths.get("src/main/webapp/WEB-INF"))) {
+      paths.filter(Files::isRegularFile)
+          .filter(f -> f.toString().endsWith(".jsp") || f.toString().endsWith(".jspf"))
+          .forEach(f -> {
+            try {
+              if (Files.readString(f).contains("?v=<%= VERSION %>")) {
+                offenders.add(f.toString());
+              }
+            } catch (IOException e) {
+              throw new IllegalStateException("could not read " + f, e);
+            }
+          });
+    } catch (IOException e) {
+      throw new IllegalStateException("could not walk the JSP tree", e);
+    }
+    assertTrue(offenders.isEmpty(),
+        "these stamp an asset with the hand-edited release constant instead of assetVersion: " + offenders);
   }
 }

@@ -18,8 +18,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webRedirect" class="com.simisinc.platform.domain.model.cms.WebRedirect" scope="request"/>
 <c:choose>
-  <c:when test="${webRedirect.id eq -1}"><h4>New Web Redirect</h4></c:when>
-  <c:otherwise><h4>Edit Web Redirect</h4></c:otherwise>
+  <c:when test="${webRedirect.id eq -1}"><h2 class="h4">New Web Redirect</h2></c:when>
+  <c:otherwise><h2 class="h4">Edit Web Redirect</h2></c:otherwise>
 </c:choose>
 <%@include file="../page_messages.jspf" %>
 

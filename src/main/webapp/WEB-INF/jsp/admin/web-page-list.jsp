@@ -25,9 +25,9 @@
 <jsp:useBean id="standardPages" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="linkedPagePaths" class="java.util.HashSet" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Every page on the site lives here, in two views of the same underlying records. <strong>In Navigation
   Menu</strong> below mirrors the site's actual top-nav hierarchy (see <a href="${ctx}/admin/sitemap">Navigation
   Menu</a> to change it) -- it isn't searchable or filterable, and its rows aren't bulk-selectable, since it's
@@ -38,7 +38,7 @@
   navigation menu can still show up above with no matching row in this list, unless you switch the Status filter
   to Archived.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <strong>live</strong>/<strong>draft</strong>/<strong>301</strong>/<strong>404</strong>/<strong>archived</strong>
   describe the page itself. <strong>404</strong> means a page record exists (so something links to it) but it
   has no stored content -- a broken link waiting to happen, not evidence anything is actually wrong yet (fixing
@@ -48,7 +48,9 @@
   separate, unpublished edit sitting in the governed review pipeline -- the page's own live content (or lack of
   it) is unaffected until that edit is actually published, however that badge reads. An <strong>internal</strong>
   badge means the page has been marked as employee/staff-only in its edit form -- the "Hide Internal Pages"
-  filter below hides these; it does not restrict who can actually view the page.
+  filter below hides these. Whether the badge also restricts who may view the page depends on the
+  <strong>Group allowed to view internal pages</strong> setting on <a href="${ctx}/admin/security-properties">Security
+  Settings</a>: while that is blank the badge is a label only.
 </p>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
@@ -80,14 +82,14 @@
         <c:when test="${fn:contains(standardPages, menuTab.link)}">
           <td>
             <%--<a href="${ctx}${menuTab.link}"><i class="fa fa-check-circle"></i></a>--%>
-            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+            <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </td>
           <td><span class="success label">live</span></td>
         </c:when>
         <c:when test="${fn:contains(webPageMap, menuTab.link)}">
           <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-            <a href="${ctx}/admin/web-page?webPageId=${webPageMap[menuTab.link].id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+            <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuTab.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </td>
           <td>
             <c:choose>
@@ -108,7 +110,7 @@
         </c:when>
         <c:otherwise>
           <td>
-            <a href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
+            <a aria-label="Add a page at ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-plus"></i></a>
           </td>
           <td>
             <span class="alert label">404</span>
@@ -163,14 +165,14 @@
         <c:choose>
           <c:when test="${fn:contains(standardPages, menuItem.link)}">
             <td>
-              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+              <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
             </td>
             <td><span class="success label">live</span></td>
           </c:when>
           <c:when test="${fn:contains(webPageMap, menuItem.link)}">
             <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-              <a href="${ctx}/admin/web-page?webPageId=${webPageMap[menuItem.link].id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+              <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuItem.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
             </td>
             <td>
             <c:choose>
@@ -194,7 +196,7 @@
           </c:when>
           <c:otherwise>
             <td>
-              <a href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i class="fa fa-plus"></i></a>
+              <a aria-label="Add a page at ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-plus"></i></a>
             </td>
             <td>
               <c:choose>
@@ -351,9 +353,9 @@
       <td><input type="checkbox" class="pageRowCheckbox" value="${webPage.id}" data-title="${fn:escapeXml(webPage.title)}" aria-label="Select ${fn:escapeXml(webPage.title)}"></td>
       <td nowrap="true">
         <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
-        <a href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+        <a aria-label="Edit page settings for ${fn:escapeXml(webPage.link)}" href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
         <c:if test="${userSession.hasRole('admin')}">
-          <a href="${ctx}/admin/web-page-designer?webPage=${webPage.link}&returnPage=/admin/web-pages"><i class="fa fa-code"></i></a>
+          <a aria-label="Edit the layout for ${fn:escapeXml(webPage.link)}" href="${ctx}/admin/web-page-designer?webPage=${webPage.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-code"></i></a>
         </c:if>
       </td>
       <td>

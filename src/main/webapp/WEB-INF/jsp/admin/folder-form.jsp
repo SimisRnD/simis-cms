@@ -20,8 +20,8 @@
 <jsp:useBean id="folder" class="com.simisinc.platform.domain.model.cms.Folder" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${folder.id eq -1}"><h4>New Folder</h4></c:when>
-  <c:otherwise><h4>Update Folder</h4></c:otherwise>
+  <c:when test="${folder.id eq -1}"><h2 class="h4">New Folder</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Folder</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
@@ -34,12 +34,12 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Folder Name <span class="required">*</span>
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${folder.name}"/>" required>
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${folder.name}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${folder.summary}"/>">

@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.infrastructure.persistence.cms.WebRedirectRepository;
 
@@ -58,6 +59,14 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebRedirectRepositor
 public class SaveWebRedirectCommand {
 
   private static final Log LOG = LogFactory.getLog(SaveWebRedirectCommand.class);
+
+  // Issue #1740 called this form the shape to avoid: the inputs already carry maxlength, which
+  // stops a browser user and nothing else -- the attribute is not a control, and a POST from
+  // anything that is not a browser walked straight past it into the generic system error.
+  // @column web_redirects.from_path
+  private static final int MAX_FROM_PATH_LENGTH = 500;
+  // @column web_redirects.to_url
+  private static final int MAX_TO_URL_LENGTH = 2000;
 
   // Prefixes WebRequestFilter and its downstream pipeline treat specially (health checks, ACME
   // challenges, static resources, the REST API, /logout) plus /admin and /login -- the two most
@@ -124,6 +133,9 @@ public class SaveWebRedirectCommand {
       errorMessages.append("The from path must start with a /. ");
     } else if (isReservedFromPath(fromPath)) {
       errorMessages.append("The from path conflicts with a reserved system path and cannot be used. ");
+    } else if (FieldLengthCommand.exceedsLimit(fromPath, MAX_FROM_PATH_LENGTH)) {
+      // this command ends each message with ". " rather than joining with a separator
+      errorMessages.append(FieldLengthCommand.tooLongMessage("The from path", MAX_FROM_PATH_LENGTH) + ". ");
     }
 
     String toUrl = StringUtils.trimToNull(bean.getToUrl());
@@ -135,6 +147,9 @@ public class SaveWebRedirectCommand {
     } else if (!actingUserIsAdmin && isExternalUrl(sanitizedToUrl)) {
       errorMessages.append("Only administrators may redirect to an external URL; content managers can redirect "
           + "to a path on this site only. ");
+    } else if (FieldLengthCommand.exceedsLimit(sanitizedToUrl, MAX_TO_URL_LENGTH)) {
+      // the sanitized URL is what gets written, so that is the length that has to fit
+      errorMessages.append(FieldLengthCommand.tooLongMessage("The to URL", MAX_TO_URL_LENGTH) + ". ");
     }
 
     if (fromPath != null && sanitizedToUrl != null && fromPath.equals(sanitizedToUrl)) {

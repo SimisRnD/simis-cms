@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 
@@ -31,6 +32,10 @@ import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository
  * @created 4/19/18 2:47 PM
  */
 public class SaveCategoryCommand {
+
+  // @column categories.name
+  private static final int MAX_NAME_LENGTH = 255;
+
 
   private static Log LOG = LogFactory.getLog(SaveCategoryCommand.class);
 
@@ -45,6 +50,9 @@ public class SaveCategoryCommand {
     }
     if (StringUtils.isBlank(categoryBean.getName())) {
       throw new DataException("A name is required, please check the fields and try again");
+    }
+    if (FieldLengthCommand.exceedsLimit(categoryBean.getName(), MAX_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A name", MAX_NAME_LENGTH));
     }
     if (categoryBean.getCreatedBy() == -1) {
       throw new DataException("The user creating this category was not set");

@@ -23,7 +23,7 @@
 <jsp:useBean id="card1" class="java.lang.String" scope="request"/>
 <jsp:useBean id="card2" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <div class="platform-content-container"<c:if test="${showEditor eq 'true' && !empty uniqueId}"> data-simis-content-id="${uniqueId}"</c:if>>
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
@@ -31,20 +31,28 @@
       <c:if test="${isDraft eq 'true'}">
         <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Publish this content?">DRAFT</a>
       </c:if>
-      <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Edit this content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>
   <c:if test="${!empty card1}">
     <c:if test="${!empty card2 && useIcon eq 'true'}">
       <div class="float-right">
-        <button class="reveal-button" data-toggle="modal${widgetContext.uniqueId}"><i class="${font:fal()} fa-plus-circle"></i></button>
+        <button aria-labelledby="reveal-button${widgetContext.uniqueId}" class="reveal-button" data-toggle="modal${widgetContext.uniqueId}"><i aria-hidden="true" class="${font:fal()} fa-plus-circle"></i></button>
       </div>
     </c:if>
     <button id="reveal-button${widgetContext.uniqueId}" class="reveal-button-text" data-toggle="modal${widgetContext.uniqueId}"><div class="button-reveal-content">${card1}</div></button>
     <c:if test="${!empty card2}">
       <div class="reveal<c:if test="${!empty size}"> <c:out value="${size}" /></c:if>" id="modal${widgetContext.uniqueId}"
-           role="dialog" aria-modal="true"
+           <%-- aria-labelledby points at the trigger button rendered just above, whose text is
+                card1 -- the same value that serves as this dialog's visible title. A role="dialog"
+                with aria-modal but no name announces only as "dialog", which is what a screen
+                reader user got here (WCAG 4.1.2). Every other Reveal in the codebase names itself
+                from an h4 inside it; this widget has no heading element to point at, and the
+                trigger already carries a stable per-widget id, so it is the natural source. The
+                button is emitted unconditionally inside the same c:if that guards card1, and this
+                dialog additionally requires card2, so the reference can never dangle. --%>
+           role="dialog" aria-modal="true" aria-labelledby="reveal-button${widgetContext.uniqueId}"
            data-reveal
            data-reset-on-close="true"
            <%-- No data-animation-in/data-animation-out (issue #1320, same as #1318): Foundation's

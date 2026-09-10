@@ -56,4 +56,33 @@ public class UserCommand {
     return LoadUserCommand.loadUser(userId);
   }
 
+
+  /**
+   * The Foundation label variant for a role badge, chosen by privilege level.
+   *
+   * <p>The colour carries the escalation ladder rather than decorating it, so "who holds elevated
+   * access" is answerable at a glance on /admin/users -- which is the question that page exists to
+   * answer. Grey, green, blue, amber reads as increasing rank; red is deliberately not used, since
+   * the break-glass badge alongside these owns it and a role sharing that colour would blunt it.
+   *
+   * <p>Levels are the seeded lookup_role values: 70 content-editor, 80 content-manager, 90
+   * community-manager, 93 data-manager, 95 ecommerce-manager, 100 admin. Banded rather than
+   * enumerated so a site that adds a role at, say, 85 still gets a sensible colour instead of none.
+   *
+   * <p>Every variant returned clears WCAG AA (4.5:1) for small text as shipped: secondary 4.50:1,
+   * primary 4.65:1, success 6.93:1 (the platform.css override, not Foundation's default), warning
+   * 10.66:1.
+   */
+  public static String roleTierClass(int level) {
+    if (level >= 100) {
+      return "warning";
+    }
+    if (level >= 90) {
+      return "primary";
+    }
+    if (level >= 80) {
+      return "success";
+    }
+    return "secondary";
+  }
 }

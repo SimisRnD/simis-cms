@@ -53,6 +53,12 @@ class EmailSubscribeWidgetTest extends WidgetBase {
     return blog;
   }
 
+  private static MailingList list(long id) {
+    MailingList mailingList = new MailingList();
+    mailingList.setId(id);
+    return mailingList;
+  }
+
   private static void addBlogScopedPreferences(WidgetContext context, String blogUniqueId) {
     addPreferencesFromWidgetXml(context,
         "<widget name=\"emailSubscribe\">\n" +
@@ -65,19 +71,29 @@ class EmailSubscribeWidgetTest extends WidgetBase {
   void executeRendersNormallyWithoutABlogUniqueIdPreference() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"emailSubscribe\"><useCaptcha>false</useCaptcha></widget>");
 
-    WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(list(1L));
 
-    assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+    }
   }
 
   @Test
   void executeExposesAnEmptyEmailBeanWhenThereWasNoPriorFailedSubmission() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"emailSubscribe\"><useCaptcha>false</useCaptcha></widget>");
 
-    WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(list(1L));
 
-    Email email = (Email) result.getRequest().getAttribute("email");
-    assertNull(email.getFirstName());
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      Email email = (Email) result.getRequest().getAttribute("email");
+      assertNull(email.getFirstName());
+    }
   }
 
   @Test
@@ -88,9 +104,14 @@ class EmailSubscribeWidgetTest extends WidgetBase {
     previousAttempt.setEmail("jane@example.com");
     widgetContext.setRequestObject(previousAttempt);
 
-    WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName(SaveEmailCommand.DEFAULT_MAILING_LIST_NAME))
+          .thenReturn(list(1L));
 
-    assertEquals(previousAttempt, result.getRequest().getAttribute("email"));
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(previousAttempt, result.getRequest().getAttribute("email"));
+    }
   }
 
   @Test
@@ -135,6 +156,9 @@ class EmailSubscribeWidgetTest extends WidgetBase {
       WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
 
       assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+      // Issue #1724: this form subscribes by the blog's list id, so drift in the mailingList name
+      // preference is irrelevant to it and must not suppress it
+      listRepo.verify(() -> MailingListRepository.findByName(any()), never());
     }
   }
 
@@ -185,14 +209,18 @@ class EmailSubscribeWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><useCaptcha>false</useCaptcha></widget>");
     addQueryParameter(widgetContext, "email", "subscriber@example.com");
+    MailingList newsletter = list(1L);
 
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      saveEmail.when(() -> SaveEmailCommand.findMailingList(null, "Newsletter")).thenReturn(newsletter);
 
       new EmailSubscribeWidget().post(widgetContext);
 
-      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq("Newsletter")));
+      // The name preference still works; what changed is that the widget resolves it to a list
+      // itself (so mailingListUniqueId can take priority) rather than handing the name down
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(newsletter)));
     }
   }
 
@@ -272,14 +300,165 @@ class EmailSubscribeWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><showName>true</showName><useCaptcha>false</useCaptcha></widget>");
     addQueryParameter(widgetContext, "email", "subscriber@example.com");
+    MailingList newsletter = list(1L);
 
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      saveEmail.when(() -> SaveEmailCommand.findMailingList(null, "Newsletter")).thenReturn(newsletter);
 
       new EmailSubscribeWidget().post(widgetContext);
 
-      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq("Newsletter")));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(newsletter)));
+    }
+  }
+
+  /**
+   * Issue #1724: a submit no longer creates the named list when it doesn't resolve, so the same
+   * reasoning as the blogUniqueId checks above applies -- don't render a form that can only ever
+   * fail, and log which name an admin has to fix.
+   */
+  @Test
+  void executeRendersNothingWhenTheNamedMailingListDoesNotExist() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(null);
+
+      assertNull(new EmailSubscribeWidget().execute(widgetContext));
+    }
+  }
+
+  @Test
+  void executeRendersTheFormWhenTheNamedMailingListExists() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingList>SimIS Updates</mailingList><useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByName("SimIS Updates")).thenReturn(list(7L));
+
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+    }
+  }
+
+  /** The per-list checkboxes (issue #598) are a working path of their own, so a view offering them
+   *  isn't broken just because the fallback name has drifted. */
+  @Test
+  void executeStillRendersWhenTheNamedListIsMissingButPublicListsOfferAChoice() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingList>Newsletter</mailingList><showName>true</showName>"
+            + "<useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<ShippingCountryRepository> countryRepo = mockStatic(ShippingCountryRepository.class)) {
+      listRepo.when(MailingListRepository::findOnlineLists).thenReturn(List.of(list(2L)));
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(null);
+      countryRepo.when(ShippingCountryRepository::findAll).thenReturn(List.of(new ShippingCountry()));
+
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(EmailSubscribeWidget.WITH_NAME_JSP, result.getJsp());
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Issue #1724 follow-up: the mailingListUniqueId preference. mailing_lists.unique_id is assigned
+  // when a list is created and never rewritten, so a page pointed at it survives a rename -- the
+  // mailingList *name* preference cannot, because name is an editable field on the admin form.
+  // ---------------------------------------------------------------------------------------------
+
+  private static MailingList list(long id, String uniqueId) {
+    MailingList mailingList = list(id);
+    mailingList.setUniqueId(uniqueId);
+    return mailingList;
+  }
+
+  @Test
+  void executeResolvesTheUniqueIdPreferenceAndNeverConsultsTheName() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingListUniqueId>newsletter</mailingListUniqueId>"
+            + "<useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByUniqueId("newsletter")).thenReturn(list(7L, "newsletter"));
+
+      WidgetContext result = new EmailSubscribeWidget().execute(widgetContext);
+
+      assertEquals(EmailSubscribeWidget.JSP, result.getJsp());
+      listRepo.verify(() -> MailingListRepository.findByName(any()), never());
+    }
+  }
+
+  @Test
+  void executeRendersNothingWhenTheUniqueIdPreferenceDoesNotResolve() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingListUniqueId>deleted-list</mailingListUniqueId>"
+            + "<useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByUniqueId("deleted-list")).thenReturn(null);
+
+      assertNull(new EmailSubscribeWidget().execute(widgetContext));
+    }
+  }
+
+  /** A uniqueId that doesn't resolve means the list was deleted, not renamed. Falling back to a
+   *  (necessarily older) name preference would subscribe visitors to a list nobody configured for
+   *  this form -- the silent wrong-list signup issue #1724 is about. */
+  @Test
+  void executeDoesNotFallBackToTheNameWhenTheUniqueIdPreferenceIsSetButMissing() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingListUniqueId>deleted-list</mailingListUniqueId>"
+            + "<mailingList>Newsletter</mailingList><useCaptcha>false</useCaptcha></widget>");
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class)) {
+      listRepo.when(() -> MailingListRepository.findByUniqueId("deleted-list")).thenReturn(null);
+      listRepo.when(() -> MailingListRepository.findByName("Newsletter")).thenReturn(list(1L));
+
+      assertNull(new EmailSubscribeWidget().execute(widgetContext));
+      listRepo.verify(() -> MailingListRepository.findByName(any()), never());
+    }
+  }
+
+  @Test
+  void postSubscribesToTheListTheUniqueIdPreferenceNames() throws Exception {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingListUniqueId>newsletter</mailingListUniqueId>"
+            + "<useCaptcha>false</useCaptcha></widget>");
+    addQueryParameter(widgetContext, "email", "subscriber@example.com");
+    MailingList newsletter = list(7L, "newsletter");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      saveEmail.when(() -> SaveEmailCommand.findMailingList("newsletter", null)).thenReturn(newsletter);
+
+      new EmailSubscribeWidget().post(widgetContext);
+
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(newsletter)));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), any(String.class)), never());
+    }
+  }
+
+  @Test
+  void postFailsClosedWhenTheConfiguredListDisappearedBetweenRenderAndSubmit() throws Exception {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"emailSubscribe\"><mailingListUniqueId>newsletter</mailingListUniqueId>"
+            + "<useCaptcha>false</useCaptcha></widget>");
+    addQueryParameter(widgetContext, "email", "subscriber@example.com");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<SaveEmailCommand> saveEmail = mockStatic(SaveEmailCommand.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
+      saveEmail.when(() -> SaveEmailCommand.findMailingList("newsletter", null)).thenReturn(null);
+
+      WidgetContext result = new EmailSubscribeWidget().post(widgetContext);
+
+      assertEquals(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE, result.getWarningMessage());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), any(MailingList.class)), never());
     }
   }
 }

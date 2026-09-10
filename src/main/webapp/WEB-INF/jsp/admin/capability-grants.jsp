@@ -23,10 +23,10 @@
 <jsp:useBean id="capabilityList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="grantList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<h4><c:out value="${targetUser.fullName}" /></h4>
-<p class="help-text">Direct grants give this specific user a capability without changing their role - useful for a
+<h3 class="h4"><c:out value="${targetUser.fullName}" /></h3>
+<p class="help-text page-help">Direct grants give this specific user a capability without changing their role - useful for a
   temporary need (set an expiration) or a one-off exception (leave it permanent). This user's effective capabilities
   are the union of what their role(s) grant (see <a href="${ctx}/admin/role-capabilities">Role Capabilities</a>) and
   any active grants listed below - a direct grant can only add access on top of a role; it can never subtract from

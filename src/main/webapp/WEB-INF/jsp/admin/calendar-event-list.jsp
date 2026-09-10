@@ -22,10 +22,10 @@
 <jsp:useBean id="calendarList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">
+<p class="help-text page-help">
   <i class="fa fa-info-circle"></i> Every event here belongs to exactly one calendar, and there's
   no general "add event" button on this list -- open the calendar it belongs to (from the Calendars
   table above) and use that calendar's own "Add Event" button. <strong>No recurring events:</strong>
@@ -126,7 +126,7 @@
           </c:choose>
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/calendar-event?calendarEventId=${event.id}&returnPage=/admin/calendars"><i class="fa fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(event.title)}" href="${ctx}/admin/calendar-event?calendarEventId=${event.id}&returnPage=/admin/calendars"><i aria-hidden="true" class="fa fa-edit"></i></a>
         </td>
       </tr>
     </c:forEach>

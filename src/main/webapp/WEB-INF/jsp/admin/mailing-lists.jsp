@@ -24,7 +24,7 @@
 <jsp:useBean id="mailingLists" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="service" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <table>
@@ -43,6 +43,10 @@
     <tr>
       <td>
         <a href="${ctx}/admin/mailing-list-members?mailingListId=${mailingList.id}"><c:out value="${mailingList.title}" /></a>
+        <%-- The id a page's Email Subscription widget points at with mailingListUniqueId (issue
+             #1724). Shown here so it can be copied without opening the list's edit form -- it is
+             fixed when the list is created and unaffected by any later rename. --%>
+        <br /><small class="subheader"><code><c:out value="${mailingList.uniqueId}" /></code></small>
         <%--
         <c:if test="${!empty mailingList.description}">
           <br /><small class="subheader"><c:out value="${mailingList.description}" /></small>
@@ -68,9 +72,12 @@
         </c:choose>
       </td>
       <td class="text-center">
-        <a href="${ctx}/admin/mailing-list?mailingListId=${mailingList.id}&returnPage=/admin/mailing-lists"><i class="${font:fas()} fa-edit"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(not empty mailingList.title ? mailingList.title : mailingList.name)}" href="${ctx}/admin/mailing-list?mailingListId=${mailingList.id}&returnPage=/admin/mailing-lists"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
+        <%-- Issue #1730: name the list the way the row above does (title) -- naming the internal
+             key here meant an irreversible delete was confirmed against a name the admin may not
+             recognise after a rename --%>
         <c:if test="${mailingList.memberCount lt 11}">
-          <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${mailingList.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}"><i class="fa fa-remove"></i></a>
+          <a aria-label="Delete ${fn:escapeXml(not empty mailingList.title ? mailingList.title : mailingList.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${not empty mailingList.title ? mailingList.title : mailingList.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

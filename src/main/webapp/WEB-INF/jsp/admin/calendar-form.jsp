@@ -21,9 +21,9 @@
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
 <script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
 <c:choose>
-  <c:when test="${calendar.id eq -1}"><h4>New Calendar</h4></c:when>
+  <c:when test="${calendar.id eq -1}"><h2 class="h4">New Calendar</h2></c:when>
   <c:otherwise>
-    <h4>Update Calendar</h4>
+    <h2 class="h4">Update Calendar</h2>
     <a class="button small radius primary" href="${ctx}/admin/calendar-event?calendarId=${calendar.id}&returnPage=/admin/calendar?calendarId=${calendar.id}">Add Event <i class="fa fa-arrow-circle-right"></i></a>
   </c:otherwise>
 </c:choose>
@@ -38,10 +38,10 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">
+  <p class="help-text page-help">
     <i class="fa fa-info-circle"></i> A Calendar is just a named, colored container for events --
     saving generates a Unique Id (shown in the Calendars list) that a page author sets as the
     <code>calendarUniqueId</code> preference on a calendar-related widget to display this calendar's
@@ -50,7 +50,7 @@
   </p>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Events, Holidays, etc." name="name" value="<c:out value="${calendar.name}"/>" required>
+    <input type="text" placeholder="Events, Holidays, etc." name="name" maxlength="255" value="<c:out value="${calendar.name}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${calendar.description}"/>">

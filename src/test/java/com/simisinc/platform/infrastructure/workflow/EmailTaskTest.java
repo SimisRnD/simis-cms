@@ -17,11 +17,15 @@
 package com.simisinc.platform.infrastructure.workflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.ImageHtmlEmail;
@@ -34,9 +38,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.email.EmailCommand;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
+import com.simisinc.platform.infrastructure.persistence.workflow.WorkflowNotificationSentRepository;
 
 import jakarta.servlet.ServletContext;
 
@@ -94,10 +101,75 @@ class EmailTaskTest {
     }
   }
 
+  @Test
+  void addressingACapabilityMailsEveryoneWhoHoldsIt() throws Exception {
+    // A role-addressed mail reaches only accounts sitting in that role; a capability-addressed one
+    // reaches everyone the permission model says is responsible -- a System Administrator holding
+    // community:manage included
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadUser.when(() -> LoadUserCommand.loadUsersHoldingCapability("community:manage"))
+          .thenReturn(Arrays.asList(user(1L, "manager@example.com"), user(2L, "admin@example.com")));
+      StubEmail email = new StubEmail(null);
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any())).thenReturn(email);
+
+      TaskContext taskContext = new TaskContext(new EmailTask());
+      taskContext.put(EmailTask.TEMPLATE, TEMPLATE);
+      taskContext.put(EmailTask.TO_CAPABILITY, "community:manage");
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContext);
+
+      assertEquals(WorkStatus.COMPLETED, report.getStatus());
+      assertEquals(2, email.getToAddresses().size());
+    }
+  }
+
+  @Test
+  void aCapabilityNobodyHoldsMailsNobodyRatherThanEveryone() throws Exception {
+    // An unrecognised or unheld capability must address nobody -- failing open here would mail an
+    // unknown set of people about an event they may have no business seeing
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadUser.when(() -> LoadUserCommand.loadUsersHoldingCapability(anyString()))
+          .thenReturn(Collections.emptyList());
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any()))
+          .thenReturn(new StubEmail(null));
+
+      TaskContext taskContext = new TaskContext(new EmailTask());
+      taskContext.put(EmailTask.TEMPLATE, TEMPLATE);
+      taskContext.put(EmailTask.TO_CAPABILITY, "no-such:capability");
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContext);
+
+      assertEquals(WorkStatus.FAILED, report.getStatus(), "no recipients means the task did not do its job");
+    }
+  }
+
+  private static User user(long id, String email) {
+    User user = new User();
+    user.setId(id);
+    user.setEmail(email);
+    return user;
+  }
+
   private static TaskContext taskContext() {
     TaskContext taskContext = new TaskContext(new EmailTask());
     taskContext.put(EmailTask.TEMPLATE, TEMPLATE);
     taskContext.put(EmailTask.TO_EMAIL, "test@example.com");
+    return taskContext;
+  }
+
+  private static TaskContext taskContextWithOnceKey(String key) {
+    TaskContext taskContext = taskContext();
+    taskContext.put(EmailTask.ONCE_KEY, key);
     return taskContext;
   }
 
@@ -132,6 +204,7 @@ class EmailTaskTest {
   // behavior than a full mock would.
   private static class StubEmail extends ImageHtmlEmail {
     private final EmailException toThrow;
+    private boolean sent = false;
 
     StubEmail(EmailException toThrow) {
       this.toThrow = toThrow;
@@ -142,7 +215,77 @@ class EmailTaskTest {
       if (toThrow != null) {
         throw toThrow;
       }
+      sent = true;
       return "stub-message-id";
+    }
+
+    /** Whether send() was actually reached -- the point of a once-key is that sometimes it is not */
+    boolean wasSent() {
+      return sent;
+    }
+  }
+
+  @Test
+  void anAlreadySentOnceKeyDoesNotSendAgainAndReportsCompleted() throws Exception {
+    // Issue 1643's second line of defence. The playbook may run more than once -- a retry, or any
+    // future cause -- and the notification must not go out twice. Reporting COMPLETED rather than
+    // FAILED matters: the work really is done, and reporting failure would trigger yet another
+    // retry of a workflow with nothing left to do.
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class);
+        MockedStatic<WorkflowNotificationSentRepository> sent = mockStatic(WorkflowNotificationSentRepository.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      StubEmail stub = new StubEmail(null);
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any())).thenReturn(stub);
+      sent.when(() -> WorkflowNotificationSentRepository.claim("form-notification:1")).thenReturn(false);
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContextWithOnceKey("form-notification:1"));
+
+      assertEquals(WorkStatus.COMPLETED, report.getStatus());
+      assertFalse(stub.wasSent(), "an email already sent for this key must not be sent a second time");
+    }
+  }
+
+  @Test
+  void aFailedSendReleasesTheOnceKeySoARetryIsStillPossible() throws Exception {
+    // Claiming before the send is what makes at-most-once true, but it would turn every transient
+    // SMTP failure into a permanently skipped notification if the claim were not given back.
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class);
+        MockedStatic<WorkflowNotificationSentRepository> sent = mockStatic(WorkflowNotificationSentRepository.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any()))
+          .thenReturn(new StubEmail(new EmailException("simulated SMTP failure")));
+      sent.when(() -> WorkflowNotificationSentRepository.claim("form-notification:2")).thenReturn(true);
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContextWithOnceKey("form-notification:2"));
+
+      assertEquals(WorkStatus.FAILED, report.getStatus());
+      sent.verify(() -> WorkflowNotificationSentRepository.release("form-notification:2"));
+    }
+  }
+
+  @Test
+  void anEmailWithNoOnceKeyIsUnaffected() throws Exception {
+    // Every other playbook email carries no key and must keep working exactly as before.
+    setServletContext(fakeServletContext());
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<EmailCommand> emailCommand = mockStatic(EmailCommand.class);
+        MockedStatic<WorkflowNotificationSentRepository> sent = mockStatic(WorkflowNotificationSentRepository.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      StubEmail stub = new StubEmail(null);
+      emailCommand.when(() -> EmailCommand.prepareNewEmail(org.mockito.ArgumentMatchers.any())).thenReturn(stub);
+
+      WorkReport report = new EmailTask().execute(new WorkContext(), taskContext());
+
+      assertEquals(WorkStatus.COMPLETED, report.getStatus());
+      assertTrue(stub.wasSent(), "an email without a once-key still sends");
+      sent.verifyNoInteractions();
     }
   }
 }

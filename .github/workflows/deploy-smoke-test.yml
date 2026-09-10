@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: 'temurin'
           java-version: 21
@@ -61,6 +61,30 @@ jobs:
         # `--wait` blocks until the app service's HEALTHCHECK reports healthy; if the WAR fails to
         # deploy or the app fails to boot, the container never turns healthy and this step fails.
         run: docker compose up -d --build --wait --wait-timeout 300 app
+
+      - name: Check response integrity
+        # The health check proves the app answers; it does not look at what it answers with. Both
+        # #1832 (gzip beside an uncompressed Content-Length) and #1878 (a truncated gzip stream)
+        # passed a green pipeline. This step reads the actual bytes.
+        run: .github/scripts/check-response-integrity.sh http://localhost
+
+      - name: Check the admin save path
+        # Everything above this line is anonymous, so nothing verified that an admin can still SAVE
+        # after a deploy (#1894). A CSP, form-token, session or migration regression on the write
+        # path leaves every page returning a healthy 200 -- #1188 was exactly that, and the controls
+        # it broke did nothing while the pipeline stayed green.
+        #
+        # This signs in as the admin the app auto-provisions from the variables written above, and
+        # asserts that a changed setting READS BACK. The POST's status is deliberately not the
+        # assertion: a silently-failing save also answers 302.
+        # Credentials are sourced from the .env written above rather than repeated here, so the two
+        # cannot drift apart -- the container and this check must agree on the password or the check
+        # fails for a reason that has nothing to do with the deploy.
+        run: |
+          set -a
+          . ./.env
+          set +a
+          .github/scripts/check-admin-save-path.sh http://localhost
 
       - name: Dump container logs on failure
         if: failure()

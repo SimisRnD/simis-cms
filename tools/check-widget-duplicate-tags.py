@@ -56,6 +56,17 @@ import xml.etree.ElementTree as ET
 LAYOUT_ROOT = "src/main/webapp/WEB-INF/web-layouts"
 
 
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- a gate whose layout directory
+    has been renamed out from under it must be visibly broken rather than read as a
+    duplicate-tag finding (or, worse, as a clean run).
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def widget_label(widget: ET.Element) -> str:
     return widget.get("name") or widget.get("id") or "(unnamed)"
 
@@ -113,7 +124,7 @@ def main() -> int:
 
     base = os.path.join(args.root, LAYOUT_ROOT)
     if not os.path.isdir(base):
-        sys.exit("error: %s not found (run from the repository root)" % base)
+        fail("%s not found (run from the repository root)" % base)
 
     pattern = os.path.join(base, "**", "*-layout.xml")
     files = sorted(glob.glob(pattern, recursive=True))

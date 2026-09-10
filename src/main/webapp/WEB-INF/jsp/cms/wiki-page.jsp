@@ -23,8 +23,8 @@
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
 <jsp:useBean id="wikiLinkPrefix" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mermaid" class="java.lang.String" scope="request"/>
-<link rel="stylesheet" href="${ctx}/javascript/prism-1.29.0/prism.css">
-<script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
+<link rel="stylesheet" href="${ctx}/javascript/prism-1.30.0/prism.css">
+<script src="${ctx}/javascript/prism-1.30.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
 <script src="${ctx}/javascript/mermaid-10.9.6/mermaid.min.js"></script>
 <script nonce="${cspNonce}">
@@ -44,10 +44,10 @@
 </c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">
-    <h4 class="no-gap"><c:out value="${title}" /></h4>
+    <h2 class="widget-title no-gap"><c:out value="${title}" /></h2>
   </c:when>
   <c:otherwise>
-    <h4 class="no-gap"><c:out value="${wikiPage.title}" /></h4>
+    <h3 class="no-gap h4"><c:out value="${wikiPage.title}" /></h3>
   </c:otherwise>
 </c:choose>
 <p class="subheader no-gap">
@@ -61,7 +61,7 @@
 <hr />
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty wikiPage.uniqueId}">
-    <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
+    <div class="platform-content-editor"><a aria-label="Edit this wiki page" class="hollow button small secondary" href="${ctx}/wiki-editor?wikiUniqueId=${wiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
   </c:if>
   <div class="markdown-body">${contentHtml}</div>
 </div>

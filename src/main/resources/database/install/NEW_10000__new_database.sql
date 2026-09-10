@@ -55,15 +55,25 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'Show cart?', 'site.cart', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Event page button label', 'site.calendar.actionLabel', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (28, 'Event page button link', 'site.calendar.actionUrl', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Require review approval before publishing content', 'content.review.required', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (241, 'Require review approval to publish web pages', 'webPage.review.required', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (242, 'Require review approval to publish blog posts', 'blogPost.review.required', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Roles that must enroll in MFA (comma-separated)', 'mfa.required.roles', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'MFA enrollment URL', 'mfa.enrollment.url', '/my-profile', 'web-page');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'MFA enrollment URL', 'mfa.enrollment.url', '/my-page', 'web-page');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (243, 'Documentation wiki (Unique Id)', 'documentation.wiki.uniqueId', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Header link name', 'site.header.link', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Header details page', 'site.header.page', '', 'web-page');
+-- Organization details (issue #1795). Empty by default: nothing is emitted into the structured
+-- data until an administrator fills them in, so a site that never sets them is unchanged.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (33, 'Street address', 'site.address.street', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (34, 'City', 'site.address.city', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (35, 'State or region', 'site.address.state', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (36, 'Postal code', 'site.address.postalCode', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (37, 'Country', 'site.address.country', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (38, 'Year founded', 'site.founded', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Footer line 1', 'site.footer.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (51, 'Footer line 2', 'site.footer.line2', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Show privacy policy link?', 'site.privacy.policy', 'true', 'boolean');
@@ -88,6 +98,8 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Color scheme', 'theme.ui.mode', 'light', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo color', 'theme.logo.color', 'color-and-white', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (8, 'Logo color (dark mode)', 'theme.logo.color.dark', 'all-white', 'text');
+-- Empty means "follow theme.ui.mode"; set it to run the admin console on its own scheme.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (9, 'Admin color scheme', 'theme.ui.mode.admin', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Headlines font', 'theme.fonts.headlines', '', 'font');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (11, 'Body font', 'theme.fonts.body', '', 'font');
@@ -188,7 +200,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password age warning threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 -- Only applies to form_data rows that have reached a terminal state (processed or dismissed by an
 -- admin) -- rows still awaiting review are never deleted by this, regardless of age. See
@@ -218,6 +229,15 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha service', 'captcha.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA site key', 'captcha.google.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA secret key', 'captcha.google.secretkey', '');
+-- Issue #1615: reCAPTCHA Enterprise. A key issued by Google's current console cannot be verified by
+-- the legacy siteverify endpoint the secret key above is for, so it takes the assessment API and its
+-- own credentials. Enterprise is inferred from these two being set rather than from a fourth
+-- captcha.service value -- that property is free text, and issue #1614 is what a typo in it costs.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Google reCAPTCHA Enterprise project id', 'captcha.google.projectid', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (32, 'Google reCAPTCHA Enterprise API key', 'captcha.google.apikey', '');
+-- Optional. When blank the score is logged rather than enforced, so an operator can see what real
+-- traffic scores before choosing a number to reject people on.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (33, 'Google reCAPTCHA minimum score (0.0-1.0)', 'captcha.google.scorethreshold', '');
 -- Issue #519: Cloudflare Turnstile, a second captcha.service option alongside Google reCAPTCHA above.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile site key', 'captcha.turnstile.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile secret key', 'captcha.turnstile.secretkey', '');
@@ -314,6 +334,13 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum password length', 'security.password.minLength', '15', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require password complexity?', 'security.password.requireComplexity', 'true', 'boolean');
+-- Issue #492: the /admin/users password-age warning threshold. Seeded under the "security"
+-- prefix so it appears on /admin/security-properties alongside the other password policy rows
+-- and inherits their step-up-auth gate; UPGRADE_20260831.1100 renames the original
+-- password.maxAgeDays row on existing deployments, which was seeded under a prefix that no
+-- admin page registers and so had no field anywhere. The UI's "red/expired" tier is computed
+-- as 2x this value, not separately stored.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Password age warning threshold (days)', 'security.password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Additional iframe embed hosts', 'security.iframe.allowedHosts', '', 'text');
 
 CREATE TABLE lookup_role (
@@ -449,7 +476,11 @@ CREATE TABLE users (
   failed_attempt_count INTEGER DEFAULT 0,
   locked_until TIMESTAMP(3),
   last_password_changed_at TIMESTAMP(3),
-  suspension_reason VARCHAR(255)
+  suspension_reason VARCHAR(255),
+  -- A break-glass account: its sign-ins alert every other administrator, and org-level MFA
+  -- enforcement never redirects it to the enrollment page (see MfaEnforcementCommand). The seeded
+  -- system-administrator is marked in V71120__create_admin.
+  break_glass BOOLEAN DEFAULT false
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
@@ -545,6 +576,7 @@ CREATE TABLE sessions (
   ip_address VARCHAR(200),
   user_agent VARCHAR(255),
   referer VARCHAR(255),
+  host VARCHAR(255),
   continent VARCHAR(20),
   country_iso VARCHAR(2),
   country VARCHAR(100),
@@ -833,3 +865,28 @@ CREATE TABLE distributed_lock (
   lock_until TIMESTAMP(3) NOT NULL,
   uuid VARCHAR(255) NOT NULL
 );
+
+-- Records a workflow side effect that must happen at most once, so a replayed playbook cannot
+-- repeat it. A workflow step claims a key here before acting; the claim is the INSERT, so two
+-- attempts race on the primary key and exactly one wins. See EmailTask's once-key handling and
+-- issue 1643, where a retried playbook re-sent a notification that had already gone out.
+CREATE TABLE workflow_notification_sent (
+  notification_key VARCHAR(255) PRIMARY KEY NOT NULL,
+  sent_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Aggregated Content-Security-Policy violation reports (see UPGRADE_20260827.1000). One row per
+-- (directive, host), not per event: /csp-report is necessarily unauthenticated, so aggregating
+-- means a flood inflates a counter instead of growing the table. Only the blocked URL's host is
+-- stored, never its path or query string.
+CREATE TABLE csp_violation (
+  violation_id BIGSERIAL PRIMARY KEY,
+  effective_directive VARCHAR(64) NOT NULL,
+  blocked_host VARCHAR(255) NOT NULL,
+  occurrences BIGINT NOT NULL DEFAULT 1,
+  sample_document_path VARCHAR(512),
+  first_seen TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  last_seen TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT uq_csp_violation_directive_host UNIQUE (effective_directive, blocked_host)
+);
+CREATE INDEX idx_csp_violation_last_seen ON csp_violation(last_seen DESC);

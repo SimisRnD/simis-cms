@@ -68,7 +68,7 @@
             <label for="firstName" class="text-right middle">First Name <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="firstName" name="firstName" value="<c:out value="${user.firstName}" />" required />
+            <input type="text" id="firstName" name="firstName" maxlength="100" value="<c:out value="${user.firstName}" />" required />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -76,7 +76,7 @@
             <label for="lastName" class="text-right middle">Last Name <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="lastName" name="lastName" value="<c:out value="${user.lastName}" />" required />
+            <input type="text" id="lastName" name="lastName" maxlength="100" value="<c:out value="${user.lastName}" />" required />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -84,7 +84,7 @@
             <label for="title" class="text-right middle">Title</label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="title" name="title" value="<c:out value="${user.title}" />" />
+            <input type="text" id="title" name="title" maxlength="100" value="<c:out value="${user.title}" />" />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -92,7 +92,7 @@
             <label for="organization" class="text-right middle">Organization</label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="organization" name="organization" value="<c:out value="${user.organization}" />" />
+            <input type="text" id="organization" name="organization" maxlength="100" value="<c:out value="${user.organization}" />" />
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -129,7 +129,7 @@
             <label for="email" class="text-right middle">Email <span class="required">*</span></label>
           </div>
           <div class="small-8 align-self-middle cell">
-            <input type="text" id="email" name="email" value="<c:out value="${user.email}" />" required />
+            <input type="text" id="email" name="email" maxlength="255" value="<c:out value="${user.email}" />" required />
           </div>
         </div>
       </fieldset>
@@ -276,6 +276,25 @@
           </div>
         </div>
       </fieldset>
+      <%-- Break-glass, offered only for an account that holds admin. The flag exists so an
+           administrator can get back in when the normal path is broken; on a non-admin it would
+           grant the MFA-enrollment exemption without the access that makes it useful. Rendered
+           from the SAVED user, not the submitted bean, because the value cannot travel through
+           SaveUserCommand -- see UserFormWidget#applyBreakGlass. --%>
+      <c:if test="${user.hasRole('admin')}">
+      <fieldset>
+        <div class="grid-x grid-padding-x callout secondary">
+          <div class="small-3 text-right cell">
+            <label for="breakGlassToggle">Break-glass</label>
+          </div>
+          <div class="small-9 cell">
+            <input id="breakGlassToggle" type="checkbox" name="breakGlassAccount" value="true"<c:if test="${user.breakGlass}"> checked</c:if> aria-describedby="breakGlassHelpText" />
+            <label for="breakGlassToggle">Treat this as a break-glass account</label>
+            <p class="help-text" id="breakGlassHelpText">Every sign-in on this account -- and every failed attempt -- emails all other administrators and is written to the audit log. MFA enforcement never redirects it to the enrollment page, so a policy naming a role it holds cannot strand it. It is <strong>not</strong> exempt from MFA itself: if the account has MFA enrolled, signing in still requires a code. Changing this requires re-entering your own password.</p>
+          </div>
+        </div>
+      </fieldset>
+      </c:if>
       <fieldset>
         <div class="grid-x grid-padding-x callout secondary">
           <div class="small-3 text-right cell">

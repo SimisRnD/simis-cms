@@ -20,7 +20,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="contentTabList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <div class="platform-content-container">
   <ul class="tabs" data-deep-link="true" data-update-history="true"<c:if test="${smudge eq 'true'}"> data-deep-link-smudge="true" data-deep-link-smudge-delay="500"</c:if> data-tabs id="deeplinked-tabs">
@@ -32,7 +32,7 @@
   <c:forEach items="${contentTabList}" var="contentTab" varStatus="tabStatus">
     <div class="tabs-panel<c:if test="${tabStatus.first}"> is-active</c:if>" id="${contentTab.linkId}"<c:if test="${showEditor eq 'true' && !empty contentTab.contentUniqueId}"> data-simis-content-id="${contentTab.contentUniqueId}"</c:if>>
       <c:if test="${showEditor eq 'true'}">
-        <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${contentTab.contentUniqueId}&returnPage=${returnPage}#${contentTab.linkId}"><i class="${font:fas()} fa-edit"></i></a></div>
+        <div class="platform-content-editor"><a aria-label="Edit this tab's content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${contentTab.contentUniqueId}&returnPage=${returnPage}#${contentTab.linkId}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
       </c:if>
       <div class="platform-content">
         ${contentTab.html}

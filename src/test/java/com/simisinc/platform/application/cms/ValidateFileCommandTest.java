@@ -45,6 +45,22 @@ class ValidateFileCommandTest {
   }
 
   @Test
+  void aCaptionFileGetsTheTypeThatLetsATrackLoad() {
+    // Files.probeContentType does not know .vtt on the platforms this runs on, so without a
+    // fallback a caption file is stored with no mime type -- and an unknown type is served as
+    // application/octet-stream with nosniff, which a browser will not accept as <track> captions.
+    // The upload succeeds, the markup is right, and the captions silently never appear.
+    File file = new File("missing-file");
+    Assertions.assertEquals("text/vtt", ValidateFileCommand.getMimeType(file, "vtt"));
+  }
+
+  @Test
+  void aCaptionFileIsClassifiedAsText() {
+    // So it gets the text icon in the file listings rather than the generic one.
+    Assertions.assertEquals("Text", ValidateFileCommand.getFileType("text/vtt", "vtt"));
+  }
+
+  @Test
   void getFileType() {
     Assertions.assertEquals("PDF", ValidateFileCommand.getFileType("application/pdf", null));
   }

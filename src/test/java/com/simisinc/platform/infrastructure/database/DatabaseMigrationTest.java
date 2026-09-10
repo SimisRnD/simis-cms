@@ -21,14 +21,25 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -137,6 +148,136 @@ class DatabaseMigrationTest {
     if (postgres != null) {
       postgres.stop();
     }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // The upgrade track (issue #1755).
+  //
+  // Everything above covers the install run. The upgrade track was not executed by anything: a
+  // fresh install baselines flyway_history above every UPGRADE_ file that exists, so they are
+  // recorded as applied without running, and a new one only reached CI if its author hand-wrote a
+  // test. Three of 169 had one. A migration that was syntactically broken, referenced a dropped
+  // object, or silently did nothing passed the whole suite.
+  //
+  // These apply each UPGRADE_*.sql to the installed database inside a transaction that is then
+  // rolled back, so the schema the assertions above depend on is not disturbed and the tests are
+  // order-independent. Replaying against a modern install is not the same as replaying against the
+  // schema of the day -- an upgrade the install track has since caught up with cannot succeed
+  // twice -- so the ones that legitimately cannot replay are listed, with a reason, in
+  // upgrade-replay-exceptions.txt, and the list is checked in both directions.
+  // ---------------------------------------------------------------------------------------------
+
+  // Both are read from the source tree rather than the classpath. compile-test stages only
+  // src/main/resources/database onto the test classpath, and the exceptions list must not be in
+  // there: it is test data, and anything under src/main/resources/database is copied into the WAR.
+  private static final Path EXCEPTIONS_FILE =
+      Paths.get("src/test/resources/database/upgrade-replay-exceptions.txt");
+  private static final Path UPGRADE_DIRECTORY = Paths.get("src/main/resources/database/upgrade");
+
+  @Test
+  void everyUpgradeMigrationEitherReplaysOrIsAKnownException() throws Exception {
+    Map<String, String> exceptions = readExceptions();
+    List<String> unexpectedFailures = new ArrayList<>();
+    int replayed = 0;
+    for (Path file : upgradeMigrations()) {
+      String name = file.getFileName().toString();
+      String failure = replayFailure(file);
+      if (failure == null) {
+        replayed++;
+        continue;
+      }
+      if (!exceptions.containsKey(name)) {
+        unexpectedFailures.add(name + " -- " + failure);
+      }
+    }
+    assertTrue(replayed > 0, "no upgrade migrations were executed at all");
+    assertEquals(List.of(), unexpectedFailures,
+        "these upgrade migrations no longer apply to a freshly installed database. If the cause is "
+            + "that the install track now does the same thing, add the file to "
+            + EXCEPTIONS_FILE + " with that reason. Otherwise it is a defect in the migration: "
+            + unexpectedFailures);
+  }
+
+  @Test
+  void everyListedExceptionStillFails() throws Exception {
+    // The other direction, so the list cannot rot. A migration that starts replaying cleanly --
+    // because the install file it collided with was removed, say -- must lose its line, or the
+    // list slowly becomes a place where real failures could hide.
+    Map<String, String> exceptions = readExceptions();
+    List<String> nowPassing = new ArrayList<>();
+    List<String> notFound = new ArrayList<>(exceptions.keySet());
+    for (Path file : upgradeMigrations()) {
+      String name = file.getFileName().toString();
+      if (!exceptions.containsKey(name)) {
+        continue;
+      }
+      notFound.remove(name);
+      if (replayFailure(file) == null) {
+        nowPassing.add(name);
+      }
+    }
+    // Reported together rather than as two assertions, so a stale entry does not hide a missing
+    // file behind it -- the first assertion to fail would be the only one anyone saw.
+    List<String> stale = new ArrayList<>();
+    nowPassing.forEach(name -> stale.add(name + " (now applies cleanly)"));
+    notFound.forEach(name -> stale.add(name + " (no such migration)"));
+    assertEquals(List.of(), stale,
+        "remove these lines from " + EXCEPTIONS_FILE + " -- an entry that is no longer true is a "
+            + "place a real failure could hide: " + stale);
+  }
+
+  /**
+   * Applies one migration and rolls it back.
+   *
+   * @return null when it applied, or the first line of the database error when it did not
+   */
+  private static String replayFailure(Path file) throws Exception {
+    String sql = Files.readString(file, StandardCharsets.UTF_8);
+    try (Connection connection = DB.getConnection()) {
+      connection.setAutoCommit(false);
+      try (Statement statement = connection.createStatement()) {
+        statement.execute(sql);
+        return null;
+      } catch (SQLException e) {
+        String message = e.getMessage() == null ? e.toString() : e.getMessage().split("\n")[0];
+        return message.length() > 160 ? message.substring(0, 160) : message;
+      } finally {
+        // Nothing this method does may survive: the assertions above run against this same
+        // database, and the migrations are replayed in no particular order.
+        connection.rollback();
+      }
+    }
+  }
+
+  private static List<Path> upgradeMigrations() throws IOException {
+    assertTrue(Files.isDirectory(UPGRADE_DIRECTORY),
+        "upgrade migrations not found at " + UPGRADE_DIRECTORY.toAbsolutePath()
+            + " -- this test reads them from the source tree, so it must run from the project root");
+    try (Stream<Path> walk = Files.walk(UPGRADE_DIRECTORY)) {
+      return walk.filter(path -> path.getFileName().toString().endsWith(".sql"))
+          .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+          .collect(Collectors.toList());
+    }
+  }
+
+  /** @return filename to reason, for every non-comment line of the exceptions list */
+  private static Map<String, String> readExceptions() throws IOException {
+    assertTrue(Files.isRegularFile(EXCEPTIONS_FILE),
+        "missing " + EXCEPTIONS_FILE.toAbsolutePath() + " -- this test runs from the project root");
+    Map<String, String> exceptions = new LinkedHashMap<>();
+    for (String line : Files.readAllLines(EXCEPTIONS_FILE, StandardCharsets.UTF_8)) {
+      String trimmed = line.trim();
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+        continue;
+      }
+      int hash = trimmed.indexOf('#');
+      String name = (hash == -1 ? trimmed : trimmed.substring(0, hash)).trim();
+      String reason = hash == -1 ? "" : trimmed.substring(hash + 1).trim();
+      assertTrue(!reason.isEmpty(),
+          "every entry needs a reason after '#', so the list stays reviewable: " + name);
+      exceptions.put(name, reason);
+    }
+    return exceptions;
   }
 
   @Test
@@ -269,6 +410,68 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void cspReportOnlyPropertySeedsOnAFreshInstall() throws SQLException {
+    // Issue #1430: security.csp.reportOnly was inserted only by
+    // UPGRADE_20260827.1100__csp_report_only_property.sql, so it existed on upgraded deployments
+    // and not on fresh installs -- SchemaInstallUpgradeParityTest compares CREATE TABLE statements
+    // and would never have caught a missing site_properties row (the csp_violation table itself
+    // WAS mirrored, which is what made the gap look closed). The missing row is not just a missing
+    // default: SitePropertiesEditorWidget renders and saves only the rows
+    // SitePropertyRepository.findAllByPrefix("security") returns, so with no row there is no field
+    // on /admin/security-properties and saving that page cannot create one -- leaving CSP
+    // report-only mode and the /csp-report collector unreachable. Asserting the empty string rather
+    // than just non-null pins both halves: the row exists, and it still seeds blank so
+    // CspPolicyCommand.reportOnlyPolicy() returns null and no header is sent until an administrator
+    // sets a policy.
+    assertEquals("", sitePropertyValue("security.csp.reportOnly"),
+        "security.csp.reportOnly is missing on a fresh install -- /admin/security-properties will "
+            + "render no field for it, so report-only CSP cannot be enabled at all");
+    assertEquals("text", sitePropertyType("security.csp.reportOnly"));
+  }
+
+  @Test
+  void accountLockoutPropertiesSeedOnAFreshInstall() throws SQLException {
+    // Issue #295 / PR #318 shipped the durable account lockout reading its two thresholds through
+    // LoadSitePropertyCommand and calling them "site property" in javadoc, but no migration ever
+    // inserted a row -- not in install/ and not in upgrade/, so this is the same shape as the
+    // security.csp.reportOnly gap above with both halves missing instead of one. Lockout still
+    // worked, because AuthenticateLoginCommand falls back to 5 attempts / 15 minutes on a blank
+    // value; what did not work was changing either number, since SitePropertiesEditorWidget
+    // renders and saves only the rows SitePropertyRepository.findAllByPrefix(prefix) returns, so a
+    // property with no row has no field on any settings page and saving cannot create one.
+    // Asserting the exact values, not just non-null, pins the part that matters for existing
+    // sites: seeding these rows must not change what the login flow already enforces.
+    assertEquals("5", sitePropertyValue("security.lockout.threshold"),
+        "security.lockout.threshold is missing or not defaulted to 5 on a fresh install -- "
+            + "/admin/security-properties will render no field for it, so the lockout threshold "
+            + "cannot be changed without a code change");
+    assertEquals("text", sitePropertyType("security.lockout.threshold"));
+    assertEquals("15", sitePropertyValue("security.lockout.durationMinutes"),
+        "security.lockout.durationMinutes is missing or not defaulted to 15 on a fresh install -- "
+            + "/admin/security-properties will render no field for it, so the lockout duration "
+            + "cannot be changed without a code change");
+    assertEquals("text", sitePropertyType("security.lockout.durationMinutes"));
+  }
+
+  @Test
+  void theSeededNewsletterMailingListHasItsUniqueIdOnAFreshInstall() throws SQLException {
+    // Issue #1724 and its follow-up. NEW_50040 seeds a /subscribe page whose emailSubscribe widget
+    // carries <mailingListUniqueId>newsletter</mailingListUniqueId>, and the widget refuses to
+    // render when that doesn't resolve -- so if NEW_10070 (the column) or NEW_10071 (the row and
+    // its id) drifted from the upgrade path, a fresh install would ship a /subscribe page with no
+    // signup form on it and nothing but a log line to say why. The literal value is asserted, not
+    // just presence: it is named in seeded page XML, so it is part of the contract, not a detail.
+    assertTrue(columnExists("mailing_lists", "unique_id"),
+        "mailing_lists.unique_id is missing - MailingListRepository.buildRecord() reads this column "
+            + "unconditionally, and the emailSubscribe widget's mailingListUniqueId preference has "
+            + "nothing to resolve against without it");
+    assertEquals("newsletter", mailingListUniqueId("Newsletter"),
+        "the seeded Newsletter mailing list has no 'newsletter' unique id - NEW_50040's /subscribe "
+            + "page points its emailSubscribe widget at that id, and the widget renders nothing "
+            + "when it does not resolve");
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage
@@ -290,6 +493,17 @@ class DatabaseMigrationTest {
             "SELECT to_regclass('public." + name + "') IS NOT NULL AS present")) {
       assertNotNull(rs);
       return rs.next() && rs.getBoolean("present");
+    }
+  }
+
+  private static String mailingListUniqueId(String name) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "SELECT unique_id FROM mailing_lists WHERE name = ?")) {
+      pst.setString(1, name);
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next() ? rs.getString("unique_id") : null;
+      }
     }
   }
 

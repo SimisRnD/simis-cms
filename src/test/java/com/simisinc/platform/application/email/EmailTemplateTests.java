@@ -184,6 +184,12 @@ class EmailTemplateTests {
       mailingList.put("title", "Newsletter");
       ctx.setVariable("mailingList", mailingList);
       ctx.setVariable("confirmUrl", "http://site.example.com/confirm-subscription?token=TEST");
+      // Subscriber-confirmed notification to community managers. Only emailAddress is populated
+      // in the real event: it comes from findByListAndEmail, whose buildRecordWithEmail selects
+      // emails.email but none of the name columns.
+      Map<String, String> member = new HashMap<>();
+      member.put("emailAddress", "subscriber@example.com");
+      ctx.setVariable("member", member);
     }
 
     String html = templateEngine.process(template, ctx);

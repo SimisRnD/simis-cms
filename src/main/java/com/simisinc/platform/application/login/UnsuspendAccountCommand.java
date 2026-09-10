@@ -74,7 +74,7 @@ public class UnsuspendAccountCommand {
     if (target == null) {
       return false;
     }
-    return highestRoleLevel(target.getRoleList()) >= elevatedRoleThreshold();
+    return RoleLevelCommand.highestRoleLevel(target.getRoleList()) >= elevatedRoleThreshold();
   }
 
   /**
@@ -140,8 +140,8 @@ public class UnsuspendAccountCommand {
     if (target == null) {
       throw new DataException("The account for this request was not found");
     }
-    int approverLevel = highestRoleLevel(approvingAdmin.getRoleList());
-    int targetLevel = highestRoleLevel(target.getRoleList());
+    int approverLevel = RoleLevelCommand.highestRoleLevel(approvingAdmin.getRoleList());
+    int targetLevel = RoleLevelCommand.highestRoleLevel(target.getRoleList());
     if (approverLevel < targetLevel) {
       LOG.warn("Blocked unsuspend approval: user " + approvingAdmin.getId() + " (level " + approverLevel
           + ") attempted to approve unsuspending user " + target.getId() + " (level " + targetLevel + ")");
@@ -222,19 +222,6 @@ public class UnsuspendAccountCommand {
       return FALLBACK_ELEVATED_ROLE_LEVEL;
     }
     return communityManagerRole.getLevel();
-  }
-
-  private static int highestRoleLevel(List<Role> roleList) {
-    int max = 0;
-    if (roleList == null) {
-      return max;
-    }
-    for (Role role : roleList) {
-      if (role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
   }
 
   private static String describeRoles(List<Role> roleList) {

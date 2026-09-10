@@ -24,6 +24,7 @@ import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
@@ -115,7 +116,7 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute("mfaFilter", mfaFilter);
 
     // "1" is the only supported value today (a simple on/off toggle); the threshold itself comes
-    // from the configurable password.maxAgeDays site property, not a request parameter.
+    // from the configurable security.password.maxAgeDays site property, not a request parameter.
     boolean agingPasswordFilter = "1".equals(context.getParameter("agingPasswordFilter"));
     context.getRequest().setAttribute("agingPasswordFilter", agingPasswordFilter ? "1" : "");
 
@@ -163,7 +164,7 @@ public class UsersListWidget extends GenericWidget {
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
     context.getRequest().setAttribute("actingRoleLevel",
-        UserFormWidget.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
+        RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
@@ -328,7 +329,7 @@ public class UsersListWidget extends GenericWidget {
       specification.setIsMfaEnabled(false);
     }
     if (agingPasswordFilter) {
-      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("security.password.maxAgeDays"));
       specification.setPasswordOlderThanDays(maxAgeDays);
     }
     return specification;
@@ -353,11 +354,11 @@ public class UsersListWidget extends GenericWidget {
     }
 
     // Populate the roles -- an editor may only grant roles at or below their own highest role level,
-    // the same rule UserFormWidget.post() enforces when editing an existing user (see its
-    // highestRoleLevel() for details). This is a new user, so there is no prior role to preserve.
+    // the same rule UserFormWidget.post() enforces when editing an existing user (both resolve the
+    // actor's level through RoleLevelCommand). This is a new user, so there is no prior role to preserve.
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
-      int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), roleList);
+      int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), roleList);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
@@ -505,7 +506,9 @@ public class UsersListWidget extends GenericWidget {
 
     // Elevated-role accounts (#492 Phase 3) route through the same maker-checker gate the
     // single-user restoreAccount() action uses -- UnsuspendAccountCommand is the one shared
-    // enforcement point, so bulk can never bypass what the single-user path requires.
+    // enforcement point for THAT rule. It is not the only rule restoreAccount() applies: the
+    // role-level guard lives in the widget, above the command, so it has to be repeated here (see
+    // the per-target check in the loop below).
     String reason = context.getParameter("reason");
     User actingAdmin = context.getUserSession() != null ? context.getUserSession().getUser() : null;
 
@@ -514,12 +517,25 @@ public class UsersListWidget extends GenericWidget {
     int requested = 0;
     int alreadyPendingOrNotSuspended = 0;
     int reasonRequired = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     for (Long userId : userIds) {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account restoreAccount() already enforces (targetOutranksActor()), exactly as
+      // bulkSuspendAction() above mirrors suspendAccount(). The maker-checker gate below is NOT a
+      // substitute: requiresApproval() keys off the TARGET's level against the elevated threshold
+      // (community-manager's level), not off the actor's, so it says nothing at all about a target
+      // that outranks the actor but sits below that threshold. A users:manage capability-only
+      // grantee (level 0) restoring a content-manager (level 80) clears requiresApproval() and is
+      // restored outright, while the single-user form refuses it.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       if (UnsuspendAccountCommand.requiresApproval(user) && StringUtils.isBlank(reason)) {
@@ -554,11 +570,11 @@ public class UsersListWidget extends GenericWidget {
         (succeeded + requested) > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
         "restored=" + succeeded + "; requested=" + requested + "; alreadyPendingOrNotSuspended="
-            + alreadyPendingOrNotSuspended + "; reasonRequired=" + reasonRequired + "; notFound=" + notFound
-            + "; failed=" + failed);
+            + alreadyPendingOrNotSuspended + "; reasonRequired=" + reasonRequired + "; skippedOutranked="
+            + skippedOutranked + "; notFound=" + notFound + "; failed=" + failed);
 
     setBulkUnsuspendResultMessage(context, succeeded, requested, alreadyPendingOrNotSuspended, reasonRequired,
-        userIds.size(), notFound, failed);
+        skippedOutranked, userIds.size(), notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -569,7 +585,8 @@ public class UsersListWidget extends GenericWidget {
    * rather than forcing that shape into {@link #setBulkResultMessage}.
    */
   private void setBulkUnsuspendResultMessage(WidgetContext context, int succeeded, int requested,
-      int alreadyPendingOrNotSuspended, int reasonRequired, int totalSelected, int notFound, int failed) {
+      int alreadyPendingOrNotSuspended, int reasonRequired, int skippedOutranked, int totalSelected, int notFound,
+      int failed) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" restored.");
@@ -583,6 +600,10 @@ public class UsersListWidget extends GenericWidget {
     }
     if (reasonRequired > 0) {
       sb.append(" Needs a reason (elevated account): ").append(reasonRequired).append(".");
+    }
+    if (skippedOutranked > 0) {
+      // Same wording setBulkResultMessage uses for the other three bulk actions.
+      sb.append(" Skipped (higher role level than yours): ").append(skippedOutranked).append(".");
     }
     if (notFound > 0) {
       sb.append(" Not found: ").append(notFound).append(".");
@@ -615,18 +636,36 @@ public class UsersListWidget extends GenericWidget {
     BulkActor actor = new BulkActor(context);
     User actingUser = context.getUserSession() != null ? context.getUserSession().getUser() : null;
     int succeeded = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
+    int replacedLiveLinks = 0;
     for (Long userId : userIds) {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
         continue;
       }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account resetPassword() already enforces (targetOutranksActor()), exactly as
+      // bulkSuspendAction() above mirrors suspendAccount(). Without this a community-manager, or a
+      // users:manage capability-only grantee with no legacy role, could mint a password reset token
+      // for an account (e.g. an admin's) the single-user form refuses to touch -- and the reset link
+      // is emailed to whatever address that account currently holds.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
+        continue;
+      }
+      // #1836: an account holds one link at a time, so this replaces any outstanding one. Count
+      // those so the result message can say plainly that previously emailed links stopped working.
+      boolean hadLiveLink = UserDetailsWidget.LINK_OUTSTANDING.equals(UserDetailsWidget.accountLinkState(user));
       User result = UserRepository.createAccountToken(user);
       String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
       if (result != null) {
         ++succeeded;
+        if (hadLiveLink) {
+          ++replacedLiveLinks;
+        }
         WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(result, actingUser));
       } else {
         ++failed;
@@ -638,9 +677,15 @@ public class UsersListWidget extends GenericWidget {
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_password_reset",
         succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+        "reset=" + succeeded + "; skippedOutranked=" + skippedOutranked + "; notFound=" + notFound
+            + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed);
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, skippedOutranked,
+        notFound, failed,
+        replacedLiveLinks > 0
+            ? " " + replacedLiveLinks + " of these already had a working link, which has now stopped working"
+                + " -- those people must use the newest email."
+            : null);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -657,10 +702,10 @@ public class UsersListWidget extends GenericWidget {
       return context;
     }
     // The requested role's level is always resolved server-side and compared against the actor's
-    // own highest role level -- reusing UserFormWidget's exact escalation-level logic -- and the
+    // own highest role level -- the same RoleLevelCommand rule the single-user form applies -- and the
     // WHOLE batch is rejected up front if it's above that level, never silently downgraded and
     // never applied to some accounts but not others.
-    int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), RoleRepository.findAll());
+    int actingLevel = RoleLevelCommand.highestRoleLevel(context.getUserSession(), RoleRepository.findAll());
     if (role.getLevel() > actingLevel) {
       LOG.warn("Blocked bulk role escalation: user " + context.getUserId() + " (level " + actingLevel
           + ") attempted to bulk-grant '" + role.getCode() + "' (level " + role.getLevel() + ")");
@@ -807,6 +852,16 @@ public class UsersListWidget extends GenericWidget {
    */
   private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
       int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed) {
+    setBulkResultMessage(context, verb, succeeded, alreadyDone, totalSelected, skippedSelf, skippedOutranked,
+        notFound, failed, null);
+  }
+
+  /**
+   * @param extraNote appended verbatim after the counts when non-blank; for a consequence the counts
+   *     cannot express, such as #1836's "the links you just replaced have stopped working".
+   */
+  private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
+      int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed, String extraNote) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" ").append(verb).append(".");
@@ -824,6 +879,9 @@ public class UsersListWidget extends GenericWidget {
     }
     if (failed > 0) {
       sb.append(" Failed: ").append(failed).append(".");
+    }
+    if (StringUtils.isNotBlank(extraNote)) {
+      sb.append(extraNote);
     }
     boolean allAccountedFor = (succeeded + alreadyDone) == totalSelected;
     if (succeeded == 0 && alreadyDone == 0) {

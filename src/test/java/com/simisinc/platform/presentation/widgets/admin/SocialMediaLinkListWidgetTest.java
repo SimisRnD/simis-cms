@@ -50,7 +50,7 @@ class SocialMediaLinkListWidgetTest extends WidgetBase {
     }
 
     Assertions.assertEquals(SocialMediaLinkListWidget.JSP, widgetContext.getJsp());
-    Assertions.assertEquals(links, request.getAttribute("socialMediaLinkList"));
+    Assertions.assertEquals(links, request.getAttribute("socialMediaLinkRecordList"));
   }
 
   @Test

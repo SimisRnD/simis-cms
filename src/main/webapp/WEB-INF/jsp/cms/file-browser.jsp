@@ -33,7 +33,7 @@
 <div class="grid-container">
   <div class="grid-x grid-margin-x">
     <div class="medium-4 cell">
-      <h4>Pages</h4>
+      <h2 class="h4">Pages</h2>
       <c:if test="${empty menuTabList}">
         No pages were found
       </c:if>
@@ -47,7 +47,7 @@
       </c:forEach>
     </div>
     <div class="medium-6 cell">
-      <h4>PDF Files</h4>
+      <h2 class="h4">PDF Files</h2>
       <c:if test="${empty fileItemList}">
         No files were found
       </c:if>

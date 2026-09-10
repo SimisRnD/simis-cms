@@ -16,7 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<h4>This unsubscribe link is no longer valid</h4>
+<h2 class="h4">This unsubscribe link is no longer valid</h2>
 <p>
   It may have already been used, or the link may be incomplete. If you're still receiving emails
   you didn't ask for, use the unsubscribe link from a more recent email, or contact us.

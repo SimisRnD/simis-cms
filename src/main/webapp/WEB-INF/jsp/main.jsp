@@ -19,6 +19,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="color" uri="/WEB-INF/tlds/color-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
@@ -39,6 +40,22 @@
      The value is mapped through a whitelist rather than written to the attribute directly, so
      a malformed site property can never inject into the markup. --%>
 <c:set var="colorSchemeMode" value="${empty themePropertyMap['theme.ui.mode'] ? 'light' : themePropertyMap['theme.ui.mode']}" />
+<%-- The console may run a different scheme from the public site. theme.ui.mode is stamped onto
+     <html> for EVERY page, so using it to get a dark CMS turns the marketing site dark too --
+     which is a different decision from the one the person setting it is usually making.
+
+     theme.ui.mode.admin overrides it on /admin routes only. Empty means "follow the site", so
+     this is inert until somebody sets it. The override is applied BEFORE the whitelist below
+     rather than writing the attribute directly, so an admin-specific value gets exactly the
+     same mapping -- a malformed property still cannot reach the markup.
+
+     Matched on the route rather than on isAdminConsole (set much further down, after <html>
+     is already written) and deliberately without that variable's designer-route exclusions:
+     those exist to keep the SITE's theme rules off the console, which is a separate concern
+     from which colour scheme the console runs. --%>
+<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin') && !empty themePropertyMap['theme.ui.mode.admin']}">
+  <c:set var="colorSchemeMode" value="${themePropertyMap['theme.ui.mode.admin']}" />
+</c:if>
 <c:choose>
   <c:when test="${colorSchemeMode eq 'dark'}"><c:set var="colorScheme" value="dark" /></c:when>
   <c:when test="${colorSchemeMode eq 'auto' || colorSchemeMode eq 'user'}"><c:set var="colorScheme" value="auto" /></c:when>
@@ -79,13 +96,25 @@
     </c:if>
   </c:otherwise>
 </c:choose>
-  <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" type="image/png" id="apple-touch-icon-link" href="${ctx}/images/apple-touch-icon.png">
+  <%-- Same treatment as the favicon below, and for the same reason. This was left pointing
+       straight at system.www.context, whose default (/web-content) is not served by anything
+       in this codebase, so the request 404d on every page. It went unnoticed because only
+       iOS asks for this file -- a desktop browser never requests it, so nothing in ordinary
+       testing shows the failure. Default to the bundled asset and only upgrade to an
+       admin-uploaded one that actually loads, probed with an Image() because a <link>'s own
+       load/error events are not reliably dispatched. --%>
+  <c:if test="${!empty brandedAssetContext}">
+    <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
+  </c:if>
   <link rel="icon" type="image/png" id="favicon-link" href="${ctx}/images/favicon.png">
   <%-- Prefers an admin-uploaded favicon at system.www.context when one actually loads; otherwise
        stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s
        on this request. A <link rel="icon">'s own load/error events are not reliably dispatched
        across browsers, so existence is probed with an Image() object instead, whose events are. --%>
-  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/favicon.png';var i=new Image();i.onload=function(){document.getElementById('favicon-link').href=u;};i.src=u;})();</script>
+  <c:if test="${!empty brandedAssetContext}">
+    <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/favicon.png';var i=new Image();i.onload=function(){document.getElementById('favicon-link').href=u;};i.src=u;})();</script>
+  </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.title}"><title><c:out value="${pageRenderInfo.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
     <c:when test="${!empty masterWebPage.title}"><title><c:out value="${masterWebPage.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
@@ -163,9 +192,22 @@
     <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
   </c:if>
   <%-- Atom feed autodiscovery (issue #1182). Gated on the same site property FeedServlet checks,
-       so the tag never advertises a feed that would answer 404. --%>
+       so the tag never advertises a feed that would answer 404.
+
+       A page presenting one blog advertises that blog's feed instead of the site-wide one, so the
+       browser's own subscribe affordance and the page's visible "Subscribe" link lead to the same
+       place -- and so the feed title an editor set on the blog is what a reader actually sees.
+       Pointed at rather than added alongside: some readers take the first rel=alternate they find,
+       so two links would make which feed you get depend on the client. Issue 1586. --%>
   <c:if test="${sitePropertyMap['site.feed.xml'] eq 'true' && !empty sitePropertyMap['site.url']}">
-    <link rel="alternate" type="application/atom+xml" title="<c:out value="${sitePropertyMap['site.name']}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed.xml" />
+    <c:choose>
+      <c:when test="${!empty masterFeedBlogUniqueId}">
+        <link rel="alternate" type="application/atom+xml" title="<c:out value="${masterFeedBlogTitle}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed/<c:out value="${masterFeedBlogUniqueId}"/>" />
+      </c:when>
+      <c:otherwise>
+        <link rel="alternate" type="application/atom+xml" title="<c:out value="${sitePropertyMap['site.name']}"/>" href="<c:out value="${sitePropertyMap['site.url']}"/>/feed.xml" />
+      </c:otherwise>
+    </c:choose>
   </c:if>
   <%-- Issue #419: a draft preview link renders unreviewed content -- keep it out of search indexes --%>
   <c:if test="${previewingDraft eq 'true'}">
@@ -290,26 +332,94 @@
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
           </c:choose>
         </c:if>
+        <%-- The admin console is chrome, not site content, so the site's own page and link
+             colours are scoped away from it and platform.css supplies the token values instead.
+             Without this an admin console inherits whatever the public site set: on a stock
+             install that is #ffffff/#000000 rather than the light palette, and a site that picked
+             a coloured link paints its admin links that colour too. The page-editing screens are
+             deliberately NOT admin-console pages -- they render inside the site's own chrome so
+             an editor previews the real thing. --%>
+        <c:set var="isAdminConsole" value="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}"/>
+        <%-- The site's own colours stop here for the admin console. It is chrome, not site
+             content, and takes its palette from the token layer instead (platform.css
+             body.admin-console). Scoping only body/text/link left the console with a
+             token-driven ground under theme-driven buttons and callouts -- 22 rules in
+             this block reach it. The page-editing screens are not admin-console pages, so
+             they still get the theme and preview the real thing. --%>
+        <c:if test="${!isAdminConsole}">
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
-        <%-- Scoped away from .clear/.hollow on purpose. Those variants are transparent, so Foundation
-             gives them a color that contrasts with the PAGE, not the solid-button text color; applying
-             this with !important made every clear button take the solid color and vanish on a light
-             background -- including the WCAG 2.2.2 pause control in content-card-slider.jsp. --%>
-        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow){color:var(--sc-button-text-color) !important}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover, .button.primary:focus, #platform-menu ul.menu li a.button.primary:hover{background-color:var(--sc-button-primary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary{background-color:var(--sc-button-secondary-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover, .button.secondary:focus, #platform-menu ul.menu li a.button.secondary:hover{background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success{background-color:var(--sc-button-success-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover, .button.success:focus{background-color:var(--sc-button-success-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning{background-color:var(--sc-button-warning-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover, .button.warning:focus{background-color:var(--sc-button-warning-hover-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert{background-color:var(--sc-button-alert-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover, .button.alert:focus{background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <%-- Scoped away from .clear/.hollow/.box on purpose. Those variants draw on the PAGE surface
+             rather than the theme's button fill, so Foundation gives them a color that contrasts with
+             the page, not the solid-button text color; applying this with !important made every clear
+             button take the solid color and vanish on a light background -- including the WCAG 2.2.2
+             pause control in content-card-slider.jsp. .box was the one missed: its background follows
+             --sc-surface, so on a stock install (theme.button.text.color seeds to #FFFFFF) this rule
+             painted white captions on the white light-mode surface, 1.000:1 -- issue 1528. It outranks
+             platform.css's own .button.box at (0,3,0) against (0,2,0), so the !important there could
+             not defend it. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button:not(.clear):not(.hollow):not(.box){color:var(--sc-button-text-color) !important}</c:if>
+        <%-- The fills carry the same :not(.clear):not(.hollow) scope as the ink rules above and
+             below, because the two halves have to agree about which buttons they are for. They did
+             not: every ink rule excluded the two variants and no fill rule did, so a hollow button
+             got a background it is not supposed to have and was then skipped by the rule that would
+             have given it a readable caption. It kept Foundation's hollow ink -- which is the
+             secondary color itself, the same value now sitting behind it. On the pilot that made
+             the page editor's Media Library button a blank grey slab, 1.000:1 (issue 1608). Only
+             <button> was affected; Foundation ships an anchor-qualified a.button.hollow.secondary
+             at (0,3,1) that outranks the theme, and there is no <button> equivalent.
+             :where() rather than a bare :not() because the exclusion must not move these rules.
+             The site's own stylesheet loads further down this file, so a site rule at (0,2,0) wins
+             a tie against the theme on source order today; :not() would take the default fill from
+             (0,1,0) to (0,3,0) and silently invert that for every site-authored
+             .button.<name>{background} override. :where() contributes no specificity, so nothing
+             that currently wins or loses changes -- only hollow and clear stop matching. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-default-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover:where(:not(.clear):not(.hollow)), .button:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-default-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover:where(:not(.clear):not(.hollow)), .button.primary:focus:where(:not(.clear):not(.hollow)), #platform-menu ul.menu li a.button.primary:hover:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover:where(:not(.clear):not(.hollow)), .button.secondary:focus:where(:not(.clear):not(.hollow)), #platform-menu ul.menu li a.button.secondary:hover:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-success-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover:where(:not(.clear):not(.hollow)), .button.success:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-success-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-warning-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover:where(:not(.clear):not(.hollow)), .button.warning:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-warning-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-alert-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover:where(:not(.clear):not(.hollow)), .button.alert:focus:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <%-- Each themed fill gets the caption color it can actually carry. theme.button.text.color
+             is one color applied to buttons whose fills are deliberately not one color, so on the
+             stock palette it lands at 2.86:1 on the success green and 1.86:1 on the warning amber
+             (issue 1537). These emit nothing when the configured color is already legible on the
+             fill, so a site keeps its own choice wherever it works; where it does not, the caption
+             falls back to a platform ink that does. Derived from whatever color the site actually
+             configured, which is why a fixed exclusion list could not do this job. Scoped like the
+             rule above so they outrank it, and ordered fill-then-hover so the more specific fill
+             always wins its own ink. --%>
+        <c:set var="inkDefault" value="${color:contrastingInk(themePropertyMap['theme.button.default.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkDefault}">.button:not(.clear):not(.hollow){color:<c:out value="${inkDefault}" /> !important}</c:if>
+        <c:set var="inkDefaultHover" value="${color:contrastingInk(themePropertyMap['theme.button.default.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkDefaultHover}">.button:hover:not(.clear):not(.hollow),.button:focus:not(.clear):not(.hollow){color:<c:out value="${inkDefaultHover}" /> !important}</c:if>
+        <c:set var="inkPrimary" value="${color:contrastingInk(themePropertyMap['theme.button.primary.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkPrimary}">.button.primary:not(.clear):not(.hollow){color:<c:out value="${inkPrimary}" /> !important}</c:if>
+        <c:set var="inkPrimaryHover" value="${color:contrastingInk(themePropertyMap['theme.button.primary.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkPrimaryHover}">.button.primary:hover:not(.clear):not(.hollow),.button.primary:focus:not(.clear):not(.hollow){color:<c:out value="${inkPrimaryHover}" /> !important}</c:if>
+        <c:set var="inkSecondary" value="${color:contrastingInk(themePropertyMap['theme.button.secondary.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSecondary}">.button.secondary:not(.clear):not(.hollow){color:<c:out value="${inkSecondary}" /> !important}</c:if>
+        <c:set var="inkSecondaryHover" value="${color:contrastingInk(themePropertyMap['theme.button.secondary.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSecondaryHover}">.button.secondary:hover:not(.clear):not(.hollow),.button.secondary:focus:not(.clear):not(.hollow){color:<c:out value="${inkSecondaryHover}" /> !important}</c:if>
+        <c:set var="inkSuccess" value="${color:contrastingInk(themePropertyMap['theme.button.success.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSuccess}">.button.success:not(.clear):not(.hollow){color:<c:out value="${inkSuccess}" /> !important}</c:if>
+        <c:set var="inkSuccessHover" value="${color:contrastingInk(themePropertyMap['theme.button.success.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkSuccessHover}">.button.success:hover:not(.clear):not(.hollow),.button.success:focus:not(.clear):not(.hollow){color:<c:out value="${inkSuccessHover}" /> !important}</c:if>
+        <c:set var="inkWarning" value="${color:contrastingInk(themePropertyMap['theme.button.warning.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkWarning}">.button.warning:not(.clear):not(.hollow){color:<c:out value="${inkWarning}" /> !important}</c:if>
+        <c:set var="inkWarningHover" value="${color:contrastingInk(themePropertyMap['theme.button.warning.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkWarningHover}">.button.warning:hover:not(.clear):not(.hollow),.button.warning:focus:not(.clear):not(.hollow){color:<c:out value="${inkWarningHover}" /> !important}</c:if>
+        <c:set var="inkAlert" value="${color:contrastingInk(themePropertyMap['theme.button.alert.backgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkAlert}">.button.alert:not(.clear):not(.hollow){color:<c:out value="${inkAlert}" /> !important}</c:if>
+        <c:set var="inkAlertHover" value="${color:contrastingInk(themePropertyMap['theme.button.alert.hoverBackgroundColor'], themePropertyMap['theme.button.text.color'])}" />
+        <c:if test="${!empty inkAlertHover}">.button.alert:hover:not(.clear):not(.hollow),.button.alert:focus:not(.clear):not(.hollow){color:<c:out value="${inkAlertHover}" /> !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.backgroundColor']}">.callout{background-color:var(--sc-callout-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.text.color']}">.callout,.callout label{color:var(--sc-callout-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.callout.primary.backgroundColor']}">.callout.primary{background-color:var(--sc-callout-primary-background-color)}</c:if>
@@ -324,28 +434,51 @@
         <c:if test="${!empty themePropertyMap['theme.callout.alert.text.color']}">.callout.alert,.callout.alert label{color:var(--sc-callout-alert-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">.platform-footer{background-color:var(--sc-footer-background-color)}.platform-footer .fa-inverse{color:var(--sc-footer-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer,.platform-footer p{color:var(--sc-footer-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:var(--sc-topbar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header{color:var(--sc-topbar-menu-text-color)}</c:if>
+        <%-- Foundation draws this caret as a CSS triangle built from borders (foundation.css:
+             border-style:solid; border-width:6px; border-bottom-width:0; border-color:#1779ba
+             transparent transparent), so it takes its color from border-color, not color. Setting
+             color here had no effect at all and the caret stayed Foundation's default blue however
+             the theme's arrow color was set. --%>
+        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
+        </c:if>
+        <%-- The site header keeps its theme in the admin console, unlike everything else in this
+             block. Issues 1587 and 1594 scoped the theme away from the console because it competed
+             with the design tokens there -- but #platform-menu is the SITE's header, and it renders
+             on admin pages too. Stripping it left no styling at all rather than token styling: a
+             transparent bar with Foundation's stock blue links floating over the warm admin surface,
+             while the rail beside it stayed dark. There is no --sc-chrome-* rule covering these
+             selectors, so the guard removed a theme and put nothing in its place.
+        
+             These selectors are all #platform-menu / #platform-small-menu, so nothing here can reach
+             the console's own chrome or content. The caret rule is narrowed to #platform-menu for the
+             same reason -- unscoped, .dropdown.menu would have repainted an admin dropdown.
+        
+             Measured on the pilot's theme (topbar #353535): nav 12.27:1, hover 5.26:1, utility bar
+             12.27:1. check-theme-scope.py allows this exception by selector -- see its docstring. --%>
         <c:if test="${!empty themePropertyMap['theme.utilitybar.text.color']}">#platform-menu .utility-bar{color:var(--sc-utilitybar-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.utilitybar.link.color']}">#platform-menu .utility-bar a, #platform-menu .utility-bar button.button i.fa{color:var(--sc-utilitybar-link-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:var(--sc-utilitybar-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.text.color']}">#platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover{color:var(--sc-topbar-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:var(--sc-topbar-background-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:var(--sc-topbar-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:var(--sc-topbar-menu-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header, #platform-menu button.button i.fa{color:var(--sc-topbar-menu-text-color)}</c:if>
-        <%-- Foundation draws this caret as a CSS triangle built from borders (foundation.css:
-             border-style:solid; border-width:6px; border-bottom-width:0; border-color:#1779ba
-             transparent transparent), so it takes its color from border-color, not color. Setting
-             color here had no effect at all and the caret stayed Foundation's default blue however
-             the theme's arrow color was set. embedded-layout.jsp already had this right. --%>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:var(--sc-topbar-menu-arrow-color) transparent transparent}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">#platform-menu .dropdown.menu>li.is-dropdown-submenu-parent>a::after,#platform-menu .is-dropdown-submenu .is-dropdown-submenu-parent>a::after{color:var(--sc-topbar-menu-arrow-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">#platform-menu ul.menu li > a:hover::after,#platform-menu ul.menu li.is-active > a::after{color:inherit}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu ul.menu li.is-active > a{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu button.button i.fa:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item{background-color:var(--sc-topbar-menu-dropdown-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a{color:var(--sc-topbar-menu-dropdown-text-color);}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeBackgroundColor']}">#platform-menu ul.menu .active > a{background-color:var(--sc-topbar-menu-active-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeTextColor']}">#platform-menu ul.menu .active > a{color:var(--sc-topbar-menu-active-text-color)}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
+        <%-- The header's own buttons, scoped the same way. The general .button.primary rule stays
+             guarded -- it would repaint the console's content buttons -- but the site header carries
+             a call-to-action, and leaving it on Foundation's stock blue put a #1779ba pill in a
+             themed bar that is grey on every public page. The variant exclusion matches the general
+             rules (issue 1608): a hollow button has no fill to paint. --%>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">#platform-menu ul.menu li a.button.primary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">#platform-menu ul.menu li a.button.secondary:where(:not(.clear):not(.hollow)){background-color:var(--sc-button-secondary-background-color)}</c:if>
         #site-newsletter-overlay, #site-promo-overlay {
           position: fixed;
           bottom: 0;
@@ -372,7 +505,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet${includeStylesheet}.css?v=${includeStylesheetLastModified}" />
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
@@ -413,6 +546,9 @@
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
     <script src="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.js"></script>
+    <%-- Unconditional: password fields appear on the public auth forms and on admin screens alike,
+         and the handler is delegated, so it costs nothing on a page that has none. --%>
+    <script src="${ctx}/javascript/platform-password-reveal.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
@@ -429,6 +565,8 @@
     <c:otherwise><c:set var="bodyClass" value="page-edit-mode"/></c:otherwise>
   </c:choose>
 </c:if>
+<%-- Appended last: the page-edit-mode branch above rebuilds bodyClass from scratch. --%>
+<c:if test="${isAdminConsole}"><c:set var="bodyClass" value="${bodyClass} admin-console"/></c:if>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
   <!-- Skip link for keyboard navigation (WCAG 2.4.1) -->
   <a href="#main" class="platform-skip-link">Skip to main content</a>
@@ -473,9 +611,26 @@
           <%-- Admin Link --%>
           <ul class="vertical menu">
             <li class="section-title">Admin</li>
-            <li<c:if test="${pageRenderInfo.name eq '/admin'}"> class="is-active"</c:if>><a href="${ctx}/admin"><i class="${font:far()} fa-home fa-fw"></i> <span>Welcome</span></a></li>
+            <%-- Issue #1772: this block opened with no visibility test at all, so its three rows
+                 rendered for anyone who could reach any /admin page -- including four principals the
+                 linked pages deny, who saw the link and were refused on click.
+
+                 Welcome and Activity are narrowed to exactly the roles their pages declare. Neither
+                 was widened instead: /admin's dashboard links onward to ten gated pages, of which
+                 admin:manage can open three, users:manage one and data-manager none, so admitting
+                 them trades three dead rows for a page of dead ends; and /admin/activity is the audit
+                 log, so widening it is a disclosure decision rather than a navigation fix.
+
+                 Documentation is the opposite case and was widened instead -- see admin-layout.xml.
+                 It therefore needs no test here, and because every principal that can render this
+                 menu can now open it, the section can never render as a bare heading (issue #1780). --%>
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('ecommerce-manager')}">
+              <li<c:if test="${pageRenderInfo.name eq '/admin'}"> class="is-active"</c:if>><a href="${ctx}/admin"><i class="${font:far()} fa-home fa-fw"></i> <span>Welcome</span></a></li>
+            </c:if>
             <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/documentation')}"> class="is-active"</c:if>><a href="${ctx}/admin/documentation/wiki/Home"><i class="${font:far()} fa-book fa-fw"></i> <span>Documentation</span></a></li>
-            <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/activity')}"> class="is-active"</c:if>><a href="${ctx}/admin/activity"><i class="${font:far()} fa-exchange-alt fa-fw"></i> <span>Activity</span></a></li>
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('ecommerce-manager')}">
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/activity')}"> class="is-active"</c:if>><a href="${ctx}/admin/activity"><i class="${font:far()} fa-exchange-alt fa-fw"></i> <span>Activity</span></a></li>
+            </c:if>
             <c:if test="${userSession.hasRole('admin')}">
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/health-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/health-dashboard"><i class="${font:far()} fa-heart-pulse fa-fw"></i> <span>System Health</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/job-queue-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/job-queue-dashboard"><i class="${font:far()} fa-list-check fa-fw"></i> <span>Job Queue</span></a></li>
@@ -571,6 +726,20 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bot-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/bot-list"><i class="${font:far()} fa-robot fa-fw"></i> <span>Bot User Agents</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/role-capabilities')}"> class="is-active"</c:if>><a href="${ctx}/admin/role-capabilities"><i class="${font:far()} fa-user-lock fa-fw"></i> <span>Role Capabilities</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
+              <%-- issue #1764: a report of recorded events, not a setting -- it belongs beside the
+                   Audit Log rather than among the configuration forms it used to sit in.
+
+                   Kept behind its own hasRole('admin') test rather than inheriting this section's
+                   wider gate. Every other page here is declared role="admin" capability="admin:manage"
+                   in admin-layout.xml, but /admin/csp-violations is role="admin" only, so without
+                   this an admin:manage holder would be shown a link they cannot open. Widening the
+                   page's capability to match its neighbours is a deliberate authorization decision,
+                   not something a menu reorganization should do on its own.
+
+                   Icon changed from fa-shield-halved, which Blocked IPs already uses four rows up. --%>
+              <c:if test="${userSession.hasRole('admin')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/csp-violations')}"> class="is-active"</c:if>><a href="${ctx}/admin/csp-violations"><i class="${font:far()} fa-triangle-exclamation fa-fw"></i> <span>CSP Violations</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/analytics-retention')}"> class="is-active"</c:if>><a href="${ctx}/admin/analytics-retention"><i class="${font:far()} fa-trash-can fa-fw"></i> <span>Analytics Retention</span></a></li>
             </ul>
           </c:if>
@@ -581,6 +750,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-overview')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-overview"><i class="${font:far()} fa-magnifying-glass-chart fa-fw"></i> <span>SEO &amp; AI Visibility</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-sitemap')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-sitemap"><i class="${font:far()} fa-map fa-fw"></i> <span>SEO Sitemap</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/llms')}"> class="is-active"</c:if>><a href="${ctx}/admin/llms-properties"><i class="${font:far()} fa-file-lines fa-fw"></i> <span>LLM/AI Visibility (llms.txt)</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-txt')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-txt-properties"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Security Contact (security.txt)</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/robots')}"> class="is-active"</c:if>><a href="${ctx}/admin/robots-properties"><i class="${font:far()} fa-robot fa-fw"></i> <span>Robots &amp; Crawlers</span></a></li>
             </ul>
           </c:if>
@@ -590,22 +760,13 @@
               <li class="section-title">Settings</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/theme')}"> class="is-active"</c:if>><a href="${ctx}/admin/theme-properties"><i class="${font:far()} fa-palette fa-fw"></i> <span>Theme</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/site-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/site-properties"><i class="${font:far()} fa-rocket fa-fw"></i> <span>Site Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mfa')}"> class="is-active"</c:if>><a href="${ctx}/admin/mfa-properties"><i class="${font:far()} fa-lock fa-fw"></i> <span>MFA Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/social')}"> class="is-active"</c:if>><a href="${ctx}/admin/social-media-settings"><i class="${font:far()} fa-thumbs-up fa-fw"></i> <span>Social Media</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-properties"><i class="${font:far()} fa-shield fa-fw"></i> <span>Security</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/feature-flags')}"> class="is-active"</c:if>><a href="${ctx}/admin/feature-flags"><i class="${font:far()} fa-flag fa-fw"></i> <span>Feature Flags</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/integrations')}"> class="is-active"</c:if>><a href="${ctx}/admin/integrations"><i class="${font:far()} fa-puzzle-piece fa-fw"></i> <span>Integrations</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
-              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-properties'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>
-              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-statements'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-statements"><i class="${font:far()} fa-list fa-fw"></i> <span>xAPI Statements</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mail-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mail-properties"><i class="${font:far()} fa-cogs fa-fw"></i> <span>Email Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-list-properties"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing List Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/maps')}"> class="is-active"</c:if>><a href="${ctx}/admin/maps-properties"><i class="${font:far()} fa-map fa-fw"></i> <span>Maps Settings</span></a></li>
-              <%--<li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/email-templates')}"> class="is-active"</c:if>><a href="${ctx}/admin/email-templates"><i class="${font:far()} fa-file-text fa-fw"></i> <span>Email Templates</span></a></li>--%>
+              <%-- issue #1765: the other sixteen rows moved to /admin/settings, a grouped page with
+                   a line under each one saying what it holds. The count was the symptom; the flat
+                   list was the problem -- given "Site Settings", "Security", "Feature Flags" and
+                   "Captcha Settings", the menu cannot tell you which holds the option you want, and
+                   a shorter list of names still cannot. Theme and Site Settings stay here because
+                   they are the daily-use pair and should not cost an extra click. --%>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/settings')}"> class="is-active"</c:if>><a href="${ctx}/admin/settings"><i class="${font:far()} fa-sliders fa-fw"></i> <span>All settings</span></a></li>
             </ul>
           </c:if>
           </nav>
@@ -752,6 +913,33 @@
            so nested submenus fail WAI-ARIA's required-owned-elements check for their parent
            menubar. There is no Foundation option to change this; correct it after init. --%>
       $('[data-submenu]').attr('role', 'menu');
+      <%-- Foundation never exposes the open state of a dropdown submenu (issue #1749). Its
+           Nest.Feather sets aria-expanded only for drilldown menus --
+             "drilldown" === i && e.attr({"aria-expanded": false})
+           -- and DropdownMenu's own _show/_hide set no ARIA at all, only classes. So a submenu
+           parent advertises aria-haspopup="true" and then never says whether that popup is open,
+           on any path: hover, click or keyboard.
+
+           Synced from the is-active class rather than from the event arguments, because that class
+           is what Foundation itself maintains: _show adds it before firing show.zf.dropdownMenu and
+           _hide removes it before firing hide.zf.dropdownMenu. Reading it at event time therefore
+           covers every close path -- body click, mouse leave, Escape, keyboard -- without this code
+           needing to know what they are.
+
+           The attribute goes on the anchor, not the li: Feather gives the anchor role="menuitem"
+           and aria-haspopup, and gives the li role="none", so the anchor is the menuitem that owns
+           the popup. --%>
+      (function () {
+        var $menus = $('[data-dropdown-menu]');
+        function syncExpanded() {
+          $menus.find('li.is-dropdown-submenu-parent').each(function () {
+            var $li = $(this);
+            $li.children('a').first().attr('aria-expanded', $li.hasClass('is-active'));
+          });
+        }
+        syncExpanded();
+        $menus.on('show.zf.dropdownMenu hide.zf.dropdownMenu', syncExpanded);
+      })();
       <%--
       $('.card-profile-stats-more-link').click(function(e){
         e.preventDefault();
@@ -1040,7 +1228,7 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
-    <script src="${ctx}/javascript/web-vitals-collector.js?v=<%= VERSION %>" nonce="${cspNonce}"></script>
+    <script src="${ctx}/javascript/web-vitals-collector.js?v=${fn:escapeXml(applicationScope.assetVersion)}" nonce="${cspNonce}"></script>
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1064,7 +1252,7 @@
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
-    <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
+    <script src="${ctx}/javascript/platform-editor.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>

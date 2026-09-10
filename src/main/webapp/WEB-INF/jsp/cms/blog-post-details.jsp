@@ -19,6 +19,7 @@
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
@@ -27,7 +28,7 @@
 <jsp:useBean id="showAuthor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showDate" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!blog.enabled}">
@@ -39,7 +40,12 @@
 <div class="platform-blog-container">
   <c:if test="${showTitle eq 'true'}">
   <div class="platform-blog-title">
-    <h2>${html:toHtml(blogPost.title)}</h2>
+    <%-- The post title is this page's subject, so it is the page's h1. blog-post-name.jsp has
+         always rendered the same value as an h1; this template rendered it as an h2, which left
+         every post detail page with no h1 at all -- 90 of them on the pilot. A post page whose
+         only heading starts at h2 gives a screen reader nothing to jump to and gives a search
+         engine no topic signal. --%>
+    <h1>${html:toHtml(blogPost.title)}</h1>
   </div>
   </c:if>
   <c:if test="${showAuthor eq 'true' || (showDate eq 'true' && !empty blogPost.startDate) || !empty blogPost.tagsList || date:isAfterNow(blogPost.startDate)}">
@@ -57,8 +63,13 @@
         </c:if>
         <c:if test="${!empty blogPost.tagsList}">
           <div class="cell auto">
+            <%-- data-tag carries the per-tag colour: site CSS keys its category colours off
+                 [data-tag="..."] rather than off a class, so a tag rendered without the attribute
+                 falls back to Foundation's grey .label.secondary. blog-post-list.jsp already emits
+                 it, which is why the same tag was coloured in the listing and grey on the post's
+                 own page. Same markup as there, deliberately -- keep the two in step. --%>
             <c:forEach items="${blogPost.tagsList}" var="tag">
-              <span class="label secondary"><c:out value="${tag}"/></span>
+              <span class="label secondary" data-tag="<c:out value="${tag}"/>"><c:out value="${tag}"/></span>
             </c:forEach>
           </div>
         </c:if>
@@ -74,6 +85,22 @@
     <div class="grid-x grid-margin-x">
       <div class="small-12 cell">
         ${blogPostBodyHtml}
+        <%-- A curated link post (#1420) cites someone else's article, and until now its own page was
+             the one place that never said so: blog-post-list.jsp sends the headline and "Read the
+             article" straight to the source, and the feed points rel="alternate" there, but a reader
+             arriving at the permalink -- from the feed's rel="related", a search result or a shared
+             link -- reached a summary with no way through to the original.
+
+             Markup mirrors blog-post-list.jsp's link deliberately: url:sanitize inside c:out so a
+             stored value can only ever be an http(s) href, rel="noopener noreferrer" with
+             target="_blank", and the show-for-sr note so the new tab is announced rather than just
+             happening (WCAG 3.2.5 is Level AAA and not a 508 gap, but the list already does this and
+             the two should not disagree). --%>
+        <c:if test="${blogPost.hasSourceUrl}">
+          <p>
+            <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the full article<span class="show-for-sr"> (opens in a new tab)</span></a>
+          </p>
+        </c:if>
       </div>
     </div>
   </div>

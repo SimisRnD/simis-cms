@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.FeatureFlagCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.AllowedIframeHostCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadWidgetSchemaCommand;
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
@@ -33,6 +34,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepos
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.controller.XMLWebPageTemplateLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.application.cms.ContentUsageCommand;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -197,6 +199,11 @@ public class WebPageDesignerWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute("webPage", webPage);
+    // Warn when a widget's declared inline html is inert because a saved record has taken over
+    // (issue #1725). Editing that html in this editor changes nothing on the page, and until now
+    // there was no sign of it anywhere.
+    context.getRequest().setAttribute("overriddenInlineDefaults",
+        ContentUsageCommand.findOverriddenInlineDefaults(webPage.getPageXml()));
     if (DESIGNER_JSP.equals(context.getJsp())) {
       context.getRequest().setAttribute("widgetSchemaJson", LoadWidgetSchemaCommand.getWidgetSchemaJson(context.getRequest().getServletContext()));
     }
@@ -418,6 +425,21 @@ public class WebPageDesignerWidget extends GenericWidget {
     if (StringUtils.isEmpty(returnPage)) {
       returnPage = webPageLinkValue;
     }
+    // Tell the author when the page they just saved carries an embed that will not appear. The
+    // allowlist refuses an unlisted host when content is saved and again in the browser through
+    // frame-src, and neither refusal is visible to the person who pasted the embed -- the area is
+    // simply empty, which reads as a broken widget rather than a setting. Issue 1632 is what that
+    // silence cost: an embed missing from a published page for two days, with the page source
+    // still showing it here in the designer the whole time. Naming the host and the setting turns
+    // that into a one-field fix.
+    List<String> refusedIframeHosts = AllowedIframeHostCommand.disallowedHostsIn(newPageContent);
+    if (!refusedIframeHosts.isEmpty()) {
+      context.setWarningMessage("The page was saved, but it embeds content from "
+          + String.join(", ", refusedIframeHosts)
+          + " and that will not appear on the page. Add the host under Admin, Security Settings,"
+          + " \"Additional iframe embed hosts\" to allow it.");
+    }
+
     context.setRedirect(returnPage);
     return context;
   }

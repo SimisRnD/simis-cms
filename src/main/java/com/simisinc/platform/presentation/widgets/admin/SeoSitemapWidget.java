@@ -68,6 +68,17 @@ public class SeoSitemapWidget extends GenericWidget {
     context.getRequest().setAttribute("siteUrlConfigured", siteUrlConfigured);
     context.getRequest().setAttribute("sitemapActuallyServed", sitemapEnabled && siteOnline && siteUrlConfigured);
 
+    // A page with no description of its own still renders a <meta name="description"> -- main.jsp
+    // falls through to the site-wide site.description -- so it ships describing the company rather
+    // than the page, and neither the page form nor the sitemap said so. Count them here and let the
+    // list below flag the individual rows, since this is the page admins already come to for
+    // per-page SEO hygiene. Deliberately a warning, not a behaviour change: dropping the fallback
+    // would alter the rendered metadata of every page that relies on it.
+    long pagesMissingDescription = webPageList.stream()
+        .filter(webPage -> StringUtils.isBlank(webPage.getDescription()))
+        .count();
+    context.getRequest().setAttribute("pagesMissingDescription", pagesMissingDescription);
+
     context.setJsp(JSP);
     return context;
   }

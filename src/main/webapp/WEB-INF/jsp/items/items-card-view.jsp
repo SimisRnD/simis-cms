@@ -79,7 +79,7 @@
   }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${isSearchResults eq 'true'}">
@@ -153,10 +153,10 @@
                   </c:if>
                   <c:choose>
                     <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                      <a target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="${fn:escapeXml(item.name)}" target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:when test="${useInfoLink eq 'true'}">
-                      <a href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="${fn:escapeXml(item.name)}" href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:otherwise>
                       <p style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></p>

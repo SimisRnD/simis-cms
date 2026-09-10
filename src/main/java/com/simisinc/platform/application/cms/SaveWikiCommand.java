@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
@@ -34,6 +35,9 @@ import static com.simisinc.platform.application.cms.GenerateWikiUniqueIdCommand.
  */
 public class SaveWikiCommand {
 
+  // @column wikis.name
+  private static final int MAX_NAME_LENGTH = 255;
+
   public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveWikiCommand.class);
 
@@ -48,6 +52,9 @@ public class SaveWikiCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(wikiBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name",
+          wikiBean.getName(), MAX_NAME_LENGTH);
     }
 
     if (errorMessages.length() > 0) {

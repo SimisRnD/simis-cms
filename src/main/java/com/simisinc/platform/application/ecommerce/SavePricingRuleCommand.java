@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.ecommerce.PricingRule;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.PricingRuleRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +31,13 @@ import org.apache.commons.logging.LogFactory;
  * @created 12/12/19 6:07 PM
  */
 public class SavePricingRuleCommand {
+
+  // @column pricing_rules.name
+  private static final int MAX_NAME_LENGTH = 255;
+  // promo_code is the narrowest column reached from any admin form -- a promo code of more than
+  // 20 characters is easy to type and produced only a generic system error (issue #1740)
+  // @column pricing_rules.promo_code
+  private static final int MAX_PROMO_CODE_LENGTH = 20;
 
   private static Log LOG = LogFactory.getLog(SavePricingRuleCommand.class);
 
@@ -45,6 +53,12 @@ public class SavePricingRuleCommand {
     // Validate values
     if (StringUtils.isBlank(pricingRuleBean.getName())) {
       appendMessage(errorMessages, "A name is required");
+    } else if (FieldLengthCommand.exceedsLimit(pricingRuleBean.getName(), MAX_NAME_LENGTH)) {
+      appendMessage(errorMessages, FieldLengthCommand.tooLongMessage("A name", MAX_NAME_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(pricingRuleBean.getPromoCode(), MAX_PROMO_CODE_LENGTH)) {
+      appendMessage(errorMessages,
+          FieldLengthCommand.tooLongMessage("A promo code", MAX_PROMO_CODE_LENGTH));
     }
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());

@@ -24,6 +24,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
 import com.simisinc.platform.infrastructure.persistence.CapabilityRepository;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
+import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -56,6 +57,34 @@ public class LoadUserCommand {
     }
     populateUserRecord(user);
     return user;
+  }
+
+  /**
+   * The users who currently hold the given capability code, by any route -- a role that grants it,
+   * or their own direct grant while it is neither revoked nor expired.
+   *
+   * <p>Addressing people by what they are permitted to do answers a different question than
+   * addressing them by role, and usually the one that was meant. A notification sent to the
+   * "community-manager" role reaches only accounts sitting in that role, even though a System
+   * Administrator holding community:manage is equally responsible for the thing being reported.
+   *
+   * <p>Returns an empty list when the code names no capability, so an unrecognised code addresses
+   * nobody rather than everybody. Users that cannot be loaded are skipped.
+   */
+  public static List<User> loadUsersHoldingCapability(String capabilityCode) {
+    List<User> userList = new ArrayList<>();
+    Capability capability = CapabilityRepository.findByCode(capabilityCode);
+    if (capability == null) {
+      LOG.warn("No capability found for code: " + capabilityCode);
+      return userList;
+    }
+    for (Long userId : RoleCapabilityRepository.findUserIdsHoldingCapability(capability.getId())) {
+      User user = loadUser(userId);
+      if (user != null) {
+        userList.add(user);
+      }
+    }
+    return userList;
   }
 
   public static User loadUser(String username) {

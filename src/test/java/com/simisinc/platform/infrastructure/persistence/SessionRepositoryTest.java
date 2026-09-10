@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,6 +30,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -44,6 +46,7 @@ import org.testcontainers.utility.DockerImageName;
 import com.simisinc.platform.domain.model.dashboard.BotIdentityStats;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
@@ -582,6 +585,8 @@ class SessionRepositoryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "country VARCHAR(100), "
           + "user_agent VARCHAR(255), "
+          + "referer VARCHAR(255), "
+          + "host VARCHAR(255), "
           + "is_bot BOOLEAN DEFAULT false, "
           + "is_anonymous BOOLEAN NOT NULL DEFAULT false, "
           + "app_id BIGINT)");
@@ -601,4 +606,44 @@ class SessionRepositoryTest {
       throw new IllegalStateException("Could not create the sessions schema", se);
     }
   }
+
+  @Test
+  void aSessionRecordsTheHostTheRequestArrivedOn() {
+    Session session = new Session();
+    session.setReferer("https://fde-example.z03.azurefd.net/about-us");
+    session.setHost("fde-example.z03.azurefd.net");
+    assertEquals("fde-example.z03.azurefd.net", session.getHost());
+  }
+
+  @Test
+  void aSessionWithNoKnownHostLeavesItNull() {
+    // Rows written before the column existed, and non-web sources, stay NULL and keep the
+    // site.url comparison rather than silently changing meaning (issue #1893)
+    assertNull(new Session().getHost());
+  }
+
+  @Test
+  void topReferralsExcludesAReferrerFromTheHostTheRequestArrivedOn() throws SQLException {
+    Assumptions.assumeTrue(DockerClientFactory.instance().isDockerAvailable());
+    try (Connection connection = DB.getConnection(); Statement st = connection.createStatement()) {
+      st.execute("TRUNCATE TABLE sessions RESTART IDENTITY CASCADE");
+      // self-referral arriving on a hostname site.url does not name
+      st.execute("INSERT INTO sessions (session_id, referer, host, is_bot) VALUES "
+          + "('a','https://fde-example.z03.azurefd.net/sams','fde-example.z03.azurefd.net',false)");
+      // a genuine external referral on the same host
+      st.execute("INSERT INTO sessions (session_id, referer, host, is_bot) VALUES "
+          + "('b','https://www.google.com','fde-example.z03.azurefd.net',false)");
+      // a legacy row with no host recorded -- must survive, filtered only by site.url
+      st.execute("INSERT INTO sessions (session_id, referer, host, is_bot) VALUES "
+          + "('c','https://news.example.org',NULL,false)");
+    }
+    List<StatisticsData> top = SessionRepository.findTopReferrals(30, 'd', 10);
+    List<String> labels = top.stream().map(StatisticsData::getLabel).collect(Collectors.toList());
+    assertFalse(labels.stream().anyMatch(l -> l.contains("azurefd.net")),
+        "A referrer from the host the request arrived on is a self-referral, whatever that host is");
+    assertTrue(labels.contains("https://www.google.com"), "Real external referrals stay");
+    assertTrue(labels.contains("https://news.example.org"),
+        "A row with no recorded host must still be reported");
+  }
+
 }

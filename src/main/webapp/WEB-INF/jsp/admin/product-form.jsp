@@ -76,9 +76,9 @@
   }
 </script>
 <c:choose>
-  <c:when test="${product.id eq -1}"><h4>New Product</h4></c:when>
+  <c:when test="${product.id eq -1}"><h2 class="h4">New Product</h2></c:when>
   <c:otherwise>
-    <h4>Update Product</h4>
+    <h2 class="h4">Update Product</h2>
     <c:choose>
       <c:when test="${empty product.products}">
         <span class="label primary">Incomplete</span>
@@ -106,7 +106,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -387,8 +387,8 @@
         </div>
         <div class="small-6 medium-3 cell">
           <label>Tax Code
-            <a target="_blank" href="https://taxcode.avatax.avalara.com"><i class="fa fa-info-circle"></i></a>
-            <a target="_blank" href="https://developers.taxjar.com/api/reference/#get-list-tax-categories"><i class="fa fa-info-circle"></i></a>
+            <a aria-label="Avalara tax code reference (opens in a new tab)" target="_blank" href="https://taxcode.avatax.avalara.com"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
+            <a aria-label="TaxJar tax category reference (opens in a new tab)" target="_blank" href="https://developers.taxjar.com/api/reference/#get-list-tax-categories"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
             <input type="text" name="taxCode" value="<c:out value="${product.taxCode}"/>" />
           </label>
         </div>

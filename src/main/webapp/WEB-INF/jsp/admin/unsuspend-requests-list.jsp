@@ -19,13 +19,13 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="requestList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="unsuspendRequestList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
+  <h2 class="h1"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Accounts holding an elevated role (community-manager and above) can't be reactivated by one
   administrator acting alone (issue #492) -- a request here must be reviewed and approved by a
   <em>different</em> administrator before the account is restored, and approval immediately
@@ -62,7 +62,7 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${requestList}" var="record">
+    <c:forEach items="${unsuspendRequestList}" var="record">
     <tr>
       <td><a href="${ctx}/admin/user-details?userId=${record.targetUserId}"><c:out value="${record.targetEmail}" /></a></td>
       <td><c:out value="${record.requestedByEmail}" /></td>
@@ -97,7 +97,7 @@
       </td>
     </tr>
     </c:forEach>
-    <c:if test="${empty requestList}">
+    <c:if test="${empty unsuspendRequestList}">
       <tr>
         <td colspan="6">No requests were found</td>
       </tr>

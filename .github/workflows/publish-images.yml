@@ -136,7 +136,7 @@ jobs:
       #     the whole tree rather than the specific jars hit so far, since any future
       #     dependency bump could introduce the same false positive in a different jar.
       - name: Scan for secrets in code and history
-        uses: trufflesecurity/trufflehog@bcfcf73aaf4759d4dadc2783177c245a02792318 # v3.97.0
+        uses: trufflesecurity/trufflehog@363923b901c911a9164f50b6c423f47c15372b1c # v3.97.4
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
@@ -145,7 +145,7 @@ jobs:
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py,lib/**
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '21'
@@ -197,7 +197,7 @@ jobs:
       # subject it presented -- compare that against the credential rather than guessing.
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
-        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -210,7 +210,7 @@ jobs:
       # Syft generates the per-image SBOMs below (the same tool sbom.yml uses for
       # the WAR). Installed once here, before the images are built and scanned.
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
 
       # --- Application image (docker/app/Dockerfile, built from repo root) ---
       - name: Build the application image
@@ -242,7 +242,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the application scan results
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
@@ -276,7 +276,20 @@ jobs:
       - name: Capture the application image digest
         id: app_digest
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" | cut -d@ -f2)
+          # RepoDigests carries one entry per registry this image has been pushed to, and `index 0`
+          # takes whichever happens to be first. That is not a stable choice once the ACR mirror
+          # runs: ACR converts the manifest, so its digest differs from ghcr's, and attesting
+          # ghcr's subject-name with ACR's digest makes the attestation fetch 404 and fails the
+          # publish -- which stops delivery without stopping merges (issue 1642).
+          # Select by repository rather than by position, and fail loudly rather than attesting an
+          # empty digest.
+          digest=$(docker inspect --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" \
+            | grep -m1 "^$IMAGE_PREFIX/simis-cms@" | cut -d@ -f2)
+          if [ -z "$digest" ]; then
+            echo "::error::No $IMAGE_PREFIX/simis-cms digest found -- was the image pushed to ghcr?"
+            exit 1
+          fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Attest the application image
@@ -292,7 +305,14 @@ jobs:
       # same digest the attestation above is bound to. Purely additive -- the
       # provenance step above is unchanged.
       - name: Generate the CycloneDX SBOM for the application image
-        run: syft "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms.cdx.json
+        # The CycloneDX spec version is pinned, not left to Syft's default. Syft chooses the
+        # newest spec it supports; `trivy sbom` below and actions/attest-sbom have to be able to
+        # read it, and those three are updated independently by Dependabot. Leaving it implicit
+        # made the format an unwritten contract between them, and bumping Syft alone broke it:
+        # "CycloneDX decode error: invalid specification version", which failed the publish and so
+        # stopped delivery without stopping merges (issue 1647). Raise this deliberately, once the
+        # consumers are known to handle the newer spec.
+        run: syft "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" -o cyclonedx-json@1.5=sbom-simis-cms.cdx.json
 
       - name: Attest the application image SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
@@ -336,10 +356,61 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database scan results
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
+
+      # The triage feed (issue #1935). tools/generate-db-vex.py builds the OpenVEX
+      # document from open Trivy alerts in code scanning, and keeps only CVEs with no
+      # fixed version -- `if fixed: continue`, because a fix is something to apply, not
+      # to VEX. The scan above reports the exact complement of that: `ignore-unfixed`
+      # keeps only CVEs that DO have a fix. Composed, the intersection is empty, so the
+      # generator's input has been empty since 9a29795b (2026-08-14) made
+      # `ignore-unfixed` take effect -- the last Trivy alert ever created is dated that
+      # day. Every `.trivyignore` entry says "to resolve: once the alert appears in code
+      # scanning, regenerate", and the alert could not appear. Three delivery outages
+      # (2026-08-27, 09-03, 09-08, the last stranding #1927-#1932) were found by the
+      # gate because nothing upstream of it could see them first.
+      #
+      # This is that complement, under its own category so the two analyses do not
+      # overwrite each other. Neither filter from the scan above is applied, and both
+      # omissions are load-bearing:
+      #
+      #   - no `ignore-unfixed`, so unfixable CVEs -- the only kind a VEX document may
+      #     describe -- reach the feed at all;
+      #   - no `trivyignores`, because that file IS the pending-triage queue. Suppressing
+      #     it here would hide exactly the entries that need triaging, and relaxing only
+      #     one of the two filters just hands the job to the other.
+      #
+      # The VEX document is deliberately not applied either, and not only because this
+      # pinned action declares no `vex` input. The generator regenerates the whole
+      # document from this feed, so the feed has to carry every unfixable CVE, not just
+      # the untriaged ones -- filtering it to the pending set would shrink the document
+      # from ~60 statements to a handful, which #1470's shrink guard refuses.
+      #
+      # Cost, stated plainly: this returns roughly a hundred unfixable Debian CVEs to
+      # the Security tab, which is where they sat until 2026-08-14 and the state in
+      # which triage demonstrably worked. Trivy has no inverse of `ignore-unfixed`, so
+      # this set also re-reports any *fixed* CVE already alerted above under the other
+      # category. In practice that overlap is near-zero -- every current finding on this
+      # image is an unfixable Debian package -- but it is a duplicate, not an illusion.
+      - name: Scan the database image for unfixable CVEs (VEX triage feed)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/simis-cms-db:${{ github.sha }}
+          format: sarif
+          output: trivy-simis-cms-db-triage.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          # Report scan, exit 0 -- the gate below is what enforces.
+          exit-code: '0'
+
+      - name: Publish the database triage feed
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          sarif_file: trivy-simis-cms-db-triage.sarif
+          category: image-simis-cms-db-triage
 
       # The commit tag goes up first so the gate below can scan the registry
       # artifact. :latest -- the tag deployments follow -- is pushed only after
@@ -350,7 +421,20 @@ jobs:
       - name: Capture the database image digest
         id: db_digest
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" | cut -d@ -f2)
+          # RepoDigests carries one entry per registry this image has been pushed to, and `index 0`
+          # takes whichever happens to be first. That is not a stable choice once the ACR mirror
+          # runs: ACR converts the manifest, so its digest differs from ghcr's, and attesting
+          # ghcr's subject-name with ACR's digest makes the attestation fetch 404 and fails the
+          # publish -- which stops delivery without stopping merges (issue 1642).
+          # Select by repository rather than by position, and fail loudly rather than attesting an
+          # empty digest.
+          digest=$(docker inspect --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+            "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" \
+            | grep -m1 "^$IMAGE_PREFIX/simis-cms-db@" | cut -d@ -f2)
+          if [ -z "$digest" ]; then
+            echo "::error::No $IMAGE_PREFIX/simis-cms-db digest found -- was the image pushed to ghcr?"
+            exit 1
+          fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       # Blocking gate for the database image: the published OpenVEX suppresses
@@ -398,7 +482,14 @@ jobs:
       # findings the application image does not, so enumerating its contents
       # matters most here. Same additive pattern as the application image above.
       - name: Generate the CycloneDX SBOM for the database image
-        run: syft "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms-db.cdx.json
+        # The CycloneDX spec version is pinned, not left to Syft's default. Syft chooses the
+        # newest spec it supports; `trivy sbom` below and actions/attest-sbom have to be able to
+        # read it, and those three are updated independently by Dependabot. Leaving it implicit
+        # made the format an unwritten contract between them, and bumping Syft alone broke it:
+        # "CycloneDX decode error: invalid specification version", which failed the publish and so
+        # stopped delivery without stopping merges (issue 1647). Raise this deliberately, once the
+        # consumers are known to handle the newer spec.
+        run: syft "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" -o cyclonedx-json@1.5=sbom-simis-cms-db.cdx.json
 
       - name: Attest the database image SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4

@@ -30,6 +30,7 @@ import com.simisinc.platform.application.cms.DeltaContentCommand;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.cms.SaveContentCommand;
+import com.simisinc.platform.application.cms.ValidateApiAccessToContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.presentation.controller.UserSession;
@@ -53,6 +54,17 @@ public class ContentService {
     String contentUniqueId = context.getPathParam();
     Content content = LoadContentCommand.loadContentByUniqueId(contentUniqueId);
     if (content == null) {
+      ServiceResponse response = new ServiceResponse(404);
+      response.getError().put("title", "Content was not found");
+      return response;
+    }
+
+    // Issue #1701: this returned any content record to anyone holding an app key, and the key is
+    // not a credential -- RestRequestFilter admits a GET on a key alone while the site is online.
+    // 404, not 403, and the same body as a missing record: a 403 would confirm the uniqueId exists,
+    // which is the one thing a caller who cannot read it should not learn.
+    if (!ValidateApiAccessToContentCommand.hasAccess(contentUniqueId, context.getUser())) {
+      LOG.warn("Denied content '" + contentUniqueId + "' to a caller with no access to any page rendering it");
       ServiceResponse response = new ServiceResponse(404);
       response.getError().put("title", "Content was not found");
       return response;

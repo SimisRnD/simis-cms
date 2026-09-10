@@ -27,6 +27,7 @@
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
 <jsp:useBean id="passwordAgeSeverity" class="java.lang.String" scope="request"/>
+<jsp:useBean id="accountLinkState" class="java.lang.String" scope="request"/>
 <script nonce="${cspNonce}">
   function restoreAccount() {
     if (!confirm("Are you sure you want to RESTORE this user account?")) {
@@ -127,8 +128,8 @@
   <p style="margin-bottom:0">
     Full detail and every single-account action for this one user. Bulk equivalents (suspend,
     unsuspend, reset password, grant a role) live on the <a href="${ctx}/admin/users">Users list</a>;
-    a few actions here -- Delete, Unlock, and approving/denying an unsuspend request -- don't exist
-    there at all.
+    a few actions here -- Delete, Unlock, Reset MFA, and approving/denying an unsuspend request --
+    don't exist there at all.
   </p>
 </div>
 <div class="grid-container">
@@ -269,7 +270,8 @@
         </div>
         <div class="small-8 align-self-middle cell">
           <c:forEach items="${user.roleList}" var="userRole" varStatus="status">
-            <span class="label"><c:out value="${userRole.title}" /></span>
+            <%-- Same privilege-ladder colours as /admin/users, so a role reads the same on both --%>
+            <span class="label ${user:roleTierClass(userRole.level)}"><c:out value="${userRole.title}" /></span>
           </c:forEach>
         </div>
       </div>
@@ -299,6 +301,54 @@
         </c:choose>
       </div>
     </div>
+    <%-- #1836: only one setup/reset link can exist per account, so knowing whether one is
+         outstanding decides whether to reissue (which invalidates it) or chase the email. --%>
+    <c:if test="${accountLinkState eq 'outstanding' or accountLinkState eq 'expired'}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-4 text-right cell">
+          <small>Setup Link</small>
+        </div>
+        <div class="small-8 align-self-middle cell">
+          <c:choose>
+            <c:when test="${accountLinkState eq 'expired'}">
+              <span class="label warning">Expired</span>
+              <c:if test="${!empty user.accountTokenExpires}">
+                <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" />
+              </c:if>
+            </c:when>
+            <c:otherwise>
+              <span class="label success">Outstanding</span>
+              <c:if test="${!empty user.accountTokenExpires}">
+                until <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" />
+              </c:if>
+              <%-- Revealing the link is an explicit, audited action behind a step-up -- it hands over a
+                   working credential for this account, so it is never rendered on page load. --%>
+              <br />
+              <a data-open="revealSetupLinkReveal">Show setup link</a>
+            </c:otherwise>
+          </c:choose>
+        </div>
+      </div>
+    </c:if>
+    <%-- Rendered only in the response to a successful reveal; a reload does not bring it back. --%>
+    <c:if test="${!empty setupLink}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
+          <div class="callout warning">
+            <p><strong>Send this to <c:out value="${user.email}" /> directly.</strong> It sets the account's
+              password, so treat it like one: send it over a channel you trust, and do not post it anywhere
+              shared. It stops working once used, once it expires, or as soon as a new one is issued.</p>
+            <label for="setupLinkValue">Setup link
+              <input type="text" id="setupLinkValue" value="${fn:escapeXml(setupLink)}" readonly
+                     class="select-on-focus" />
+            </label>
+            <button type="button" class="button primary radius copy-button" data-copy-target="setupLinkValue">
+              Copy link
+            </button>
+          </div>
+        </div>
+      </div>
+    </c:if>
     <c:if test="${user.locked}">
       <div class="grid-x grid-padding-x">
         <div class="small-4 text-right cell">
@@ -427,79 +477,103 @@
 <ul>
   <li><strong>Reset Password</strong> emails the account a password-reset link -- it doesn't set or
     reveal a password directly. Sending it requires you (the admin) to re-enter your own password or
-    authenticator code first.</li>
+    authenticator code first, and you can't reset the password for an account with a higher role
+    level than yours -- re-authenticating proves who you are, not which accounts you may act on.</li>
   <li><strong>Suspend Account</strong> immediately blocks sign-in. The modal marks a reason as
     required, but that's enforced by the form, not the server. You can't suspend your own account, or
     one with a higher role level than yours -- an explicit error message says so if you try, e.g. from
     a stale page or a shared link.</li>
+  <li><strong>Reset MFA</strong> only appears once the account actually has MFA enabled. It clears
+    that account's second factor and any unused recovery codes immediately -- the account holder has
+    to re-enroll from scratch, so it is the recovery path for someone who has lost their authenticator
+    device. Like Reset Password, it requires you to re-enter your own password or authenticator code
+    first, and you can't reset MFA for an account with a higher role level than yours.</li>
   <li><strong>Restore Account / Request Unsuspend&hellip;</strong> -- which one you see depends on the
     target's role. A non-elevated account restores in one click. A community-manager-or-above account
     instead requires a second, <em>different</em> admin's approval -- filing the request notifies
-    other eligible admins, and you can't also approve your own request.</li>
+    other eligible admins, and you can't also approve your own request. Neither path reaches an
+    account with a higher role level than yours: that is refused outright, not queued for a second
+    admin to review.</li>
   <li><strong>Approve Unsuspend Request / Deny Unsuspend Request</strong> only appear when a request is
     pending <em>and</em> it was filed by someone else. Approving requires your own step-up
     re-authentication, restores the account, and immediately invalidates its password -- the account
     holder gets an email to set a new one before they can sign in again. Denying just requires a
-    reason and leaves the account suspended.</li>
+    reason and leaves the account suspended. You can't approve unsuspending an account with a role
+    above your own level -- denying one isn't restricted that way, because a denial leaves the
+    account suspended either way and so can't lift a control on an account that outranks you.</li>
   <li><strong>Unlock Account</strong> only appears once the account is actually locked (too many failed
     sign-in attempts). It clears the failed-attempt counter and lockout timer only -- it does not
-    touch the password, MFA, or suspension status.</li>
+    touch the password, MFA, or suspension status. You can't unlock an account with a higher role
+    level than yours: the lockout is a security control on that account, so clearing it is a change
+    to the account, not a favour to its owner.</li>
   <li><strong>Delete Account</strong> is permanent, with no confirmation beyond the browser's own "Are
     you sure?" prompt. It fails safely, with an explicit error rather than a partial delete, if the
     account is still referenced elsewhere in the database (it authored content, owns uploaded files,
-    etc. -- see "Common problems" below). You can't delete your own account --
-    <strong>but unlike Suspend and Restore above, deleting an account with a higher role level than
-    yours is not currently blocked.</strong> A community-manager can permanently delete an admin
-    account from here. Treat this as a real gap, not a safety net: double-check who you're deleting,
-    especially on this page specifically.</li>
+    etc. -- see "Common problems" below). You can't delete your own account, or one with a higher role
+    level than yours -- an explicit error message says so if you try.</li>
 </ul>
+
+<script src="${ctx}/javascript/copy-button.js"></script>
 
 <h5>Reading the detail grid</h5>
 <ul>
   <li><strong>Validated</strong> shows when the account's invitation or password-reset link was
     actually used. "Not Validated" means that step has never happened and the account can't sign in
     yet, regardless of what the Status badge next to the name says.</li>
+  <li><strong>Show setup link</strong> reveals the working link itself so you can deliver it by hand
+    when email is not reaching someone. It re-authenticates you first and records the reveal in the
+    audit log, because that link sets the account's password. Unlike Reset Password it changes
+    nothing -- anything already sent keeps working.</li>
+  <li><strong>Setup Link</strong> appears only while an unused invitation or password-reset link
+    exists. An account holds <em>one</em> link at a time, so "Reset Password" does not send a second
+    copy -- it replaces the link, and the previously emailed one stops working immediately. Check
+    this field before reissuing: if it says <span class="label success">Outstanding</span>, a
+    working link is already in that person's inbox, and reissuing while they are mid-click is what
+    makes activation appear to fail repeatedly.</li>
   <li><strong>Password Changed</strong> gets an <span class="label warning">Aging</span> or
     <span class="label alert">Overdue</span> badge once it passes the site's configured password-age
     threshold (Overdue at twice that threshold). An account whose password change was never tracked
     is always shown as Overdue -- there's no way to distinguish "recently created" from "ancient,
     unmonitored password" from this field alone.</li>
-  <li><strong>MFA</strong> here is a status display only -- there is currently no action on this page
-    to reset or disable a user's MFA. See the callout below if that's what you need.</li>
+  <li><strong>MFA</strong> here is a status display only -- to clear an enrollment, use the
+    <strong>Reset MFA</strong> action above, which appears in the Actions menu only while this field
+    shows MFA as enabled.</li>
 </ul>
 
 <h5>Common problems and how to fix them</h5>
 <ul>
-  <li><strong>"You cannot suspend/restore an account with a higher role level than your
+  <li><strong>"You cannot suspend/restore/delete an account with a higher role level than your
     own."</strong> A community-manager can act on ordinary users but not on admins (or another account
     holding a higher-level custom role) -- enforced here even if the action is reached via a
-    bookmarked link. This specific check covers Suspend and Restore only; see the Delete Account
-    warning above for the one action it doesn't currently cover.</li>
+    bookmarked link. The same check covers Suspend Account, Restore, Delete Account and Reset MFA,
+    each phrasing the message in terms of the action you tried.</li>
   <li><strong>Restore doesn't take effect immediately.</strong> Expected for a community-manager-and-
     above account -- it needs a second, different administrator's approval. Check who requested it in
     the banner at the top of this page, or on <a href="${ctx}/admin/unsuspend-requests">Unsuspend
     Requests</a>.</li>
-  <li><strong>A user is locked out of MFA</strong> (lost their device, no backup codes left). There is
-    no admin "Reset MFA" action on this page today -- see the callout below.</li>
+  <li><strong>A user is locked out of MFA</strong> (lost their device, no backup codes left). Use
+    <strong>Reset MFA</strong> in the Actions menu, then have them re-enroll -- it clears the second
+    factor and any unused recovery codes in one step.</li>
   <li><strong>Delete failed with "referenced in other tables."</strong> The account owns something
     else in the system (content, files, form submissions, etc.) that deleting it outright would
     orphan. Suspending instead of deleting is usually the safer option here.</li>
 </ul>
 
-<div class="callout radius" style="margin-bottom:20px">
-  <p style="margin-bottom:0">
-    <i class="fa fa-info-circle"></i> <strong>Coming soon, not yet available:</strong> a "Reset MFA"
-    action on this page for an account that's lost its authenticator device. Also, the
-    "Capability Grants" link above is currently shown to every community-manager who can reach this
-    page, even though that page itself is admin-only -- a community-manager who clicks it today just
-    hits an access-denied page.
-  </p>
-</div>
-
 <div class="reveal" id="resetPasswordReveal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="resetPasswordRevealTitle">Reset Password</h4>
   <p>An email with password reset instructions will be sent to <strong><c:out value="${user.email}" /></strong>.</p>
+  <%-- #1836: warn BEFORE the admin commits, not after. An account holds one link at a time, so
+       sending this one stops the outstanding link working -- including one being clicked right now. --%>
+  <c:if test="${accountLinkState eq 'outstanding'}">
+    <div class="callout warning">
+      This account already has a working setup link<c:if test="${!empty user.accountTokenExpires}">, valid
+      until <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.accountTokenExpires}" /></c:if>.
+      Sending a new one immediately stops that link working. If they are partway through using it,
+      this will interrupt them -- check whether they simply need the email resent to a reachable
+      address before reissuing.
+    </div>
+  </c:if>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -515,6 +589,34 @@
       </div>
     </div>
     <input type="submit" class="button warning radius" value="Send Reset Email"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="revealSetupLinkReveal" role="dialog" aria-modal="true"
+     aria-labelledby="revealSetupLinkRevealTitle" data-reveal data-close-on-click="true">
+  <h4 id="revealSetupLinkRevealTitle">Show setup link</h4>
+  <p>This shows the working link for <strong><c:out value="${user.email}" /></strong> so you can send it
+    yourself -- useful when email is not reaching them. <strong>It sets their password, so treat it like
+    one.</strong> Showing it is recorded in the audit log.</p>
+  <p>This does not change or replace the link, so anything already sent keeps working.</p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="revealSetupLink"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <div class="grid-x grid-padding-x">
+      <div class="small-12 cell">
+        <label for="revealStepUpCredential">Your password or authenticator code <span class="required">*</span>
+          <input type="password" id="revealStepUpCredential" name="stepUpCredential" maxlength="255"
+                 placeholder="Password or 6-digit code" required
+                 title="Re-authentication required to show another user's setup link"/>
+        </label>
+      </div>
+    </div>
+    <input type="submit" class="button primary radius" value="Show Link"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">

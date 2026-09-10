@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 
 import static java.util.stream.Collectors.toList;
@@ -86,12 +87,13 @@ public class EmailSubscribeWidget extends GenericWidget {
       return context;
     }
 
+    List<MailingList> onlineMailingLists = null;
     if ("inline".equals(context.getPreferences().get("view"))) {
       context.setJsp(INLINE_FORM_JSP);
       // Issue #598: let a visitor choose which public list(s) to join. Omitted entirely (no
       // checkboxes rendered) when nothing is marked show_online, so a default/fresh install's
       // single-list signup behaves exactly as it did before this feature existed.
-      context.getRequest().setAttribute("onlineMailingLists", MailingListRepository.findOnlineLists());
+      onlineMailingLists = MailingListRepository.findOnlineLists();
     } else if ("vertical".equals(context.getPreferences().get("view"))) {
       context.setJsp(VERTICAL_FORM_JSP);
     } else if ("true".equals(context.getPreferences().get("showName"))) {
@@ -99,10 +101,26 @@ public class EmailSubscribeWidget extends GenericWidget {
       // Same multi-list opt-in support as the inline form (issue #598), and a Country dropdown
       // reusing the same list ShippingAddressFormWidget already offers at checkout instead of
       // maintaining a second copy of every country name.
-      context.getRequest().setAttribute("onlineMailingLists", MailingListRepository.findOnlineLists());
+      onlineMailingLists = MailingListRepository.findOnlineLists();
       context.getRequest().setAttribute("countryList", ShippingCountryRepository.findAll());
     } else {
       context.setJsp(JSP);
+    }
+    if (onlineMailingLists != null) {
+      context.getRequest().setAttribute("onlineMailingLists", onlineMailingLists);
+    }
+
+    // Issue #1724: the counterpart of the blogUniqueId check above, for the list this widget names
+    // itself. A submit no longer conjures a list into existence when the preference doesn't
+    // resolve, so once an admin deletes that list -- or renames one a mailingList *name*
+    // preference still points at -- this form can only ever fail. Don't render it, and say so in
+    // the log for whoever has to fix the preference. Only when the widget's own preference is the
+    // form's sole path: a blog-scoped widget subscribes by the blog's list id and never reads
+    // either preference, and the per-list checkboxes (issue #598) are a working path in their own
+    // right, so neither is misconfigured just because the fallback name has drifted.
+    if (StringUtils.isBlank(blogUniqueId) && (onlineMailingLists == null || onlineMailingLists.isEmpty())
+        && configuredMailingList(context) == null) {
+      return null;
     }
 
     // Preferences
@@ -113,9 +131,9 @@ public class EmailSubscribeWidget extends GenericWidget {
     // section/widget class attributes injectable. Sanitized rather than escaped because these
     // are meant to contain html.
     context.getRequest().setAttribute("introHtml",
-        HtmlCommand.cleanContent(context.getPreferences().get("introHtml")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("introHtml")));
     context.getRequest().setAttribute("footerHtml",
-        HtmlCommand.cleanContent(context.getPreferences().get("footerHtml")));
+        HtmlCommand.cleanStoredContent(context.getPreferences().get("footerHtml")));
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -141,7 +159,6 @@ public class EmailSubscribeWidget extends GenericWidget {
 
     // Determine preferences
     String blogUniqueId = context.getPreferences().get("blogUniqueId");
-    String mailingListName = context.getPreferences().get("mailingList");
     String tags = context.getPreferences().get("tags");
 
     // Populate the fields
@@ -159,7 +176,10 @@ public class EmailSubscribeWidget extends GenericWidget {
     }
 
     // Populate all the http and session info
-    emailBean.setIpAddress(context.getUserSession().getIpAddress());
+    // The address of the request that subscribed, not the one the session was created at
+    // (issue #1782)
+    emailBean.setIpAddress(IpAddressCommand.forAction(context.getRequest(),
+        context.getUserSession().getIpAddress()));
     emailBean.setSessionId(context.getUserSession().getSessionId());
     emailBean.setReferer(context.getUserSession().getReferer());
     emailBean.setUserAgent(context.getUserSession().getUserAgent());
@@ -202,7 +222,7 @@ public class EmailSubscribeWidget extends GenericWidget {
         MailingList mailingList = resolveBlogMailingList(blogUniqueId);
         if (mailingList == null) {
           // The blog's association was removed between this form rendering and being submitted
-          throw new DataException("Sorry, this signup isn't available right now.");
+          throw new DataException(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE);
         }
         SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
       } else {
@@ -223,7 +243,15 @@ public class EmailSubscribeWidget extends GenericWidget {
           }
           SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, selectedLists);
         } else {
-          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingListName);
+          // Issue #1724: resolve this widget's own configured list -- mailingListUniqueId first,
+          // then the mailingList name preference. Nothing here creates a list that doesn't exist;
+          // a form whose configuration stopped resolving between rendering and submitting fails
+          // the same way the blog-scoped path above does.
+          MailingList mailingList = configuredMailingList(context);
+          if (mailingList == null) {
+            throw new DataException(SaveEmailCommand.LIST_UNAVAILABLE_MESSAGE);
+          }
+          SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
         }
       }
     } catch (DataException e) {
@@ -235,6 +263,20 @@ public class EmailSubscribeWidget extends GenericWidget {
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "emailSubscribeWidgetSuccess", "true");
     return context;
+  }
+
+  /**
+   * The list this widget's own preferences name, or null when they resolve to nothing.
+   * <p>
+   * mailingListUniqueId (issue #1724) points at mailing_lists.unique_id, which is assigned when a
+   * list is created and never rewritten, so it survives an admin renaming the list -- the same
+   * guarantee blogUniqueId already gave the blog-scoped path. mailingList is the original
+   * preference and stays supported: it is what every page already published in the wild carries,
+   * and it is a list *name*, which is exactly why it can drift.
+   */
+  private MailingList configuredMailingList(WidgetContext context) {
+    return SaveEmailCommand.findMailingList(context.getPreferences().get("mailingListUniqueId"),
+        context.getPreferences().get("mailingList"));
   }
 
   /** The blog's associated mailing list (issue #601), or null if the blog or association doesn't exist. */

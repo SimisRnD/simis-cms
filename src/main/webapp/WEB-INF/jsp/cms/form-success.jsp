@@ -22,6 +22,6 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty successTitle}">
-  <h4><c:out value="${successTitle}" /></h4>
+  <h2 class="h4"><c:out value="${successTitle}" /></h2>
 </c:if>
 <p><c:out value="${successMessage}" /></p>

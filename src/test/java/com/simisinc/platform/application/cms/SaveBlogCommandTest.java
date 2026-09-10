@@ -46,6 +46,34 @@ class SaveBlogCommandTest {
   }
 
   @Test
+  void anOverLongNameIsRefusedWithTheLimitInTheMessage() {
+    // issue #1740: blogs.name is VARCHAR(255) and nothing checked it, so the write reached Postgres
+    // and the admin was told the system had failed and to try again
+    Blog bean = blogBean("x".repeat(256), -1);
+
+    try (MockedStatic<BlogRepository> blogRepo = mockStatic(BlogRepository.class)) {
+      DataException exception = assertThrows(DataException.class, () -> SaveBlogCommand.saveBlog(bean));
+
+      assertEquals("Please check the form and try again:\nA name can be up to 255 characters",
+          exception.getMessage());
+      blogRepo.verify(() -> BlogRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void aNameExactlyAtTheLimitIsAccepted() throws DataException {
+    Blog bean = blogBean("x".repeat(255), -1);
+
+    try (MockedStatic<BlogRepository> blogRepo = mockStatic(BlogRepository.class)) {
+      blogRepo.when(() -> BlogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      Blog saved = SaveBlogCommand.saveBlog(bean);
+
+      assertEquals(255, saved.getName().length());
+    }
+  }
+
+  @Test
   void savesWithNoMailingListAssociation() throws DataException {
     Blog bean = blogBean("News", -1);
 

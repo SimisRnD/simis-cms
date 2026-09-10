@@ -61,8 +61,11 @@ param dbUser string
 @description('CMS administrator username created at first boot (CMS_ADMIN_USERNAME).')
 param cmsAdminUsername string = 'admin'
 
-@description('CMS_TRUSTED_PROXIES value. Must be set to the edge egress ranges when the edge tier (#245) fronts the app; otherwise getRemoteAddr()/isSecure() see the proxy, degrading the Secure-cookie flag, IP firewall, rate limiting, and audit source IP.')
+@description('CMS_TRUSTED_PROXIES value. A Java regular expression -- NOT CIDR -- matching the addresses of the immediate peer, i.e. the App Service front ends. Without it getRemoteAddr()/isSecure() see the proxy, degrading the Secure-cookie flag, IP firewall, rate limiting, and audit source IP.')
 param trustedProxies string = ''
+
+@description('CMS_CLIENT_IP_HEADER value. Behind Front Door set this to X-Azure-ClientIP: its origin-facing addresses are public and span ~147 IPv4 prefixes that Microsoft revises, so they cannot practically be listed in trustedProxies, and X-Forwarded-For resolution then stops at the Front Door node and reports it as the client (issue #1675). Empty keeps X-Forwarded-For.')
+param clientIpHeader string = ''
 
 @description('Public URL of the site (CMS_URL). Defaults to the App Service hostname until the custom domain lands at cutover.')
 param customUrl string = ''
@@ -170,6 +173,7 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'CMS_NODE_TYPE', value: 'standalone' }
         { name: 'CMS_PATH', value: cmsPathMount }
         { name: 'CMS_TRUSTED_PROXIES', value: trustedProxies }
+        { name: 'CMS_CLIENT_IP_HEADER', value: clientIpHeader }
         { name: 'CMS_ADMIN_USERNAME', value: cmsAdminUsername }
         { name: 'CMS_ADMIN_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsAdminPasswordSecretName})' }
         { name: 'CMS_SECRET_KEY', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsSecretKeySecretName})' }

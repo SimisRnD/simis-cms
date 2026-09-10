@@ -29,6 +29,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -215,12 +216,62 @@ public class HtmlCommand {
   }
 
   /**
-   * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks
+   * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks, and
+   * refuses iframes from hosts the site has not allowed.
    *
-   * @param contentHtml
-   * @return
+   * <p>
+   * This is the save-time entry point. Use {@link #cleanStoredContent(String)} for content that is
+   * already stored and is being cleaned again on its way out to a page.
+   * </p>
+   *
+   * @param contentHtml the content to clean
+   * @return the cleaned content, or the input unchanged when it is blank
+   * @throws IllegalStateException if the document could not be fully processed; the partially
+   *         processed content is never returned, because callers store and serve this result as
+   *         though it were clean
    */
   public static String cleanContent(String contentHtml) {
+    return cleanContent(contentHtml, true);
+  }
+
+  /**
+   * Cleans content that is already stored, on its way out to a page.
+   *
+   * <p>
+   * Identical to {@link #cleanContent(String)} except that the iframe host allowlist is not
+   * applied. Several widgets re-clean a stored value on every render -- {@code ContentHtmlCommand}
+   * does it for a page-layout XML preference, because that preference never passes through a
+   * save-time sanitizer. Running the allowlist there makes it retroactive, which is issue 1632:
+   * shipping the property empty silently deleted embeds that were already published and valid, on
+   * every page view, while the designer went on showing them. The author sees a blank area, the
+   * content looks correct, and re-saving does not help.
+   * </p>
+   *
+   * <p>
+   * Dropping the check here does not admit a frame the site refuses. {@code frame-src} carries the
+   * same allowlist and is what actually stops the browser loading one, so an unlisted embed is a
+   * blocked frame rather than deleted content -- recoverable by adding the host, instead of
+   * requiring the author to notice and re-author. Protocol restrictions are unaffected: a
+   * {@code javascript:} src still loses its src here exactly as before.
+   * </p>
+   *
+   * @param contentHtml the stored content to clean
+   * @return the cleaned content, or the input unchanged when it is blank
+   * @throws IllegalStateException if the document could not be fully processed
+   */
+  public static String cleanStoredContent(String contentHtml) {
+    return cleanContent(contentHtml, false);
+  }
+
+  /**
+   * The shared implementation. {@code enforceAllowedIframeHosts} is the only difference between the
+   * save path and the render path.
+   *
+   * @param contentHtml the content to clean
+   * @param enforceAllowedIframeHosts true to remove iframes whose host is not allowed
+   * @return the cleaned content, or the input unchanged when it is blank
+   */
+  private static String cleanContent(String contentHtml, boolean enforceAllowedIframeHosts) {
     // Validate the input
     if (StringUtils.isBlank(contentHtml)) {
       return contentHtml;
@@ -298,7 +349,14 @@ public class HtmlCommand {
     //   <source src="http://simis.simisappstore.com/assets/view/20181214165905-1/AIMS%20Intubation.mp4" type="video/mp4">
     // </video>
     safelist.addTags("video");
-    safelist.addAttributes("video", "src", "controls", "poster", "type", "width", "height", "autoplay");
+    safelist.addAttributes("video", "src", "controls", "poster", "type", "width", "height", "autoplay",
+        "preload");
+    // preload is an enumerated attribute (none|metadata|auto) with no URL or script surface -- the one
+    // control an author has over eager media fetching. Without it a <video> defaults to fetching
+    // metadata, often more, the moment the page loads, even for a player hidden inside a reveal modal.
+    // Four such videos on the home page pulled ~57MB before anyone pressed play and the two largest
+    // connections were reset under a throttled mobile load. Listing it lets an author set
+    // preload="none" so no media is fetched until playback actually starts.
     safelist.addTags("source");
     safelist.addAttributes("source", "src", "type");
     // <track kind="captions" src="/assets/view/.../SimIS-HTT.vtt" srclang="en" label="English" default>
@@ -342,9 +400,19 @@ public class HtmlCommand {
       removeEmptyEnclosingElements(clean, "span");
       removeEmptyEnclosingElements(clean, "div");
       handleVideoTags(clean);
-      handleVideoEmbeds(clean);
+      handleVideoEmbeds(clean, enforceAllowedIframeHosts);
     } catch (Exception e) {
-      LOG.error("manipulate the clean document exception should not be here", e);
+      // Do not fall through with a half-processed document. Everything in the try block runs after
+      // the Cleaner and is order-dependent, so an exception in an early mutator silently skips
+      // every later one -- and what comes back is neither the input nor a fully-processed
+      // document, yet the save callers store it and the render callers serve it as if it were
+      // clean. Logging and continuing hid exactly that: a NullPointerException in
+      // handleVideoEmbeds surfaced only as legitimate embeds losing their responsive-embed
+      // wrapper, with every unit test still green. Refusing to return the document is the lesser
+      // harm -- a refused save beats a stored half-clean one -- and it makes any future failure
+      // here fail a test instead of being absorbed by a log line.
+      LOG.error("The clean document could not be fully processed; refusing to return it", e);
+      throw new IllegalStateException("Content sanitization did not complete", e);
     }
 
     String cleanedContent = clean.html();
@@ -382,7 +450,16 @@ public class HtmlCommand {
       String[] styles = element.attr("style").split(";");
       ArrayList<String> filteredItems = new ArrayList<>();
       for (String item : styles) {
-        String key = (item.split(":"))[0].trim().toLowerCase();
+        // Read the property name with indexOf rather than split(":")[0]. Java's split drops
+        // trailing empty strings, so while "color: red".split(":") is ["color", " red"],
+        // ":".split(":") is a ZERO-length array and indexing [0] throws
+        // ArrayIndexOutOfBoundsException. A style value of ":" is preserved by the Cleaner (jsoup
+        // does not parse CSS), reaches here, and used to abort the whole manipulation phase --
+        // one character of authored content was enough to skip every remaining mutator. A
+        // declaration with no property name matches nothing on the list above and is kept, which
+        // is how any other unrecognized declaration is already treated.
+        int colon = item.indexOf(':');
+        String key = (colon < 0 ? item : item.substring(0, colon)).trim().toLowerCase();
         if (!unAllowedItems.contains(key)) {
           filteredItems.add(item);
         }
@@ -413,23 +490,47 @@ public class HtmlCommand {
     }
   }
 
-  private static void handleVideoEmbeds(Document document) {
+  private static void handleVideoEmbeds(Document document, boolean enforceAllowedIframeHosts) {
     Elements e = document.getElementsByTag("iframe");
     if (e == null) {
       return;
     }
     // Drop iframes from hosts the site has not allowed, before any of the wrapping below runs.
     // jsoup's Safelist can restrict an iframe's protocol but not its host, so without this an
-    // author could embed a frame from anywhere and it would be stored, served, and only stopped
-    // at the browser by frame-src -- as a silent blank box with no indication of what happened or
-    // why. Refusing it here means the content never carries an embed the policy will not render.
+    // author could embed a frame from anywhere and it would be stored and served.
+    //
+    // This runs on the save path only (issue 1632). It used to run wherever cleanContent() ran,
+    // which includes the render path -- ContentHtmlCommand re-cleans a stored page-layout XML
+    // preference on every page view. That made the allowlist retroactive: a host absent from the
+    // list, including every host on a site that had never populated the property, had its embeds
+    // deleted from pages that were already published, on every render, while the stored content
+    // and the designer went on showing them. See cleanStoredContent().
+    //
+    // Determining the list reads a site property, so it can fail where the database cannot be
+    // reached. When that happens nothing is removed. Removing content requires knowing that a host
+    // is disallowed, and a failed lookup is not that -- it is the absence of an answer. Guessing in
+    // the destructive direction would delete an author's embed because of an unrelated outage, and
+    // frame-src still refuses the frame at render either way, so nothing is exposed by waiting.
+    List<String> allowed = null;
+    if (enforceAllowedIframeHosts) {
+      try {
+        allowed = AllowedIframeHostCommand.allowedHosts();
+      } catch (Exception configException) {
+        LOG.warn("Could not read " + AllowedIframeHostCommand.SITE_PROPERTY
+            + "; leaving iframes in place rather than removing them on incomplete information",
+            configException);
+        allowed = null;
+      }
+    }
     boolean removedAny = false;
-    for (Element element : e) {
-      if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"))) {
-        LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
-            + ": " + element.attr("src"));
-        element.remove();
-        removedAny = true;
+    if (allowed != null) {
+      for (Element element : e) {
+        if (element.hasAttr("src") && !AllowedIframeHostCommand.isAllowed(element.attr("src"), allowed)) {
+          LOG.warn("Removed an iframe from a host that is not in " + AllowedIframeHostCommand.SITE_PROPERTY
+              + ": " + element.attr("src"));
+          element.remove();
+          removedAny = true;
+        }
       }
     }
     // getElementsByTag returns a snapshot, not a live view, so removed elements are still in "e"

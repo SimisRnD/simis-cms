@@ -220,6 +220,151 @@ class VideoWidgetTest extends WidgetBase {
     Assertions.assertNull(request.getAttribute("embedUrl"));
   }
 
+  // issue #1797: the forms YouTube and Vimeo actually hand out, and telling an author when the one
+  // they pasted was not among them.
+
+  @Test
+  void executeParsesTheLiveUrlYouTubesShareDialogGivesForAStream() {
+    // The form that produced a broken embed on this platform's own content, and the reason this
+    // issue exists -- YouTube gives it for a live stream and for its archive afterwards
+    Assertions.assertEquals("https://www.youtube-nocookie.com/embed/5_TWZ6rM7oA?rel=0",
+        embedUrlFor("https://www.youtube.com/live/5_TWZ6rM7oA?si=gRriCm5qsVYW0jnw"));
+  }
+
+  @Test
+  void executeParsesTheLegacyYouTubeVUrl() {
+    Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0",
+        embedUrlFor("https://www.youtube.com/v/dQw4w9WgXcQ"));
+  }
+
+  @Test
+  void executeParsesVimeoChannelAndGroupUrls() {
+    Assertions.assertEquals("https://player.vimeo.com/video/76979871",
+        embedUrlFor("https://vimeo.com/channels/staffpicks/76979871"));
+    Assertions.assertEquals("https://player.vimeo.com/video/76979871",
+        embedUrlFor("https://vimeo.com/groups/animation/videos/76979871"));
+  }
+
+  @Test
+  void executeCarriesAnUnlistedVimeoVideosPrivacyHash() {
+    // Dropping the hash was worse than not matching: the widget reported success and the visitor
+    // got a player Vimeo refuses to serve
+    when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"video\">\n" +
+            "  <videoUrl>https://vimeo.com/76979871/abcdef0123</videoUrl>\n" +
+            "</widget>");
+
+    VideoWidget widget = new VideoWidget();
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("vimeo", request.getAttribute("provider"));
+    Assertions.assertEquals("https://player.vimeo.com/video/76979871?h=abcdef0123", request.getAttribute("embedUrl"));
+    // The oEmbed thumbnail lookup video.jsp makes from the browser needs the hash too, or it
+    // returns nothing and the play button has no poster frame
+    Assertions.assertEquals("https://vimeo.com/76979871/abcdef0123", request.getAttribute("videoPageUrl"));
+  }
+
+  @Test
+  void executeLeavesAPublicVimeoUrlExactlyAsItWas() {
+    when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
+    addPreferencesFromWidgetXml(widgetContext, VIMEO_XML);
+
+    VideoWidget widget = new VideoWidget();
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
+
+    // No stray "?h=" on a video that has no hash
+    Assertions.assertEquals("https://player.vimeo.com/video/76979871", request.getAttribute("embedUrl"));
+    Assertions.assertEquals("https://vimeo.com/76979871", request.getAttribute("videoPageUrl"));
+  }
+
+  @Test
+  void anUnrecognizedUrlIsReportedAsSuchAndAnEmptyOneIsNot() {
+    // The whole point: these two used to be indistinguishable, so an author could not tell a bad
+    // paste from a widget they had not filled in yet
+    Assertions.assertEquals("false", recognizedFlagFor("https://example.com/not-a-video-site"));
+    Assertions.assertNull(recognizedFlagFor(null));
+    Assertions.assertNull(recognizedFlagFor("https://www.youtube.com/live/5_TWZ6rM7oA"));
+  }
+
+  @Test
+  void onlyTheLayoutBuilderTierIsToldTheUrlWasNotRecognized() {
+    // videoUrl is a page-layout preference: a content editor cannot reach it, and a visitor should
+    // not be reading about the site's own misconfiguration
+    Assertions.assertEquals("false", canBuildLayoutFor());
+    Assertions.assertEquals("false", canBuildLayoutFor("content-editor"));
+    Assertions.assertEquals("true", canBuildLayoutFor("content-manager"));
+    Assertions.assertEquals("true", canBuildLayoutFor("admin"));
+  }
+
+  @Test
+  void consentStillWithholdsEverythingForANewlyRecognizedUrl() {
+    // The new forms go through the same gate as the old ones (issues #428/#366)
+    when(request.getCookies()).thenReturn(new Cookie[] { DECLINED });
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"video\">\n" +
+            "  <videoUrl>https://www.youtube.com/live/5_TWZ6rM7oA</videoUrl>\n" +
+            "</widget>");
+
+    VideoWidget widget = new VideoWidget();
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("false", request.getAttribute("consentGiven"));
+    Assertions.assertNull(request.getAttribute("provider"));
+    Assertions.assertNull(request.getAttribute("embedUrl"));
+    Assertions.assertNull(request.getAttribute("thumbnailUrl"));
+    Assertions.assertNull(request.getAttribute("videoPageUrl"));
+    Assertions.assertNull(request.getAttribute("videoUrlRecognized"));
+  }
+
+  private String embedUrlFor(String videoUrl) {
+    return (String) executeWith(videoUrl).getAttribute("embedUrl");
+  }
+
+  private String recognizedFlagFor(String videoUrl) {
+    return (String) executeWith(videoUrl).getAttribute("videoUrlRecognized");
+  }
+
+  private String canBuildLayoutFor(String... roles) {
+    if (roles.length > 0) {
+      login(widgetContext);
+      setRoles(widgetContext, roles);
+    }
+    return (String) executeWith("https://example.com/not-a-video-site").getAttribute("canBuildLayout");
+  }
+
+  /**
+   * Runs the widget with consent given and the given url set, or with no url at all when it is
+   * null. Preferences are reset first, so calling this twice in a test stands in for two separate
+   * video widgets on one page rather than one widget accumulating settings.
+   */
+  private jakarta.servlet.http.HttpServletRequest executeWith(String videoUrl) {
+    when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
+    widgetContext.setPreferences(new java.util.HashMap<>());
+    // WebContainerCommand wipes every non-page-level request attribute before each widget runs
+    // (isPreservedAcrossWidgetReset), so a widget never sees the previous one's leftovers. This
+    // harness has no container, so it stands in for that reset -- without it these assertions would
+    // be reading the previous call's values and testing nothing.
+    for (String name : new String[] { "provider", "embedUrl", "thumbnailUrl", "videoPageUrl",
+        "videoUrlRecognized", "canBuildLayout" }) {
+      request.removeAttribute(name);
+    }
+    if (videoUrl != null) {
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"video\">\n  <videoUrl>" + videoUrl + "</videoUrl>\n</widget>");
+    }
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      new VideoWidget().execute(widgetContext);
+    }
+    return request;
+  }
+
   // issue #366/#428 fix: on the shipped default (analytics.consentRequired=false), the
   // accept/decline banner never renders and the analytics-consent cookie can never become
   // "accepted" -- so consent must be treated as given even with no cookie at all.

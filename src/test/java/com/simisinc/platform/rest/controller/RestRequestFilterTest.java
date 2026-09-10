@@ -18,6 +18,7 @@ package com.simisinc.platform.rest.controller;
 
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -103,6 +104,58 @@ class RestRequestFilterTest {
     App app = new App();
     app.setEnabled(true);
     return app;
+  }
+
+  /**
+   * CORS. The preflight echoes an allowed origin, and what it echoes is the configured site.url --
+   * never a wildcard. Nothing pinned this, so a change to "*" (the usual shortcut when an
+   * integration will not connect) would have made every origin able to read authenticated API
+   * responses, and no test would have objected.
+   */
+  @Test
+  void thePreflightEchoesTheConfiguredSiteUrlAndNeverAWildcard() throws Exception {
+    HttpServletRequest request = requestFor("OPTIONS", "/api/collections", null);
+    when(request.getHeader("Origin")).thenReturn("https://example.org");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadAppCommand> loadApp = mockStatic(LoadAppCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.api")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("https://www.example.com");
+      loadApp.when(() -> LoadAppCommand.loadAppByPublicKey("test-key")).thenReturn(enabledApp());
+
+      new RestRequestFilter().doFilter(request, response, chain);
+
+      ArgumentCaptor<String> origin = ArgumentCaptor.forClass(String.class);
+      verify(response).addHeader(eq("Access-Control-Allow-Origin"), origin.capture());
+      assertEquals("https://www.example.com", origin.getValue());
+      assertNotEquals("*", origin.getValue(), "a wildcard would let any origin read authenticated responses");
+    }
+  }
+
+  /**
+   * With no site.url configured there is no origin to allow, so the header must be omitted rather
+   * than sent empty or wildcarded -- an absent header is the safe default, and the browser then
+   * blocks the cross-origin read on its own.
+   */
+  @Test
+  void thePreflightSendsNoAllowOriginWhenNoSiteUrlIsConfigured() throws Exception {
+    HttpServletRequest request = requestFor("OPTIONS", "/api/collections", null);
+    when(request.getHeader("Origin")).thenReturn("https://example.org");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadAppCommand> loadApp = mockStatic(LoadAppCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.api")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(null);
+      loadApp.when(() -> LoadAppCommand.loadAppByPublicKey("test-key")).thenReturn(enabledApp());
+
+      new RestRequestFilter().doFilter(request, response, chain);
+
+      verify(response, never()).addHeader(eq("Access-Control-Allow-Origin"), anyString());
+    }
   }
 
   @Test

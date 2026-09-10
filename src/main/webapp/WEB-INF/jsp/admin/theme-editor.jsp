@@ -29,7 +29,7 @@ function deleteTheme(themeId) {
 </script>
 <%-- Title and Message block --%>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty themeList}">
@@ -38,7 +38,7 @@ function deleteTheme(themeId) {
     <c:forEach items="${themeList}" var="thisTheme">
       <li>
         <a href="#" onclick="postAction('${widgetContext.uri}?action=restore&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=${thisTheme.id}'); return false;"><c:out value="${thisTheme.name}"/></a>
-        <a href="#" data-js-call="deleteTheme" data-js-arg1="${thisTheme.id}"><i class="fa fa-trash-o"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(thisTheme.name)}" href="#" data-js-call="deleteTheme" data-js-arg1="${thisTheme.id}"><i aria-hidden="true" class="fa fa-trash-o"></i></a>
       </li>
     </c:forEach>
   </ol>

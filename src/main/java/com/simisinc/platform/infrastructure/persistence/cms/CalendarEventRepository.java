@@ -56,6 +56,13 @@ public class CalendarEventRepository {
   // event save failing on a VARCHAR(255) overflow.
   private static int TAGS_LIST_MAX_LENGTH = 255;
 
+  // Every address column on this table is the same width, so one constant covers them all.
+  // Truncating beats the alternative: an over-length value reaches Postgres, the insert
+  // throws, and the form reports "a system error" for an entry that will fail identically
+  // every time (issue #1740).
+  // @column calendar_events.street
+  private static int ADDRESS_MAX_LENGTH = 100;
+
   // Package-private (not private) so CalendarEventRepositoryWhereClauseTest can exercise the built
   // SqlUtils/SqlValue output directly, mirroring ItemRepository.createSearchWhereStatement's visibility.
   static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
@@ -220,7 +227,16 @@ public class CalendarEventRepository {
         .add("end_date", record.getEndDate())
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
+        .add("organizer_name", StringUtils.trimToNull(record.getOrganizerName()))
+        .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
+        .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
+        .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
+        .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
+        .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
+        .add("state", StringUtils.trimToNull(record.getState()), ADDRESS_MAX_LENGTH)
+        .add("postal_code", StringUtils.trimToNull(record.getPostalCode()), ADDRESS_MAX_LENGTH)
+        .add("country", StringUtils.trimToNull(record.getCountry()), ADDRESS_MAX_LENGTH)
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
         .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
@@ -248,7 +264,16 @@ public class CalendarEventRepository {
         .add("end_date", record.getEndDate())
         .add("details_url", StringUtils.trimToNull(record.getDetailsUrl()))
         .add("sign_up_url", StringUtils.trimToNull(record.getSignUpUrl()))
+        .add("organizer_name", StringUtils.trimToNull(record.getOrganizerName()))
+        .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
+        .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
+        .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
+        .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
+        .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
+        .add("state", StringUtils.trimToNull(record.getState()), ADDRESS_MAX_LENGTH)
+        .add("postal_code", StringUtils.trimToNull(record.getPostalCode()), ADDRESS_MAX_LENGTH)
+        .add("country", StringUtils.trimToNull(record.getCountry()), ADDRESS_MAX_LENGTH)
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
         .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
@@ -307,6 +332,10 @@ public class CalendarEventRepository {
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setDetailsUrl(rs.getString("details_url"));
       record.setSignUpUrl(rs.getString("sign_up_url"));
+      record.setOrganizerName(rs.getString("organizer_name"));
+      record.setOrganizerUrl(rs.getString("organizer_url"));
+      record.setPerformerName(rs.getString("performer_name"));
+      record.setPerformerUrl(rs.getString("performer_url"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));

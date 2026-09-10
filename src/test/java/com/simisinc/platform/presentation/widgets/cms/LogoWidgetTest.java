@@ -121,25 +121,67 @@ class LogoWidgetTest extends WidgetBase {
     }
   }
 
-  @Test
-  void executeClearsAStaleViewAttributeLeftByAnEarlierLogoWidgetInTheSameRequest() {
-    try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
-      // Simulate the header's logo widget having already run earlier in this same request and
-      // pinned a view -- the footer's logo widget (this execution) must not inherit it just
-      // because its own preferences don't mention "view".
-      request.setAttribute("view", "color");
-      request.setAttribute("logoColorProperty", "theme.logo.color");
-      request.setAttribute("logoColorPropertyDark", "theme.logo.color.dark");
+  // The test that used to sit here asserted that the footer's logo widget does not inherit a view
+  // the header's logo widget set earlier in the same request. It passed for the wrong reason: it
+  // shared one mock request across both executions with no container in between, so it was really
+  // testing the removeAttribute calls the widget carried, not the behaviour. The behaviour is the
+  // container's -- WebContainerCommand clears every non-page-level attribute before each widget --
+  // and it is now asserted where it lives, in
+  // WebContainerCommandTest.theResetLoopRemovesAWidgetsLeftoversBeforeTheNextWidgetRuns.
 
+  /**
+   * maxWidth/maxHeight used to be concatenated into the value unchecked. That was survivable while
+   * the result went into a style ATTRIBUTE -- a stray character produced a malformed declaration the
+   * browser drops. logo.jsp now renders them into a &lt;style&gt; ELEMENT so the page can drop
+   * 'unsafe-inline' from style-src, and a stylesheet is a far wider blast radius: a value carrying
+   * "}" closes the rule and the rest becomes page-wide CSS.
+   */
+  @Test
+  void aSizingPreferenceThatIsNotAPlainLengthIsDroppedRatherThanEmitted() {
+    assertNull(LogoWidget.cssLength("50px}body{display:none"));
+    assertNull(LogoWidget.cssLength("50px; background: url(https://evil.example/x)"));
+    assertNull(LogoWidget.cssLength("</style><script>alert(1)</script>"));
+    assertNull(LogoWidget.cssLength("expression(alert(1))"));
+    assertNull(LogoWidget.cssLength("50"));
+    assertNull(LogoWidget.cssLength(""));
+    assertNull(LogoWidget.cssLength(null));
+  }
+
+  @Test
+  void ordinaryLengthsAreAccepted() {
+    assertEquals("50px", LogoWidget.cssLength("50px"));
+    assertEquals("2.5rem", LogoWidget.cssLength("2.5rem"));
+    assertEquals("100%", LogoWidget.cssLength("100%"));
+    assertEquals("auto", LogoWidget.cssLength("auto"));
+    assertEquals("50px", LogoWidget.cssLength("  50px  "), "surrounding whitespace is trimmed");
+    assertEquals("50PX", LogoWidget.cssLength("50PX"), "units are case-insensitive in CSS");
+  }
+
+  @Test
+  void theSizingPreferencesStillReachTheRequestUnchanged() {
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
       Map<String, String> preferences = new HashMap<>();
-      preferences.put("colorProperty", "theme.footer.logo.color");
+      preferences.put("maxWidth", "200px");
+      preferences.put("maxHeight", "50px");
       widgetContext.setPreferences(preferences);
 
       new LogoWidget().execute(widgetContext);
 
-      assertNull(request.getAttribute("view"));
-      assertEquals("theme.footer.logo.color", request.getAttribute("logoColorProperty"));
-      assertNull(request.getAttribute("logoColorPropertyDark"));
+      assertEquals("max-width:200px;max-height:50px", request.getAttribute("logoStyle"));
+    }
+  }
+
+  @Test
+  void aRejectedSizingPreferenceLeavesTheLogoUnsized(){
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockLoadSiteProperty()) {
+      Map<String, String> preferences = new HashMap<>();
+      preferences.put("maxHeight", "50px}body{display:none");
+      widgetContext.setPreferences(preferences);
+
+      new LogoWidget().execute(widgetContext);
+
+      assertNull(request.getAttribute("logoStyle"),
+          "failing safe means no sizing, never someone else's CSS");
     }
   }
 }

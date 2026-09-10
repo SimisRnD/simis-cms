@@ -30,12 +30,12 @@
   <input type="hidden" name="collectionId" value="${collection.id}" />
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Name
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${category.name}"/>">
+    <input type="text" placeholder="Give it a name..." name="name" maxlength="255" value="<c:out value="${category.name}"/>">
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${category.description}"/>">

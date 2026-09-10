@@ -22,14 +22,13 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.domain.events.cms.UserAccountRestoredEvent;
-import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UnsuspendRequest;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -66,12 +65,16 @@ public class UnsuspendRequestsWidget extends GenericWidget {
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING_URI, "&statusFilter=" + statusFilter);
 
     List<UnsuspendRequest> requestList = UnsuspendRequestRepository.findAll(statusFilter, constraints);
-    context.getRequest().setAttribute("requestList", requestList);
+    // Not "requestList": WebContainerCommand preserves every attribute whose name starts with
+    // "request" across the per-widget reset, a convention meant for page-level values that must
+    // outlive the widget walk. This one is a widget-local list, and the name kept it alive for the
+    // rest of the request by accident (issue #1799).
+    context.getRequest().setAttribute("unsuspendRequestList", requestList);
 
     // Viewer's own highest role level -- lets the JSP hint (never enforce) whether Approve should
     // be offered for a given row; the level guard is always re-checked server-side regardless.
     context.getRequest().setAttribute("currentUserId", context.getUserId());
-    context.getRequest().setAttribute("currentUserLevel", highestRoleLevel(context.getUserId()));
+    context.getRequest().setAttribute("currentUserLevel", RoleLevelCommand.highestRoleLevelForUser(context.getUserId()));
 
     context.setJsp(JSP);
     return context;
@@ -149,18 +152,5 @@ public class UnsuspendRequestsWidget extends GenericWidget {
       context.setErrorMessage(e.getMessage());
     }
     return context;
-  }
-
-  private static int highestRoleLevel(long userId) {
-    List<Role> roleList = RoleRepository.findAllByUserId(userId);
-    int max = 0;
-    if (roleList != null) {
-      for (Role role : roleList) {
-        if (role.getLevel() > max) {
-          max = role.getLevel();
-        }
-      }
-    }
-    return max;
   }
 }

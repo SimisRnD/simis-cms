@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,5 +136,40 @@ class AccountValidationWidgetTest extends WidgetBase {
       audit.verifyNoInteractions();
       userRepo.verify(() -> UserRepository.updatePassword(any()), never());
     }
+  }
+
+  @Test
+  void resolveConfirmationPrefersPathSegment() {
+    // The email link now carries the token as a path segment; that is what defeats a path-caching proxy.
+    assertEquals("c48f6666-531b-4302-8ef1-a911016aea9b",
+        AccountValidationWidget.resolveConfirmation("/validate-account/c48f6666-531b-4302-8ef1-a911016aea9b", null));
+  }
+
+  @Test
+  void resolveConfirmationPathBeatsQuery() {
+    // If both are present the path wins; they should be the same token in practice.
+    assertEquals("path-token",
+        AccountValidationWidget.resolveConfirmation("/validate-account/path-token", "query-token"));
+  }
+
+  @Test
+  void resolveConfirmationFallsBackToQueryForLegacyLinks() {
+    // Links delivered before this change (and the hidden field the password form posts back) still work.
+    assertEquals("legacy-token",
+        AccountValidationWidget.resolveConfirmation("/validate-account", "legacy-token"));
+  }
+
+  @Test
+  void resolveConfirmationHandlesContextPathAndTrailingSegments() {
+    assertEquals("tok", AccountValidationWidget.resolveConfirmation("/app/validate-account/tok", null));
+    assertEquals("tok", AccountValidationWidget.resolveConfirmation("/validate-account/tok/extra", null));
+  }
+
+  @Test
+  void resolveConfirmationBlankPathSegmentFallsBackAndNullWhenAbsent() {
+    // A trailing slash with no token, and the ?status=complete case, must not be read as a token.
+    assertEquals("q", AccountValidationWidget.resolveConfirmation("/validate-account/", "q"));
+    assertNull(AccountValidationWidget.resolveConfirmation("/validate-account", null));
+    assertEquals("q", AccountValidationWidget.resolveConfirmation(null, "q"));
   }
 }

@@ -20,10 +20,49 @@
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-  <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  <%-- enterprise.js for a key issued by Google's current console: those cannot be verified by
+     the legacy siteverify endpoint at all, so they take the Enterprise assessment API and its own
+     script family. The button markup below is identical either way -- Google's integration panel
+     prints the same data-sitekey/data-callback form for both. Issue 1615. --%>
+  <c:choose>
+    <c:when test="${googleEnterprise eq 'true'}">
+      <script src='https://www.google.com/recaptcha/enterprise.js?render=<c:out value="${googleSiteKey}"/>' nonce="${cspNonce}"></script>
+    </c:when>
+    <c:otherwise>
+      <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+    </c:otherwise>
+  </c:choose>
   <script nonce="${cspNonce}">
+    // reCAPTCHA intercepts the button's click and prevents the native submit, so this callback is the
+    // only thing that submits the form. It used to call form.submit(), which dispatches no submit
+    // event and skips constraint validation, so the required fields below were never checked.
+    //
+    // requestSubmit() is the counterpart that does both: it runs constraint validation, and it
+    // dispatches submit so any listener still gets its say.
     function onSubmit(token) {
-      document.getElementById("form${widgetContext.uniqueId}").submit();
+      var form = document.getElementById("form${widgetContext.uniqueId}");
+      var proceeding = false;
+      // Registered last, so defaultPrevented already reflects any listener that cancelled.
+      form.addEventListener('submit', function (event) {
+        proceeding = !event.defaultPrevented;
+      }, { once: true });
+      if (form.requestSubmit) {
+        form.requestSubmit();
+      } else {
+        // Safari before 16 has no requestSubmit. Check explicitly rather than submitting blind;
+        // this is still stricter than the form.submit() it replaces.
+        if (form.checkValidity()) {
+          form.submit();
+          proceeding = true;
+        } else {
+          form.reportValidity();
+        }
+      }
+      // A reCAPTCHA token is single-use and expires after about two minutes, so a submit that did
+      // not go through would otherwise leave the visitor unable to retry without reloading.
+      if (!proceeding && window.grecaptcha) {
+        grecaptcha.reset();
+      }
     }
   </script>
 </c:if>
@@ -53,13 +92,21 @@
       <label>Email Address
         <input name="email" type="email" placeholder="Email Address" value="<c:out value="${user.email}"/>" required>
       </label>
-      <label>Password
-        <input name="password" type="password" placeholder="Password" autocomplete="off" required>
-      </label>
+      <label for="register-password">Password</label>
+      <div class="password-field">
+        <input id="register-password" name="password" type="password" placeholder="Password" autocomplete="off" aria-describedby="passwordHelpText" required>
+        <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                aria-pressed="false" aria-label="Show the value while typing"
+                title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+      </div>
       <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
-      <label>Re-Enter Password
-        <input name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
-      </label>
+      <label for="register-password-confirm">Re-Enter Password</label>
+      <div class="password-field">
+        <input id="register-password-confirm" name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
+        <button type="button" class="secret-reveal-toggle" data-reveal-secret hidden
+                aria-pressed="false" aria-label="Show the value while typing"
+                title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+      </div>
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
           <p>

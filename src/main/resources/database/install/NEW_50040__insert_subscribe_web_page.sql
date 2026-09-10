@@ -10,6 +10,10 @@
 -- constraint), this INSERT has to satisfy NOT NULL immediately, before the new row's own id is
 -- known to build a 'wp-' || web_page_id value from. Uses a random placeholder instead, the same
 -- reasoning WebPageRepository.add() applies for pages created through the admin UI (issue #1237).
+--
+-- mailingListUniqueId names the list seeded by NEW_10071 by its stable id rather than its name, so
+-- an admin renaming that list in Admin/Mailing Lists cannot break the page the product ships with
+-- (issue #1724). UPGRADE_20260831.1900 makes the same substitution on existing sites.
 INSERT INTO web_pages (link, page_title, page_description, searchable, page_xml, translation_group) VALUES
 ('/subscribe', 'Subscribe', 'Subscribe to receive our latest news and updates.', true,
 '<page>
@@ -20,7 +24,7 @@ INSERT INTO web_pages (link, page_title, page_description, searchable, page_xml,
         <html><![CDATA[<h2>Subscribe</h2><p>Sign up to receive our latest news and updates.</p>]]></html>
       </widget>
       <widget name="emailSubscribe">
-        <mailingList>Newsletter</mailingList>
+        <mailingListUniqueId>newsletter</mailingListUniqueId>
         <showName>true</showName>
         <buttonName>Subscribe</buttonName>
         <successMessage>You are now subscribed!</successMessage>

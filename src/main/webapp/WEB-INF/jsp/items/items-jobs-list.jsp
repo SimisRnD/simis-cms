@@ -29,7 +29,7 @@
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="${font:fas()} ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="${font:fas()} ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:choose>
@@ -53,7 +53,7 @@
         <tr>
           <td>
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
-              <a href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i class="${font:fal()} fa-edit"></i></a>
+              <a aria-label="Edit ${fn:escapeXml(item.name)}" href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i aria-hidden="true" class="${font:fal()} fa-edit"></i></a>
             </c:if>
             <strong><c:out value="${text:trim(item.name, 50, true)}"/></strong><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if>
             <br /><a href="${ctx}/show/${item.uniqueId}">View Job Description</a>

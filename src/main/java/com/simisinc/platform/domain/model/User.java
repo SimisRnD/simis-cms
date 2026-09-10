@@ -54,6 +54,7 @@ public class User extends Entity {
   private boolean enabled = false;
   private String mfaSecret = null;
   private boolean mfaEnabled = false;
+  private boolean breakGlass = false;
   private String accountToken = null;
   private Timestamp accountTokenExpires = null;
   private Timestamp validated = null;
@@ -261,6 +262,18 @@ public class User extends Entity {
 
   public void setMfaEnabled(boolean mfaEnabled) {
     this.mfaEnabled = mfaEnabled;
+  }
+
+  /**
+   * A break-glass account: its sign-ins alert every other administrator, and org-level MFA
+   * enforcement never redirects it to the enrollment page. Not an exemption from MFA itself.
+   */
+  public boolean getBreakGlass() {
+    return breakGlass;
+  }
+
+  public void setBreakGlass(boolean breakGlass) {
+    this.breakGlass = breakGlass;
   }
 
   public String getAccountToken() {

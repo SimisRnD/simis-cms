@@ -58,6 +58,8 @@ Every site theme color is also published as a token, named after the site proper
 
 Token pairings are chosen against WCAG 2.2: text meets 1.4.3 at 4.5:1 or better, and `--sc-border-control` meets 1.4.11 at 3:1 against both the page and raised surfaces. `--sc-border` is for decorative separators, which 1.4.11 exempts — do not use it to outline a control.
 
+`tools/check-token-contrast.py` enforces that in CI, within a limit worth knowing: it proves a declared pair of token *values* clears its floor, not that the pair is the one the browser resolves. A token that no rule applies passes it while something else renders — see issue #1506, where nothing applies `--sc-field-placeholder` in light mode and Foundation's own `#cacaca` wins at 1.64:1. A green run is not a claim that every colour in the product is accessible. It computes the ratio for a declared table of pairings from the token values themselves, checks that the dark and `auto` blocks stay identical, and re-derives every contrast ratio quoted in a comment in `platform-tokens.css` from the declaration it describes. If you change a token value, run it — and if you write a ratio into a comment, register it in that script's `CLAIMS` table so it is verified rather than merely asserted. Pairings that miss their floor today are listed in its `WAIVED` table with the measured value and a reason; the check prints them on every run.
+
 Two rules in `platform-tokens.css` apply in **both** schemes:
 
 - A `:focus-visible` outline, so keyboard focus is visible without showing a ring to mouse users (2.4.11, 2.4.13).

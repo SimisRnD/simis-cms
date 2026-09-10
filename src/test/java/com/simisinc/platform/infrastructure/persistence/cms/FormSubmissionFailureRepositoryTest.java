@@ -144,7 +144,26 @@ class FormSubmissionFailureRepositoryTest {
     addFailure("contact-us", FormSubmissionFailureRepository.REASON_RATE_LIMITED, 0);
     addFailure("contact-us", FormSubmissionFailureRepository.REASON_RATE_LIMITED, 40);
 
-    assertEquals(1, FormSubmissionFailureRepository.countTotalFailures(daysAgo(30), daysAgo(0)));
+    // The end bound is daysAgo(-1) (this time tomorrow) rather than daysAgo(0) -- see the note on
+    // daysAgo(). What this test is actually about is the lower bound: the 40-day-old row is still
+    // 10 days outside it, so giving the upper bound a day of slack costs no coverage here. The
+    // exact half-open boundary is pinned separately, and deterministically, by
+    // countTotalFailuresIncludesTheStartInstantAndExcludesTheEndInstant.
+    assertEquals(1, FormSubmissionFailureRepository.countTotalFailures(daysAgo(30), daysAgo(-1)));
+  }
+
+  @Test
+  void countTotalFailuresIncludesTheStartInstantAndExcludesTheEndInstant() {
+    // countTotalFailures filters occurred >= start AND occurred < end -- a half-open window. A row
+    // sitting at exactly `start` must count; one at exactly `end` must not. Both rows get their
+    // occurred value written explicitly from the same JVM clock the bounds come from, so this
+    // assertion is about the query's boundary semantics only and cannot race the database clock.
+    java.sql.Timestamp start = daysAgo(30);
+    java.sql.Timestamp end = daysAgo(-1);
+    addFailureAt("contact-us", FormSubmissionFailureRepository.REASON_RATE_LIMITED, start);
+    addFailureAt("contact-us", FormSubmissionFailureRepository.REASON_RATE_LIMITED, end);
+
+    assertEquals(1, FormSubmissionFailureRepository.countTotalFailures(start, end));
   }
 
   @Test
@@ -200,6 +219,48 @@ class FormSubmissionFailureRepositoryTest {
     }
   }
 
+  /** Records a failure and then pins its occurred value to a caller-supplied instant. */
+  private static void addFailureAt(String formUniqueId, String reason, java.sql.Timestamp occurred) {
+    FormSubmissionFailureRepository.record(formUniqueId, reason, "203.0.113.5", "https://example.org/" + formUniqueId);
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_submission_failures SET occurred = ? "
+                + "WHERE failure_id = (SELECT MAX(failure_id) FROM form_submission_failures)")) {
+      pst.setTimestamp(1, occurred);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not set the form_submission_failures row's occurred timestamp", se);
+    }
+  }
+
+  /**
+   * A bound measured from the JVM clock. Negative values are in the future -- {@code daysAgo(-1)}
+   * is this time tomorrow.
+   *
+   * <p>
+   * Never use {@code daysAgo(0)} as a bound against rows this test just inserted. Those rows take
+   * their {@code occurred} value from the <em>database</em> clock, via the column's
+   * {@code TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP}, and the two clocks disagree at the millisecond
+   * the comparison happens on:
+   * </p>
+   * <ul>
+   * <li>{@code TIMESTAMP(3)} <em>rounds</em> to the nearest millisecond, so a row inserted at
+   * x.4996s is stored as x.500 -- half a millisecond in the future.</li>
+   * <li>{@code System.currentTimeMillis()} truncates, so the JVM's "now" sits at or below real
+   * time.</li>
+   * <li>Any skew between the Testcontainers Postgres container's clock and the host's adds to
+   * that, in either direction and without bound.</li>
+   * </ul>
+   * <p>
+   * {@link FormSubmissionFailureRepository#countTotalFailures} filters with a strict
+   * {@code occurred < ?} upper bound, so whenever the stored timestamp lands past the JVM's
+   * reading, a row that really was inserted first is silently dropped from the count and the
+   * assertion fails with "expected: &lt;1&gt; but was: &lt;0&gt;" -- then passes on an immediate
+   * re-run of the same code. Bound with a value that is unambiguously on the correct side of both
+   * clocks instead, and use {@link #addFailureAt} when the boundary itself is what is under test.
+   * Same defect as the one fixed in {@code FormDataRepositoryTest}; see its {@code daysAgo()} note.
+   * </p>
+   */
   private static java.sql.Timestamp daysAgo(int days) {
     return new java.sql.Timestamp(System.currentTimeMillis() - (long) days * 24 * 60 * 60 * 1000);
   }

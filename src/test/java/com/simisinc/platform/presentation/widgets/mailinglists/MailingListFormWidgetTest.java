@@ -84,13 +84,15 @@ class MailingListFormWidgetTest extends WidgetBase {
 
   @Test
   void postRecordsMailingListCreateFailureWhenValidationFails() throws Exception {
-    // No "name" -- SaveMailingListCommand's own validation rejects this before touching the repository
+    // No "name" and no "title" -- SaveMailingListCommand's own validation rejects this before
+    // touching the repository, and reports both missing fields in the one message
+    String expected = "Please check the form and try again:\nA name is required; A title is required";
     try (MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       WidgetContext result = new MailingListFormWidget().post(widgetContext);
 
-      assertEquals("Please check the form and try again:\nA name is required", result.getErrorMessage());
+      assertEquals(expected, result.getErrorMessage());
       audit.verify(() -> AuditEventCommand.record(any(), any(), eq("mailing_list.create"), eq(AuditEventCommand.FAILURE),
-          eq("mailing_list"), any(), any(), eq("Please check the form and try again:\nA name is required")));
+          eq("mailing_list"), any(), any(), eq(expected)));
     }
   }
 

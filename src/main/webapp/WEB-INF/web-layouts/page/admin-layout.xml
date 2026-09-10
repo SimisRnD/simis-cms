@@ -5,14 +5,14 @@
     <section>
       <column>
         <widget name="content" class="margin-bottom-20">
-          <html><![CDATA[<h4>Welcome back, ${user.fullName:html}.</h4>]]></html>
+          <html><![CDATA[<h2 class="h4">Welcome back, ${user.fullName:html}.</h2>]]></html>
         </widget>
       </column>
     </section>
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Activity</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Activity</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -42,7 +42,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Security</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Security</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -83,7 +83,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Deliverability</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Deliverability</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -100,7 +100,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Workflow</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Workflow</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -141,7 +141,7 @@
     <section class="grid-container grid-x grid-margin-x platform-dashboard-section">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Insights</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Insights</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -222,10 +222,14 @@
     </section>
   </page>
 
-  <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager">
+  <!-- Issue #1772: widened to every principal that can render the admin menu, so the
+       Documentation row is not a dead link for four of them. Read-only by construction:
+       WikiWidget's hasRole checks gate showEditor and canManageWikiPages, not viewing,
+       so no widget change is needed and the edit affordance stays restricted. -->
+  <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager,ecommerce-manager,data-manager" capability="admin:manage,users:manage">
     <column class="small-12 cell">
       <widget name="content">
-        <html><![CDATA[<h3>App Platform Resources</h3>
+        <html><![CDATA[<h2 class="h3">App Platform Resources</h2>
 <ul>
 <li><a target="_blank" href="https://www.simisinc.com/mobile-apps-and-websites">Platform Product Information</a></li>
 <li><a href="/admin/documentation/wiki/Home">Platform Documentation Wiki</a></li>
@@ -233,7 +237,9 @@
       </widget>
     </column>
   </page>
-  <page name="/admin/documentation/wiki" role="admin,content-manager,community-manager">
+  <!-- Kept in step with /admin/documentation above (issue #1772); the menu row points at
+       /admin/documentation/wiki/Home, which resolves here via locatePage()'s prefix fallback. -->
+  <page name="/admin/documentation/wiki" role="admin,content-manager,community-manager,ecommerce-manager,data-manager" capability="admin:manage,users:manage">
     <column class="small-12 cell">
       <widget name="wiki" class="padding-20 padding-width-30">
         <title>Documentation</title>
@@ -305,6 +311,17 @@
     </section>
   </page>
 
+  <page name="/admin/settings" role="admin" title="Settings">
+    <section>
+      <column class="small-12 cell">
+        <widget name="settingsHub">
+          <title>Settings</title>
+          <icon>fa-sliders</icon>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/theme-properties" role="admin" title="Theme Settings">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
@@ -324,7 +341,7 @@
       </column>
       <column class="small-12 medium-6 large-5 cell">
         <widget name="content" class="box">
-          <html><![CDATA[<h4>Typography</h4>
+          <html><![CDATA[<h2 class="h4">Typography</h2>
           <h1>H1 Header</h1>
           <h2>H2 Header</h2>
           <h3>H3 Header</h3>
@@ -332,7 +349,7 @@
           <h5>H5 Header</h5>
           <p class="no-gap">This is body text, with <a href="#">an example link</a>, and <strong>bold text</strong>.</p>
           <hr />
-          <h4>Reference Elements</h4>
+          <h2 class="h4">Reference Elements</h2>
           <table>
             <thead>
               <tr>
@@ -636,6 +653,28 @@
     </section>
   </page>
 
+  <page name="/admin/security-txt-properties" role="admin" title="Security Contact (security.txt) Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Security Contact (security.txt) Settings</title>
+          <prefix>securitytxt</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/csp-violations" role="admin" title="CSP Violations">
+    <section>
+      <column class="small-12 cell">
+        <widget name="cspViolations">
+          <icon>fa-shield-halved</icon>
+          <title>Content-Security-Policy Violations</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/security-properties" role="admin" title="Security Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -742,9 +781,9 @@
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
-          <html><![CDATA[<h4>About Map Services</h4>
+          <html><![CDATA[<h2 class="h4">About Map Services</h2>
           <ul><li>The Tiles Service value must be exactly <code>openstreetmap</code> or <code>custom</code> (a self-hosted tile server; set the Custom Map Tiles URL to a template like https://tiles.example.com/{z}/{x}/{y}.png). Any other value, including "google" or "apple", silently falls back to openstreetmap -- there is no Google Maps or Apple Maps tile integration today.</li><li>The Geocoder Service value must be exactly <code>nominatim</code>; any other value (including blank) turns off automatic address-to-coordinate lookups.</li></ul>
-<h5>Nominatim Usage</h5><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
+<h3 class="h5">Nominatim Usage</h3><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
 ]]></html>
         </widget>
         <widget name="map" class="callout secondary radius">
@@ -761,7 +800,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Traffic &amp; Sessions</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Traffic &amp; Sessions</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -843,6 +882,12 @@
           <label>Sessions</label>
           <report>daily-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -851,6 +896,12 @@
           <label>Sessions</label>
           <report>monthly-sessions</report>
           <type>line</type>
+          <interval>12m</interval>
+          <options>
+            <option name="6 Months" value="6m" />
+            <option name="12 Months" value="12m" />
+            <option name="24 Months" value="24m" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -859,6 +910,12 @@
           <label>Real Sessions</label>
           <report>daily-real-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -867,6 +924,12 @@
           <label>Bot Sessions</label>
           <report>daily-bot-sessions</report>
           <type>line</type>
+          <days>30</days>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
     </section>
@@ -888,7 +951,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Users &amp; Accounts</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Users &amp; Accounts</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -972,7 +1035,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Mailing Lists</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Mailing Lists</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1036,7 +1099,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Forms</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Forms</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1083,6 +1146,15 @@
           <value>Submissions</value>
           <days>30</days>
           <limit>10</limit>
+          <!-- Same windows as the rejected-submissions tile beside it, so the two can be read
+               against each other; submissions and rejections are only meaningful as a pair.
+               Day-based options only, for the same reason given there:
+               findSubmissionCountsByForm reads the interval's number as days. -->
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
@@ -1094,6 +1166,15 @@
           <value>Rejections</value>
           <days>30</days>
           <limit>10</limit>
+          <!-- 30 stays the rendered default (the <days> above); the tabs re-query the same report
+               over a different window without a page load. Only day-based options belong here:
+               findFailureCountsByReason takes the interval's NUMBER and always reads it as days,
+               so an option like "12h" would silently report 12 days. -->
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="90 Days" value="90d" />
+          </options>
         </widget>
       </column>
       <!--
@@ -1132,7 +1213,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">Content Engagement</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">Content Engagement</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1198,7 +1279,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[<div class="callout primary radius">
-  <h4>What this page shows</h4>
+  <h2 class="h4">What this page shows</h2>
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
@@ -1291,7 +1372,7 @@
     <section class="grid-container">
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
-          <html><![CDATA[<h5 class="platform-dashboard-section-label">By Content Type &amp; Page</h5>]]></html>
+          <html><![CDATA[<h2 class="platform-dashboard-section-label">By Content Type &amp; Page</h2>]]></html>
         </widget>
       </column>
     </section>
@@ -1448,7 +1529,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-20">
           <html><![CDATA[
-            <h4>Content Analytics</h4>
+            <h2 class="h4">Content Analytics</h2>
             <p>Traffic and engagement across the site, grouped below by what each group of tiles is
             actually trying to answer. <strong>Every number on this page already excludes known
             bots and crawlers</strong> -- search engine crawlers, SEO/AI crawlers, and social-media
@@ -1462,7 +1543,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Traffic</h5>
+            <h2 class="platform-dashboard-section-label">Traffic</h2>
             <p>How much traffic, and to which pages. <strong>Top Pages</strong> and
             <strong>Top Modules</strong> sound like the same thing but count differently: Top Pages
             counts every hit to a raw URL path (minus admin/login/asset paths), whether or not that
@@ -1488,11 +1569,15 @@
           <days>7</days>
           <limit>20</limit>
           <options>
+            <!-- Ascending, shortest first. Every other tabbed report on the admin pages reads this
+                 way (7d/30d/90d, 6m/12m/24m, 30d/90d/180d); this one had Today stranded on the far
+                 right. Order is presentation only: SiteStatsWidget sets currentValue from the
+                 configured interval, so the tab highlighted on load is still <days>7</days>. -->
+            <option name="Today" value="12h" />
             <option name="7 Days" value="7d" />
             <option name="2 Weeks" value="2w" />
             <option name="1 Month" value="1m" />
             <option name="6 Months" value="6m" />
-            <option name="Today" value="12h" />
           </options>
         </widget>
       </column>
@@ -1519,7 +1604,7 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Where Visitors Come From</h5>
+            <h2 class="platform-dashboard-section-label">Where Visitors Come From</h2>
             <p><strong>Referrals</strong> lists the site that sent someone here (the HTTP Referer
             header), over the last 30 days. Two things it doesn't show: a visitor with no referrer
             at all -- bookmarks, typed-in URLs, some mobile apps that strip the header -- isn't
@@ -1545,7 +1630,42 @@
       <column class="small-12 cell">
         <widget name="content" class="margin-bottom-0">
           <html><![CDATA[
-            <h5 class="platform-dashboard-section-label">Engagement</h5>
+            <h2 class="platform-dashboard-section-label">Downloads</h2>
+            <p>Which files visitors are actually taking away, counted per download rather than per
+            page view. Two things to know about the numbers. <strong>Counting started when this
+            feature was installed</strong> -- downloads before that were only ever kept as a
+            running total per file, with no dates attached, so they cannot appear in any window
+            here; the lifetime total is still on each file in <strong>Files and Folders</strong>.
+            And a file is listed by its <em>current</em> name, so renaming one keeps its history
+            together, while deleting a file removes it from this table entirely.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-download</icon>
+          <title>Top Downloads</title>
+          <report>file-downloads</report>
+          <label>File</label>
+          <value>Downloads</value>
+          <days>7</days>
+          <limit>20</limit>
+          <options>
+            <option name="Today" value="12h" />
+            <option name="7 Days" value="7d" />
+            <option name="30 Days" value="30d" />
+            <option name="6 Months" value="6m" />
+          </options>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[
+            <h2 class="platform-dashboard-section-label">Engagement</h2>
             <p>What visitors do once they're here, all over a 30-day window. <strong>Return Visitor
             Rate</strong> is the trickiest of the three to read correctly: "active" is bounded to
             the last 30 days (has this visitor had at least one session recently), but "returning"
@@ -1614,7 +1734,7 @@
       <column class="small-12 cell">
         <widget name="content" class="callout">
           <uniqueId>admin-content-FF54248C-71B7-4B3C-966F-9B343310F510</uniqueId>
-          <html><![CDATA[<h5>About Useful Links</h5>
+          <html><![CDATA[<h2 class="h5">About Useful Links</h2>
           <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
           <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
           <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
@@ -1644,7 +1764,7 @@
       <column class="small-12 cell">
         <widget name="content" class="callout">
           <uniqueId>admin-content-55EC31E9-5FA5-4A33-95DB-111B8755789F</uniqueId>
-          <html><![CDATA[<h5>About Sticky Page Buttons</h5>
+          <html><![CDATA[<h2 class="h5">About Sticky Page Buttons</h2>
           <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
           <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
           <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>. For the rest of the site's branding, see <a href="/admin/site-properties">Site Settings</a>.</p>
@@ -2548,6 +2668,29 @@
     </section>
   </page>
 
+  <page name="/admin/sso-properties" role="admin" capability="admin:manage" title="Single Sign-On Settings">
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Single Sign-On</title>
+          <prefix>oauth</prefix>
+        </widget>
+      </column>
+      <column class="medium-5 cell">
+        <widget name="content" class="callout primary radius">
+          <html><![CDATA[<h2 class="h4">About Single Sign-On</h2>
+          <p>These settings let people sign in with an existing identity provider instead of a password held here. The platform speaks standard OpenID Connect, so any provider that does will work.</p>
+          <p><strong>OpenAuth enabled</strong> is the switch. The other fields do nothing until it is on, and turning it off returns the site to password sign-in without discarding what is configured here.</p>
+          <p><strong>OpenAuth service URL</strong>, <strong>client ID</strong> and <strong>client secret</strong> come from the application you register with the provider. The secret is stored encrypted and always shows blank after saving; leave it blank to keep the current one.</p>
+          <p><strong>Role attribute</strong> and <strong>group attribute</strong> name the claims the provider sends that carry a person's roles and groups. They default to <code>roles</code> and <code>groups</code>, which is what Keycloak emits. Providers differ, and this is the setting most likely to be wrong: a mismatch fails silently, in the sense that sign-in succeeds and the account simply arrives with no roles. If people can sign in but cannot see anything, look here first.</p>
+          <p>Group claims are matched against this site's own user groups by name. A provider that sends group identifiers rather than names — Microsoft Entra sends object GUIDs unless told otherwise — needs to be configured to emit names, or no group will match.</p>
+          <p><strong>Redirect guests</strong> sends signed-out visitors straight to the provider rather than showing this site's login page.</p>
+          <p><strong>Saving requires re-authentication:</strong> these settings decide who can get in, so a recent password or authenticator code is required before a change is accepted.</p>]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mfa-properties" role="admin" title="MFA Enforcement Settings">
     <section>
       <column class="small-12 medium-7 cell">
@@ -2559,11 +2702,11 @@
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
-          <html><![CDATA[<h4>About MFA Enforcement</h4>
+          <html><![CDATA[<h2 class="h4">About MFA Enforcement</h2>
           <p><strong>Roles that must enroll in MFA</strong>: enter a comma-separated list of role codes (e.g. <code>admin</code>) whose members must have two-factor authentication enrolled before accessing any page. Role codes are matched case-sensitively. Leave blank to disable enforcement — no user is affected until a role is listed.</p>
-          <p><strong>MFA enrollment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-profile</code> contains the two-factor authentication settings widget. This field isn't checked to confirm the page actually exists, so a typo here can lock everyone out — see recovery options below.</p>
+          <p><strong>MFA enrollment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-page</code> is seeded by the installer, is where the header's &quot;My Account&quot; link goes, and contains the two-factor authentication settings widget. The page is checked when you save: if it doesn't exist or doesn't contain the two-factor authentication widget, Save is refused rather than locking everyone out.</p>
           <p><strong>Saving requires re-authentication:</strong> because this is a security-sensitive page, Save will first ask for your password or authenticator code again if you haven't verified recently, then re-apply your changes once confirmed.</p>
-          <p class="callout warning radius" style="font-size:0.875rem"><strong>Before enabling:</strong> make sure at least one admin account already has MFA enrolled, and that the enrollment page URL is correct. Nothing enforces this automatically — enabling enforcement for the <code>admin</code> role while no admin has MFA enrolled will redirect every admin to the enrollment page on their next request.</p>
+          <p class="callout warning radius" style="font-size:0.875rem"><strong>Before enabling:</strong> make sure at least one admin account already has MFA enrolled. Enabling enforcement for the <code>admin</code> role while no admin has enrolled will redirect every admin to the enrollment page on their next request — that page is reachable and can enroll them, but until they do, no other page is.</p>
           <p><strong>Recovery, if someone is locked out:</strong> a locked-out user can self-service with one of their MFA recovery codes (issued at enrollment). If those are lost too, another sufficiently-privileged admin can use the "Reset MFA" action on that user's page under <a href="/admin/users">Users</a>, which clears their TOTP secret and recovery codes. If the enrollment page URL itself is broken and no admin can reach it, the only remaining route is a direct database update clearing the <code>mfa.required.roles</code> value.</p>
           <p>Changing this setting is recorded in the <a href="/admin/audit-log">Security Audit Log</a> as a <code>setting.update</code> event — that record is the governance evidence for SSP IA-2(1). Filter the log by event type <code>setting.update</code> and target type <code>site_property</code> to isolate MFA policy changes from every other settings page's saves.</p>
           ]]></html>

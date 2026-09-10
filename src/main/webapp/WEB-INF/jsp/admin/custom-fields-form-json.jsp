@@ -31,7 +31,7 @@
   <input type="hidden" name="collectionId" value="${collection.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- The editor --%>
@@ -43,8 +43,8 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>JSON Array</h4>
-        <h4>Custom Fields</h4>
+        <h3 class="h4">JSON Array</h3>
+        <h3 class="h4">Custom Fields</h3>
         <dl>
           <dt>label</dt>
           <dd>display label</dd>

@@ -27,10 +27,10 @@
   <input type="hidden" name="formDefinitionId" value="${field.formDefinitionId}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">
+  <p class="help-text page-help">
     Only these six field types exist -- there's no radio-button type (use <strong>Select</strong>
     for a single-choice dropdown; <strong>Checkbox</strong> with Options is a multi-select group,
     not a single-choice substitute -- see the note below), no file-upload type, and no CAPTCHA field

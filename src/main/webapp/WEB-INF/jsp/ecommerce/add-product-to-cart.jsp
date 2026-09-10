@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -26,7 +25,7 @@
 <jsp:useBean id="productSkuList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showPrice" class="java.lang.String" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>" />
+<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <script nonce="${cspNonce}">
   function updatePrice(price) {
     var qty = $('#quantity').find(":selected").text();
@@ -42,7 +41,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <div class="product-details-add-to-cart">

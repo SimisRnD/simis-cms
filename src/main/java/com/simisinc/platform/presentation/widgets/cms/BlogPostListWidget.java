@@ -93,6 +93,21 @@ public class BlogPostListWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("blog", blog);
 
+    // Tell main.jsp which blog this page is presenting, so the head's feed autodiscovery can point
+    // at this blog's feed rather than the site-wide one. A blog can name its own feed
+    // (Blog#getFeedTitle) and FeedServlet honours it at /feed/{uniqueId}, but the autodiscovery tag
+    // was hardcoded to /feed.xml -- so a reader subscribing through the browser's own affordance
+    // got the site feed and the site's name, while the page's visible "Subscribe" link pointed
+    // somewhere else. Issue 1586.
+    //
+    // The "master" prefix is load-bearing: WebContainerCommand resets request attributes between
+    // widgets and preserves only names beginning controller/master/request plus an explicit list,
+    // so a plainer name would be wiped before the head is rendered. Widgets run before the forward
+    // to main.jsp, so the value is there in time.
+    context.getRequest().setAttribute("masterFeedBlogUniqueId", blog.getUniqueId());
+    context.getRequest().setAttribute("masterFeedBlogTitle",
+        StringUtils.isNotBlank(blog.getFeedTitle()) ? blog.getFeedTitle() : blog.getName());
+
     // Check for a type: recent
     String type = context.getPreferences().get("type");
 

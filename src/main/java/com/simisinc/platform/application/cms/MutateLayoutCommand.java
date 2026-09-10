@@ -82,7 +82,7 @@ public class MutateLayoutCommand {
 
   /**
    * Widget preference key allowlist: must start with a letter, then only alphanumeric. This
-   * prevents XML element-name injection (e.g. "foo><bar") in the preference round-trip.
+   * prevents XML element-name injection (e.g. {@code "foo><bar"}) in the preference round-trip.
    */
   static final Pattern PREF_KEY_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9]*");
 

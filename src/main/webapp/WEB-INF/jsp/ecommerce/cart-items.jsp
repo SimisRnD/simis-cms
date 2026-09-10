@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -28,7 +27,7 @@
 <jsp:useBean id="cartEntryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="priceChangeList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="noLongerAvailableList" class="java.util.ArrayList" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>"/>
+<link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=${fn:escapeXml(applicationScope.assetVersion)}"/>
 <span class="help-text float-right">
   <a href="${ctx}/cart">Edit</a>
 </span>

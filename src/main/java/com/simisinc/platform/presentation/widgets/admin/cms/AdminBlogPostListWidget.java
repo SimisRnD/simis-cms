@@ -99,7 +99,12 @@ public class AdminBlogPostListWidget extends GenericWidget {
     // backfills it from published), but an unpublished draft never given a date can be null, and
     // Postgres sorts nulls first on DESC -- which would float undated drafts above the archive.
     // post_id DESC breaks ties, which back-filled posts sharing a date frequently produce.
-    constraints.setDefaultColumnToSortBy("start_date DESC NULLS LAST, post_id DESC");
+    // setColumnsToSortBy, not setDefaultColumnToSortBy: the "default" setter belongs to the
+    // repository, and BlogPostRepository#findAll overwrites it with "post_id" one line after
+    // receiving these constraints, so this list has been ordered by insertion id rather than by
+    // date -- on the screen an editor uses to find recent work. columnsToSortBy is read first by
+    // DB#appendSortClause and the repositories never touch it. Issue 1604.
+    constraints.setColumnsToSortBy(new String[] { "start_date DESC NULLS LAST", "post_id DESC" });
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
     BlogPostSpecification specification = buildSpecification(context);

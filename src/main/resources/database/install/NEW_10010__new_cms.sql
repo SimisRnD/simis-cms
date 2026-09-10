@@ -56,9 +56,17 @@ CREATE TABLE menu_items (
   draft BOOLEAN DEFAULT false,
   enabled BOOLEAN DEFAULT true,
   role_id_list VARCHAR(50) DEFAULT NULL,
-  comments TEXT
+  comments TEXT,
+  -- Third navigation level (issue #1728). NULL means this item sits directly under its tab, which
+  -- is every row that existed before nesting; a value means it is a child of that item. Self-
+  -- referencing rather than a separate table so a nested item keeps the same columns -- link,
+  -- title, draft, enabled, role_id_list -- as any other, and the access rules do not fork.
+  -- ON DELETE CASCADE: removing an item removes what hangs off it, which matches the existing
+  -- tab->item behaviour and avoids children stranded under a parent that is gone.
+  parent_menu_item_id BIGINT REFERENCES menu_items(menu_item_id) ON DELETE CASCADE
 );
 CREATE INDEX menu_items_ord_idx ON menu_items(item_order);
+CREATE INDEX menu_items_parent_idx ON menu_items(parent_menu_item_id);
 CREATE INDEX menu_items_act_idx ON menu_items(draft, enabled);
 CREATE INDEX menu_items_tab_idx ON menu_items(menu_tab_id);
 
@@ -319,6 +327,7 @@ CREATE TABLE form_definitions (
   enabled BOOLEAN DEFAULT TRUE,
   show_privacy_notice BOOLEAN DEFAULT FALSE,
   send_confirmation_to_submitter BOOLEAN DEFAULT FALSE,
+  notification_subject VARCHAR(255),
   confirmation_subject VARCHAR(255),
   confirmation_message TEXT,
   created_by BIGINT REFERENCES users(user_id),
@@ -492,6 +501,8 @@ CREATE TABLE blogs (
   blog_unique_id VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
+  -- Overrides the feed's composed "<site name> - <blog name>" title. Null keeps that default.
+  feed_title VARCHAR(255),
   created_by BIGINT REFERENCES users(user_id) NOT NULL,
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified_by BIGINT REFERENCES users(user_id) NOT NULL,
@@ -631,6 +642,10 @@ CREATE TABLE calendar_events (
   end_date TIMESTAMP(3) NOT NULL,
   details_url VARCHAR(255),
   sign_up_url VARCHAR(255),
+  organizer_name VARCHAR(255),
+  organizer_url VARCHAR(255),
+  performer_name VARCHAR(255),
+  performer_url VARCHAR(255),
   latitude FLOAT DEFAULT 0,
   longitude FLOAT DEFAULT 0,
   location_name VARCHAR(255),
@@ -876,6 +891,22 @@ CREATE TABLE web_page_versions (
   label VARCHAR(255)
 );
 CREATE INDEX web_page_versions_web_idx ON web_page_versions(web_page_id, published_at DESC);
+
+-- Content block version history (#406): one row per ContentRepository.publish() call, holding the
+-- OUTGOING content (the value about to be overwritten), rendered to plain HTML so a block that
+-- mixes Delta and legacy-HTML publishes over time still has a uniformly diffable history. Rows are
+-- pruned to a configurable cap (content.versionHistoryLimit) on insert; cascades on content
+-- deletion. Mirrors web_page_versions above, and must stay identical to the table created by
+-- UPGRADE_20260804.1010__content_versions.sql for existing installs.
+CREATE TABLE content_versions (
+  content_version_id BIGSERIAL PRIMARY KEY,
+  content_id BIGINT REFERENCES content(content_id) ON DELETE CASCADE,
+  content TEXT,
+  approved_by BIGINT REFERENCES users(user_id),
+  published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  release_reference VARCHAR(255)
+);
+CREATE INDEX content_versions_content_idx ON content_versions(content_id, published_at DESC);
 
 -- Draft preview links (#419): a time-limited bearer token that lets an anonymous visitor holding
 -- the link view a page's current draftPageXml at its real URL, before it's reviewed or published.

@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -38,6 +40,7 @@ import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -251,4 +254,42 @@ class NewsletterSendWidgetTest extends WidgetBase {
       assertEquals("5 subscribers will be notified.", result.getSuccessMessage());
     }
   }
+
+  @Test
+  void executeSetsAPostOrderTheRepositoryCannotOverwrite() {
+    // Issue 1604. This screen asked for "published DESC" through setDefaultColumnToSortBy, which
+    // is the repository's own setter -- BlogPostRepository#findAll writes "post_id" over it one
+    // line after receiving these constraints, so an admin choosing posts for a newsletter got them
+    // in insertion order.
+    //
+    // The assertion is on columnsToSortBy rather than defaultColumnToSortBy deliberately: the old
+    // spelling would satisfy getDefaultColumnToSortBy() and still never reach the SQL. That is the
+    // shape of test that let this survive in FeedServletTest through a fix and a review.
+    ArgumentCaptor<DataConstraints> captor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn("smtp.example.org");
+
+      new NewsletterSendWidget().execute(widgetContext);
+
+      blogRepo.verify(() -> BlogPostRepository.findAll(any(), captor.capture()));
+    }
+
+    DataConstraints constraints = captor.getValue();
+    assertNotNull(constraints.getColumnsToSortBy(),
+        "the newsletter post list must set the application-facing sort, which the repository cannot overwrite");
+    assertEquals("published DESC", String.join(", ", constraints.getColumnsToSortBy()));
+
+    // Exactly what findAll does next. The order has to survive it.
+    constraints.setDefaultColumnToSortBy("post_id");
+    assertEquals("published DESC", String.join(", ", constraints.getColumnsToSortBy()),
+        "the repository's own default must not displace the newsletter's order");
+  }
+
 }

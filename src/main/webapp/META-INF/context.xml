@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context>
+<Context suspendWrappedResponseAfterForward="false">
   <!--
     Apply SameSite=Lax to every cookie the application sets (JSESSIONID and the app cookies
     userToken/visitorToken/cartToken/viewMode), which have no SameSite attribute otherwise.
@@ -9,4 +9,19 @@
     alongside the existing synchronizer-token check).
   -->
   <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor" sameSiteCookies="lax" />
+  <!--
+    suspendWrappedResponseAfterForward: Tomcat suspends the response when a
+    RequestDispatcher.forward() returns, discarding anything written afterwards. Every page here is
+    rendered by PageServlet through a forward, so a filter that wraps the response cannot finish its
+    work once the forward is done. ResponseCompressionFilter writes the tail of the gzip stream at
+    that point; with Tomcat's default of true those bytes are dropped and the page arrives
+    truncated, with no error on either side. Measured on the home page: the filter handed Tomcat
+    4,770 bytes and 2,551 reached the client, and gunzip reported "unexpected end of file".
+
+    Turning it off restores the behaviour response-wrapping filters rely on; Tomcat provides the
+    switch for exactly this case. What it guards against is a servlet writing further content after
+    a forward has already produced the response, which nothing here does. Servlets that write
+    directly rather than forwarding (RobotsServlet, SitemapServlet) were unaffected either way,
+    which is what identified the forward as the cause.
+  -->
 </Context>

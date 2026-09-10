@@ -26,15 +26,22 @@
   <input type="hidden" name="id" value="${mailingList.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-    <label>Basic Name <span class="required">*</span>
-      <input type="text" placeholder="What kind is this..." name="name" value="<c:out value="${mailingList.name}"/>">
+  <c:if test="${mailingList.id ne -1}">
+    <label>Unique Id
+      <input type="text" value="<c:out value="${mailingList.uniqueId}"/>" aria-describedby="mailingListUniqueIdHelpText" readonly>
     </label>
+    <p class="help-text" id="mailingListUniqueIdHelpText">Generated from the name when this list was created, and never changed after that &mdash; renaming the list below does not affect it. Point a page's Email Subscription widget here with its <code>mailingListUniqueId</code> preference and the form keeps working however the list is later renamed.</p>
+  </c:if>
+    <label>Basic Name <span class="required">*</span>
+      <input type="text" placeholder="What kind is this..." name="name" maxlength="200" aria-describedby="mailingListNameHelpText" value="<c:out value="${mailingList.name}"/>">
+    </label>
+  <p class="help-text" id="mailingListNameHelpText">Older pages point a form at this list by name, using the Email Subscription widget's <code>mailingList</code> preference, so renaming it here stops any such form rendering until its preference is updated to match. Use <strong>Unique Id</strong> above in new page configuration instead &mdash; it does not change. Rename <strong>Title</strong> when you just want the wording visitors see to change.</p>
   <label>Title <span class="required">*</span>
-    <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>">
+    <input type="text" placeholder="Give it a title users will see..." name="title" maxlength="200" value="<c:out value="${mailingList.title}"/>" required>
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${mailingList.description}"/>">

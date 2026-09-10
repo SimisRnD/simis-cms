@@ -60,7 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
-@WebServlet(name = "SitemapServlet", urlPatterns = {"/sitemap.xml"})
+@WebServlet(name = "SitemapServlet", urlPatterns = "/sitemap.xml")
 public class SitemapServlet extends HttpServlet {
 
   private static final Log LOG = LogFactory.getLog(SitemapServlet.class);

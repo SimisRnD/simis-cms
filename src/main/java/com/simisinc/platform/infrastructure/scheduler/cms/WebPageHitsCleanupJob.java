@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
 import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.cms.FileDownloadRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
@@ -45,5 +46,8 @@ public class WebPageHitsCleanupJob {
     }
 
     WebPageHitRepository.deleteOldWebHits();
+    // File downloads ride the same window: the Content Analytics page shows both, and download
+    // history outliving the page views beside it would be a quiet retention inconsistency.
+    FileDownloadRepository.deleteOldDownloads();
   }
 }

@@ -86,7 +86,7 @@
   <input type="hidden" name="id" value="${webPage.id}" />
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -102,13 +102,13 @@
         <input type="text" placeholder="Why does this redirect exist? Is it still needed?" name="redirectNotes" value="<c:out value="${webPage.redirectNotes}"/>">
       </label>
       <label>Title
-        <input type="text" placeholder="Give it a title..." name="title" value="<c:out value="${webPage.title}"/>">
+        <input type="text" placeholder="Give it a title..." name="title" maxlength="255" value="<c:out value="${webPage.title}"/>">
       </label>
       <label>Keywords
-        <input type="text" placeholder="Comma-separated keywords..." name="keywords" value="<c:out value="${webPage.keywords}"/>">
+        <input type="text" placeholder="Comma-separated keywords..." name="keywords" maxlength="255" value="<c:out value="${webPage.keywords}"/>">
       </label>
       <label>Description
-        <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${webPage.description}"/>">
+        <input type="text" placeholder="Describe it..." name="description" maxlength="255" value="<c:out value="${webPage.description}"/>">
       </label>
       <label>Solution Type
         <select name="solutionType">
@@ -181,7 +181,7 @@
           </label>
         </div>
       </label>
-      <label>Internal page? <small class="subheader">(employee/staff-only -- lets other admins hide these from the main web pages list)</small>
+      <label>Internal page? <small class="subheader">(employee/staff-only; hides the page from the main web pages list -- currently <c:out value="${internalEffect}" />)</small>
         <div class="switch large">
           <input class="switch-input" id="internal-yes-no" type="checkbox" name="internal" value="true"<c:if test="${webPage.internal}"> checked</c:if>>
           <label class="switch-paddle" for="internal-yes-no">

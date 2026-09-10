@@ -24,19 +24,30 @@
 <jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+<%-- enterprise.js for a key issued by Google's current console: those cannot be verified by
+     the legacy siteverify endpoint at all, so they take the Enterprise assessment API and its own
+     script family. The button markup below is identical either way -- Google's integration panel
+     prints the same data-sitekey/data-callback form for both. Issue 1615. --%>
+<c:choose>
+  <c:when test="${googleEnterprise eq 'true'}">
+    <script src='https://www.google.com/recaptcha/enterprise.js?render=<c:out value="${googleSiteKey}"/>' nonce="${cspNonce}"></script>
+  </c:when>
+  <c:otherwise>
+    <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  </c:otherwise>
+</c:choose>
 </c:if>
 <c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
 </c:if>
 <style>
   .form-field-error {
-    border-left: 4px solid #cc4c28 !important;
+    border-left: 4px solid var(--sc-danger, #ba403e) !important;
     background-color: rgba(204, 76, 40, 0.02);
   }
   .error-message {
     display: none;
-    color: #cc4c28;
+    color: var(--sc-danger, #ba403e);
     font-weight: 500;
     margin-top: 0.5rem;
     font-size: 0.9rem;
@@ -59,10 +70,74 @@
 
 <script nonce="${cspNonce}">
   <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+    // reCAPTCHA intercepts the button's click and prevents the native submit, so this callback is the
+    // only thing that submits the form. It used to call form.submit(), which dispatches no submit
+    // event and skips constraint validation, so the required fields below were never checked.
+    //
+    // That also meant the submit listener registered at the bottom of this script -- the one that
+    // calls checkForm below -- never fired, so a reCAPTCHA-protected form ran no client-side
+    // validation at all: no inline errors, no aria-invalid, no focus moved to the first bad field.
+    //
+    // requestSubmit() is the counterpart that does both: it runs constraint validation, and it
+    // dispatches submit so any listener still gets its say.
     function onSubmit(token) {
-      document.getElementById("form${widgetContext.uniqueId}").submit();
+      var form = document.getElementById("form${widgetContext.uniqueId}");
+      var proceeding = false;
+      // Registered last, so defaultPrevented already reflects any listener that cancelled.
+      form.addEventListener('submit', function (event) {
+        proceeding = !event.defaultPrevented;
+      }, { once: true });
+      if (form.requestSubmit) {
+        form.requestSubmit();
+      } else {
+        // Safari before 16 has no requestSubmit. Check explicitly rather than submitting blind;
+        // this is still stricter than the form.submit() it replaces.
+        if (form.checkValidity()) {
+          form.submit();
+          proceeding = true;
+        } else {
+          form.reportValidity();
+        }
+      }
+      // A reCAPTCHA token is single-use and expires after about two minutes, so a submit that did
+      // not go through would otherwise leave the visitor unable to retry without reloading.
+      if (!proceeding && window.grecaptcha) {
+        grecaptcha.reset();
+      }
     }
   </c:if>
+  <%-- The visible text under a field is the only thing that says WHAT is wrong. aria-invalid on its
+       own announces "invalid entry" and stops there, so a screen reader user was told a field was
+       bad and never told why, or how many others were. Tie the two together with aria-describedby
+       so the description travels with focus -- checkForm below moves focus to the first bad field,
+       and that focus move is what a screen reader actually speaks.
+
+       The live region on the <p> cannot carry the text by itself: the paragraph is display:none
+       until .show is added, and a region inserted into the accessibility tree with its content
+       already inside it is announced inconsistently across NVDA/JAWS/VoiceOver -- and the focus()
+       call below pre-empts a polite announcement regardless. Association is what makes it reliable.
+
+       Set and cleared in step with aria-invalid, which is what these helpers are for: the mark and
+       clear pair is repeated once per field type below, and a describedby left behind on a field the
+       visitor has since corrected would keep announcing an error that is no longer there. --%>
+  function markInvalid${widgetContext.uniqueId}(el, errorEl) {
+    el.classList.add("form-field-error");
+    el.setAttribute("aria-invalid", "true");
+    if (errorEl) {
+      el.setAttribute("aria-describedby", errorEl.id);
+    }
+  }
+
+  function clearInvalid${widgetContext.uniqueId}(el, errorEl) {
+    el.classList.remove("form-field-error");
+    el.setAttribute("aria-invalid", "false");
+    <%-- Only drop the reference this pair added -- a describedby present for another reason
+         (help text, a hint) has to survive being corrected. --%>
+    if (errorEl && el.getAttribute("aria-describedby") === errorEl.id) {
+      el.removeAttribute("aria-describedby");
+    }
+  }
+
   $(document).ready(function() {
     $('#form${widgetContext.uniqueId} input:not([type="submit"])').on('input', function(e) {
       if (e.keyCode === 13) {
@@ -72,8 +147,7 @@
       var hasValue = this.type === "checkbox" ? this.checked : this.value.trim() !== "";
       if (errorEl && hasValue) {
         errorEl.classList.remove("show");
-        this.classList.remove("form-field-error");
-        this.setAttribute("aria-invalid", "false");
+        clearInvalid${widgetContext.uniqueId}(this, errorEl);
       }
     });
     $('#form${widgetContext.uniqueId} input:not([type="submit"])').keydown(function(e) {
@@ -85,8 +159,7 @@
       var errorEl = document.getElementById("error-" + this.id);
       if (errorEl && this.value.trim() !== "") {
         errorEl.classList.remove("show");
-        this.classList.remove("form-field-error");
-        this.setAttribute("aria-invalid", "false");
+        clearInvalid${widgetContext.uniqueId}(this, errorEl);
       }
     });
     $('textarea').keypress(function(event) {
@@ -119,16 +192,14 @@
                     errorEl.classList.add("show");
                   }
                   for (var i = 0; i < fieldList.length; i++) {
-                    fieldList[i].classList.add("form-field-error");
-                    fieldList[i].setAttribute("aria-invalid", "true");
+                    markInvalid${widgetContext.uniqueId}(fieldList[i], errorEl);
                   }
                   hasErrors = true;
                   if (!firstErrorField && fieldList.length > 0) firstErrorField = fieldList[0];
                 } else if (errorEl) {
                   errorEl.classList.remove("show");
                   for (var i = 0; i < fieldList.length; i++) {
-                    fieldList[i].classList.remove("form-field-error");
-                    fieldList[i].setAttribute("aria-invalid", "false");
+                    clearInvalid${widgetContext.uniqueId}(fieldList[i], errorEl);
                   }
                 }
               </c:when>
@@ -139,14 +210,12 @@
                   if (errorEl) {
                     errorEl.classList.add("show");
                   }
-                  field.classList.add("form-field-error");
-                  field.setAttribute("aria-invalid", "true");
+                  markInvalid${widgetContext.uniqueId}(field, errorEl);
                   hasErrors = true;
                   if (!firstErrorField) firstErrorField = field;
                 } else if (errorEl) {
                   errorEl.classList.remove("show");
-                  field.classList.remove("form-field-error");
-                  field.setAttribute("aria-invalid", "false");
+                  clearInvalid${widgetContext.uniqueId}(field, errorEl);
                 }
               </c:otherwise>
             </c:choose>
@@ -158,14 +227,12 @@
               if (errorEl) {
                 errorEl.classList.add("show");
               }
-              field.classList.add("form-field-error");
-              field.setAttribute("aria-invalid", "true");
+              markInvalid${widgetContext.uniqueId}(field, errorEl);
               hasErrors = true;
               if (!firstErrorField) firstErrorField = field;
             } else if (errorEl) {
               errorEl.classList.remove("show");
-              field.classList.remove("form-field-error");
-              field.setAttribute("aria-invalid", "false");
+              clearInvalid${widgetContext.uniqueId}(field, errorEl);
             }
           </c:when>
           <c:otherwise>
@@ -175,14 +242,12 @@
               if (errorEl) {
                 errorEl.classList.add("show");
               }
-              field.classList.add("form-field-error");
-              field.setAttribute("aria-invalid", "true");
+              markInvalid${widgetContext.uniqueId}(field, errorEl);
               hasErrors = true;
               if (!firstErrorField) firstErrorField = field;
             } else if (errorEl) {
               errorEl.classList.remove("show");
-              field.classList.remove("form-field-error");
-              field.setAttribute("aria-invalid", "false");
+              clearInvalid${widgetContext.uniqueId}(field, errorEl);
             }
           </c:otherwise>
         </c:choose>
@@ -226,7 +291,7 @@
   </div>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <c:if test="${!empty subtitle}">
     <p class="subheader"><c:out value="${subtitle}" /></p>
@@ -234,6 +299,21 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <c:forEach items="${formFieldList}" var="formField" varStatus="status">
+    <%-- The field's initial value. "Default Value" has been offered in the form-field editor,
+         saved and persisted all along, and never read here -- so filling it in did nothing, for
+         every field type.
+
+         It applies only when userValue is NULL, which is a fresh render. An EMPTY userValue is
+         different: it means the form is being redisplayed after a validation error and the
+         visitor left this field blank. Re-applying the default there would put text back that
+         they had deliberately removed, at the exact moment the page is asking them to correct
+         something.
+
+         Keep this inside THIS loop, the one that renders the fields. <c:set> without a scope is
+         page-scoped, not loop-local: computed in the validation-script loop above, it survived that
+         loop and left every input, textarea and checkbox below rendering the LAST required field's
+         value -- on this site, the message body appearing in name, email and phone. --%>
+    <c:set var="initialValue" value="${formField.userValue == null ? formField.defaultValue : formField.userValue}"/>
     <c:choose>
       <c:when test="${formField.type eq 'checkbox' && !empty formField.listOfOptions}">
         <%-- Checkbox group: multiple checkboxes sharing one name, so a visitor can check several --%>
@@ -266,37 +346,54 @@
         <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
-            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+            <%-- A required select gets the attribute the same way the input and textarea branches
+                 below do. It was the only control that did not, so a required dropdown was enforced
+                 on the server and nowhere else: the visitor filled the whole form, submitted, and
+                 only then got "Topic is required" back. The placeholder option immediately below
+                 carries value="", which is what lets the browser treat "unchosen" as empty and
+                 refuse the submit. --%>
+            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${formField.required}">required</c:if>>
+              <%-- Re-select what was chosen when a same-request validation error redisplays the
+                   form. Matched on the option KEY recorded by FormWidget#post, not on userValue,
+                   which holds the display label and is not a safe reverse lookup if two options
+                   ever share one -- the same reason the checkbox group above tracks keys. Without
+                   this the select silently resets to "< Please Choose >" while every other field
+                   keeps its value, so a required choice is lost exactly when the form is telling
+                   the visitor to correct something. --%>
+              <%-- Fresh render falls back to the default; a redisplay honours what was chosen, and
+                   honours an unchosen dropdown by leaving it unchosen. --%>
+              <c:set var="selectedOptionKey" value="${!empty formField.checkedOptionKeys ? formField.checkedOptionKeys[0] : (formField.userValue == null ? formField.defaultValue : null)}"/>
               <option value="">&lt; Please Choose &gt;</option>
               <c:forEach items="${formField.listOfOptions}" var="option">
-                <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
+                <option value="<c:out value="${option.key}"/>"<c:if test="${selectedOptionKey eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
               </c:forEach>
             </select>
           </c:when>
           <c:when test="${formField.type eq 'textarea'}">
             <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
                 <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-                <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.userValue}"><c:out value="${formField.userValue}" /></c:if></textarea>
+                <c:if test="${formField.required}">required</c:if>><c:if test="${!empty initialValue}"><c:out value="${initialValue}" /></c:if></textarea>
           </c:when>
           <c:when test="${formField.type eq 'checkbox'}">
             <%-- Single-toggle checkbox --%>
             <input type="checkbox"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
                 value="true"
-                <c:if test="${formField.userValue eq 'true'}">checked</c:if>>
+                <c:if test="${initialValue eq 'true'}">checked</c:if>>
           </c:when>
           <c:when test="${formField.type eq 'date'}">
             <%-- HTML5 date input always submits/echoes yyyy-MM-dd, so userValue round-trips as-is --%>
             <input type="date"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${!empty initialValue}">value="<c:out value="${initialValue}" />"</c:if>
                 <c:if test="${formField.required}">required</c:if>>
           </c:when>
           <c:otherwise>
             <input type="text"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
                 <c:if test="${!empty formField.placeholder}">placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${!empty initialValue}">value="<c:out value="${initialValue}" />"</c:if>
                 <c:if test="${formField.required}">required</c:if>>
           </c:otherwise>
         </c:choose>

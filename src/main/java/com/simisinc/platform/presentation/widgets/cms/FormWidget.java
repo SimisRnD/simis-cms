@@ -31,7 +31,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.application.cms.FormNotificationSubjectCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
@@ -257,7 +259,14 @@ public class FormWidget extends GenericWidget {
         // Same isEmpty() guard as isCheckboxGroup above -- otherwise a checkbox field with a
         // non-null-but-empty listOfOptions (single-toggle per form.jsp) would wrongly take the
         // select-field label-lookup path here and always resolve to null against zero options.
-        formField.setUserValue(formField.getListOfOptions().get(parameterValue));
+        String selectedLabel = formField.getListOfOptions().get(parameterValue);
+        formField.setUserValue(selectedLabel);
+        // Same reason the checkbox group records its keys: userValue holds the display LABEL, so
+        // form.jsp cannot reverse it to an option key to re-select on a validation-error redisplay.
+        // Only recorded when the key resolves to a real option, so a submitted value that is not on
+        // the list is not echoed back into the markup.
+        formField.setCheckedOptionKeys(
+            selectedLabel != null ? Collections.singletonList(parameterValue) : Collections.emptyList());
       } else {
         formField.setUserValue(parameterValue);
       }
@@ -356,8 +365,19 @@ public class FormWidget extends GenericWidget {
     boolean sendConfirmation = formDefinition != null && formDefinition.getSendConfirmationToSubmitter();
     String confirmationSubject = formDefinition != null ? formDefinition.getConfirmationSubject() : null;
     String confirmationMessage = formDefinition != null ? formDefinition.getConfirmationMessage() : null;
-    WorkflowManager.triggerWorkflowForEvent(new FormSubmittedEvent(
-        formData, emailAddresses, submitterEmail, sendConfirmation, confirmationSubject, confirmationMessage));
+    // The notification's subject is resolved HERE rather than in the playbook. A configured
+    // subject may substitute answers a stranger typed into a public form, and that text ends up in
+    // an email header -- so it is made safe in one place, before it is handed to anything else.
+    // See FormNotificationSubjectCommand.
+    String notificationSubject = FormNotificationSubjectCommand.createSubject(
+        formDefinition != null ? formDefinition.getNotificationSubject() : null,
+        formData,
+        formDefinition != null ? formDefinition.getName() : null);
+
+    FormSubmittedEvent formSubmittedEvent = new FormSubmittedEvent(
+        formData, emailAddresses, submitterEmail, sendConfirmation, confirmationSubject, confirmationMessage);
+    formSubmittedEvent.setNotificationSubject(notificationSubject);
+    WorkflowManager.triggerWorkflowForEvent(formSubmittedEvent);
 
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
@@ -501,14 +521,39 @@ public class FormWidget extends GenericWidget {
   }
 
   /**
-   * The page URL, without duplicating the context path. context.getUrl() already includes it (scheme +
-   * host + contextPath), and context.getUri() (the servlet request URI) already includes it too per the
-   * servlet spec -- concatenating them as-is doubles it on any deployment where the app isn't mounted at
-   * the root context. Stripping it from the URI side before concatenating, matching how PageServlet computes
-   * a bare page path elsewhere in this codebase.
+   * The page URL as the visitor sees it (#1835).
+   *
+   * <p>Prefers the configured {@code site.url}, the same source every other absolute URL the platform
+   * emits already uses -- validation and confirmation links in EmailTask, canonical, og:url. Behind a
+   * CDN or reverse proxy the request's own host is the ORIGIN's, not the visitor's: Azure Front Door
+   * sends a fixed originHostHeader, so {@code request.getServerName()} returned the App Service's
+   * {@code *.azurewebsites.net} name and every stored submission recorded that instead of the real
+   * site, leaking the internal hostname into the form CSV export.
+   *
+   * <p>Falls back to the request-derived host when {@code site.url} is unset, which keeps a
+   * freshly-installed site working before that property is configured.
+   *
+   * <p>The context path is stripped from the URI side before concatenating: context.getUrl() already
+   * includes it (scheme + host + contextPath) and context.getUri() (the servlet request URI) includes
+   * it too per the servlet spec, so joining them as-is doubles it wherever the app isn't mounted at the
+   * root context. Matches how PageServlet computes a bare page path elsewhere in this codebase.
+   * site.url carries whatever public prefix applies, exactly as the email links built from it assume.
+   *
+   * <p>Package-private for tests, following resolveConfirmation in AccountValidationWidget.
    */
-  private static String resolvePageUrl(WidgetContext context) {
-    return context.getUrl() + context.getUri().substring(context.getContextPath().length());
+  static String resolvePageUrl(WidgetContext context) {
+    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
+    String base = StringUtils.isNotBlank(siteUrl) ? siteUrl.trim() : context.getUrl();
+    // Normalise both sides rather than relying on them cancelling. A configured site.url may carry a
+    // trailing slash, and getContextPath() is "" for a root deployment per the servlet spec but "/"
+    // in some containers -- which leaves the stripped path without its leading slash. The previous
+    // form only produced a correct URL because those two quirks happened to offset each other.
+    base = StringUtils.removeEnd(base, "/");
+    String pagePath = context.getUri().substring(context.getContextPath().length());
+    if (!pagePath.startsWith("/")) {
+      pagePath = "/" + pagePath;
+    }
+    return base + pagePath;
   }
 
   /**

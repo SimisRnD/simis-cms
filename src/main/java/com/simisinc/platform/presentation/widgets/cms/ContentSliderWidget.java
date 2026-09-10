@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -77,11 +78,39 @@ public class ContentSliderWidget extends GenericWidget {
 
     // Split the content into arrays, based mostly on <hr>
     List<String> cardList = ContentHtmlCommand.extractCardsFromHtml(context, html, null);
+    cardList = promoteFirstHeroImage(cardList, context.getPreferences().get("carouselClass"));
     context.getRequest().setAttribute("cardList", cardList);
 
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * The first slide of a hero-banner is the page's LCP element, but ContentImageSrcsetCommand
+   * (issue #411/#975) marks every content image {@code loading="lazy"} -- which defers that LCP
+   * image and drags LCP/Speed Index down. For a hero-banner only, promote the first slide's image to
+   * {@code loading="eager" fetchpriority="high"} and drop the {@code decoding="async"} so it is
+   * fetched and decoded up front; every later slide stays lazy. Scoped to {@code hero-banner} so an
+   * off-screen card slider does not eagerly fetch its first image. Mirrors ContentCarouselWidget's
+   * position-aware loading, adapted to this widget's verbatim {@code ${card}} output (issue #1814).
+   */
+  static List<String> promoteFirstHeroImage(List<String> cardList, String carouselClass) {
+    if (cardList == null || cardList.isEmpty()
+        || carouselClass == null || !carouselClass.contains("hero-banner")) {
+      return cardList;
+    }
+    String first = cardList.get(0);
+    if (!first.contains("<img ")) {
+      return cardList;
+    }
+    String promoted = first
+        .replace(" loading=\"lazy\"", "")
+        .replace(" decoding=\"async\"", "")
+        .replaceFirst("<img ", "<img loading=\"eager\" fetchpriority=\"high\" ");
+    List<String> updated = new ArrayList<>(cardList);
+    updated.set(0, promoted);
+    return updated;
   }
 
   public WidgetContext action(WidgetContext context) {

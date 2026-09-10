@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="userList" class="java.util.ArrayList" scope="request"/>
@@ -28,7 +29,7 @@
 <jsp:useBean id="mfaFilter" class="java.lang.String" scope="request"/>
 <jsp:useBean id="agingPasswordFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
+  <h2 class="h1"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
@@ -144,8 +145,17 @@
       <td><c:out value="${user.email}" /></td>
       <td>
         <c:forEach items="${user.roleList}" var="userRole">
-          <span class="label round"><c:out value="${userRole.code}" /></span>
+          <%-- Colour carries the privilege ladder, so elevated access is visible at a glance; the
+               tooltip names the role in full, since the badge shows the short code. --%>
+          <span class="label round ${user:roleTierClass(userRole.level)}"
+                title="${fn:escapeXml(userRole.title)}"><c:out value="${userRole.code}" /></span>
         </c:forEach>
+        <%-- Break-glass had no surface at all until now: nothing on this screen said which account
+             alerts every other administrator when it signs in, or which one an MFA policy will not
+             redirect. A reader could not tell these three admins apart. --%>
+        <c:if test="${user.breakGlass}">
+          <span class="label round alert" title="Break-glass: sign-ins and failed attempts alert every other administrator, and MFA enforcement never redirects this account to enrollment">break-glass</span>
+        </c:if>
       </td>
       <td class="text-center">
         <c:choose>
@@ -391,7 +401,7 @@
         <c:choose>
           <c:when test="${role.level > actingRoleLevel}"><%-- --%></c:when>
           <c:otherwise>
-            <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label>
+            <span class="text-no-wrap no-gap-all"><input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label></span>
           </c:otherwise>
         </c:choose>
       </c:forEach>
@@ -404,7 +414,7 @@
             <%-- not a logged in user group --%>
           </c:when>
           <c:otherwise>
-            <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" /><label for="groupId${group.id}"><c:out value="${group.name}" /></label>
+            <span class="text-no-wrap no-gap-all"><input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" /><label for="groupId${group.id}"><c:out value="${group.name}" /></label></span>
           </c:otherwise>
         </c:choose>
       </c:forEach>

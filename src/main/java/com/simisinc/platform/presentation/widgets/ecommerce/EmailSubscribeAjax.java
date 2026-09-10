@@ -25,8 +25,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
+import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
@@ -92,7 +94,10 @@ public class EmailSubscribeAjax extends GenericWidget {
     emailBean.setSubscribed(new Timestamp(System.currentTimeMillis()));
 
     // Populate all the http and session info
-    emailBean.setIpAddress(context.getUserSession().getIpAddress());
+    // The address of the request that subscribed, not the one the session was created at
+    // (issue #1782)
+    emailBean.setIpAddress(IpAddressCommand.forAction(context.getRequest(),
+        context.getUserSession().getIpAddress()));
     emailBean.setSessionId(context.getUserSession().getSessionId());
     emailBean.setReferer(context.getUserSession().getReferer());
     emailBean.setUserAgent(context.getUserSession().getUserAgent());
@@ -124,7 +129,10 @@ public class EmailSubscribeAjax extends GenericWidget {
       // Manage the related cookie
       context.getUserSession().setShowSiteNewsletterSignup(false);
     } catch (DataException e) {
-      context.setJson("[]");
+      // Issue #1724: return the actual reason. This used to answer "[]", which the inline form's
+      // handler renders as its generic "Please re-enter your email address using a proper format."
+      // -- wrong and unactionable for a signup that failed because its mailing list doesn't exist.
+      context.setJson("{\"status\":\"1\",\"message\":\"" + JsonCommand.toJson(e.getMessage()) + "\"}");
       return context;
     }
 

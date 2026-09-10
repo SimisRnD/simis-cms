@@ -155,6 +155,30 @@ class LockManagerTest {
     }
   }
 
+  @Test
+  void aReleasedLockIsImmediatelyReAcquirableEveryTime() throws Exception {
+    // The round-trip test above exercises release-then-reacquire exactly once, which made issue
+    // 1625 a roughly-one-run-in-N failure that only ever showed up on CI: unlock() wrote
+    // lock_until = CURRENT_TIMESTAMP into a TIMESTAMP(3) column, PostgreSQL rounded it up to the
+    // next millisecond, and a re-lock landing inside that sub-millisecond window was refused even
+    // though the release had reported success.
+    //
+    // Repeating the cycle turns that probabilistic failure into a near-certain one: each iteration
+    // is an independent chance to land in the rounding window, so this fails on the unfixed code
+    // and is quiet on the fixed code. It is the difference between a test that catches the bug and
+    // a test that occasionally notices it.
+    createDistributedLockTable();
+    try {
+      for (int i = 0; i < 100; i++) {
+        String uuid = LockManager.lock("rapid-cycle-lock", Duration.ofMinutes(1));
+        assertNotNull(uuid, "lock() failed to acquire on cycle " + i);
+        assertTrue(LockManager.unlock("rapid-cycle-lock", uuid), "unlock() failed on cycle " + i);
+      }
+    } finally {
+      dropDistributedLockTable();
+    }
+  }
+
   private static void createDistributedLockTable() throws Exception {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {

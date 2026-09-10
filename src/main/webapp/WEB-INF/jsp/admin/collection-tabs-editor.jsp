@@ -22,7 +22,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="collectionTabList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="collectionRoleList" class="java.util.ArrayList" scope="request"/>
-<p class="help-text">These rows add extra navigation tabs/links to this collection's public pages -- each one is a label plus a link (e.g. to a related page or resource) shown alongside the built-in tabs. Use "Enabled" to show or hide a row without deleting it, and "Order" to control where it falls in the tab list.</p>
+<p class="help-text page-help">These rows add extra navigation tabs/links to this collection's public pages -- each one is a label plus a link (e.g. to a related page or resource) shown alongside the built-in tabs. Use "Enabled" to show or hide a row without deleting it, and "Order" to control where it falls in the tab list.</p>
 <form class="table-of-contents-editor" method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

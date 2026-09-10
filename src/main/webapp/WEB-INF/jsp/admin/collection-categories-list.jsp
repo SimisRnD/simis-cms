@@ -24,10 +24,10 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">Categories are a structured alternative to a free-text custom field -- a fixed list of choices (e.g. departments, regions) that items in this collection can be sorted into, rather than a value someone types differently every time. Use them when you want reliable grouping, filtering, or reporting by that value.</p>
+<p class="help-text page-help">Categories are a structured alternative to a free-text custom field -- a fixed list of choices (e.g. departments, regions) that items in this collection can be sorted into, rather than a value someone types differently every time. Use them when you want reliable grouping, filtering, or reporting by that value.</p>
 <table class="unstriped">
   <thead>
     <tr>
@@ -63,7 +63,7 @@
           </c:otherwise>
         </c:choose>
         <a href="${ctx}/admin/category?collectionId=${collection.id}&categoryId=${category.id}"><c:out value="${category.name}" /></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${category.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(category.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${category.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         <c:if test="${!empty category.description}">
           <br /><small><c:out value="${category.description}" /></small>
         </c:if>

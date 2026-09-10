@@ -17,8 +17,10 @@
 package com.simisinc.platform.application.datasets;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import java.sql.Timestamp;
@@ -32,9 +34,11 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 
 /**
@@ -239,6 +243,105 @@ class SaveDatasetRowCommandTest {
       saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class)), times(2));
     } finally {
       SaveDatasetRowCommand.clearDuplicateTracking(dataset);
+    }
+  }
+
+  /**
+   * Builds a one-row dataset whose second column is mapped to "category", so importing the row
+   * has to resolve (and, when missing, create) the named category.
+   */
+  private static Dataset categoryMappedDataset(long datasetId) {
+    Dataset dataset = new Dataset();
+    dataset.setId(datasetId);
+    dataset.setModifiedBy(1L);
+    dataset.setColumnNames(new String[] { "Name", "Category" });
+    dataset.setFieldTitles(new String[] { "", "" });
+    dataset.setFieldMappings(new String[] { "name", "category" });
+    dataset.setFieldOptions(new String[] { "", "" });
+    return dataset;
+  }
+
+  /**
+   * Regression test for a NullPointerException thrown mid-import from
+   * {@link SaveDatasetRowCommand#constructItem}. A row naming a category that does not exist yet
+   * creates it, and {@code CategoryRepository.save} delegates to a private {@code insert()} that
+   * catches its SQLException, logs it and returns null rather than throwing. The result was
+   * assigned straight back over the {@code category} reference and then dereferenced
+   * unconditionally -- {@code category.getId()} for the item's primary category, and again for
+   * the category id list -- so a failed insert crashed the sync with a stack trace instead of a
+   * handled outcome.
+   * <p>
+   * The row must now be reported as failed. Every caller ({@code ConvertCSVFileCommand},
+   * {@code ConvertJsonFileCommand}, {@code ConvertTSVFileCommand} and
+   * {@code DatasetFileCommand#convertRowsToCollection}) turns a false return into
+   * {@code DataException("Save error")}, which stops the sync -- the deliberate choice here,
+   * since dropping the category instead would file the item under the wrong categories, or none,
+   * and persist it that way.
+   */
+  @Test
+  void aFailedCategoryInsertFailsTheRowInsteadOfThrowing() {
+    Collection collection = new Collection();
+    collection.setId(5L);
+    Dataset dataset = categoryMappedDataset(11L);
+    String[] row = new String[] { "Widget A", "Hardware" };
+
+    try (MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(5L)).thenReturn(1);
+      // The category does not exist yet, so the import creates it...
+      categoryRepository.when(() -> CategoryRepository.findByNameWithinCollection(eq("Hardware"), anyLong()))
+          .thenReturn(null);
+      // ...and the insert does not take, which the repository reports by returning null
+      categoryRepository.when(() -> CategoryRepository.save(any(Category.class))).thenReturn(null);
+      // Stubbed to succeed, so a passing assertion below can only come from the guard
+      saveItemCommand.when(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class))).thenReturn(true);
+
+      boolean saved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+
+      Assertions.assertFalse(saved,
+          "a row whose category could not be created must be reported as a save failure, "
+              + "which is what stops the sync at the caller");
+      saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class)), never());
+    }
+  }
+
+  /**
+   * Companion to {@link #aFailedCategoryInsertFailsTheRowInsteadOfThrowing}: the guard must not
+   * be a blanket rejection of rows that name a new category. When the insert does take, the row
+   * still saves and the item is filed under the newly created category -- both as the primary
+   * category and in the item's category id list.
+   */
+  @Test
+  void aSuccessfulCategoryInsertStillFilesTheItemUnderTheNewCategory() {
+    Collection collection = new Collection();
+    collection.setId(5L);
+    Dataset dataset = categoryMappedDataset(12L);
+    String[] row = new String[] { "Widget A", "Hardware" };
+
+    Category saved = new Category();
+    saved.setId(77L);
+    saved.setCollectionId(5L);
+    saved.setName("Hardware");
+
+    try (MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(5L)).thenReturn(1);
+      categoryRepository.when(() -> CategoryRepository.findByNameWithinCollection(eq("Hardware"), anyLong()))
+          .thenReturn(null);
+      categoryRepository.when(() -> CategoryRepository.save(any(Category.class))).thenReturn(saved);
+      saveItemCommand.when(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class))).thenReturn(true);
+
+      boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+
+      Assertions.assertTrue(isSaved, "a row whose category was created must still save");
+      ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+      saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), itemCaptor.capture()));
+      Assertions.assertEquals(77L, itemCaptor.getValue().getCategoryId(),
+          "the newly created category becomes the item's primary category");
+      Assertions.assertArrayEquals(new Long[] { 77L }, itemCaptor.getValue().getCategoryIdList(),
+          "the newly created category is included in the item's category id list");
     }
   }
 }

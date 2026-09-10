@@ -25,7 +25,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="datasetList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
@@ -142,8 +142,8 @@
       <td class="text-center"><small><c:out value="${number:suffix(dataset.fileLength)}"/></small></td>
       <td>
         <a title="Modify dataset" href="${ctx}/admin/dataset-mapper?datasetId=${dataset.id}"><small><i class="${font:fas()} fa-edit"></i></small></a>
-        <a href="${ctx}/assets/dataset/${dataset.url}"><i class="fa fa-download"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${dataset.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&datasetId=${dataset.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Download ${fn:escapeXml(dataset.name)}" href="${ctx}/assets/dataset/${dataset.url}"><i aria-hidden="true" class="fa fa-download"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(dataset.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${dataset.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&datasetId=${dataset.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         <%--<a href="${ctx}/admin/dataset?datasetId=${dataset.id}"><i class="fas fa-edit"></i></a>--%>
       </td>
     </tr>

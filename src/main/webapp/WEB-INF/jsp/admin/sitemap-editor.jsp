@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
@@ -23,23 +22,26 @@
 <jsp:useBean id="menuTabList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="menuTab" class="com.simisinc.platform.domain.model.cms.MenuTab" scope="request"/>
 <jsp:useBean id="webPageList" class="java.util.ArrayList" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
+<link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   This page renames existing entries in the drop-down navigation menu across the top of your site, and changes
   the page they link to -- a <strong>tab</strong> sits in the top bar itself (e.g. "Solutions"), an
-  <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it (see the example
+  <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it, and a
+  <strong>sub-item</strong> sits under an item as a third level (see the example
   on the <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> page if that distinction isn't clear). Link
   must start with / (e.g. /solutions); if you leave off the leading slash it's added for you rather than
   rejected. Existing page paths are suggested as you type, but the field still accepts any value. Reorder
   tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> drag
-  handles or the arrow buttons. To add a new tab/item or to delete one, use
+  handles or the arrow buttons; the same handles move a sub-item between items.
+  <strong>Sub-items are added here</strong>, using the "New sub-item" box under the item they belong
+  to. To add a new tab or a new item, or to delete anything, use
   <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   <strong>Save Site Map Changes saves every visible tab and item at once</strong> -- there's no per-row save, so
   a typo in one field doesn't stop the rest of the page's edits from being saved. As on the Navigation Menu
   Editor page, the first tab (usually "Home") has no editable Name/Link/Icon fields here, for the same reason:
@@ -63,6 +65,7 @@
   <input type="hidden" name="method" value="sitemap-editor"/>
   <input type="hidden" id="menuTabOrder" name="menuTabOrder" value=""/>
   <input type="hidden" id="menuItemOrder" name="menuItemOrder" value=""/>
+  <input type="hidden" id="menuSubItemOrder" name="menuSubItemOrder" value=""/>
   <div id="site-map-container" class="site-map-container">
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
       <div id="site-map-menu-tab-container-${status.first ? 0 : menuTab.id}" class="site-map-menu-tab">
@@ -123,6 +126,54 @@
                   <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" style="margin-bottom:0"/>
                   <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0" list="webPageLinks"/>
                 </div>
+                <%-- Third level (issue #1728). The container is rendered whether or not it has
+                     children, because dragula needs a drop target to exist before anything can be
+                     dragged into it -- an item with no sub-items yet would otherwise be the one
+                     place you could never create one. --%>
+                <div id="site-map-subitem-container-${menuItem.id}" class="site-map-subitem-container">
+                  <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
+                    <div id="site-map-menu-subitem-${subMenuItem.id}" class="site-map-subitem">
+                      <div class="float-left">
+                        <small class="subheader">
+                          <i class="fa fa-arrows site-map-subitem-drag-handle" aria-hidden="true"></i>
+                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item up"
+                                  data-move="subItemUp" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9650;</button>
+                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item down"
+                                  data-move="subItemDown" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9660;</button>
+                        </small>
+                      </div>
+                      <div class="clear-float"></div>
+                      <div>
+                        <input type="text" name="menuItem${subMenuItem.id}name" value="<c:out value="${subMenuItem.name}" />" title="Sub-item name shown in the menu" style="margin-bottom:0"/>
+                        <input type="text" name="menuItem${subMenuItem.id}link" value="<c:out value="${subMenuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /rhtt-robotic-human-type-targets" style="margin-bottom:0" list="webPageLinks"/>
+                      </div>
+                    </div>
+                  </c:forEach>
+                </div>
+                <%-- Creating the third level (issue #1728). Everything else about a nested item --
+                     storing, reordering, reparenting, rendering, searching -- already worked, but
+                     nothing could create the first one: the only code that set a parent was the
+                     drag-and-drop reorder, which can only move an item that is nested already.
+                     Sits outside the drop container above so an empty container stays a clean drop
+                     target, and renders only for an item that can legally take children -- the
+                     server re-checks that, because the field name is guessable. --%>
+                <%-- Mirrors MenuItem.hasParentMenuItem(): "> 0", because the repository stores -1
+                     for "no parent" rather than null. Written as a property test, not
+                     ${!menuItem.hasParentMenuItem} -- that is a method, not a getter, so EL cannot
+                     resolve it and the JSP compiles clean while failing at request time. --%>
+                <c:if test="${empty menuItem.parentMenuItemId or menuItem.parentMenuItemId le 0}">
+                  <div class="site-map-subitem-add">
+                    <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemName"
+                           placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value=""/>
+                    <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemLink"
+                           placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks"/>
+                           <p class="help-text" style="margin-top:4px;margin-bottom:0;">
+                             Adds a third-level entry under <strong><c:out value="${menuItem.name}"/></strong>, shown when a
+                             visitor opens this item. Name is required; the link is optional and is derived from the name when
+                             left blank. Saved with the button at the bottom of the page.
+                           </p>
+                  </div>
+                </c:if>
               </div>
             </c:forEach>
           </div>
@@ -191,15 +242,75 @@
   }
   --%>
 
+  // Issue #1793: one instance owning BOTH container types, because dragula only permits a drop
+  // into a container belonging to the same instance. Two instances -- one per level, keyed on the
+  // handle class -- is why an item could be moved sideways at either level but never between them:
+  // to demote a second-level item you deleted it and re-created it, losing its id and its place.
   var menuItems = dragula([
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
-    document.querySelector('#site-map-submenu-tab-container-${menuTab.id}')<c:if test="${!status.last}">, </c:if>
+    document.querySelector('#site-map-submenu-tab-container-${menuTab.id}'),
     </c:forEach>
-  ], {
+  ].concat(Array.prototype.slice.call(document.querySelectorAll('.site-map-subitem-container'))), {
     moves: function (el, container, handle) {
-      return handle.classList.contains('site-map-submenu-tab-drag-handle');
+      // Either level's handle; which level a row ends up at is decided by where it lands.
+      return handle.classList.contains('site-map-submenu-tab-drag-handle')
+          || handle.classList.contains('site-map-subitem-drag-handle');
+    },
+    accepts: function (el, target) {
+      if (!target.classList.contains('site-map-subitem-container')) {
+        return true;
+      }
+      // Dropping INTO a parent makes this row third-level. Nesting is capped at three -- the same
+      // rule updateMenuSubItemOrder and appendNewSubMenuItem both enforce server-side -- so a row
+      // that has children of its own cannot go there; they would land at a fourth level that
+      // nothing renders. Refused here rather than rejected on save, so the drop simply will not
+      // take and the editor never shows a state the server would not keep.
+      var ownChildren = el.querySelector('.site-map-subitem-container');
+      return !(ownChildren && ownChildren.querySelector('.site-map-subitem'));
     }
   });
+
+  // A row keeps its id and its inputs across a level change -- the name/link fields are called
+  // menuItem<id>name at both levels, and the server reads the id off the element id -- so the only
+  // thing to restate is which level it now looks like.
+  menuItems.on('drop', function (el, target) {
+    var nowNested = target.classList.contains('site-map-subitem-container');
+    el.classList.toggle('site-map-subitem', nowNested);
+    el.classList.toggle('site-map-submenu-tab', !nowNested);
+    var handle = el.querySelector('.site-map-submenu-tab-drag-handle, .site-map-subitem-drag-handle');
+    if (handle) {
+      handle.classList.toggle('site-map-subitem-drag-handle', nowNested);
+      handle.classList.toggle('site-map-submenu-tab-drag-handle', !nowNested);
+    }
+    // A nested row cannot take children, so its own add-sub-item control and empty container are
+    // hidden rather than removed -- promoting it back must restore them without a reload.
+    var ownContainer = el.querySelector('.site-map-subitem-container');
+    if (ownContainer) {
+      ownContainer.hidden = nowNested;
+    }
+    var addControl = el.querySelector('.site-map-subitem-add');
+    if (addControl) {
+      addControl.hidden = nowNested;
+    }
+  });
+
+  // Third level (issue #1728). Collected at runtime rather than emitted per item by the JSP: there
+  // is one container per menu item, and querySelectorAll keeps that list correct without a nested
+  // loop in the markup. Passing every container to a single dragula instance is what makes an item
+  // draggable from one parent to another, exactly as the level-2 instance above does across tabs.
+
+  // The rows directly inside a container, ignoring anything nested deeper. Identified by carrying
+  // an id, which every rendered row has and no wrapper does, so this stays correct for a row whose
+  // level class was just restated by the drop handler.
+  function directChildRows(container) {
+    var rows = [];
+    for (var i = 0; i < container.children.length; i++) {
+      if (container.children[i].id) {
+        rows.push(container.children[i]);
+      }
+    }
+    return rows;
+  }
 
   function checkSiteMapOrder() {
     // Check the main tabs
@@ -207,20 +318,41 @@
     var menuTabList = menuTabContainer.querySelectorAll(".site-map-menu-tab");
     var menuTabOrder = "";
     var menuItemOrder = "";
+    var menuSubItemOrder = "";
     for (var i = 0; i < menuTabList.length; i++) {
       var menuTab = menuTabList[i];
       if (i > 0) {
         menuTabOrder += ",";
       }
       menuTabOrder += menuTab.id;
-      // look for menuItems...
-      var menuItemList = menuTab.querySelectorAll(".site-map-submenu-tab");
+      // Which container a row sits in decides its level -- not the classes it carries (issue
+      // #1793). This asked each tab for ".site-map-submenu-tab" DESCENDANTS, which is every row at
+      // both levels once one can be dragged between them: a demoted row would have been reported as
+      // second-level and promoted straight back on save. Direct children only, so a row is counted
+      // once, by where it actually is.
+      var itemContainer = menuTab.querySelector(".site-map-submenu-container");
+      if (!itemContainer) {
+        continue;
+      }
+      var menuItemList = directChildRows(itemContainer);
       for (var j = 0; j < menuItemList.length; j++) {
         var menuItem = menuItemList[j];
         if (menuItemOrder.length > 0) {
           menuItemOrder += "|";
         }
         menuItemOrder += (menuTab.id + "," + menuItem.id);
+        // ...and any sub-items nested under this item. Same parentId,childId shape, read from live
+        // DOM position, so an item dragged to a different parent reports its new one.
+        var subItemContainer = menuItem.querySelector(".site-map-subitem-container");
+        if (subItemContainer) {
+          var subItemList = directChildRows(subItemContainer);
+          for (var k = 0; k < subItemList.length; k++) {
+            if (menuSubItemOrder.length > 0) {
+              menuSubItemOrder += "|";
+            }
+            menuSubItemOrder += (menuItem.id + "," + subItemList[k].id);
+          }
+        }
       }
     }
     var menuTabOrderField = document.getElementById("menuTabOrder");
@@ -228,6 +360,9 @@
 
     var menuItemOrderField = document.getElementById("menuItemOrder");
     menuItemOrderField.value = menuItemOrder;
+
+    var menuSubItemOrderField = document.getElementById("menuSubItemOrder");
+    menuSubItemOrderField.value = menuSubItemOrder;
 
     return true;
   }
@@ -263,7 +398,9 @@
       tabLeft: moveTabLeft,
       tabRight: moveTabRight,
       itemUp: moveItemUp,
-      itemDown: moveItemDown
+      itemDown: moveItemDown,
+      subItemUp: moveItemUp,
+      subItemDown: moveItemDown
     };
     document.querySelectorAll('[data-move]').forEach(function (button) {
       button.addEventListener('click', function () {

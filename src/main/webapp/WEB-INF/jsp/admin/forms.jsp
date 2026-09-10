@@ -23,7 +23,7 @@
 <jsp:useBean id="formDefinitionList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="fieldCountMap" class="java.util.HashMap" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
@@ -59,8 +59,8 @@
         </c:choose>
       </td>
       <td class="text-center">
-        <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}"><i class="${font:fas()} fa-edit"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${formDefinition.name}" />? This also deletes all of its fields." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&formDefinitionId=${formDefinition.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(formDefinition.name)}" href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(formDefinition.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${formDefinition.name}" />? This also deletes all of its fields." data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&formDefinitionId=${formDefinition.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

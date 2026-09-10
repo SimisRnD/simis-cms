@@ -25,7 +25,7 @@
   .mfa-recovery-actions .button { margin: 0; }
 </style>
 <c:if test="${!empty title}">
-  <h3><c:out value="${title}"/></h3>
+  <h2 class="widget-title"><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:choose>

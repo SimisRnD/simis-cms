@@ -21,6 +21,13 @@ templates:
 - **`environmentName` is permanent.** It feeds every resource name through
   `uniqueString(resourceGroup().id)`, so changing it later means redeploying the
   whole group rather than renaming anything.
+- **`environmentLabel` is what the estate actually serves, and it is separate on
+  purpose.** The two used to be one parameter, so the `environment` tag could only be
+  corrected by changing the value that also builds every resource name — which does not
+  rename anything, it deploys a parallel estate beside the live one. The live
+  simisinc.com resources are named `simiscms-pilot-*` because that is what the project
+  was called when it was built, and are tagged `environment=production` because that is
+  what they are. A reader who trusts the name is wrong; the tag is the thing to trust.
 
 Operating the deployed environment — releasing an image, reading container logs,
 diagnosing a failed start — is documented internally alongside the other runbooks
@@ -222,13 +229,18 @@ deployment rather than a change to the VNet's subnet list.
    Service as a *pending* private endpoint connection; approve it once
    (`az network private-endpoint-connection approve`). Until then the edge serves
    502s — the app has no other ingress by design.
-2. **Set `trustedProxies` (CMS_TRUSTED_PROXIES) to the `AzureFrontDoor.Backend`
-   service-tag ranges.** The proxy-aware handling shipped in #166/#182; this value
-   activates it. Without it, `getRemoteAddr()`/`isSecure()` see the proxy rather
-   than the client, degrading the Secure-cookie flag, the IP firewall, rate
-   limiting, and the audit source IP. The ranges are published in Azure's
-   service-tags feed and change over time — set at deploy, revisit on the monthly
-   cadence rather than hardcoding here.
+2. **Set `trustedProxies` (CMS_TRUSTED_PROXIES) to a regex matching the App Service
+   front ends.** `clientIpHeader` now defaults to `X-Azure-ClientIP` and needs no
+   action -- this template always fronts the app with Front Door, so that is the only
+   correct value. The proxy-aware handling shipped in #166/#182; these values activate it.
+   Without them, `getRemoteAddr()`/`isSecure()` see the proxy rather than the client,
+   degrading the Secure-cookie flag, the IP firewall, rate limiting, and the audit
+   source IP. Note `trustedProxies` is a **Java regex, not CIDR** — a CIDR value
+   compiles and then matches nothing, leaving the setting looking configured while
+   the app still records the proxy. Do *not* try to list the `AzureFrontDoor.Backend`
+   ranges there: they are public, number ~147 IPv4 prefixes, and change over time, so
+   `X-Forwarded-For` resolution stops on the Front Door node (issue #1675). The header
+   carries the client directly and needs no monthly refresh.
 3. **At cutover:** set `customDomainName` (Front Door provisions the managed
    certificate; DNS CNAMEs to the endpoint hostname) and `customUrl` (CMS_URL)
    to the same domain. Until then the WAF fronts the default endpoint hostname.

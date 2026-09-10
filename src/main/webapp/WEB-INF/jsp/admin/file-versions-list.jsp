@@ -28,10 +28,10 @@
 <jsp:useBean id="canRestore" class="java.lang.String" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">
+<p class="help-text page-help">
   Prior uploaded versions of <strong><c:out value="${file.title}" /></strong>. Each version's file is kept on the
   server, so restoring makes that version's content the current file again -- a new version entry is recorded for
   the restore itself.

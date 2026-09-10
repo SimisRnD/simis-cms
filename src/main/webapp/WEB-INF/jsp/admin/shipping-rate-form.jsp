@@ -22,9 +22,9 @@
 <jsp:useBean id="shippingCountryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="shippingMethodList" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${shippingRate.id eq -1}"><h4>New Shipping Rate</h4></c:when>
+  <c:when test="${shippingRate.id eq -1}"><h2 class="h4">New Shipping Rate</h2></c:when>
   <c:otherwise>
-    <h4>Update Shipping Rate</h4>
+    <h2 class="h4">Update Shipping Rate</h2>
   </c:otherwise>
 </c:choose>
 <form method="post" autocomplete="off">
@@ -35,7 +35,7 @@
   <input type="hidden" name="id" value="${shippingRate.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>

@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.domain.model.Role;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.presentation.controller.Column;
@@ -202,6 +204,108 @@ class ValidateUserAccessToWebPageCommandTest {
       load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
       layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
       Assertions.assertTrue(ValidateUserAccessToWebPageCommand.hasAccess(LINK, sessionWithRoles("some-role")));
+    }
+  }
+
+  // --- internal pages (issue #1688) ---
+
+  /**
+   * hasAccess is the single point that carries the internal-page gate into sitemap.xml, llms.txt,
+   * the main menu and the REST page services, none of which check it themselves. This is the
+   * assertion that fails without InternalPageAccessCommand.
+   */
+  @Test
+  void deniedWhenThePageIsInternalAndTheVisitorIsNotStaff() {
+    WebPage webPage = publishedPage("<page/>");
+    webPage.setLink(LINK);
+    webPage.setInternal(true);
+    Page structure = pageStructure(new ArrayList<>()); // public as far as the page XML is concerned
+    try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class);
+         MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("all-employees");
+      Assertions.assertFalse(ValidateUserAccessToWebPageCommand.hasAccess(LINK, guestSession()));
+    }
+  }
+
+  @Test
+  void grantedWhenThePageIsInternalAndTheVisitorIsStaff() {
+    WebPage webPage = publishedPage("<page/>");
+    webPage.setLink(LINK);
+    webPage.setInternal(true);
+    Page structure = pageStructure(new ArrayList<>());
+    User user = new User();
+    user.setId(3L);
+    user.setRoleList(new ArrayList<>());
+    Group staff = new Group();
+    staff.setUniqueId("all-employees");
+    staff.setName("All Employees");
+    user.setGroupList(List.of(staff));
+    UserSession staffSession = new UserSession();
+    staffSession.login(user);
+
+    try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class);
+         MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("all-employees");
+      Assertions.assertTrue(ValidateUserAccessToWebPageCommand.hasAccess(LINK, staffSession));
+    }
+  }
+
+  /**
+   * Composition with the page XML's own group= is AND, not OR: staff membership must not become a
+   * way past a restriction the page already carried. Injecting the staff group into Page.getGroups()
+   * instead of gating separately would have widened access here rather than narrowing it.
+   */
+  @Test
+  void internalNarrowsAccessAndNeverWidensIt() {
+    WebPage webPage = publishedPage("<page/>");
+    webPage.setLink(LINK);
+    webPage.setInternal(true);
+    Page structure = pageStructure(List.of("board-member")); // page XML already restricts by role
+    User user = new User();
+    user.setId(4L);
+    user.setRoleList(new ArrayList<>());
+    Group staff = new Group();
+    staff.setUniqueId("all-employees");
+    staff.setName("All Employees");
+    user.setGroupList(List.of(staff));
+    UserSession staffSession = new UserSession();
+    staffSession.login(user);
+
+    try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class);
+         MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("all-employees");
+      Assertions.assertFalse(ValidateUserAccessToWebPageCommand.hasAccess(LINK, staffSession),
+          "being in the staff group must not satisfy a role the page XML requires");
+    }
+  }
+
+  @Test
+  void internalIsInertUntilAGroupIsNamed() {
+    WebPage webPage = publishedPage("<page/>");
+    webPage.setLink(LINK);
+    webPage.setInternal(true);
+    Page structure = pageStructure(new ArrayList<>());
+    try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class);
+         MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
+      property.when(() -> LoadSitePropertyCommand.loadByName(InternalPageAccessCommand.PROPERTY_INTERNAL_PAGE_GROUP))
+          .thenReturn("");
+      Assertions.assertTrue(ValidateUserAccessToWebPageCommand.hasAccess(LINK, guestSession()),
+          "upgrading must not restrict a single page until an administrator opts in");
     }
   }
 }

@@ -334,7 +334,8 @@ class NewsletterSendQueueRepositoryTest {
   private long seedList(String name) {
     return withConnection(connection -> {
       try (Statement statement = connection.createStatement()) {
-        statement.execute("INSERT INTO mailing_lists (name, title) VALUES ('" + name + "', '" + name + "')");
+        statement.execute("INSERT INTO mailing_lists (unique_id, name, title) VALUES ('"
+            + name.toLowerCase() + "', '" + name + "', '" + name + "')");
         try (var rs = statement.executeQuery("SELECT list_id FROM mailing_lists WHERE name = '" + name + "'")) {
           rs.next();
           return rs.getLong(1);
@@ -429,6 +430,9 @@ class NewsletterSendQueueRepositoryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE mailing_lists ("
           + "list_id BIGSERIAL PRIMARY KEY, "
+          // MailingListRepository.buildRecord() reads unique_id unconditionally, so leaving it out
+          // of this schema makes every mailing-list lookup here return null (issue #1724)
+          + "unique_id VARCHAR(255) UNIQUE NOT NULL, "
           + "list_order INTEGER DEFAULT 100, "
           + "name VARCHAR(200) NOT NULL, "
           + "title VARCHAR(200) NOT NULL, "

@@ -196,3 +196,124 @@ def test_impact_statement_does_not_depend_on_iteration_order(monkeypatch, tmp_pa
         d = json.loads(out.read_text())
         seen.add(json.dumps([s.get("impact_statement") for s in d["statements"]]))
     assert len(seen) == 1
+
+
+# --- Policy vs. the committed document --------------------------------------------------
+# The tables and the document are two copies of the same triage decisions, and nothing kept
+# them together. Statements were added and enriched by hand while CVE_POLICY/PACKAGE_POLICY
+# stood still, so by 2026-08-26 a regeneration silently downgraded eight CVEs to
+# under_investigation -- which suppresses nothing -- and dropped the hand-written evidence
+# from six more, all while exiting 0. The test below is the thing that was missing: it
+# regenerates from the document's own contents and demands the statements come back
+# identical, so the next hand-edit that skips the tables fails here instead of in a scan.
+
+COMMITTED_VEX = TOOL.parent.parent / "docker" / "db" / "vex" / "simis-cms-db.openvex.json"
+
+
+def committed_statements():
+    return json.loads(COMMITTED_VEX.read_text())["statements"]
+
+
+def alerts_describing(statements):
+    """The alert set that a scan of the image the document describes would produce."""
+    return [
+        alert(s["vulnerability"]["name"], sc["@id"].rsplit("/", 1)[-1])
+        for s in statements
+        for p in s["products"]
+        for sc in p["subcomponents"]
+    ]
+
+
+def regenerate(monkeypatch, tmp_path, alerts):
+    import sys
+    monkeypatch.setattr(gen, "fetch_alerts", lambda: alerts)
+    out = tmp_path / "vex.json"
+    monkeypatch.setattr(sys, "argv", ["generate-db-vex.py", "--output", str(out)])
+    gen.main()
+    return json.loads(out.read_text())["statements"]
+
+
+def test_policy_reproduces_every_committed_statement(monkeypatch, tmp_path):
+    """Feed the generator the document's own CVE/package set; it must rebuild it exactly.
+
+    Every difference this catches is a real defect in one direction or the other: either a
+    decision recorded by hand is missing from the tables, so regenerating loses it, or the
+    tables have moved on and the committed document is stale.
+    """
+    want = committed_statements()
+    got = regenerate(monkeypatch, tmp_path, alerts_describing(want))
+
+    by_cve = {s["vulnerability"]["name"]: s for s in got}
+    assert set(by_cve) == {s["vulnerability"]["name"] for s in want}
+    for expected in want:
+        cve = expected["vulnerability"]["name"]
+        assert by_cve[cve] == expected, (
+            "regenerating changes %s.\nIf a statement was edited by hand, put the same text "
+            "in CVE_POLICY/CVE_ADDENDUM; if the tables are right, regenerate the document."
+            % cve
+        )
+
+
+def test_no_committed_statement_regenerates_as_under_investigation(monkeypatch, tmp_path):
+    """The specific 2026-08-26 failure, stated as the property that was violated.
+
+    `under_investigation` is an honest status and the correct default for an untriaged CVE
+    -- but it suppresses nothing in Trivy, so a statement that is not_affected in the
+    document and under_investigation on regeneration is a silent un-suppression, and the
+    scan gate fails on a CVE that was in fact triaged.
+    """
+    want = committed_statements()
+    got = regenerate(monkeypatch, tmp_path, alerts_describing(want))
+    downgraded = sorted(
+        s["vulnerability"]["name"] for s in got if s["status"] == "under_investigation"
+    )
+    assert not downgraded, (
+        "%d triaged CVEs would regenerate as under_investigation: %s"
+        % (len(downgraded), ", ".join(downgraded))
+    )
+
+
+def test_a_cve_addendum_still_requires_every_package_to_be_covered(monkeypatch, tmp_path):
+    """An addendum adds evidence to a package rule; it must not stand in for one.
+
+    This is why the four GDAL-chain enrichments live in CVE_ADDENDUM rather than CVE_POLICY:
+    a CVE_POLICY entry answers for every package on the CVE, so a newly affected package
+    outside GDAL_CHAIN would quietly inherit a GDAL rationale. Here the per-package check
+    still runs and an uncovered package still forces the whole statement down.
+    """
+    cve = sorted(gen.CVE_ADDENDUM)[0]
+    covered = sorted(gen.GDAL_CHAIN)[0]
+    got = regenerate(monkeypatch, tmp_path, [
+        alert(cve, covered), alert(cve, "some-unanalysed-package"),
+    ])
+    assert [s["status"] for s in got] == ["under_investigation"]
+    assert gen.CVE_ADDENDUM[cve] not in got[0]["impact_statement"]
+
+
+# --- Unreachable input ----------------------------------------------------------------
+# The write guards above refuse with exit 1 after looking at the alerts. Failing to reach
+# the alerts at all is a different fact and gets its own code, so a broken `gh` in a
+# regeneration run cannot be mistaken for a deliberate refusal to overwrite.
+
+def test_unreachable_alert_source_exits_two(monkeypatch):
+    class Failed:
+        returncode = 1
+        stdout = ""
+        stderr = "gh: could not authenticate"
+
+    monkeypatch.setattr(gen.subprocess, "run", lambda *a, **k: Failed())
+    with pytest.raises(SystemExit) as excinfo:
+        gen.fetch_alerts()
+    assert excinfo.value.code == 2
+
+
+def test_a_refused_write_does_not_use_the_unreachable_input_code(tmp_path):
+    # The other side of the same contract. A refusal raises SystemExit carrying a message
+    # string, which the interpreter renders as exit 1 -- deliberately not the 2 that means
+    # "never reached the alerts at all". A refusal is a decision about the document; an
+    # unreachable input is a broken run.
+    p = seed(tmp_path, 3)
+    with pytest.raises(SystemExit) as excinfo:
+        gen.write_document(doc(0), str(p))
+    assert isinstance(excinfo.value.code, str), "a refusal should carry its explanation"
+    assert excinfo.value.code != 2

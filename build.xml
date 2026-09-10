@@ -281,10 +281,110 @@
     <copy todir="${target.dir}/${project}">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
+        <!-- Root-level, because that is the only place a browser looks for it; web.xml maps
+             /favicon.ico to the default servlet. This fileset is an explicit include list,
+             so a file added at the top of src/main/webapp does not ship unless it is named
+             here, in BOTH this target and the other one below. -->
+        <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
         <include name="images/**"/>
         <include name="javascript/**"/>
+        <!-- Foundation vendor originals that no page links. Only
+             foundation.tokens.min.css and motion-ui.min.css are served from this
+             directory. foundation.min.css stays in the
+             repository because tools/route-foundation-tokens.py reads it to generate
+             the tokens file, but it reads it from src/, so it does not need to ship.
+             foundation.min.css.map now goes too: since issue 1860 the generator strips the
+             sourceMappingURL it used to copy through, so the served tokens file no longer
+             claims a map that does not describe it, and nothing packaged references it. -->
+        <exclude name="css/foundation-6.8.1/foundation.css"/>
+        <exclude name="css/foundation-6.8.1/foundation.css.map"/>
+        <exclude name="css/foundation-6.8.1/foundation.min.css"/>
+        <!-- Source maps are reachable only when a file that is ITSELF served declares one.
+             53 of the 58 in the tree are not: they belong to vendor originals the pages never
+             load (chart.umd.js when the pages load chart.umd.min.js, leaflet-src.js, the
+             unbundled swiper modules), so they were 4.93 MB of the WAR that no browser could
+             ever ask for. Excluded wholesale here and re-added below, so a newly vendored map
+             stays out until someone establishes it is actually reachable (issue 1862). -->
+        <!-- Vendor builds nothing loads (issue 1862). Every entry below is an alternative
+             build of a library whose minified twin is packaged and served: the pages load
+             chart.umd.min.js, jquery.min.js, mermaid.min.js and so on, and the unminified
+             original beside each one is never requested. tools/check-vendor-builds.py derives
+             the same set from the assembled WAR and fails the build if one reappears, so this
+             list cannot silently go stale the way a hand-kept list does.
+             Not swept: ace, codemirror and leaflet load parts by path at runtime and have no
+             minified twins to fall back on, and jsuites.css and jquery.gridmanager.js are
+             non-minified files that ARE served. The rule is "has a served .min twin", not
+             "is not minified". -->
+        <exclude name="css/animate-3.7.2/animate.css"/>
+        <exclude name="css/foundation-datepicker-20180424/foundation-datepicker.css"/>
+        <exclude name="javascript/chartjs-4.4.1/chart.umd.js"/>
+        <exclude name="javascript/clipboard-2.0.11/clipboard.js"/>
+        <exclude name="javascript/dragula-3.7.3/dragula.css"/>
+        <exclude name="javascript/dragula-3.7.3/dragula.js"/>
+        <exclude name="javascript/dropzone-5.9.3/basic.css"/>
+        <exclude name="javascript/dropzone-5.9.3/dropzone.css"/>
+        <exclude name="javascript/dropzone-5.9.3/dropzone.js"/>
+        <exclude name="javascript/foundation-6.8.1/foundation.js"/>
+        <exclude name="javascript/foundation-6.8.1/what-input-5.2.6.js"/>
+        <exclude name="javascript/fullcalendar-6.1.10/index.global.js"/>
+        <exclude name="javascript/imagesloaded-5.0.0/imagesloaded.pkgd.js"/>
+        <exclude name="javascript/jquery-3.7.1/jquery.js"/>
+        <exclude name="javascript/js-cookie-3.0.5/js.cookie.js"/>
+        <exclude name="javascript/js-cookie-3.0.5/js.cookie.mjs"/>
+        <exclude name="javascript/jsuites-5.0.29/jsuites.js"/>
+        <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
+        <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
+        <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
+        <exclude name="javascript/prism-1.30.0/prism.js"/>
+        <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
+        <!-- TinyMCE resolves its own suffix from the entry script. Every page loads
+             tinymce.min.js and no init() sets `suffix`, so it fetches theme.min.js,
+             model.min.js, plugin.min.js and icons.min.js at runtime; the unminified twins
+             beside them are never requested. Swept wholesale and the .min files re-added below,
+             because there are 57 of them. -->
+        <exclude name="javascript/tinymce-7.9.3/**/*.js"/>
+        <exclude name="javascript/tinymce-7.9.3/**/*.css"/>
+        <exclude name="javascript/tinymce-plugins/**/*.js"/>
+        <!-- Only swiper-bundle.min.js and swiper-bundle.min.css are served. The rest of the
+             package is the React and Vue wrappers, the custom-element builds, the ESM module
+             tree and its TypeScript declarations, and nothing here imports any of it. -->
+        <exclude name="javascript/swiper-12.1.2/**"/>
+        <!-- main.jsp links all.min.css and v4-shims.min.css (through ${font:fontawesome()}, so
+             the literal path never appears in the source). The unminified twins beside them are
+             not requested. -->
+        <exclude name="css/fontawesome-free-6.1.1-web/css/*.css"/>
+        <!-- Vendor packaging metadata: never served, and CHANGELOG.md alone is 280 KB. LICENSE
+             files are deliberately NOT excluded; they ship for redistribution compliance. -->
+        <exclude name="**/CHANGELOG.md"/>
+        <exclude name="**/README.md"/>
+        <exclude name="**/bower.json"/>
+        <exclude name="**/composer.json"/>
+        <exclude name="**/package.json"/>
+        <exclude name="**/*.map"/>
+      </fileset>
+      <!-- The five a served file genuinely declares. Kept in a second fileset because Ant
+           gives <exclude> precedence over <include> within one, so they cannot be re-included
+           into the set above. tools/check-source-maps.py fails the build if this list drifts
+           from what the WAR actually references, in either direction. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/foundation-6.8.1/foundation.min.js.map"/>
+        <include name="javascript/leaflet-1.9.4/leaflet.js.map"/>
+        <include name="javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js.map"/>
+        <include name="javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js.map"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js.map"/>
+      </fileset>
+      <!-- Re-added from the wholesale sweeps above, for the same Ant reason as the maps:
+           <exclude> beats <include> inside one fileset, so the survivors need their own. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/tinymce-7.9.3/**/*.min.js"/>
+        <include name="javascript/tinymce-7.9.3/**/*.min.css"/>
+        <include name="javascript/tinymce-plugins/**/*.min.js"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.css"/>
+        <include name="javascript/swiper-12.1.2/LICENSE"/>
+        <include name="css/fontawesome-free-6.1.1-web/css/*.min.css"/>
       </fileset>
     </copy>
     <!-- META-INF context config (e.g. the SameSite CookieProcessor) -->
@@ -403,10 +503,110 @@
     <copy todir="${exploded.work.dir}" preservelastmodified="true">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
+        <!-- Root-level, because that is the only place a browser looks for it; web.xml maps
+             /favicon.ico to the default servlet. This fileset is an explicit include list,
+             so a file added at the top of src/main/webapp does not ship unless it is named
+             here, in BOTH this target and the packaging target above. -->
+        <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
         <include name="images/**"/>
         <include name="javascript/**"/>
+        <!-- Foundation vendor originals that no page links. Only
+             foundation.tokens.min.css and motion-ui.min.css are served from this
+             directory. foundation.min.css stays in the
+             repository because tools/route-foundation-tokens.py reads it to generate
+             the tokens file, but it reads it from src/, so it does not need to ship.
+             foundation.min.css.map now goes too: since issue 1860 the generator strips the
+             sourceMappingURL it used to copy through, so the served tokens file no longer
+             claims a map that does not describe it, and nothing packaged references it. -->
+        <exclude name="css/foundation-6.8.1/foundation.css"/>
+        <exclude name="css/foundation-6.8.1/foundation.css.map"/>
+        <exclude name="css/foundation-6.8.1/foundation.min.css"/>
+        <!-- Source maps are reachable only when a file that is ITSELF served declares one.
+             53 of the 58 in the tree are not: they belong to vendor originals the pages never
+             load (chart.umd.js when the pages load chart.umd.min.js, leaflet-src.js, the
+             unbundled swiper modules), so they were 4.93 MB of the WAR that no browser could
+             ever ask for. Excluded wholesale here and re-added below, so a newly vendored map
+             stays out until someone establishes it is actually reachable (issue 1862). -->
+        <!-- Vendor builds nothing loads (issue 1862). Every entry below is an alternative
+             build of a library whose minified twin is packaged and served: the pages load
+             chart.umd.min.js, jquery.min.js, mermaid.min.js and so on, and the unminified
+             original beside each one is never requested. tools/check-vendor-builds.py derives
+             the same set from the assembled WAR and fails the build if one reappears, so this
+             list cannot silently go stale the way a hand-kept list does.
+             Not swept: ace, codemirror and leaflet load parts by path at runtime and have no
+             minified twins to fall back on, and jsuites.css and jquery.gridmanager.js are
+             non-minified files that ARE served. The rule is "has a served .min twin", not
+             "is not minified". -->
+        <exclude name="css/animate-3.7.2/animate.css"/>
+        <exclude name="css/foundation-datepicker-20180424/foundation-datepicker.css"/>
+        <exclude name="javascript/chartjs-4.4.1/chart.umd.js"/>
+        <exclude name="javascript/clipboard-2.0.11/clipboard.js"/>
+        <exclude name="javascript/dragula-3.7.3/dragula.css"/>
+        <exclude name="javascript/dragula-3.7.3/dragula.js"/>
+        <exclude name="javascript/dropzone-5.9.3/basic.css"/>
+        <exclude name="javascript/dropzone-5.9.3/dropzone.css"/>
+        <exclude name="javascript/dropzone-5.9.3/dropzone.js"/>
+        <exclude name="javascript/foundation-6.8.1/foundation.js"/>
+        <exclude name="javascript/foundation-6.8.1/what-input-5.2.6.js"/>
+        <exclude name="javascript/fullcalendar-6.1.10/index.global.js"/>
+        <exclude name="javascript/imagesloaded-5.0.0/imagesloaded.pkgd.js"/>
+        <exclude name="javascript/jquery-3.7.1/jquery.js"/>
+        <exclude name="javascript/js-cookie-3.0.5/js.cookie.js"/>
+        <exclude name="javascript/js-cookie-3.0.5/js.cookie.mjs"/>
+        <exclude name="javascript/jsuites-5.0.29/jsuites.js"/>
+        <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
+        <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
+        <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
+        <exclude name="javascript/prism-1.30.0/prism.js"/>
+        <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
+        <!-- TinyMCE resolves its own suffix from the entry script. Every page loads
+             tinymce.min.js and no init() sets `suffix`, so it fetches theme.min.js,
+             model.min.js, plugin.min.js and icons.min.js at runtime; the unminified twins
+             beside them are never requested. Swept wholesale and the .min files re-added below,
+             because there are 57 of them. -->
+        <exclude name="javascript/tinymce-7.9.3/**/*.js"/>
+        <exclude name="javascript/tinymce-7.9.3/**/*.css"/>
+        <exclude name="javascript/tinymce-plugins/**/*.js"/>
+        <!-- Only swiper-bundle.min.js and swiper-bundle.min.css are served. The rest of the
+             package is the React and Vue wrappers, the custom-element builds, the ESM module
+             tree and its TypeScript declarations, and nothing here imports any of it. -->
+        <exclude name="javascript/swiper-12.1.2/**"/>
+        <!-- main.jsp links all.min.css and v4-shims.min.css (through ${font:fontawesome()}, so
+             the literal path never appears in the source). The unminified twins beside them are
+             not requested. -->
+        <exclude name="css/fontawesome-free-6.1.1-web/css/*.css"/>
+        <!-- Vendor packaging metadata: never served, and CHANGELOG.md alone is 280 KB. LICENSE
+             files are deliberately NOT excluded; they ship for redistribution compliance. -->
+        <exclude name="**/CHANGELOG.md"/>
+        <exclude name="**/README.md"/>
+        <exclude name="**/bower.json"/>
+        <exclude name="**/composer.json"/>
+        <exclude name="**/package.json"/>
+        <exclude name="**/*.map"/>
+      </fileset>
+      <!-- The five a served file genuinely declares. Kept in a second fileset because Ant
+           gives <exclude> precedence over <include> within one, so they cannot be re-included
+           into the set above. tools/check-source-maps.py fails the build if this list drifts
+           from what the WAR actually references, in either direction. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/foundation-6.8.1/foundation.min.js.map"/>
+        <include name="javascript/leaflet-1.9.4/leaflet.js.map"/>
+        <include name="javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js.map"/>
+        <include name="javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js.map"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js.map"/>
+      </fileset>
+      <!-- Re-added from the wholesale sweeps above, for the same Ant reason as the maps:
+           <exclude> beats <include> inside one fileset, so the survivors need their own. -->
+      <fileset dir="${web.dir}">
+        <include name="javascript/tinymce-7.9.3/**/*.min.js"/>
+        <include name="javascript/tinymce-7.9.3/**/*.min.css"/>
+        <include name="javascript/tinymce-plugins/**/*.min.js"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.js"/>
+        <include name="javascript/swiper-12.1.2/swiper-bundle.min.css"/>
+        <include name="javascript/swiper-12.1.2/LICENSE"/>
+        <include name="css/fontawesome-free-6.1.1-web/css/*.min.css"/>
       </fileset>
     </copy>
     <!-- Prepare the JSPs-->
@@ -438,9 +638,13 @@
 
   <target name="checkstyle" depends="check-jdk-version,prepare">
     <mkdir dir="${target.dir}/checkstyle"/>
+    <!-- Two formatters on purpose. The xml one is the machine-readable report; the plain one echoes
+         each violation to the console, because without it a failing run prints only the summary count
+         ("Got N errors and 0 warnings") and CI logs never say which file or line tripped the check. -->
     <checkstyle config="checkstyle.xml"
                 failureProperty="checkstyle.failure"
                 failOnViolation="true">
+      <formatter type="plain"/>
       <formatter type="xml" tofile="${target.dir}/checkstyle/checkstyle_report.xml"/>
       <fileset dir="${src.dir}" includes="**/*.java"/>
     </checkstyle>

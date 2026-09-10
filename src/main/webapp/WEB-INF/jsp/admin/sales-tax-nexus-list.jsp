@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="salesTaxNexusAddressList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/sales-tax-nexus-address?returnPage=/admin/sales-tax-nexus">Add an Address <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
@@ -47,8 +47,8 @@
       <td><c:out value="${address.postalCode}" /></td>
       <td><c:out value="${address.country}" /></td>
       <td>
-        <a href="${ctx}/admin/sales-tax-nexus-address?addressId=${address.id}&returnPage=/admin/sales-tax-nexus"><i class="fa fa-edit"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${address.street}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(address.street)}" href="${ctx}/admin/sales-tax-nexus-address?addressId=${address.id}&returnPage=/admin/sales-tax-nexus"><i aria-hidden="true" class="fa fa-edit"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(address.street)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${address.street}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&addressId=${address.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

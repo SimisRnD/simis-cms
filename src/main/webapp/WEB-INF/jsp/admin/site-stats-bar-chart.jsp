@@ -22,14 +22,14 @@
 <jsp:useBean id="statisticsDataList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="label" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <script src="${ctx}/javascript/chartjs-4.4.1/chart.umd.min.js"></script>
 <%-- The canvas chart is not readable by assistive technology, so it is labeled and paired with an equivalent
      screen-reader-only data table (WCAG 2.1 SC 1.1.1 / 1.3.1; Section 508). --%>
 <canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100" role="img"
-        aria-label="<c:out value="${not empty title ? title : label}"/> chart. The data follows in a table."></canvas>
+        aria-label="${fn:escapeXml(not empty title ? title : label)} chart. The data follows in a table."></canvas>
 <table class="show-for-sr">
   <caption><c:out value="${not empty title ? title : label}"/> &ndash; data table</caption>
   <thead>

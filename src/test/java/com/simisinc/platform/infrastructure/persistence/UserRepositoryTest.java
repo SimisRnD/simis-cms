@@ -18,7 +18,10 @@ package com.simisinc.platform.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,6 +32,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.function.Function;
 
@@ -46,6 +51,8 @@ import com.simisinc.platform.domain.model.Entity;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.persistence.login.UserRoleRepository;
+import com.simisinc.platform.infrastructure.persistence.login.UserGroupRepository;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataResult;
 import com.simisinc.platform.infrastructure.database.SqlJoins;
@@ -258,5 +265,92 @@ class UserRepositoryTest {
       }
     }
     throw new AssertionError("No field named " + fieldName + " was set");
+  }
+
+  @Test
+  void anUndatedTokenIsNoLongerAcceptedAsValid() {
+    // The predicate used to read "account_token_expires IS NULL OR account_token_expires > NOW()".
+    // That IS NULL arm is what made every pre-migration token valid forever, which is the defect the
+    // expiry work set out to close. Asserted on the generated clause rather than a round trip
+    // because the arm's absence IS the security property: a token with no expiry is a credential
+    // with no lifetime, and accepting one is the more dangerous of the two possible mistakes.
+    ArgumentCaptor<SqlUtils> where = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(() -> DB.selectRecordFrom(anyString(), where.capture(), any())).thenReturn(null);
+
+      UserRepository.findByAccountToken("some-token");
+
+      String clause = clauseOf(where.getValue());
+      assertTrue(clause.contains("account_token_expires > NOW()"),
+          "a valid token must be required to carry a future expiry: " + clause);
+      assertFalse(clause.contains("IS NULL"),
+          "an undated token must not be treated as valid: " + clause);
+    }
+  }
+
+  @Test
+  void anUndatedTokenReadsAsExpiredRatherThanMissing() {
+    // The two lookups have to stay exhaustive. If "valid" requires a future expiry while "expired"
+    // requires a non-null one, a row with no expiry matches neither -- and the admin screen shows
+    // nothing at all for an account that plainly has a token, which is the state #1838 exists to
+    // display.
+    ArgumentCaptor<SqlUtils> where = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(() -> DB.selectRecordFrom(anyString(), where.capture(), any())).thenReturn(null);
+
+      UserRepository.findExpiredByAccountToken("some-token");
+
+      String clause = clauseOf(where.getValue());
+      assertTrue(clause.contains("IS NULL"),
+          "a token with no expiry has to report as expired, not vanish: " + clause);
+    }
+  }
+
+  private static String clauseOf(SqlUtils sqlUtils) {
+    StringBuilder sb = new StringBuilder();
+    for (com.simisinc.platform.infrastructure.database.SqlValue v : sqlUtils.getValues()) {
+      sb.append(' ').append(v.getFieldOrClause());
+    }
+    return sb.toString();
+  }
+
+  @Test
+  void addMintsAnActivationTokenWithAnExpiry() throws Exception {
+    // add() used to write account_token with no account_token_expires. The column has no DEFAULT,
+    // and findByAccountToken treats a missing expiry as valid indefinitely, so every activation
+    // link issued at sign-up or by admin account creation never stopped working. Both the value on
+    // the record and the column in the INSERT are asserted -- setting one without the other leaves
+    // the row undated just the same.
+    User user = new User();
+    user.setEmail("invited@example.com");
+    user.setPassword("new");
+
+    Connection connection = mock(Connection.class);
+    ArgumentCaptor<SqlUtils> valuesCaptor = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class);
+        MockedStatic<UserGroupRepository> groups = mockStatic(UserGroupRepository.class);
+        MockedStatic<UserRoleRepository> roles = mockStatic(UserRoleRepository.class)) {
+      db.when(DB::getConnection).thenReturn(connection);
+      db.when(() -> DB.insertInto(any(Connection.class), anyString(), valuesCaptor.capture(), any(String[].class)))
+          .thenReturn(7L);
+
+      User saved = UserRepository.add(user);
+
+      assertNotNull(saved, "add() did not complete");
+      assertNotNull(saved.getAccountToken(), "no activation token was minted");
+
+      Timestamp expires = saved.getAccountTokenExpires();
+      assertNotNull(expires, "the activation token was left with no expiry");
+      long days = (expires.getTime() - System.currentTimeMillis()) / 86_400_000L;
+      assertTrue(days >= 6 && days <= 7,
+          "expected an activation window of about 7 days, got " + days + " days");
+
+      // The column has to reach the INSERT, not just the in-memory record. fieldValue throws when
+      // a column was never set, which is precisely the regression this guards.
+      assertDoesNotThrow(() -> fieldValue(valuesCaptor.getValue(), "account_token"),
+          "account_token was not written");
+      assertDoesNotThrow(() -> fieldValue(valuesCaptor.getValue(), "account_token_expires"),
+          "account_token_expires was not written alongside the token, so the row is left undated");
+    }
   }
 }

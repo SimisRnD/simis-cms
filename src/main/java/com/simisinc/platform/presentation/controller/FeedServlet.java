@@ -117,6 +117,22 @@ public class FeedServlet extends HttpServlet {
 
       response.setContentType("application/atom+xml");
       response.setCharacterEncoding("UTF-8");
+      // State a cache lifetime rather than leaving one to be inferred. With no Cache-Control the
+      // response is still cached -- a CDN in front of the site simply applies its own default TTL,
+      // so how long a newly published post stays invisible to subscribers is decided by edge
+      // configuration nobody chose and nobody can see from here. Observed on the pilot: /feed.xml
+      // returned TCP_MISS then TCP_HIT seconds later, with no Cache-Control and no Age on either.
+      //
+      // 300s, not the 3600s SitemapServlet uses, because the two have opposite jobs. A sitemap is
+      // pulled by crawlers on their own schedule and an hour of staleness costs nothing. A feed
+      // exists to deliver new posts promptly, and its delay is additive: edge TTL first, then the
+      // reader's own poll interval, which is typically 15-60 minutes on its own. Five minutes keeps
+      // the part we control small without making every subscriber poll re-run the post query.
+      //
+      // No ETag/304 here deliberately. SitemapServlet has that, but its isNotModified/gzip helpers
+      // are private to it, so conditional requests would mean duplicating them or extracting a
+      // shared helper -- worth doing, but a larger change than stating a TTL, and independent of it.
+      response.setHeader("Cache-Control", "public, max-age=300");
       response.getWriter().print(feedXml);
     } catch (Exception e) {
       LOG.error("Error generating feed: " + e.getMessage());
@@ -182,7 +198,13 @@ public class FeedServlet extends HttpServlet {
     // skipped, so a SQL LIMIT here would silently under-fill the feed.
     DataConstraints constraints = new DataConstraints();
     constraints.setUseCount(false);
-    constraints.setDefaultColumnToSortBy("COALESCE(start_date, published) DESC, post_id DESC");
+    // setColumnsToSortBy, not setDefaultColumnToSortBy: the "default" setter is the repository's
+    // own, and BlogPostRepository#findAll overwrites whatever a caller put there with "post_id"
+    // one line after receiving it. Issue #1418 set the sort here and it never reached the SQL --
+    // the feed has been in insertion order since, which with MAX_ENTRIES means a site publishes
+    // its OLDEST entries and never its recent ones, the exact failure that issue set out to fix.
+    // columnsToSortBy is read before the default in DB#appendSortClause, so it survives.
+    constraints.setColumnsToSortBy(new String[] { "COALESCE(start_date, published) DESC", "post_id DESC" });
     List<BlogPost> posts = BlogPostRepository.findAll(spec, constraints);
     List<FeedEntry> entries = new ArrayList<>();
 
@@ -210,7 +232,15 @@ public class FeedServlet extends HttpServlet {
     }
 
     String siteName = StringUtils.defaultIfBlank(sitePropertyMap.get("site.name"), "Site");
-    String feedTitle = blog != null ? siteName + " - " + blog.getName() : siteName;
+    // A blog may name its own feed. The composed "<site name> - <blog name>" is a reasonable
+    // default but a poor publication name: it puts the site's legal suffix in front of every feed,
+    // so a reader lists "SimIS, Inc. - Industry News" beside "Dark Reading" and "Ars Technica".
+    // Renaming the site is not the answer -- "SimIS, Inc." is right in a page title -- so the blog
+    // carries an optional override instead. Blank keeps the composed default.
+    String feedTitle = blog != null ? StringUtils.trimToNull(blog.getFeedTitle()) : null;
+    if (feedTitle == null) {
+      feedTitle = blog != null ? siteName + " - " + blog.getName() : siteName;
+    }
     String selfUrl = blog != null
         ? siteUrl + "/feed/" + blog.getUniqueId() + ".xml"
         : siteUrl + "/feed.xml";
@@ -225,8 +255,20 @@ public class FeedServlet extends HttpServlet {
     // Atom requires <updated>; derive it from the newest entry rather than "now" so a feed whose
     // content has not changed keeps a stable value that conditional-GET tooling can rely on
     xml.append("  <updated>").append(formatDate(mostRecent(entries))).append("</updated>\n");
-    if (StringUtils.isNotBlank(sitePropertyMap.get("site.description"))) {
-      xml.append("  <subtitle>").append(escapeXml(sitePropertyMap.get("site.description"))).append("</subtitle>\n");
+    // Prefer the blog's own description. site.description is the company's elevator pitch --
+    // "CMMI Level 3 certified, Veteran-Owned Small Business..." -- which is right on a home page and
+    // wrong here: a reader prints the subtitle directly under the feed title, so every feed a site
+    // publishes introduced itself with the same marketing copy instead of saying what it carries.
+    // Two feeds from one site were indistinguishable below the title.
+    //
+    // Falls back to site.description when a blog has none of its own, so nothing regresses for a
+    // site that has not filled one in.
+    String feedSubtitle = blog != null ? StringUtils.trimToNull(blog.getDescription()) : null;
+    if (feedSubtitle == null) {
+      feedSubtitle = StringUtils.trimToNull(sitePropertyMap.get("site.description"));
+    }
+    if (feedSubtitle != null) {
+      xml.append("  <subtitle>").append(escapeXml(feedSubtitle)).append("</subtitle>\n");
     }
 
     for (FeedEntry entry : entries) {

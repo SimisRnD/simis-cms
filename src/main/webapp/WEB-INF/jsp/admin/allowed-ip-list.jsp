@@ -26,12 +26,12 @@
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="currentClientIp" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through, for every page on the site (aside from a couple of hardcoded exemptions, like the <code>/healthz</code> health check), not just specific ones. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
+<p class="help-text page-help">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through, for every page on the site (aside from a couple of hardcoded exemptions, like the <code>/healthz</code> health check), not just specific ones. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
 <div class="callout radius">
   <p style="margin-bottom:5px;"><strong>Your current request is being seen as:</strong> <code><c:out value="${currentClientIp}"/></code></p>
-  <p class="help-text" style="margin-bottom:0;">This is the same value the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>'s check compares entries against. If it doesn't look like your real IP -- for example, an internal/private address while you're browsing from the public internet -- this deployment is likely behind a reverse proxy or load balancer without <code>CMS_TRUSTED_PROXIES</code> configured, and every visitor is seen as the proxy's own address. Until that's fixed by whoever manages the deployment, IP blocking will silently not work correctly for anyone.</p>
+  <p class="help-text page-help" style="margin-bottom:0;">This is the same value the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>'s check compares entries against. If it doesn't look like your real IP -- for example, an internal/private address while you're browsing from the public internet -- this deployment is likely behind a reverse proxy or load balancer without <code>CMS_TRUSTED_PROXIES</code> configured, and every visitor is seen as the proxy's own address. Until that's fixed by whoever manages the deployment, IP blocking will silently not work correctly for anyone.</p>
 </div>
 <div class="callout warning radius">
   <h6>Before you add an entry here</h6>
@@ -63,7 +63,7 @@
   <input type="hidden" name="command" value="downloadCSVFile" />
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
-<p class="help-text">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to remove that IP from the allow list instead of adding it. Download includes IP Address, Date, and Reason. After an import, read the result message above for the actual succeeded/skipped counts and re-check the list below -- don't assume a generic-looking message means every row landed.</p>
+<p class="help-text page-help">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to remove that IP from the allow list instead of adding it. Download includes IP Address, Date, and Reason. After an import, read the result message above for the actual succeeded/skipped counts and re-check the list below -- don't assume a generic-looking message means every row landed.</p>
 <table class="unstriped stack">
   <thead>
     <tr>
@@ -79,7 +79,7 @@
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
-        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.ipAddress}" /> from the allow list?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&allowedIPListId=${record.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Remove ${fn:escapeXml(record.ipAddress)} from the allow list" href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.ipAddress}" /> from the allow list?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&allowedIPListId=${record.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
       <td><c:choose><c:when test="${fn:contains(record.ipAddress, '/')}"><small>Range</small></c:when><c:otherwise><c:out value='${geoip:location(record.ipAddress, " ")}'/></c:otherwise></c:choose></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>

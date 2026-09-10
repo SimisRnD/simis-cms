@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -138,6 +139,34 @@ class CalendarEventDetailsWidgetTest extends WidgetBase {
   }
 
   /** The ordinary public page: published, not archived, calendar online. */
+  @Test
+  void anEventWithArtworkBecomesItsOwnSocialCard() {
+    // Without this bridge main.jsp falls back to site.image, so every event ever shared showed the
+    // same generic site card. WebContainerCommand copies pageImageUrl onto pageRenderInfo, which is
+    // what og:image reads -- the same one line BlogPostWidget uses.
+    logout(widgetContext);
+    CalendarEvent calendarEvent = event(new Timestamp(System.currentTimeMillis()), null);
+    calendarEvent.setImageUrl("/assets/img/20260101000000-1/iitsec.png");
+
+    WidgetContext result = execute(calendarEvent, calendar(true));
+
+    assertNotNull(result);
+    Assertions.assertEquals("/assets/img/20260101000000-1/iitsec.png", result.getPageImageUrl());
+  }
+
+  @Test
+  void anEventWithoutArtworkLeavesTheSiteDefaultInPlace() {
+    // Blank must not be bridged: setting it would replace the site-wide og:image with an empty
+    // string rather than falling back to it.
+    logout(widgetContext);
+    CalendarEvent calendarEvent = event(new Timestamp(System.currentTimeMillis()), null);
+
+    WidgetContext result = execute(calendarEvent, calendar(true));
+
+    assertNotNull(result);
+    assertNull(result.getPageImageUrl());
+  }
+
   @Test
   void executeShowsAPublishedEventToAGuest() {
     logout(widgetContext);

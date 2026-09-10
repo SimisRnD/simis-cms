@@ -39,6 +39,9 @@ unallowlisted finding. CI runs it with ``--strict``: the sweep that produced
 this fixed 29 injection points and classified the remainder, so every site that
 still renders unescaped carries an entry below explaining why it is safe.
 
+Exit codes: 0 = nothing unallowlisted (or report-only), 1 = an unallowlisted
+finding under --strict, 2 = bad usage, or the JSP tree this check reads is missing.
+
 This is a read-only reporter. It changes no files.
 """
 from __future__ import annotations
@@ -77,6 +80,13 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${user:roleTierClass(userRole.level)}":
+        "users-list.jsp and user-details.jsp role badges: the value is the return of "
+        "UserCommand.roleTierClass(int), which is a chain of integer comparisons returning one of "
+        "exactly four fixed string literals -- \"warning\", \"primary\", \"success\" or "
+        "\"secondary\". It takes an int (Role.getLevel(), a Java primitive) and never touches its "
+        "argument's text, so no input reaches the output at all and the class attribute cannot be "
+        "broken out of. Escaping it would be inert.",
     "${!empty duplicatesView}":
         "image-browser.jsp: duplicatesView is a Boolean request attribute set only by "
         "AdminImageBrowserWidget#duplicatesViewAction (setAttribute(\"duplicatesView\", true)) "
@@ -310,7 +320,7 @@ ALLOWLIST: dict[str, str] = {
 
     # Whitelist-constrained values (set to one of a small fixed set of literals).
     "${colorScheme}":
-        "<c:choose> in main.jsp / embedded-layout.jsp maps colorSchemeMode to exactly one of 'dark', 'auto', or 'light' -- no other value is possible.",
+        "<c:choose> in main.jsp maps colorSchemeMode to exactly one of 'dark', 'auto', or 'light' -- no other value is possible.",
     "${range eq '1h' ? 'primary' : 'secondary'}":
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
     "${range eq '24h' ? 'primary' : 'secondary'}":
@@ -347,6 +357,9 @@ ALLOWLIST: dict[str, str] = {
         "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
     "${siteProperty.value eq 'none'}":
         "Same as ${siteProperty.value eq 'full-color'} above -- same file, same pattern, different comparison literal.",
+    "${fileIcon}":
+        "Set via <c:set var='fileIcon'> in file-list.jsp from a closed <c:choose> whose every branch is a JSP-authored literal <i class=\"fa fa-...\"> -- the only input is file.fileType, which is compared against fixed strings and never itself rendered. It holds no user-supplied value of any kind. Rendered unescaped by design inside each <a> so the icon inherits the link's color; a render-site <c:out> would print the literal tag text instead of the glyph.",
+
     "${itemImageAttrs}":
         "Set via <c:set var='itemImageAttrs'> in items-card-view.jsp, combining fixed JSP-authored attribute literals (sizes=/decoding=/loading=) with its one dynamic component, ${itemImageSrcset} -- which is itself wrapped in <c:out> at the point it is written into the block, encoding '\"' the same way ${logoSrc} does. Rendered unescaped by design at the <img ...> sink: the value holds pre-built HTML attribute syntax (srcset=\"...\" sizes=\"...\" decoding=\"async\" loading=\"lazy\") that a render-site <c:out> would corrupt by HTML-entity-encoding its own quotes.",
 
@@ -357,6 +370,8 @@ ALLOWLIST: dict[str, str] = {
         "SaveMenuTabCommand enforces a leading '/' or '#' prefix, blocking javascript: and protocol-relative targets; relative/anchor URLs cannot carry executable markup.",
     "${menuItem.link}":
         "SaveMenuTabCommand.updateMenuItemLink() enforces a leading '/' prefix on save -- all stored links are relative internal paths.",
+    "${subMenuItem.link}":
+        "Identical to ${menuItem.link}: a nested menu item is a row in the same menu_items table, edited through the same menuItem<id>link form field and saved by the same SaveMenuTabCommand.updateMenuItemLink(), which enforces a leading '/' prefix. Nesting changes only parent_menu_item_id, not how the link is validated or stored.",
     "${webPage.link}":
         "SaveWebPageCommand rejects all external URLs via UrlCommand.isUrlValid() check (error if external) -- all stored web-page links are relative internal paths with no HTML metacharacters.",
     "${webPage.showInSitemap}":
@@ -459,6 +474,17 @@ EL = re.compile(r"\$\{[^}]+\}")
 TEMPLATE_LITERAL = re.compile(r"`[^`]*`", re.S)
 
 
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- a gate whose JSP tree has
+    been moved out from under it must be visibly broken rather than reported as a
+    clean sweep or confused with a real unescaped-EL finding.
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
+
+
 def _blank(match) -> str:
     """Replace a span with spaces so byte offsets, and thus line numbers, survive."""
     return " " * len(match.group(0))
@@ -534,7 +560,7 @@ def main() -> int:
 
     base = os.path.join(args.root, JSP_ROOT)
     if not os.path.isdir(base):
-        sys.exit("error: %s not found (run from the repository root)" % base)
+        fail("%s not found (run from the repository root)" % base)
 
     findings: list[tuple[str, int, str, str]] = []
     allowed: collections.Counter = collections.Counter()

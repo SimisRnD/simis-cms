@@ -32,11 +32,11 @@
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/wiki?returnPage=/admin/wikis">Add a Wiki <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
-<p class="help-text">A wiki is a flat collection of markdown pages with a built-in search and a server-rendered live preview in the editor -- there's no parent/child page hierarchy, each wiki is just a named set of pages with one designated starting page. You can create as many separate wikis as you need (e.g. one per department or topic); each is added to the site as its own set of pages, and which users can reach them is controlled the same way as any other page (via the page's own role/group restrictions), not a per-wiki setting here.</p>
+<p class="help-text page-help">A wiki is a flat collection of markdown pages with a built-in search and a server-rendered live preview in the editor -- there's no parent/child page hierarchy, each wiki is just a named set of pages with one designated starting page. You can create as many separate wikis as you need (e.g. one per department or topic); each is added to the site as its own set of pages, and which users can reach them is controlled the same way as any other page (via the page's own role/group restrictions), not a per-wiki setting here.</p>
 <table class="unstriped">
   <thead>
     <tr>
@@ -63,9 +63,9 @@
           <fmt:formatNumber value="${wikiPageCount[wiki.id]}" />
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/wiki?wikiId=${wiki.id}&returnPage=/admin/wikis"><i class="fa fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(wiki.name)}" href="${ctx}/admin/wiki?wikiId=${wiki.id}&returnPage=/admin/wikis"><i aria-hidden="true" class="fa fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="#" data-js-call="deleteWiki" data-js-arg1="${wiki.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(wiki.name)}" href="#" data-js-call="deleteWiki" data-js-arg1="${wiki.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.maps;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,9 @@ public class FindMapTilesCredentialsCommand {
   private static final Pattern TILE_SERVER_URL_PATTERN = Pattern
       .compile("^https?://[A-Za-z0-9\\-._~:/?&=%,+{}]+$");
 
+  // scheme://host[:port], stopping before the path -- the value carries {z}/{x}/{y} placeholders
+  private static final Pattern ORIGIN_PATTERN = Pattern.compile("^(https?://[A-Za-z0-9\\-._~]+(?::\\d+)?)");
+
   public static MapCredentials getCredentials() {
     String mapService = LoadSitePropertyCommand.loadByName("maps.service.tiles");
     if (mapService == null) {
@@ -60,6 +64,53 @@ public class FindMapTilesCredentialsCommand {
       LOG.warn("maps.service.tiles is 'custom' but maps.custom.tileserver.url is blank or invalid; using openstreetmap");
     }
     return new MapCredentials("openstreetmap", null);
+  }
+
+  /**
+   * The tile server's origin, for the CSP {@code img-src} source list.
+   *
+   * <p>
+   * Leaflet fetches tiles as images, so a policy that omits the tile host renders a map that draws
+   * its controls, marker and popup -- all of which are local -- over an empty grey square. Nothing
+   * reports it: the page is not broken, the widget is not in error, and only a console violation
+   * says why. Derived from the configured service rather than hardcoded, for the same reason the
+   * iframe list is: a site pointing at its own tile server needs that host, not this one's.
+   * </p>
+   *
+   * @return an https origin, or null when no tile service resolves
+   */
+  public static String cspImageSource() {
+    MapCredentials credentials = getCredentials();
+    if (credentials == null) {
+      return null;
+    }
+    if ("custom".equalsIgnoreCase(credentials.getService()) && credentials.getTileServerUrl() != null) {
+      return originOf(credentials.getTileServerUrl());
+    }
+    // What every map JSP hardcodes for the openstreetmap service
+    return "https://tile.openstreetmap.org";
+  }
+
+  /**
+   * The scheme, host and any explicit port of a tile url, without the path, or null when the url
+   * does not begin with one.
+   *
+   * <p>
+   * Read with a pattern rather than {@code URI.create}, which rejects the string outright: a
+   * Leaflet tile template carries {@code {z}/{x}/{y}} placeholders, and braces are not legal URI
+   * characters. The port is kept because an origin without it does not match the request.
+   * </p>
+   */
+  static String originOf(String url) {
+    if (url == null) {
+      return null;
+    }
+    Matcher matcher = ORIGIN_PATTERN.matcher(url.trim());
+    if (!matcher.find()) {
+      LOG.warn("Could not read an origin from maps.custom.tileserver.url");
+      return null;
+    }
+    return matcher.group(1);
   }
 
   /** Returns the url when it is a well-formed tile url template, otherwise null */

@@ -151,6 +151,12 @@ public class DatabaseCommand {
           return false;
         }
       }
+      // Both paths above can complete successfully and still leave an object uncreated: a change
+      // whose upgrade migration is at or below this database's install baseline, and whose install
+      // migration was added after this database was installed, runs on neither track and reports
+      // nothing (issue #1753). Report it here rather than letting it surface months later as a
+      // feature that quietly returns no results, which is how issue #1745 was eventually found.
+      SchemaIntegrityCommand.logMissingObjects();
       return true;
     } finally {
       // Release lock on success or failure

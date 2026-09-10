@@ -88,6 +88,13 @@ public class RobotsServlet extends HttpServlet {
     sb.append("Disallow: /admin/\n");
     sb.append("Disallow: /action/\n");
     sb.append("Disallow: /admin\n");
+    // /json/* is the AJAX service namespace declared in WEB-INF/json-services/json-services.xml --
+    // widget backends like /json/emailSubscribe and /json/lookupUser, not content. Left crawlable
+    // they are a one-way ratchet: each returns 200 with a JSON fragment rather than a 404, so a
+    // crawler that finds one keeps it in the crawl queue indefinitely, and every fetch mints a new
+    // session (JSESSIONID + visitorToken), inflating visitor counts. WebPageHitRepository already
+    // excludes "/json%" from page-hit analytics for the same reason -- this closes the crawl side.
+    sb.append("Disallow: /json/\n");
 
     // AI crawler opt-outs (configurable via site properties). Each vendor runs separate,
     // independently-controllable crawlers for training versus real-time citation/retrieval --

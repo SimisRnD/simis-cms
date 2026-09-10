@@ -632,6 +632,65 @@ class WebPageHitRepositoryTest {
     }
   }
 
+  // --- non-page paths must not appear in reports that RANK pages (issue #1725 follow-up) ---
+  //
+  // findTopPaths already excluded these and had tests for it; the engagement rankings and the
+  // avg-time report did not, so /web-content/images/favicon.png was the top row of "High Traffic,
+  // Low Engagement" with a 77-second average -- a meaningless number for an icon the browser
+  // fetches by itself, on every page load.
+
+  /** Interleaves hits so LEAD() produces a next-hit delta for both paths, and clears the
+   *  MIN_HITS_FOR_ENGAGEMENT_RANKING floor of 5. */
+  private static void seedInterleavedHits(String assetPath, String realPath, String sessionId) {
+    long start = System.currentTimeMillis() - (60L * 60 * 1000);
+    for (int i = 0; i < 8; i++) {
+      seedHit(assetPath, sessionId, new Timestamp(start + (i * 120_000L)));
+      seedHit(realPath, sessionId, new Timestamp(start + (i * 120_000L) + 60_000L));
+    }
+  }
+
+  @Test
+  void highTrafficLowEngagementExcludesAssetPaths() {
+    seedSession("real-session", false);
+    seedInterleavedHits("/web-content/images/favicon.png", "/contact-us", "real-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10);
+
+    assertTrue(results.stream().noneMatch(r -> r.getLabel().startsWith("/web-content/")),
+        "a favicon is not a page and must not be ranked as one");
+    assertTrue(results.stream().anyMatch(r -> "/contact-us".equals(r.getLabel())),
+        "real pages must still be ranked");
+  }
+
+  @Test
+  void lowTrafficHighEngagementExcludesAssetPaths() {
+    // Shares findTrafficEngagementRanking with the report above, so it would have had the same
+    // defect -- and the inverse ordering makes an asset even likelier to surface.
+    seedSession("real-session", false);
+    seedInterleavedHits("/web-content/images/apple-touch-icon.png", "/about-us", "real-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10);
+
+    assertTrue(results.stream().noneMatch(r -> r.getLabel().startsWith("/web-content/")));
+    assertTrue(results.stream().anyMatch(r -> "/about-us".equals(r.getLabel())));
+  }
+
+  @Test
+  void avgTimeOnPageExcludesAssetAndAdminPaths() {
+    // This one ranks BY average time, so an asset with a long gap after it sorts straight to the
+    // top -- the worst place for a value that means nothing.
+    seedSession("real-session", false);
+    seedInterleavedHits("/web-content/images/favicon.png", "/news", "real-session");
+    seedHit("/admin/users", "real-session", new Timestamp(System.currentTimeMillis() - 30_000L));
+    seedHit("/news", "real-session", new Timestamp(System.currentTimeMillis() - 20_000L));
+
+    List<StatisticsData> results = WebPageHitRepository.findAvgTimeOnPageByPath(30, 10);
+
+    assertTrue(results.stream().noneMatch(r -> r.getLabel().startsWith("/web-content/")));
+    assertTrue(results.stream().noneMatch(r -> r.getLabel().startsWith("/admin")));
+    assertTrue(results.stream().anyMatch(r -> "/news".equals(r.getLabel())));
+  }
+
   private static void seedHit(String pagePath, String sessionId, Timestamp hitDate) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {

@@ -20,8 +20,8 @@
 <jsp:useBean id="webhookSubscription" class="com.simisinc.platform.domain.model.webhooks.WebhookSubscription" scope="request"/>
 <jsp:useBean id="eventTypeList" class="java.util.ArrayList" scope="request"/>
 <c:choose>
-  <c:when test="${webhookSubscription.id eq -1}"><h4>New Webhook Subscription</h4></c:when>
-  <c:otherwise><h4>Edit Webhook Subscription</h4></c:otherwise>
+  <c:when test="${webhookSubscription.id eq -1}"><h2 class="h4">New Webhook Subscription</h2></c:when>
+  <c:otherwise><h2 class="h4">Edit Webhook Subscription</h2></c:otherwise>
 </c:choose>
 <%@include file="../page_messages.jspf" %>
 

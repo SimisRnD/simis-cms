@@ -98,6 +98,7 @@ public class BlogRepository {
         .add("blog_unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
+        .add("feed_title", StringUtils.trimToNull(record.getFeedTitle()))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
         .add("enabled", record.getEnabled())
@@ -115,6 +116,7 @@ public class BlogRepository {
         .add("blog_unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
+        .add("feed_title", StringUtils.trimToNull(record.getFeedTitle()))
         .add("enabled", record.getEnabled())
         .add("mailing_list_id", record.getMailingListId(), -1)
         .add("modified_by", record.getModifiedBy())
@@ -160,6 +162,7 @@ public class BlogRepository {
       record.setUniqueId(rs.getString("blog_unique_id"));
       record.setName(rs.getString("name"));
       record.setDescription(rs.getString("description"));
+      record.setFeedTitle(rs.getString("feed_title"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));

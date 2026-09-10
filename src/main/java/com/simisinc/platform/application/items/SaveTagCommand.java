@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.items.Tag;
 import com.simisinc.platform.infrastructure.persistence.items.TagRepository;
@@ -32,6 +33,9 @@ import com.simisinc.platform.infrastructure.persistence.items.TagRepository;
  */
 public class SaveTagCommand {
 
+  // @column tags.name
+  private static final int MAX_NAME_LENGTH = 255;
+
   private static Log LOG = LogFactory.getLog(SaveTagCommand.class);
 
   public static Tag saveTag(Tag tagBean) throws DataException {
@@ -42,6 +46,11 @@ public class SaveTagCommand {
     }
     if (StringUtils.isBlank(tagBean.getName())) {
       throw new DataException("A name is required, please check the fields and try again");
+    }
+    // This command reports the first problem and stops, rather than accumulating into a
+    // StringBuilder the way the folder and wiki commands do, so the length check throws in kind
+    if (FieldLengthCommand.exceedsLimit(tagBean.getName(), MAX_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A name", MAX_NAME_LENGTH));
     }
     if (tagBean.getCreatedBy() == -1) {
       throw new DataException("The user creating this tag was not set");

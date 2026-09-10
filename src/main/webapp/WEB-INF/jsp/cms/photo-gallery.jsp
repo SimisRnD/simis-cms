@@ -13,7 +13,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -56,12 +55,12 @@
   }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <div class="platform-content"<c:if test="${isSticky eq 'true'}"> data-sticky-container</c:if>>
   <div<c:if test="${isSticky eq 'true'}"> class="sticky" data-sticky data-anchor="sticky-gallery" data-margin-top="<c:out value="${marginTop}"/>"</c:if>>
     <div class="slider-header text-center" id="slider-header${controlId}">
-      <h4><c:out value="${subFolder.name}" /></h4>
+      <h3 class="h4"><c:out value="${subFolder.name}" /></h3>
     </div>
     <div id="swiper${widgetContext.uniqueId}" class="swiper">
       <div id="photo-gallery" class="swiper-wrapper">

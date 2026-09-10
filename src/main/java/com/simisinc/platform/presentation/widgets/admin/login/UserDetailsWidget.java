@@ -23,6 +23,8 @@ import java.sql.Timestamp;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
@@ -41,7 +43,6 @@ import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRe
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.List;
@@ -88,7 +89,7 @@ public class UserDetailsWidget extends GenericWidget {
     // Password-age warning tier (#492): "warning" past the configurable threshold, "critical" at
     // 2x it (not separately configurable), "ok" otherwise. A never-tracked password (existing
     // account predating this column) is treated as maximally stale, not silently skipped.
-    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("security.password.maxAgeDays"));
     context.getRequest().setAttribute("passwordAgeSeverity", passwordAgeSeverity(user.getLastPasswordChangedAt(), maxAgeDays));
 
     // Maker-checker unsuspend (#492 Phase 3): an elevated-role account can't be reactivated by one
@@ -98,9 +99,42 @@ public class UserDetailsWidget extends GenericWidget {
     context.getRequest().setAttribute("pendingUnsuspendRequest", UnsuspendRequestRepository.findPendingByTargetUserId(user.getId()));
     context.getRequest().setAttribute("currentUserId", context.getUserId());
 
+    // #1836: whether a setup/reset link is currently outstanding for this account. Until now the
+    // page showed only "Not Validated", identically whether a live link existed or none did, so an
+    // admin had no way to tell "they never got a link" from "a link is sitting in their inbox" --
+    // and reissuing was the only way to find out, which destroys the outstanding link (see
+    // resetPassword below). buildRecord already loads both fields on every user load.
+    context.getRequest().setAttribute("accountLinkState", accountLinkState(user));
+
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  static final String LINK_NONE = "none";
+  static final String LINK_OUTSTANDING = "outstanding";
+  static final String LINK_EXPIRED = "expired";
+
+  /**
+   * Classify the account's outstanding validation/reset link for display (#1836).
+   *
+   * <p>Display only. Whether a token actually grants access is decided solely by
+   * {@link UserRepository#findByAccountToken(String)}, which enforces expiry in SQL against the
+   * database clock; this compares against the JVM clock, so around the expiry instant the two can
+   * disagree by the clock skew between them. That is acceptable for choosing a label and must not
+   * be relied on for an access decision.
+   *
+   * <p>A null expiry counts as outstanding, matching findByAccountToken's own "IS NULL" arm.
+   */
+  static String accountLinkState(User user) {
+    if (user == null || StringUtils.isBlank(user.getAccountToken())) {
+      return LINK_NONE;
+    }
+    Timestamp expires = user.getAccountTokenExpires();
+    if (expires != null && expires.getTime() <= System.currentTimeMillis()) {
+      return LINK_EXPIRED;
+    }
+    return LINK_OUTSTANDING;
   }
 
   private static String passwordAgeSeverity(Timestamp lastChanged, int maxAgeDays) {
@@ -131,21 +165,40 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
       context.setRedirect("/admin/user-details?userId=" + userId);
       return resetPassword(context, user);
+    }
+    if ("revealSetupLink".equals(action)) {
+      // Same step-up bar as Reset Password: this hands the admin a working credential for someone
+      // else's account. Kept OUT of action()'s dispatch table for the same reason resetPassword is,
+      // so a plain GET can never reveal a token.
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          renderDetailsPage(context, user);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          renderDetailsPage(context, user);
+          return context;
+        }
+      }
+      return revealSetupLink(context, user);
     }
     if ("resetMfa".equals(action)) {
       // Clearing another user's MFA enrollment requires step-up, same bar as Reset Password --
@@ -155,16 +208,14 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
@@ -179,16 +230,14 @@ public class UserDetailsWidget extends GenericWidget {
       if (!StepUpAuthCommand.isValid(context.getUserSession())) {
         if (StringUtils.isBlank(stepUpCredential)) {
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
         User actingUser = LoadUserCommand.loadUser(context.getUserId());
         if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
           context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
           context.addSharedRequestValue("stepUpRequired", "true");
-          context.getRequest().setAttribute("user", user);
-          context.setJsp(JSP);
+          renderDetailsPage(context, user);
           return context;
         }
       }
@@ -233,10 +282,41 @@ public class UserDetailsWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * Re-render the details page from a POST branch (the step-up re-authentication prompts).
+   *
+   * <p>These paths never run {@link #execute(WidgetContext)}, so every attribute the JSP reads has
+   * to be set here as well. #1836's accountLinkState in particular: the JSP declares it via
+   * jsp:useBean, so an unset attribute becomes an empty string rather than null, and the Setup Link
+   * row would render and report a link as outstanding on an account that has none.
+   */
+  private void renderDetailsPage(WidgetContext context, User user) {
+    context.getRequest().setAttribute("user", user);
+    context.getRequest().setAttribute("accountLinkState", accountLinkState(user));
+    context.setJsp(JSP);
+  }
+
   private WidgetContext resetPassword(WidgetContext context, User user) {
+    // Not one that outranks the acting admin -- see targetOutranksActor(). Step-up re-authentication
+    // above proves who the acting admin is, not which accounts they may act on, so without this the
+    // one action on this page still missing the guard let a community-manager (or a users:manage
+    // capability-only grantee with no legacy role) reissue an admin account's setup link -- silently
+    // invalidating any link that admin was already using, since createAccountToken overwrites the
+    // single account_token column (#1836) -- while suspend, restore, delete and reset MFA all refuse
+    // that same target.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reset the password for an account with a higher role level than your own");
+      return context;
+    }
     // Capture the target before the token replaces the reference
     String targetId = String.valueOf(user.getId());
     String targetLabel = user.getEmail();
+    // #1836: read the outstanding link's state BEFORE minting a new one. createAccountToken
+    // overwrites the single account_token column, so issuing a new link silently stops the
+    // previously emailed one from resolving. Admins were told only "instructions have been sent"
+    // and reasonably kept resending to help someone mid-click, destroying the very link that
+    // person was using.
+    boolean replacedLiveLink = LINK_OUTSTANDING.equals(accountLinkState(user));
     // Create an account token and send email
     user = UserRepository.createAccountToken(user);
 
@@ -245,10 +325,67 @@ public class UserDetailsWidget extends GenericWidget {
         user != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         "user", targetId, targetLabel, null);
 
+    // The token write did not take (see UserRepository#createAccountToken returning null), so there is
+    // no token to email -- report the failure the audit record just captured instead of dereferencing
+    // the null reference below. Uses targetLabel, captured before the call, for the address.
+    if (user == null) {
+      context.setErrorMessage("The password could not be reset for: " + targetLabel);
+      return context;
+    }
+
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
 
-    context.setSuccessMessage("Password reset instructions have been sent to: " + user.getEmail());
+    String successMessage = "Password reset instructions have been sent to: " + user.getEmail();
+    if (replacedLiveLink) {
+      successMessage += ". Any link sent to them earlier has stopped working -- they must use this newest email";
+    }
+    context.setSuccessMessage(successMessage);
+    return context;
+  }
+
+  /**
+   * Show the admin the account's outstanding setup link so it can be delivered out of band (#1836
+   * follow-up).
+   *
+   * <p>Exists because email is not always a usable channel -- a network that answers for the site
+   * with something other than this deployment, a mailbox nobody can reach, a link mangled in
+   * transit. Without this the only recovery was to reissue, which replaces the outstanding token and
+   * so breaks the link the person may be part-way through using.
+   *
+   * <p>Deliberately NOT rendered on page load. It is a live credential: anyone holding it can set
+   * this account's password, so it is revealed only by an explicit action, behind a fresh step-up,
+   * and the reveal is audited. It is never redirected to, never logged, and never placed in a query
+   * string, so it stays out of access logs and browser history.
+   */
+  private WidgetContext revealSetupLink(WidgetContext context, User user) {
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reveal the setup link for an account with a higher role level than your own");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    if (!LINK_OUTSTANDING.equals(accountLinkState(user))) {
+      // Nothing usable to hand over: no token, or one that has already lapsed. Say so rather than
+      // composing a URL that would only produce the "no longer valid" page.
+      context.setWarningMessage("There is no working setup link for this account. Use Reset Password to send a new one.");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
+    if (StringUtils.isBlank(siteUrl)) {
+      context.setErrorMessage("The site URL is not configured, so a setup link cannot be built");
+      renderDetailsPage(context, user);
+      return context;
+    }
+    // Composed exactly as EmailTask does, so what is copied here and what was emailed cannot drift.
+    String setupLink = StringUtils.removeEnd(siteUrl.trim(), "/")
+        + "/validate-account/" + UrlCommand.encodeUri(user.getAccountToken());
+
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.setup_link.revealed",
+        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), null);
+
+    context.getRequest().setAttribute("setupLink", setupLink);
+    renderDetailsPage(context, user);
     return context;
   }
 
@@ -294,10 +431,20 @@ public class UserDetailsWidget extends GenericWidget {
     }
     String reason = context.getParameter("reason");
     User result = UserRepository.suspendAccount(user, reason);
-    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
-        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), reason);
-    context.setSuccessMessage("Account suspended");
+    // Reflect the actual DB-write outcome rather than assuming success, matching deleteAccount()'s
+    // if/else pattern. UserRepository.suspendAccount() returns null when its update does not take
+    // (it logs "suspendAccount failed!"); the audit line already recorded that as FAILURE, but the
+    // success message was set unconditionally, so the admin read "Account suspended" for an account
+    // that is still enabled.
+    if (result != null) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setSuccessMessage("Account suspended");
+    } else {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+          AuditEventCommand.FAILURE, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+      context.setErrorMessage("The account could not be suspended");
+    }
     return context;
   }
 
@@ -388,8 +535,9 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   /**
-   * True when the target account's highest role level exceeds the acting user's highest role level --
-   * mirrors UserFormWidget's role-grant escalation guard so a lower-privileged admin (e.g.
+   * True when the target account's highest role level exceeds the acting user's highest role level.
+   * The rule itself lives in {@link RoleLevelCommand}; this wrapper adapts it to the WidgetContext
+   * the actions on this page already hold. A lower-privileged admin (e.g.
    * community-manager, level 90, who reaches this page via admin-layout.xml's
    * role="admin,community-manager") cannot suspend, restore, or delete an account that outranks them
    * (e.g. admin, level 100). Both /admin/users and /admin/user-details are open to community-manager
@@ -402,36 +550,7 @@ public class UserDetailsWidget extends GenericWidget {
    * reach an account the single-account suspendAccount()/resetMfa() below would refuse to touch.
    */
   public static boolean targetOutranksActor(WidgetContext context, User user) {
-    List<Role> allRoles = RoleRepository.findAll();
-    int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
-    int targetLevel = highestRoleLevel(user.getRoleList());
-    return targetLevel > actingLevel;
-  }
-
-  private static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
-    int max = 0;
-    if (userSession == null || allRoles == null) {
-      return max;
-    }
-    for (Role role : allRoles) {
-      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
-  }
-
-  private static int highestRoleLevel(List<Role> roleList) {
-    int max = 0;
-    if (roleList == null) {
-      return max;
-    }
-    for (Role role : roleList) {
-      if (role.getLevel() > max) {
-        max = role.getLevel();
-      }
-    }
-    return max;
+    return RoleLevelCommand.targetOutranksActor(context.getUserSession(), user);
   }
 
   private WidgetContext deleteAccount(WidgetContext context, User user) {
@@ -469,6 +588,15 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   private WidgetContext unlockAccount(WidgetContext context, User user) {
+    // Not an account that outranks the acting admin -- see targetOutranksActor(). The lockout is a
+    // security control on the target account, so clearing it is a state change on that account like
+    // suspend/restore/delete above, not a favour to its owner: without this guard a community-manager
+    // (or a users:manage capability-only grantee with no legacy role) could repeatedly clear the
+    // brute-force lockout protecting an admin account and keep guessing its password.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot unlock an account with a higher role level than your own");
+      return context;
+    }
     // Clear the failed-attempt counter and lockout timestamp so the user can sign in again (#295, AC-7).
     // The clear is idempotent, so the outcome is recorded as a success even if the lock had just expired.
     UserRepository.resetLockout(user.getId());

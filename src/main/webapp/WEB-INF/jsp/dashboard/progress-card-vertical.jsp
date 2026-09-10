@@ -25,7 +25,7 @@
 <jsp:useBean id="progressColor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="remainderColor" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <script src="${ctx}/javascript/chartjs-4.4.1/chart.umd.min.js"></script>
@@ -53,7 +53,7 @@
   }
 </style>
 <div class="grid-y align-middle text-middle">
-  <div class="small-4 cell padding-width-30" style="position:relative">
+  <div class="small-4 cell padding-width-30 platform-progress-chart">
     <canvas id="myChart-${widgetContext.uniqueId}"></canvas>
     <c:if test="${progressCard.maxValue > 0}">
       <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}"><fmt:formatNumber value="${100 * (progressCard.progress / progressCard.maxValue)}" />%</p>

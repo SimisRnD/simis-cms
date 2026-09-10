@@ -15,6 +15,7 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
@@ -22,7 +23,7 @@
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <jsp:useBean id="reusabilityWarning" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa <c:out value="${icon}"/>"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa <c:out value="${icon}"/>"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <div class="platform-content-container"<c:if test="${showEditor eq 'true' && !empty uniqueId}"> data-simis-content-id="${uniqueId}"</c:if>>
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
@@ -65,7 +66,7 @@
           <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Return this content to the author?">REJECT</a>
         </c:when>
       </c:choose>
-      <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Edit this content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>
@@ -84,4 +85,29 @@
       <div class="platform-content"<c:if test="${pageEditMode eq 'true' && !empty uniqueId}"> data-editor-content="<c:out value="${uniqueId}"/>" data-content-unique-id="<c:out value="${uniqueId}"/>" data-widget-id="<c:out value="${widgetContext.uniqueId}"/>" data-page-uri="<c:out value="${widgetContext.uri}"/>"</c:if>>${contentHtml}</div>
     </c:otherwise>
   </c:choose>
+  <%-- "Last updated", opt-in per widget (showLastUpdated). Two sources, because two timestamps
+       move independently: a content record's own modified date when this widget is rendering that
+       record, and the page's modified date when it is rendering inline html from the page XML --
+       which is what actually changes when that inline html is edited. contentModified is set only
+       when the record's html is the html on screen, so preferring it here cannot report the wrong
+       one; if neither exists the line is omitted rather than guessed at.
+
+       Deliberately NOT a jsp:useBean: contentModified is a Timestamp, and declaring it as a String
+       is the cast landmine that has bitten this codebase before. An absolute date, not a relative
+       one -- this exists for pages where a reader needs to know whether the information is current,
+       and "3 weeks ago" answers that worse than a date does. --%>
+  <c:if test="${showLastUpdated eq 'true' and (not empty contentModified or not empty webPage.modified)}">
+    <p class="platform-content-last-updated">
+      <small>Last updated
+        <c:choose>
+          <c:when test="${not empty contentModified}">
+            <fmt:formatDate pattern="MMMM d, yyyy" value="${contentModified}" />
+          </c:when>
+          <c:otherwise>
+            <fmt:formatDate pattern="MMMM d, yyyy" value="${webPage.modified}" />
+          </c:otherwise>
+        </c:choose>
+      </small>
+    </p>
+  </c:if>
 </div>

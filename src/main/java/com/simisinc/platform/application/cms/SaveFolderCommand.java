@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +32,10 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveFolderCommand {
 
+  // @column folders.name
+  private static final int MAX_NAME_LENGTH = 255;
+
+
   private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
   private static Log LOG = LogFactory.getLog(SaveFolderCommand.class);
 
@@ -40,6 +45,9 @@ public class SaveFolderCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(folderBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name",
+          folderBean.getName(), MAX_NAME_LENGTH);
     }
 
     if (folderBean.getCreatedBy() == -1) {

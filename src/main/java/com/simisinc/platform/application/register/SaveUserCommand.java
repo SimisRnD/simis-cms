@@ -26,7 +26,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 
@@ -37,6 +39,21 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
  * @created 4/8/18 9:36 PM
  */
 public class SaveUserCommand {
+
+  // These are the narrowest human-typed columns reached from an admin form: 100 characters is well
+  // within what someone can put in a name or job title, particularly when pasting (issue #1740).
+  // This command throws on the first problem rather than accumulating, so these follow that shape.
+  // @column users.first_name
+  private static final int MAX_FIRST_NAME_LENGTH = 100;
+  // @column users.last_name
+  private static final int MAX_LAST_NAME_LENGTH = 100;
+  // @column users.title
+  private static final int MAX_TITLE_LENGTH = 100;
+  // @column users.organization
+  private static final int MAX_ORGANIZATION_LENGTH = 100;
+  // @column users.email
+  private static final int MAX_EMAIL_LENGTH = 255;
+
 
   private static Log LOG = LogFactory.getLog(SaveUserCommand.class);
 
@@ -53,6 +70,21 @@ public class SaveUserCommand {
         StringUtils.isBlank(userBean.getLastName()) ||
         StringUtils.isBlank(userBean.getEmail())) {
       throw new DataException("Please check the fields and try again");
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getFirstName(), MAX_FIRST_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A first name", MAX_FIRST_NAME_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getLastName(), MAX_LAST_NAME_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A last name", MAX_LAST_NAME_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getTitle(), MAX_TITLE_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("A title", MAX_TITLE_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getOrganization(), MAX_ORGANIZATION_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("An organization", MAX_ORGANIZATION_LENGTH));
+    }
+    if (FieldLengthCommand.exceedsLimit(userBean.getEmail(), MAX_EMAIL_LENGTH)) {
+      throw new DataException(FieldLengthCommand.tooLongMessage("An email address", MAX_EMAIL_LENGTH));
     }
 
     if (!userBean.getEmail().equals(userBean.getUsername())) {
@@ -90,6 +122,35 @@ public class SaveUserCommand {
           if (user.hasRole("admin") && !userBean.hasRole("admin")) {
             LOG.debug("prevented removing the Admin role");
             throw new DataException("You cannot remove the Admin role from your own account");
+          }
+        }
+        // An editor may not repoint the identity of an account that outranks them. Unlike the other
+        // profile fields below, email and username are the account's credentials-adjacent identity:
+        // username is what AuthenticateLoginCommand resolves a sign-in against, and email is where
+        // every password-reset link is delivered -- including the public /forgot-password flow, which
+        // asks nothing about who is requesting it. Repointing an admin's email and then using that
+        // public flow is a complete account takeover that no admin-side reset guard can observe, so
+        // this has to be refused at the write rather than at any one reset path.
+        //
+        // Scoped deliberately to a *change* of those two fields: an unrelated save re-submits the
+        // stored values unchanged and must still succeed, so a lower-ranked editor can go on
+        // correcting a name, title or department on such a record.
+        if (userMakingChange != null
+            && RoleLevelCommand.highestRoleLevel(user.getRoleList()) > RoleLevelCommand.highestRoleLevel(userMakingChange.getRoleList())) {
+          int actorLevel = RoleLevelCommand.highestRoleLevel(userMakingChange.getRoleList());
+          int targetLevel = RoleLevelCommand.highestRoleLevel(user.getRoleList());
+          if (!StringUtils.equalsIgnoreCase(user.getEmail(), userBean.getEmail())) {
+            LOG.warn("Blocked identity change: user " + userMakingChange.getId() + " (level " + actorLevel
+                + ") attempted to change the email of user " + user.getId() + " (level " + targetLevel + ")");
+            throw new DataException(
+                "You cannot change the email address of an account with a higher role level than your own");
+          }
+          if (StringUtils.isNotBlank(userBean.getUsername())
+              && !StringUtils.equalsIgnoreCase(user.getUsername(), userBean.getUsername())) {
+            LOG.warn("Blocked identity change: user " + userMakingChange.getId() + " (level " + actorLevel
+                + ") attempted to change the username of user " + user.getId() + " (level " + targetLevel + ")");
+            throw new DataException(
+                "You cannot change the username of an account with a higher role level than your own");
           }
         }
       }

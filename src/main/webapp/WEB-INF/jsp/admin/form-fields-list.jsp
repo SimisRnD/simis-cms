@@ -23,15 +23,15 @@
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
-<p class="help-text">
+<p class="help-text page-help">
   Drag the <i class="fa fa-arrows"></i> handle to reorder fields, click <i class="${font:fas()} fa-edit"></i> to edit
   a field, or <i class="fa fa-circle-xmark"></i> to remove it. Reordering is staged in the browser
   only, as you drag -- nothing is saved until you click <strong>Save Field Order</strong> below;
   navigating away first discards it. There's no limit on how many fields a form can have.
 </p>
-<p class="help-text">
+<p class="help-text page-help">
   Deleting a field is permanent and immediate (no separate save step) -- but it only affects the
   field definition itself, not anything already submitted through it. Every past submission stores
   its own independent snapshot of each field's label, name, type, and answer at the moment it was
@@ -61,12 +61,28 @@
         </div>
         <div>
           <i class="fa fa-arrows form-field-drag-handle" title="Drag to reorder"></i>
-          <strong><c:out value="${field.label}"/></strong><c:if test="${field.required}"> <span class="required">*</span></c:if>
+          <%-- The name links to the same editor as the pencil. Those icons are absolutely
+               positioned at the far right of the row, so on a wide screen they sit a long way from
+               the field they act on and read as decoration -- the field's own name is where someone
+               looking to change it clicks first. --%>
+          <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}&fieldId=${field.id}"
+             title="Edit this field"><strong><c:out value="${field.label}"/></strong></a><c:if test="${field.required}"> <span class="required">*</span></c:if>
         </div>
         <div>
           <small class="subheader">
             <c:out value="${field.name}"/> &middot; <c:out value="${field.type}"/>
             <c:if test="${!empty field.placeholder}"> &middot; placeholder: "<c:out value="${field.placeholder}"/>"</c:if>
+            <%-- The other editable property the row never mentioned. It is not cosmetic: form.jsp
+                 uses it as a field's initial value, and preselects a dropdown option with it, so a
+                 default silently decides what a visitor sees before they touch anything. --%>
+            <c:if test="${!empty field.defaultValue}"> &middot; default: "<c:out value="${field.defaultValue}"/>"</c:if>
+            <%-- A select's choices are the thing an editor most often comes here to change, and the
+                 row said nothing about them -- so the list read as fixed and the only way to find
+                 out otherwise was to open a field on the off-chance. Listed rather than counted:
+                 seeing the current choices is what tells you whether this is the field you want. --%>
+            <c:if test="${!empty field.listOfOptions}"> &middot; options:
+              <c:forEach items="${field.listOfOptions}" var="option" varStatus="optionStatus"><c:out
+                  value="${option.value}"/><c:if test="${!optionStatus.last}">, </c:if></c:forEach></c:if>
           </small>
         </div>
       </div>

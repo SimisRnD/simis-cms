@@ -144,7 +144,7 @@
     </section>
   </page>
 
-  <page name="/validate-account" title="Validate Account">
+  <page name="/validate-account{/confirmation}" title="Validate Account">
     <section class="align-center">
       <column class="small-12 medium-6 cell">
         <widget name="content" class="show-for-medium">

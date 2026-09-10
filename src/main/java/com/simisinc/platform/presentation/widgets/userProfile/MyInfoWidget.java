@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.userProfile;
 
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -41,8 +42,17 @@ public class MyInfoWidget extends GenericWidget {
     context.getRequest().setAttribute("showName", context.getPreferences().getOrDefault("showName", "true"));
     context.getRequest().setAttribute("showNickname", context.getPreferences().getOrDefault("showNickname", "false"));
     context.getRequest().setAttribute("showJoinDate", context.getPreferences().getOrDefault("showJoinDate", "true"));
+    // Off by default: every existing site keeps the widget it already has
+    String showLastSeen = context.getPreferences().getOrDefault("showLastSeen", "false");
+    context.getRequest().setAttribute("showLastSeen", showLastSeen);
 
     context.getRequest().setAttribute("user", context.getUserSession().getUser());
+    if ("true".equals(showLastSeen)) {
+      // Their previous visit, not this one -- see UserLoginRepository.queryPreviousActivity for why
+      // the newest row is the wrong answer here
+      context.getRequest().setAttribute("lastSeen",
+          UserLoginRepository.queryPreviousActivity(context.getUserId(), context.getUserSession().getSessionId()));
+    }
     context.setJsp(JSP);
     return context;
   }

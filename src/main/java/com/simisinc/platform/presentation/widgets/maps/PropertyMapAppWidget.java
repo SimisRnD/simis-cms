@@ -52,7 +52,7 @@ public class PropertyMapAppWidget extends GenericWidget {
     // Check preferences
     // Rendered unescaped by property-map-app.jsp; a page-XML preference like introHtml/footerHtml
     context.getRequest().setAttribute("titleHtml",
-        HtmlCommand.cleanContent(context.getPreferences().getOrDefault("titleHtml", null)));
+        HtmlCommand.cleanStoredContent(context.getPreferences().getOrDefault("titleHtml", null)));
     String city = context.getPreferences().getOrDefault("city", null);
 
     // Determine the mapping service

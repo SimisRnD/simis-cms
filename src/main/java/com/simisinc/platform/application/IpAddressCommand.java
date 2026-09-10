@@ -18,6 +18,8 @@ package com.simisinc.platform.application;
 
 import java.net.InetAddress;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,6 +39,34 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 public class IpAddressCommand {
 
   private static Log LOG = LogFactory.getLog(IpAddressCommand.class);
+
+  /**
+   * The address to store on a record that describes <em>an action</em> -- who subscribed, who ordered --
+   * as opposed to one that describes the session itself (issue #1782).
+   *
+   * <p>{@link com.simisinc.platform.presentation.controller.UserSession} takes its address once, in its
+   * constructor, and never refreshes it. {@code web.xml} sets a 60 minute <em>idle</em> timeout, so an
+   * active session is refreshed indefinitely and an address captured at 9am is still attached to whatever
+   * that session does at 5pm. Visitors change address inside one session routinely -- wifi to cellular, a
+   * VPN toggling, carrier reassignment -- and a link scanner or proxy can create the session from somewhere
+   * the person never was.
+   *
+   * <p>Deliberately the same shape as {@code AuditEventCommand}: seed from the session, then prefer the
+   * live request. That is why the audit log has always recorded the right address while the mailing-list
+   * row beside it did not.
+   *
+   * <p>Takes the session's address as a plain string rather than a {@code UserSession} so this stays in
+   * the application layer without reaching up into the presentation one.
+   *
+   * @param request           the request being handled, or null when there is none
+   * @param sessionIpAddress  the session's own address, used only when the request has none
+   */
+  public static String forAction(HttpServletRequest request, String sessionIpAddress) {
+    if (request != null && StringUtils.isNotBlank(request.getRemoteAddr())) {
+      return request.getRemoteAddr();
+    }
+    return sessionIpAddress;
+  }
 
   /**
    * Returns the value anonymized when the {@code analytics.anonymizeIp} site property is enabled, otherwise

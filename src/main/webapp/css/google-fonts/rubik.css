@@ -3,6 +3,7 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 300;
+  font-display: swap;
   src: url('../../fonts/rubik/rubik-v8-latin-300.eot'); /* IE9 Compat Modes */
   src: local('Rubik Light'), local('Rubik-Light'),
   url('../../fonts/rubik/rubik-v8-latin-300.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
@@ -16,6 +17,7 @@
   font-family: 'Rubik';
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: url('../../fonts/rubik/rubik-v8-latin-regular.eot'); /* IE9 Compat Modes */
   src: local('Rubik'), local('Rubik-Regular'),
   url('../../fonts/rubik/rubik-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */

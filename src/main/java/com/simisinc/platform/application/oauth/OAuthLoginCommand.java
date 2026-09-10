@@ -19,6 +19,7 @@ package com.simisinc.platform.application.oauth;
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.OAuthToken;
@@ -131,6 +132,9 @@ public class OAuthLoginCommand {
     request.getSession().setAttribute(SessionConstants.USER, userSession);
     SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
         user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "oauth");
+    // An external identity provider can establish this session too; the same account still
+    // warrants the same alert
+    BreakGlassAlertCommand.recordLogin(user, ipAddress, userSession.getSessionId(), "oauth");
     LOG.debug("User has been signed in.");
   }
 }

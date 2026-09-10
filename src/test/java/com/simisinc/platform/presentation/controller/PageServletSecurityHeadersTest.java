@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CspPolicyCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
@@ -143,6 +145,12 @@ class PageServletSecurityHeadersTest {
         "img-src must allow the YouTube poster host or the video widget loses its thumbnail: " + actualCsp);
     assertTrue(actualCsp.contains("https://i.vimeocdn.com"),
         "img-src must allow the Vimeo thumbnail host set by video.jsp's oEmbed call: " + actualCsp);
+    // WeatherWidget renders the National Weather Service's forecast icons as <img> straight from
+    // api.weather.gov. Without the host the widget half-works -- temperatures render, every icon
+    // becomes a broken placeholder -- and nothing errors where a developer would look, because
+    // only a browser enforces CSP. curl fetches the icon happily. Issue #1805.
+    assertTrue(actualCsp.contains("https://api.weather.gov"),
+        "img-src must allow the NWS icon host or the weather widget loses every icon: " + actualCsp);
     // Deliberately still absent: img-src cannot be set until published content stops referencing
     // external images, and default-src must come after it or the video/careers iframes break.
     assertTrue(!actualCsp.contains("default-src"),
@@ -151,6 +159,76 @@ class PageServletSecurityHeadersTest {
     // and stop rendering. If a future change adds default-src, frame-src must come with it.
     assertTrue(!actualCsp.contains("default-src") || actualCsp.contains("frame-src"),
         "default-src must not be introduced without frame-src: " + actualCsp);
+  }
+
+  @Test
+  void serviceSendsTheReportOnlyHeaderWhenACandidatePolicyIsConfigured() throws Exception {
+    // The gap this covers: CspPolicyCommand and its tests existed, the report receiver existed,
+    // the admin view existed -- and nothing called reportOnlyPolicy() from the request path, so
+    // setting the property changed nothing. Testing the builder in isolation could not see that.
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(CspPolicyCommand.REPORT_ONLY_PROPERTY))
+          .thenReturn("default-src 'self'; connect-src 'self'; script-src 'self' 'nonce-{nonce}'");
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    ArgumentCaptor<String> reportOnly = ArgumentCaptor.forClass(String.class);
+    verify(response, times(1)).setHeader(eq("Content-Security-Policy-Report-Only"), reportOnly.capture());
+    String policy = reportOnly.getValue();
+    assertTrue(policy.contains("connect-src 'self'"), "the configured candidate must reach the browser: " + policy);
+    assertTrue(policy.contains("'nonce-") && !policy.contains("{nonce}"),
+        "the nonce placeholder must be substituted, or a candidate carrying script-src reports on itself: " + policy);
+    // Without a destination the browser evaluates the policy and reports to nobody, which looks
+    // exactly like a policy that found nothing wrong
+    assertTrue(policy.contains("report-uri") && policy.contains("report-to"), "both reporting directives: " + policy);
+    verify(response, times(1)).setHeader(eq("Reporting-Endpoints"), anyString());
+  }
+
+  @Test
+  void serviceSendsNoReportOnlyHeaderWhenNoCandidateIsConfigured() throws Exception {
+    // Blank is how it ships, and blank must mean no header at all rather than an empty one
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    verify(response, never()).setHeader(eq("Content-Security-Policy-Report-Only"), anyString());
+    verify(response, never()).setHeader(eq("Reporting-Endpoints"), anyString());
   }
 
   @Test
@@ -180,5 +258,81 @@ class PageServletSecurityHeadersTest {
     ArgumentCaptor<String> referrerPolicyValues = ArgumentCaptor.forClass(String.class);
     verify(response, times(1)).setHeader(eq("Referrer-Policy"), referrerPolicyValues.capture());
     assertEquals("strict-origin-when-cross-origin", referrerPolicyValues.getValue());
+  }
+
+  /** Runs service() with the standard scaffold, optionally with system.ssl configured. */
+  private void serviceWithSsl(HttpServletResponse response, String systemSsl) throws Exception {
+    HttpServletRequest request = mockRequest(mockSession());
+    Page pageRef = unrestrictedShowPage();
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      // Stubbed after the catch-all so this one wins for the key HSTS is gated on.
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.ssl")).thenReturn(systemSsl);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+  }
+
+  /**
+   * The headers set unconditionally at the top of service(). They were emitted but never asserted,
+   * so deleting any one of them broke nothing that anyone would notice: no test failed, and the
+   * absence of a header is invisible in a browser unless you go looking.
+   */
+  @Test
+  void serviceSendsTheBaselineSecurityHeadersOnEveryResponse() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, null);
+
+    verify(response, times(1)).setHeader("X-Frame-Options", "SAMEORIGIN");
+    verify(response, times(1)).setHeader("X-Content-Type-Options", "nosniff");
+    verify(response, times(1)).setHeader("X-XSS-Protection", "0");
+    verify(response, times(1))
+        .setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    verify(response, times(1)).setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  }
+
+  /**
+   * The value matters more than the presence. "1; mode=block" enables a legacy auditor that has
+   * itself leaked cross-origin information, so sending it is worse than sending nothing; "0" turns
+   * it off and leaves XSS defence to the nonce-based CSP. Pinned separately from the baseline
+   * assertion above so that reinstating the harmful value fails loudly rather than merely changing
+   * a string someone might "fix" back.
+   */
+  @Test
+  void serviceNeverSendsTheHarmfulLegacyXssAuditorValue() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, null);
+
+    verify(response, never()).setHeader("X-XSS-Protection", "1; mode=block");
+    verify(response, never()).setHeader(eq("X-XSS-Protection"), eq("1"));
+  }
+
+  // The HSTS tests that were here now live in WebRequestFilterTest, because the header moved to
+  // WebRequestFilter. Setting it in this servlet reached only the pages the servlet renders, which
+  // left every redirect the filter generates -- and every static file -- without it. Both
+  // directions are still pinned there (sent when system.ssl is true, withheld when it is not),
+  // since the failure modes are opposite and both are bad: a missing header on an HTTPS site loses
+  // the protection, and a header sent from a site that cannot serve HTTPS makes browsers refuse it
+  // for a full year.
+  //
+  // This servlet must NOT set it as well. Two places setting the same header is how they drift.
+  @Test
+  void serviceLeavesHstsToTheFilterRatherThanSettingItItself() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    serviceWithSsl(response, "true");
+
+    verify(response, never()).setHeader(eq("Strict-Transport-Security"), anyString());
   }
 }

@@ -144,6 +144,22 @@ public class UserRepository {
         UserRepository::buildRecord);
   }
 
+  /**
+   * The user holding a still-valid account token, or null.
+   *
+   * <p>A row with no expiry is no longer accepted. The predicate used to read
+   * {@code account_token_expires IS NULL OR account_token_expires > NOW()}, which was correct only
+   * while rows written before UPGRADE_20260904.1400 still had no expiry -- that arm is what made
+   * pre-migration tokens valid forever, which is the defect the expiry work set out to close. The
+   * backfill dated every outstanding token and cleared the leftovers on already-validated accounts,
+   * so nothing legitimate relies on the arm any more and keeping it would leave the original hole
+   * open to any row that reached this state afterwards.
+   *
+   * <p>Failing closed matters more than the tidiness: a token with no expiry is a credential with no
+   * lifetime, and treating one as valid is the more dangerous of the two possible mistakes. An
+   * account whose link is refused this way is not stuck -- the admin screen shows the link state and
+   * can issue a new one (#1838, #1841).
+   */
   public static User findByAccountToken(String token) {
     if (StringUtils.isBlank(token)) {
       return null;
@@ -152,7 +168,27 @@ public class UserRepository {
         TABLE_NAME,
         new SqlUtils()
             .add("account_token = ?", token)
-            .add("(account_token_expires IS NULL OR account_token_expires > NOW())"),
+            .add("account_token_expires > NOW()"),
+        UserRepository::buildRecord);
+  }
+
+  /**
+   * Look up a user by account token WITHOUT the expiry predicate (#1836).
+   *
+   * <p>Strictly for telling a visitor <em>why</em> their link failed: a token that exists but has
+   * lapsed produces a different, actionable message than one that is simply unknown. Access is
+   * granted only by {@link #findByAccountToken(String)}, which keeps the expiry check in SQL.
+   * Never substitute this for that check -- doing so would honour expired tokens.
+   */
+  public static User findExpiredByAccountToken(String token) {
+    if (StringUtils.isBlank(token)) {
+      return null;
+    }
+    return (User) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils()
+            .add("account_token = ?", token)
+            .add("(account_token_expires IS NULL OR account_token_expires <= NOW())"),
         UserRepository::buildRecord);
   }
 
@@ -262,6 +298,15 @@ public class UserRepository {
     return records;
   }
 
+  /**
+   * How many accounts are marked break-glass. Used by the user form to warn before the last one is
+   * cleared: with none left, an MFA enforcement policy naming a role every administrator holds can
+   * strand all of them, which is the situation a break-glass account exists to prevent.
+   */
+  public static long countBreakGlassAccounts() {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("break_glass = ?", true));
+  }
+
   public static long countLockedAccounts() {
     return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("locked_until > ?", new Timestamp(System.currentTimeMillis())));
   }
@@ -359,8 +404,25 @@ public class UserRepository {
     return add(record);
   }
 
+  /**
+   * How long a newly created account's activation link stays usable.
+   *
+   * <p>Longer than {@link #RESET_TOKEN_MILLIS} on purpose, and the difference is the point. A
+   * password reset is requested and used minutes later, so a short window costs nothing. An
+   * invitation is sent TO someone on someone else's schedule -- invited on a Friday, opened on a
+   * Monday -- and a 24-hour window there mostly produces dead links and reissue requests.
+   */
+  static final long ACTIVATION_TOKEN_MILLIS = 7L * 24 * 60 * 60 * 1000;
+
+  /** How long a password-reset or unsuspend link stays usable. */
+  static final long RESET_TOKEN_MILLIS = 24L * 60 * 60 * 1000;
+
   public static User add(User record) {
+    // The token and its expiry are set together, deliberately: this insert used to write a token
+    // with no expiry, and findByAccountToken treats a missing expiry as valid indefinitely, so an
+    // activation link issued here never stopped working. Every path that mints a token now dates it.
     record.setAccountToken(UUID.randomUUID().toString());
+    record.setAccountTokenExpires(new Timestamp(System.currentTimeMillis() + ACTIVATION_TOKEN_MILLIS));
     if (record.getEmail() != null) {
       record.setEmail(record.getEmail().trim().toLowerCase());
     }
@@ -385,6 +447,7 @@ public class UserRepository {
         .add("password", record.getPassword())
         .add("enabled", true)
         .add("account_token", record.getAccountToken())
+        .add("account_token_expires", record.getAccountTokenExpires())
         .addIfExists("created", record.getCreated())
         .add("created_by", record.getCreatedBy(), -1);
     if (record.hasGeoPoint()) {
@@ -489,6 +552,25 @@ public class UserRepository {
     return null;
   }
 
+  /**
+   * Marks (or unmarks) an account as break-glass. Set by the installer for the account it creates;
+   * see V71120__create_admin, MfaEnforcementCommand and BreakGlassAlertCommand for what the flag
+   * changes.
+   */
+  public static User updateBreakGlass(User record, boolean breakGlass) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("break_glass", breakGlass)
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      record.setBreakGlass(breakGlass);
+      return record;
+    }
+    LOG.error("updateBreakGlass failed!");
+    return null;
+  }
+
   public static User updatePassword(User record) {
     SqlUtils updateValues = new SqlUtils()
         .add("password", record.getPassword())
@@ -539,8 +621,9 @@ public class UserRepository {
   private static final int DEFAULT_PASSWORD_MAX_AGE_DAYS = 90;
 
   /**
-   * Parses the configurable password.maxAgeDays site property, falling back to the default on a
-   * blank or unparseable value -- mirrors AuditLogRepository.resolveRetentionDays's shape (#492).
+   * Parses the configurable security.password.maxAgeDays site property, falling back to the
+   * default on a blank or unparseable value -- mirrors AuditLogRepository.resolveRetentionDays's
+   * shape (#492).
    */
   public static int resolvePasswordMaxAgeDays(String value) {
     if (StringUtils.isBlank(value)) {
@@ -556,7 +639,7 @@ public class UserRepository {
 
   public static User createAccountToken(User record) {
     String newToken = UUID.randomUUID().toString();
-    Timestamp expires = new Timestamp(System.currentTimeMillis() + 86_400_000L); // 24 hours
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + RESET_TOKEN_MILLIS);
     SqlUtils updateValues = new SqlUtils()
         .add("account_token", newToken)
         .add("account_token_expires", expires)
@@ -740,6 +823,7 @@ public class UserRepository {
     record.setLatitude(rs.getDouble("latitude"));
     record.setLongitude(rs.getDouble("longitude"));
     record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
+    record.setBreakGlass(rs.getBoolean("break_glass"));
     record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
     record.setLockedUntil(rs.getTimestamp("locked_until"));
     record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));

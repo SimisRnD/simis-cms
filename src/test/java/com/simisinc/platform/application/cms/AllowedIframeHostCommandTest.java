@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -41,6 +43,42 @@ class AllowedIframeHostCommandTest {
         .thenReturn(allowedHosts);
     m.when(() -> LoadSitePropertyCommand.loadByName("bi.metabase.enabled")).thenReturn("false");
     return m;
+  }
+
+  /** A site with a captcha provider selected, and the allowlist property empty. */
+  private MockedStatic<LoadSitePropertyCommand> siteWithCaptcha(String service, String googleSiteKey) {
+    MockedStatic<LoadSitePropertyCommand> m = siteWith("");
+    m.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(service);
+    m.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(googleSiteKey);
+    return m;
+  }
+
+  @Test
+  void googlesHostIsAllowedWhenRecaptchaIsConfigured() {
+    // Without this the CSP refuses the reCAPTCHA widget, no token is produced, and the form's
+    // submit button silently does nothing -- the failure this branch exists to prevent.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("google", "6LcSomeSiteKey")) {
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
+  }
+
+  @Test
+  void cloudflaresHostIsAllowedWhenTurnstileIsSelected() {
+    // Turnstile wins on the service name alone, matching CaptchaCommand: a Turnstile-only install
+    // has no reason to have a Google site key set.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("turnstile", null)) {
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://challenges.cloudflare.com/turnstile/v0/api.js"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
+  }
+
+  @Test
+  void noVendorHostIsAllowedWhenTheBuiltInCaptchaIsInUse() {
+    // A service named but no site key falls through to the built-in text captcha, which draws no
+    // iframe. Allowing a vendor host here would widen frame-src for a feature that is not in use.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWithCaptcha("google", "")) {
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://www.google.com/recaptcha/api2/anchor"));
+    }
   }
 
   @Test
@@ -171,7 +209,7 @@ class AllowedIframeHostCommandTest {
   void theCspSourceListStartsWithSelfAndNamesEveryHostAsHttps() {
     try (MockedStatic<LoadSitePropertyCommand> m = siteWith("app.vendor.example.com")) {
       assertEquals(
-          "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://app.vendor.example.com",
+          "'self' https://www.youtube-nocookie.com https://youtube-nocookie.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://app.vendor.example.com",
           AllowedIframeHostCommand.cspFrameSourceList());
     }
   }
@@ -180,7 +218,7 @@ class AllowedIframeHostCommandTest {
   void theCspSourceListHasNoDuplicatesWhenAPlatformHostIsAlsoConfigured() {
     // A duplicate would not break the header, but it is a sign the set logic stopped working.
     try (MockedStatic<LoadSitePropertyCommand> m = siteWith("player.vimeo.com")) {
-      assertEquals("'self' https://www.youtube-nocookie.com https://player.vimeo.com",
+      assertEquals("'self' https://www.youtube-nocookie.com https://youtube-nocookie.com https://www.youtube.com https://youtube.com https://player.vimeo.com",
           AllowedIframeHostCommand.cspFrameSourceList());
     }
   }
@@ -190,6 +228,110 @@ class AllowedIframeHostCommandTest {
     try (MockedStatic<LoadSitePropertyCommand> m = siteWith(":::, app.vendor.example.com")) {
       assertTrue(AllowedIframeHostCommand.isAllowed("https://app.vendor.example.com/x"));
       assertFalse(AllowedIframeHostCommand.cspFrameSourceList().contains(":::"));
+    }
+  }
+
+  @Test
+  void youTubesOwnEmbedMarkupIsAllowed() {
+    // The regression this list was widened for. VideoWidget renders youtube-nocookie.com, but an
+    // author pasting YouTube's "Copy embed code" gets www.youtube.com/embed -- and three published
+    // news posts on the pilot carried exactly that, including the ?si= share parameter. Deriving the
+    // list from what the widget emits stripped real content on save and refused it at render.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand
+          .isAllowed("https://www.youtube.com/embed/LFx-b-njZs0?si=xSeHTMlObQxvqrP9"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://youtube.com/embed/8elFL8KThY0"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://www.youtube-nocookie.com/embed/qYIRapHuDvU"));
+      assertTrue(AllowedIframeHostCommand.isAllowed("https://youtube-nocookie.com/embed/qYIRapHuDvU"));
+    }
+  }
+
+  @Test
+  void wideningForYouTubeDidNotWidenToAnythingElse() {
+    // The list gained a vendor's other domains, not a general relaxation
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://youtube.com.evil.test/embed/x"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://notyoutube.com/embed/x"));
+      assertFalse(AllowedIframeHostCommand.isAllowed("https://evil.example.com/embed/x"));
+    }
+  }
+
+  @Test
+  void aCallerCanPassAListItAlreadyHas() {
+    // The overload HtmlCommand uses so a document with many embeds reads the property once
+    java.util.List<String> allowed = java.util.List.of("app.vendor.example.com");
+    assertTrue(AllowedIframeHostCommand.isAllowed("https://app.vendor.example.com/x", allowed));
+    assertFalse(AllowedIframeHostCommand.isAllowed("https://www.youtube.com/embed/x", allowed));
+    assertFalse(AllowedIframeHostCommand.isAllowed("https://a.example.com/x", null));
+  }
+
+  // ---- issue 1632: naming the refusal so an author can act on it ----
+
+  @Test
+  void aRefusedHostIsReportedSoTheAuthorCanSeeIt() {
+    // The point of this method. Both enforcement points are silent -- the save path deletes the
+    // element, frame-src blocks the load -- so the author sees an empty area and no reason for it.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<p>jobs</p><iframe src=\"https://simisinc.applytojob.com/apply\"></iframe>");
+      assertEquals(List.of("simisinc.applytojob.com"), refused);
+    }
+  }
+
+  @Test
+  void anAllowedHostIsNotReported() {
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("simisinc.applytojob.com")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://simisinc.applytojob.com/apply\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void aPlatformHostIsNotReported() {
+    // YouTube needs no property entry, so warning about it would be noise an author cannot fix.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://www.youtube.com/embed/abc123\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void contentWithNoIframeIsNotParsedAtAll() {
+    // Every page save runs this, and most pages have no embed.
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn("<p>plain content</p>").isEmpty());
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn(null).isEmpty());
+    assertTrue(AllowedIframeHostCommand.disallowedHostsIn("").isEmpty());
+  }
+
+  @Test
+  void eachRefusedHostIsNamedOnceHoweverManyEmbedsUseIt() {
+    // A page with eight embeds from one vendor should not produce an eight-item warning.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"https://a.example.com/1\"></iframe>"
+              + "<iframe src=\"https://a.example.com/2\"></iframe>"
+              + "<iframe src=\"https://b.example.com/3\"></iframe>");
+      assertEquals(List.of("a.example.com", "b.example.com"), refused);
+    }
+  }
+
+  @Test
+  void aRelativeSourceIsSameOriginAndNotReported() {
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      assertTrue(AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"/embedded/page\"></iframe>").isEmpty());
+    }
+  }
+
+  @Test
+  void anUnparseableSourceIsReportedAsItselfRatherThanSkipped() {
+    // Reporting nothing would tell the author their embed is fine when it will not render. The
+    // value reaches the page through <c:out>, so it is escaped there; here it is only abbreviated.
+    try (MockedStatic<LoadSitePropertyCommand> m = siteWith("")) {
+      List<String> refused = AllowedIframeHostCommand.disallowedHostsIn(
+          "<iframe src=\"javascript:alert(1)\"></iframe>");
+      assertEquals(1, refused.size());
+      assertTrue(refused.get(0).startsWith("javascript:"));
     }
   }
 }

@@ -25,6 +25,11 @@ the manifest from the current tree; run it after any deliberate re-vendoring and
 commit the result alongside the jar change, which makes every vendored-jar
 change show up in review as a hash diff.
 
+Exit codes: 0 = every vendored jar matches the manifest, 1 = a MISMATCH / MISSING /
+UNLISTED finding, 2 = bad usage, or the manifest or jar tree this check reads is
+absent or unreadable. The split matters: a missing manifest is not evidence about
+the jars, and must not be reported with the same exit code as a tampered one.
+
 The manifest uses the standard ``sha256sum`` format (hash, two spaces, path
 relative to the repository root, sorted), so ``sha256sum -c lib/PROVENANCE.sha256``
 works as an independent cross-check on any GNU system.
@@ -36,6 +41,17 @@ import sys
 from pathlib import Path
 
 MANIFEST = "lib/PROVENANCE.sha256"
+
+
+def fail(message: str) -> "NoReturn":
+    """Exit 2: this check could not find what it measures.
+
+    Distinct from exit 1 (a real finding) on purpose -- an integrity check that
+    cannot read its own manifest or find any jars has proved nothing, and must not
+    be able to wear the same exit code as a jar that failed verification.
+    """
+    print("error: " + message, file=sys.stderr)
+    sys.exit(2)
 
 
 def sha256_of(path: Path) -> str:
@@ -56,14 +72,14 @@ def read_manifest(root: Path) -> dict[str, str]:
     entries: dict[str, str] = {}
     manifest = root / MANIFEST
     if not manifest.exists():
-        sys.exit(f"ERROR: {MANIFEST} not found -- generate it with --write")
+        fail(f"{MANIFEST} not found -- generate it with --write")
     for n, line in enumerate(manifest.read_text().splitlines(), 1):
         if not line.strip():
             continue
         # sha256sum format: 64 hex chars, two spaces, path
         digest, sep, path = line.partition("  ")
         if not sep or len(digest) != 64:
-            sys.exit(f"ERROR: {MANIFEST}:{n}: malformed line: {line!r}")
+            fail(f"{MANIFEST}:{n}: malformed line: {line!r}")
         entries[path] = digest
     return entries
 
@@ -78,7 +94,7 @@ def main() -> int:
 
     tree = current_tree(root)
     if not tree:
-        sys.exit(f"ERROR: no jars found under {root}/lib -- wrong root?")
+        fail(f"no jars found under {root}/lib -- wrong root?")
 
     if args.write:
         lines = [f"{digest}  {path}" for path, digest in tree.items()]

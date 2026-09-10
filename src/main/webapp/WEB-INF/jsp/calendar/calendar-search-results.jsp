@@ -25,7 +25,7 @@
 <jsp:useBean id="activeFilters" class="java.util.ArrayList" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <c:if test="${!empty activeFilters}">
   <div class="margin-bottom-10">
@@ -99,10 +99,10 @@
         <div class="platform-calendar-event-block">
           <c:choose>
             <c:when test="${!empty calendarLink}">
-              <h4><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h4>
+              <h3><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h3>
             </c:when>
             <c:otherwise>
-              <h4><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h4>
+              <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h3>
             </c:otherwise>
           </c:choose>
           <c:set var="startDateTime" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" /></c:set>

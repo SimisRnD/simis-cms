@@ -116,9 +116,25 @@ public class LockManager {
   }
 
   public static boolean unlock(String name, String uuid) {
-    // Expire right away
+    // Expire right away -- but a full second in the past, not CURRENT_TIMESTAMP.
+    //
+    // lock_until is TIMESTAMP(3), and PostgreSQL ROUNDS to the column's precision on store rather
+    // than truncating. Writing CURRENT_TIMESTAMP therefore lands up to half a millisecond in the
+    // FUTURE: released at ...123.9004 is stored as ...124.000. lock() re-acquires only when
+    // CURRENT_TIMESTAMP >= lock_until, so a caller that releases and immediately re-locks is
+    // refused for the remainder of that rounding window, having just been told the release
+    // succeeded.
+    //
+    // That is issue 1625: LockManagerTest's round-trip failed on its re-lock, intermittently and
+    // only on CI, while the three assertions before it passed every time. It is the same
+    // JVM-versus-database precision family as the TIMESTAMP(3) flake in issue 1195.
+    //
+    // A second of margin is arbitrary but safe in the only direction that matters: lock_until is
+    // read solely by lock()'s conflict predicate above, where any past value means "available",
+    // and a released lock is available by definition. It also mirrors the 10-second margin lock()
+    // already subtracts for clock skew.
     SqlUtils updateValues = new SqlUtils()
-        .add(new SqlValue("lock_until", SqlValue.AS_IS, "CURRENT_TIMESTAMP"));
+        .add(new SqlValue("lock_until", SqlValue.AS_IS, "CURRENT_TIMESTAMP - INTERVAL '1 SECOND'"));
 
     SqlUtils where = new SqlUtils()
         .add("name = ?", name)

@@ -26,10 +26,10 @@
   <input type="hidden" name="id" value="${formDefinition.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
-  <p class="help-text">
+  <p class="help-text page-help">
     <strong>Name is admin-only</strong> -- it labels this form throughout the admin list and editor,
     and it's the text this form's internal id is generated from, but a visitor never sees it. Title
     and Subtitle are what actually appear on the public form itself. "Email submissions to" and
@@ -40,17 +40,17 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
       <label>Name <span class="required">*</span>
-        <input type="text" placeholder="e.g. Contact Us" name="name" value="<c:out value="${formDefinition.name}"/>" required>
+        <input type="text" placeholder="e.g. Contact Us" name="name" maxlength="255" value="<c:out value="${formDefinition.name}"/>" required>
       </label>
     </div>
     <div class="small-12 medium-6 cell">
       <label>Button Label
-        <input type="text" placeholder="Submit" name="buttonName" value="<c:out value="${formDefinition.buttonName}"/>">
+        <input type="text" placeholder="Submit" name="buttonName" maxlength="100" value="<c:out value="${formDefinition.buttonName}"/>">
       </label>
     </div>
   </div>
   <label>Title
-    <input type="text" placeholder="Heading shown above the form..." name="title" value="<c:out value="${formDefinition.title}"/>">
+    <input type="text" placeholder="Heading shown above the form..." name="title" maxlength="255" value="<c:out value="${formDefinition.title}"/>">
   </label>
   <label>Subtitle
     <input type="text" placeholder="Optional text shown under the title..." name="subtitle" value="<c:out value="${formDefinition.subtitle}"/>">
@@ -75,6 +75,18 @@
   <label>Success Message
     <input type="text" placeholder="Optional message shown after a successful submission..." name="successMessage" value="<c:out value="${formDefinition.successMessage}"/>">
   </label>
+  <label>Notification Email Subject
+    <input type="text" placeholder="Leave blank for: New Contact Us inquiry - Acme Defense (Sales)" name="notificationSubject" value="<c:out value="${formDefinition.notificationSubject}"/>">
+  </label>
+  <p class="help-text" style="margin-top:-8px">
+    The subject of the email sent to "Email submissions to" above. Leave it blank and every form
+    gets the same readable default -- <em>New &lt;form name&gt; inquiry - &lt;who it is from&gt;
+    (&lt;their dropdown choice&gt;)</em> -- which is usually what you want.
+    Set it to override that for this form. You can include an answer with
+    <code>{{fieldName}}</code>, using the field's Name (not its Label), e.g.
+    <code>RFI: {{organization}}</code>. Values a visitor typed are stripped of line breaks and
+    shortened before they reach the subject.
+  </p>
   <input id="sendConfirmationToSubmitter" type="checkbox" name="sendConfirmationToSubmitter" value="true" <c:if test="${formDefinition.sendConfirmationToSubmitter}">checked</c:if>/><label for="sendConfirmationToSubmitter">Send a confirmation email to the person who submitted this form?</label>
   <p class="help-text" style="margin-top:-8px">
     Only sent if the form has an "Email" type field and the visitor's answer to it is a valid

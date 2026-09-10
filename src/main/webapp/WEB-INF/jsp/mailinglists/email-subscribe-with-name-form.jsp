@@ -23,10 +23,49 @@
 <jsp:useBean id="countryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="email" class="com.simisinc.platform.domain.model.mailinglists.Email" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+<%-- enterprise.js for a key issued by Google's current console: those cannot be verified by
+     the legacy siteverify endpoint at all, so they take the Enterprise assessment API and its own
+     script family. The button markup below is identical either way -- Google's integration panel
+     prints the same data-sitekey/data-callback form for both. Issue 1615. --%>
+<c:choose>
+  <c:when test="${googleEnterprise eq 'true'}">
+    <script src='https://www.google.com/recaptcha/enterprise.js?render=<c:out value="${googleSiteKey}"/>' nonce="${cspNonce}"></script>
+  </c:when>
+  <c:otherwise>
+    <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  </c:otherwise>
+</c:choose>
 <script nonce="${cspNonce}">
+  // reCAPTCHA intercepts the button's click and prevents the native submit, so this callback is the
+  // only thing that submits the form. It used to call form.submit(), which dispatches no submit
+  // event and skips constraint validation, so the required fields below were never checked.
+  //
+  // requestSubmit() is the counterpart that does both: it runs constraint validation, and it
+  // dispatches submit so any listener still gets its say.
   function onSubmit(token) {
-    document.getElementById("form${widgetContext.uniqueId}").submit();
+    var form = document.getElementById("form${widgetContext.uniqueId}");
+    var proceeding = false;
+    // Registered last, so defaultPrevented already reflects any listener that cancelled.
+    form.addEventListener('submit', function (event) {
+      proceeding = !event.defaultPrevented;
+    }, { once: true });
+    if (form.requestSubmit) {
+      form.requestSubmit();
+    } else {
+      // Safari before 16 has no requestSubmit. Check explicitly rather than submitting blind;
+      // this is still stricter than the form.submit() it replaces.
+      if (form.checkValidity()) {
+        form.submit();
+        proceeding = true;
+      } else {
+        form.reportValidity();
+      }
+    }
+    // A reCAPTCHA token is single-use and expires after about two minutes, so a submit that did
+    // not go through would otherwise leave the visitor unable to retry without reloading.
+    if (!proceeding && window.grecaptcha) {
+      grecaptcha.reset();
+    }
   }
 </script>
 </c:if>
@@ -39,7 +78,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>

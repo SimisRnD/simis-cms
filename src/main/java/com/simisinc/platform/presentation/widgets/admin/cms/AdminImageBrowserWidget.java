@@ -319,6 +319,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
       return scanForDuplicatesAction(context);
     } else if ("generateMissingSizes".equals(command)) {
       return generateMissingSizesAction(context);
+    } else if ("regenerateVariantFormats".equals(command)) {
+      return regenerateVariantFormatsAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
     } else if ("setAltText".equals(command)) {
@@ -341,6 +343,26 @@ public class AdminImageBrowserWidget extends GenericWidget {
    * Variants are generated once at upload, so widening the ladder does nothing for the existing
    * library on its own.
    */
+  /**
+   * Re-encodes variants left in a format the generator no longer produces. Distinct from
+   * "Generate Missing Sizes", which selects images *missing* a rung -- these are not missing
+   * anything, so that action correctly reports there is nothing to do while the library keeps
+   * serving the old renditions. Idempotent: a re-click only queues whatever is still stale.
+   */
+  private WidgetContext regenerateVariantFormatsAction(WidgetContext context) {
+    int enqueued = RegenerateImageVariantsCommand.startFormatBackfill();
+    if (enqueued > 0) {
+      context.setSuccessMessage(enqueued + " image" + (enqueued == 1 ? "" : "s")
+          + " queued. Check the Job Queue for progress -- pages will start serving the smaller"
+          + " renditions as each finishes.");
+    } else {
+      context.setSuccessMessage("Every image's sizes are already in the current format."
+          + " Nothing to re-encode.");
+    }
+    context.setRedirect("/admin/images");
+    return context;
+  }
+
   private WidgetContext generateMissingSizesAction(WidgetContext context) {
     int enqueued = RegenerateImageVariantsCommand.startBackfill(
         GenerateImageVariantsCommand.SMALL, GenerateImageVariantsCommand.SMALL_MAX_DIMENSION);

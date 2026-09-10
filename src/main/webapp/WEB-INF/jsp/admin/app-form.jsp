@@ -26,14 +26,14 @@
   <input type="hidden" name="id" value="${app.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <c:if test="${app.id ne -1}">
     <label>Client ID
       <input type="text" class="no-gap" readonly value="<c:out value="${app.publicKey}"/>" aria-describedby="appClientIdHelpText" onclick="this.select();">
     </label>
-    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity -- most endpoints also require an authenticated user via Basic or Bearer auth on top of it. Not sensitive on its own; safe to share with anyone building against this app's API, or to embed directly in client-side scripts. There is deliberately no "Client Secret" shown anywhere for this App -- it isn't a credential to look for or rely on.</p>
+    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity. Not sensitive on its own; safe to share with anyone building against this app's API, or to embed directly in client-side scripts. Know what it does grant, though: while the site is online, a key alone is enough to make a <strong>read</strong> request as a guest -- writes require an authenticated user via Basic or Bearer auth on top of it. Guest reads see only what a guest could see by visiting the site, so restrict content by restricting the page it appears on. There is deliberately no "Client Secret" shown anywhere for this App -- it isn't a credential to look for or rely on.</p>
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
@@ -57,6 +57,6 @@
   </div>
 </form>
 <c:if test="${app.id ne -1}">
-  <p class="help-text">To permanently remove this App instead, use the Delete action on the <a href="${ctx}/admin/apps">Apps list</a>. Prefer Delete over Enabled=No once a leaked credential has been confirmed and you've verified nothing else still needs its audit history -- Delete cannot be undone.</p>
-  <p class="help-text"><strong>Best practice:</strong> after saving a Client ID to a new integration, confirm it's actually being used by checking the <strong>Devices</strong> count on the <a href="${ctx}/admin/apps">Apps list</a> once the integration has had a chance to make its first call -- a count that stays at zero usually means the key never made it into the client's configuration, rather than a problem on this end.</p>
+  <p class="help-text page-help">To permanently remove this App instead, use the Delete action on the <a href="${ctx}/admin/apps">Apps list</a>. Prefer Delete over Enabled=No once a leaked credential has been confirmed and you've verified nothing else still needs its audit history -- Delete cannot be undone.</p>
+  <p class="help-text page-help"><strong>Best practice:</strong> after saving a Client ID to a new integration, confirm it's actually being used by checking the <strong>Devices</strong> count on the <a href="${ctx}/admin/apps">Apps list</a> once the integration has had a chance to make its first call -- a count that stays at zero usually means the key never made it into the client's configuration, rather than a problem on this end.</p>
 </c:if>

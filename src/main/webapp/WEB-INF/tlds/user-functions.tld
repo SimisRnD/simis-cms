@@ -36,4 +36,12 @@
         <function-class>com.simisinc.platform.application.UserCommand</function-class>
         <function-signature>com.simisinc.platform.domain.model.User findById(java.lang.Long)</function-signature>
     </function>
+    <function>
+        <description>
+            Returns the Foundation label variant for a role badge, by privilege level
+        </description>
+        <name>roleTierClass</name>
+        <function-class>com.simisinc.platform.application.UserCommand</function-class>
+        <function-signature>java.lang.String roleTierClass(int)</function-signature>
+    </function>
 </taglib>

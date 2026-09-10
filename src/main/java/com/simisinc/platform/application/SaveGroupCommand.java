@@ -34,12 +34,20 @@ public class SaveGroupCommand {
 
   private static Log LOG = LogFactory.getLog(SaveGroupCommand.class);
 
+  // Issue #1740: 100 characters is a plausible descriptive group name, so this is the limit most
+  // reachable by ordinary use. Before this check an over-length name reached Postgres, which
+  // refused the write, and the admin was told the system had failed and to try again.
+  // @column groups.name
+  private static final int MAX_NAME_LENGTH = 100;
+
   public static Group saveGroup(Group groupBean) throws DataException {
 
     // Validate the required fields
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(groupBean.getName())) {
       errorMessages.append("A name is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, ", ", "A name", groupBean.getName(), MAX_NAME_LENGTH);
     }
 
     // Validate it's a unique name

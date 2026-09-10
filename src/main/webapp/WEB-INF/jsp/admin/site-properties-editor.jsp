@@ -104,7 +104,7 @@
   });
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%-- issue #1268: this JSP is shared by 18 different settings pages via the prefix preference --
      gate on the exact branding-related prefixes so this callout only appears on the 4 pages it's
@@ -148,6 +148,12 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
+                  <%-- Reveal control (issue #1673): a secret is pasted blind, and a correct paste
+                       and a wrong one look identical afterwards, because the field deliberately
+                       never renders what is stored. Safe by construction for the same reason --
+                       value="" always, so this can only ever show what was just typed, never the
+                       value already on the server. --%>
+                  <span class="secret-field">
                   <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"
                       <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if>
@@ -156,6 +162,10 @@
                       <c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}"> aria-describedby="socialInstagramAccessTokenHelpText"</c:if>
                       />
+                    <button type="button" class="secret-reveal-toggle" data-reveal-secret
+                            aria-pressed="false" aria-label="Show the value while typing"
+                            title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
+                  </span>
                   <%-- issue #454: optional expiry, so a credential that's known to expire (e.g. an
                        OAuth token) shows up on the /admin/integrations hub before it lapses --%>
                   <label class="no-gap"><small>Expires (optional)</small>
@@ -223,7 +233,7 @@
                 <option value="questrial"<c:if test="${siteProperty.value eq 'questrial'}"> selected</c:if>>Questrial</option>
                 <option value="rubik"<c:if test="${siteProperty.value eq 'rubik'}"> selected</c:if>>Rubik</option>
                 <option value="source-sans-pro"<c:if test="${siteProperty.value eq 'source-sans-pro'}"> selected</c:if>>Source Sans Pro</option>
-              </select> <a href="https://fonts.google.com" target="_blank" rel="noreferrer"><i class="fa fa-external-link-square"></i></a>
+              </select> <a aria-label="Browse Google Fonts (opens in a new tab)" href="https://fonts.google.com" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa fa-external-link-square"></i></a>
             </c:when>
             <c:when test="${siteProperty.type eq 'color'}">
               <input id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"
@@ -267,21 +277,43 @@
                 </div>
               </div>
             </c:when>
+            <c:when test="${siteProperty.type eq 'group'}">
+              <%-- Issue #1688. The stored value is a group's uniqueId, which is what
+                   UserSession.hasGroup matches on -- never the display name. --%>
+              <c:set var="groupValueFound" value="false" />
+              <c:forEach items="${groupList}" var="group">
+                <c:if test="${siteProperty.value eq group.uniqueId}"><c:set var="groupValueFound" value="true" /></c:if>
+              </c:forEach>
+              <select name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
+                <option value="">None &#8212; &quot;Internal&quot; stays a label only</option>
+                <c:forEach items="${groupList}" var="group">
+                  <option value="${html:toHtml(group.uniqueId)}"<c:if test="${siteProperty.value eq group.uniqueId}"> selected</c:if>><c:out value="${group.name}" /></option>
+                </c:forEach>
+                <%-- A stored value that matches no existing group still has to appear, and stay
+                     selected: without this the select falls back to the blank option and the next
+                     save silently clears the restriction without anyone choosing to. --%>
+                <c:if test="${not empty siteProperty.value and not groupValueFound}">
+                  <option value="${html:toHtml(siteProperty.value)}" selected><c:out value="${siteProperty.value}" /> (missing group)</option>
+                </c:if>
+              </select>
+            </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
                 <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
                     <c:if test="${siteProperty.value eq 'true'}"> checked</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'mail.starttls'}"> aria-describedby="mailStartTlsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'security.contentApi.enforcePageAccess'}"> aria-describedby="contentApiEnforceHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if>
-                    <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
-            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if>
@@ -334,10 +366,7 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if>
-                  <c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}"> aria-describedby="securityIframeAllowedHostsHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -464,6 +493,12 @@
           <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
             <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.threshold'}">
+            <p class="help-text" id="securityLockoutThresholdHelpText">How many consecutive failed logins lock the account itself, recorded on the user record and audited. Distinct from the per-username rate limit above: that one throttles attempts within a rolling window and forgets them as the window slides, while this one latches -- the account stays locked for the duration below no matter where the next attempt comes from, and only a successful login clears the count. Default is 5.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.lockout.durationMinutes'}">
+            <p class="help-text" id="securityLockoutDurationMinutesHelpText">How long a locked account stays locked, in minutes, after the threshold above is crossed. The lock expires on its own -- an administrator does not have to unlock the account -- so a long duration is the setting to raise during a brute-force wave, at the cost of locking real users out for that long after that many typos. Note the failed-attempt count is only cleared by a successful login, so once an expired lock lets someone back in, a single further failure re-locks the account. Default is 15 minutes.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}">
             <p class="help-text" id="securityIpRequestRateAlertThresholdHelpText">When the busiest single non-bot IP address exceeds this many page requests in an hour, the "Request Rate Spike" tile on the Site Analytics dashboard turns red. This is a passive dashboard indicator only -- nothing emails, texts, or otherwise pages anyone, so someone has to actually look at the dashboard to notice. Default is 300.</p>
           </c:if>
@@ -472,6 +507,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}">
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
+            <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
@@ -561,10 +599,14 @@
             <p class="help-text" id="siteImageHelpText">The default image shown when a page is shared on social media (Open Graph and Twitter Card), used on any page without its own. Enter a site-relative path (for example /images/share.png) rather than a full URL -- it's combined with the Site URL above to form the complete address.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.online'}">
-            <p class="help-text" id="siteOnlineHelpText">When off, anonymous visitors are blocked from viewing the site -- logged-in users, including admins, can still get in, so this is safe to use for maintenance without locking yourself out. The XML sitemap also stops generating while offline, independent of the Sitemap toggle below (both must be on for the sitemap to work).</p>
+            <p class="help-text" id="siteOnlineHelpText">When off, the site is closed to the public: the homepage is replaced by a "coming soon" splash and every other page redirects to it, so a web page, blog post, wiki page, or item reached by a direct URL is no longer readable by an anonymous visitor. The main nav menu is hidden, and guest (keyless) API access, /sitemap.xml, /llms.txt, and the RSS feed are all blocked. Admins and content managers -- plus anyone following a valid draft-preview link -- keep browsing the whole site normally, so this is safe to use for maintenance without locking yourself out; a signed-in member holding neither of those two roles is redirected like any other visitor. The guest-facing auth pages (/login, /register, /forgot-password) stay reachable so a guest can still sign in. The sitemap needs this and the Sitemap toggle below both on.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.api'}">
-            <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API.</p>
+            <%-- The second sentence is a live caveat, not background: see issue #1701. ContentService.get()
+                 applies no access check of any kind, and RestRequestFilter admits a GET on an app key alone
+                 while the site is online, so this toggle is the only thing standing between a key holder and
+                 any content record. Remove this wording when #1701 is fixed, not before. --%>
+            <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API. <strong>Before turning this on:</strong> the API can currently read a content record by its unique id without checking who is allowed to see the page that content appears on, and while the site is online that read needs only an app key, not a signed-in user. Content placed only on a page restricted by role or group is therefore readable by anyone holding a key -- and the key is designed to be shared. Leave this off until you need the API, and treat the API as public-readable when you do.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.sitemap.xml'}">
             <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
@@ -603,7 +645,7 @@
             <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Shows or hides the Login link in the site header. This only hides the link -- it doesn't disable the /login page itself, so a direct link still works for anyone who has it.</p>
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Blocking covers both the password sign-in form and the "Stay logged in" remember-me cookie, so a non-admin who ticked that box before you turned this off stops being signed back in automatically. It does not sign anyone out: a non-admin already browsing keeps their session until it times out on its own. Unlike "Allow registrations?", an OAuth/SSO login (if configured) is not gated by this setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.confirmation'}">
             <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
@@ -641,14 +683,20 @@
           <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
             <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown in the header and/or footer depending on their independent Logo color / Footer logo color settings on the <a href="${ctx}/admin/theme-properties">Theme Settings</a> page.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.contentApi.enforcePageAccess'}">
+            <p class="help-text" id="contentApiEnforceHelpText">Makes <code>GET /api/content/{uniqueId}</code> check who is asking: the caller must be able to open at least one web page that renders the content. <strong>Leave this on.</strong> With it off, any holder of an app key can read any content record by its unique id -- including content that only appears on a page restricted by role, group, or the <strong>Internal</strong> flag -- and an app key is designed to be shared. Turn it off only for a deployment whose existing integrations read content anonymously and that has accepted that exposure knowingly. Content on no page at all is always readable: there is no page whose access rules it could inherit.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.internalPages.group'}">
+            <p class="help-text" id="internalPagesGroupHelpText">Members of this group may view pages ticked <strong>Internal</strong> on the <a href="${ctx}/admin/web-pages">Web Pages</a> screen; everyone else gets "not found", and those pages drop out of search, the sitemap and the menus. Leave it blank and <strong>Internal</strong> stays a label that restricts nobody. Two limits worth knowing: content editors can always view internal pages, so this is not a way to keep something from them; and it protects the <em>page</em>, not the content itself, which stays readable through the content API.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'site.online'}">
-            <p class="help-text" id="siteOnlineHelpText">Turning this off swaps the homepage to a "coming soon" splash, hides the main nav menu, and blocks guest (keyless) API access and /sitemap.xml. It does not take other pages offline -- a web page, blog post, wiki page, or item reached by direct URL still renders normally for anonymous visitors while this is off.</p>
+          <c:if test="${siteProperty.name eq 'site.calendar.actionUrl'}">
+            <p class="help-text" id="siteCalendarActionUrlHelpText">Where the button at the bottom of an event page sends people -- normally whichever page lists your events. A page path (e.g. <code>/trade-shows</code>) keeps the visitor on this site; a full <code>https://</code> URL opens in a new tab instead. Leave it blank and no button is shown, which also leaves the event page with no link back to a listing.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'site.login'}">
-            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
+          <c:if test="${siteProperty.name eq 'site.calendar.actionLabel'}">
+            <p class="help-text" id="siteCalendarActionLabelHelpText">The wording on that button. Defaults to "View all events" when a link is set but this is left blank.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.header.page'}">
             <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page.</p>
@@ -671,13 +719,13 @@
     </tbody>
   </table>
   <c:if test="${prefix eq 'analytics'}">
-    <p class="help-text">The four privacy toggles above (Cookieless, Anonymize IP, Honor Do-Not-Track, Require consent) each control a different, independent slice of tracking -- turning one on doesn't turn on the others. Analytics service and the keys below it are unaffected by any of them and load whenever they're set.</p>
+    <p class="help-text page-help">The four privacy toggles above (Cookieless, Anonymize IP, Honor Do-Not-Track, Require consent) each control a different, independent slice of tracking -- turning one on doesn't turn on the others. Analytics service and the keys below it are unaffected by any of them and load whenever they're set.</p>
   </c:if>
   <c:if test="${prefix eq 'social'}">
-    <p class="help-text">The Social Profile Links list above (Facebook, Instagram, etc.) controls the footer icon row. Everything on this page below is unrelated contact info and the separate Instagram feed-embed integration, not more platform links.</p>
+    <p class="help-text page-help">The Social Profile Links list above (Facebook, Instagram, etc.) controls the footer icon row. Everything on this page below is unrelated contact info and the separate Instagram feed-embed integration, not more platform links.</p>
   </c:if>
   <c:if test="${prefix eq 'captcha'}">
-    <p class="help-text">Google reCAPTCHA v2 or Cloudflare Turnstile -- whichever is chosen above as the Captcha service -- protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
+    <p class="help-text page-help">Google reCAPTCHA v2 or Cloudflare Turnstile -- whichever is chosen above as the Captcha service -- protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
   </c:if>
   <c:if test="${prefix eq 'robots'}">
@@ -708,22 +756,22 @@
     </div>
   </c:if>
   <c:if test="${prefix eq 'security'}">
-    <p class="help-text">This page has two unrelated groups of settings: the four rate-limit fields above throttle repeated automated attempts (spam form submissions, login brute-forcing); the three alert-threshold fields below tune two passive indicator tiles ("Request Rate Spike" and "Geo Anomaly") on the Site Analytics dashboard. Neither group sends an email, text, or any other push notification -- someone has to open the dashboard to see them. For a hard block on a specific address, use the IP Allow/Block List page instead of tightening these numbers.</p>
-    <p class="help-text">A rate-limit change applies to new attempts right away, but an IP address or username that's already being watched keeps its old limit until it stops making attempts for 30 minutes straight -- which won't happen while an attack is still in progress. If you're mid-incident and need the new, stricter limit to apply immediately, restarting the app is the reliable way to do that (it clears the in-memory tracking for everyone, not just the attacker).</p>
-    <p class="help-text">Running on Azure App Service: rate-limit tracking lives in each instance's own memory, not a shared store, so scaling the App Service Plan out to N instances effectively multiplies these limits by N (a request round-robins to whichever instance is free, and each one counts independently). If you scale out and need a hard cap regardless of instance count, put a rate-limiting rule in front of the app (e.g. Azure Front Door or Application Gateway/WAF) rather than relying on these settings alone.</p>
+    <p class="help-text page-help">This page has two unrelated groups of settings: the four rate-limit fields above throttle repeated automated attempts (spam form submissions, login brute-forcing); the three alert-threshold fields below tune two passive indicator tiles ("Request Rate Spike" and "Geo Anomaly") on the Site Analytics dashboard. Neither group sends an email, text, or any other push notification -- someone has to open the dashboard to see them. For a hard block on a specific address, use the IP Allow/Block List page instead of tightening these numbers.</p>
+    <p class="help-text page-help">A rate-limit change applies to new attempts right away, but an IP address or username that's already being watched keeps its old limit until it stops making attempts for 30 minutes straight -- which won't happen while an attack is still in progress. If you're mid-incident and need the new, stricter limit to apply immediately, restarting the app is the reliable way to do that (it clears the in-memory tracking for everyone, not just the attacker).</p>
+    <p class="help-text page-help">Running on Azure App Service: rate-limit tracking lives in each instance's own memory, not a shared store, so scaling the App Service Plan out to N instances effectively multiplies these limits by N (a request round-robins to whichever instance is free, and each one counts independently). If you scale out and need a hard cap regardless of instance count, put a rate-limiting rule in front of the app (e.g. Azure Front Door or Application Gateway/WAF) rather than relying on these settings alone.</p>
   </c:if>
   <c:if test="${prefix eq 'features'}">
-    <p class="help-text">Feature flags are on/off switches for specific pieces of functionality, stored here as plain settings so a feature can be turned on or off without a code deployment -- useful for a staged rollout, or for turning something off quickly if it misbehaves. Each toggle below has its own description of exactly what it controls, since "feature flag" alone doesn't say what a given one does. Running on Azure App Service: a toggle takes effect immediately on the instance you saved it from, and within about a minute on any other instance if the App Service Plan is scaled out.</p>
+    <p class="help-text page-help">Feature flags are on/off switches for specific pieces of functionality, stored here as plain settings so a feature can be turned on or off without a code deployment -- useful for a staged rollout, or for turning something off quickly if it misbehaves. Each toggle below has its own description of exactly what it controls, since "feature flag" alone doesn't say what a given one does. Running on Azure App Service: a toggle takes effect immediately on the instance you saved it from, and within about a minute on any other instance if the App Service Plan is scaled out.</p>
   </c:if>
   <c:if test="${prefix eq 'bi'}">
-    <p class="help-text">This page configures embedded BI dashboards from Superset and Metabase -- separately hosted analytics tools this site links to, not something installed or run by this application. There's a third option, Power BI, that isn't configured here at all: a Power BI report published with "Publish to web" is embedded by placing its URL directly in a page's layout XML (see the <code>powerBi</code> widget), with no site property or admin form involved.</p>
-    <p class="help-text">Best practice: use a dedicated service account for the Superset username/password above, not a personal login, and rotate the Metabase embedding secret if you ever suspect it's been exposed -- anyone holding it can view any dashboard published for embedding. Since Power BI's "Publish to web" reports are public to anyone with the link (no login, no row-level security), never publish anything confidential that way.</p>
+    <p class="help-text page-help">This page configures embedded BI dashboards from Superset and Metabase -- separately hosted analytics tools this site links to, not something installed or run by this application. There's a third option, Power BI, that isn't configured here at all: a Power BI report published with "Publish to web" is embedded by placing its URL directly in a page's layout XML (see the <code>powerBi</code> widget), with no site property or admin form involved.</p>
+    <p class="help-text page-help">Best practice: use a dedicated service account for the Superset username/password above, not a personal login, and rotate the Metabase embedding secret if you ever suspect it's been exposed -- anyone holding it can view any dashboard published for embedding. Since Power BI's "Publish to web" reports are public to anyone with the link (no login, no row-level security), never publish anything confidential that way.</p>
   </c:if>
   <c:if test="${prefix eq 'mail'}">
-    <p class="help-text">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>
+    <p class="help-text page-help">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>
   </c:if>
   <c:if test="${prefix eq 'mailing-list'}">
-    <p class="help-text">Save the API Key and Audience/List Id above first, then use Test Connection to confirm they're valid without leaving this page.</p>
+    <p class="help-text page-help">Save the API Key and Audience/List Id above first, then use Test Connection to confirm they're valid without leaving this page.</p>
     <c:if test="${!empty mailChimpTestResult}">
       <p class="callout radius ${mailChimpTestResult.success ? 'success' : 'alert'}" style="margin-top: -0.5rem;">
         <c:choose>
@@ -736,15 +784,15 @@
     <p><button type="submit" name="action" value="testMailChimpConnection" formnovalidate class="button radius secondary">Test Connection</button></p>
   </c:if>
   <c:if test="${prefix eq 'elearning'}">
-    <p class="help-text">Connects this site to external learning platforms so course listings and calendar events can be pulled in automatically. Of the three integrations below, only Moodle has a real, working connection today -- LRS xAPI isn't wired to anything external yet, and PERLS has working client code but no live server left to connect to (each section's help text below explains why). The "Enable e-learning?" toggle above is a master switch: turning it off disables all three regardless of their own individual toggles.</p>
+    <p class="help-text page-help">Connects this site to external learning platforms so course listings and calendar events can be pulled in automatically. Of the three integrations below, only Moodle has a real, working connection today -- LRS xAPI isn't wired to anything external yet, and PERLS has working client code but no live server left to connect to (each section's help text below explains why). The "Enable e-learning?" toggle above is a master switch: turning it off disables all three regardless of their own individual toggles.</p>
   </c:if>
   <c:if test="${prefix eq 'site'}">
-    <p class="help-text">Header text and links have their own settings page (<a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a>); logo colors, fonts, and site-wide colors have their own (<a href="${ctx}/admin/theme-properties">Theme Settings</a>). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
-    <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Is API enabled?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
+    <p class="help-text page-help">Header text and links have their own settings page (<a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a>); logo colors, fonts, and site-wide colors have their own (<a href="${ctx}/admin/theme-properties">Theme Settings</a>). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
+    <p class="help-text page-help">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Is API enabled?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
   </c:if>
   <c:if test="${prefix eq 'theme'}">
-    <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu theme or Footer theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
-    <p class="help-text">The three System Alert colors below are the same values shown on the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page -- editing either page changes what the other shows.</p>
+    <p class="help-text page-help">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu theme or Footer theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
+    <p class="help-text page-help">The three System Alert colors below are the same values shown on the <a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a> page -- editing either page changes what the other shows.</p>
   </c:if>
   <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
     <div class="callout radius warning">
@@ -910,3 +958,5 @@
     document.getElementById('imageBrowserFrame').removeAttribute('src');
   });
 </script>
+<%-- The reveal toggle is handled by platform-password-reveal.js, shared with the auth forms.
+     The markup below is unchanged; only the handler moved. --%>

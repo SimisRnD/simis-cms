@@ -100,4 +100,52 @@ class FindMapTilesCredentialsCommandTest {
     assertNull(FindMapTilesCredentialsCommand.validatedTileServerUrl(null));
     assertNull(FindMapTilesCredentialsCommand.validatedTileServerUrl("   "));
   }
+
+  @Test
+  void theOpenStreetMapTileHostIsOfferedToTheContentSecurityPolicy() {
+    // Without this the map draws its controls, marker and popup over an empty grey square, and
+    // only a console violation says why.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.service.tiles")).thenReturn("openstreetmap");
+      assertEquals("https://tile.openstreetmap.org", FindMapTilesCredentialsCommand.cspImageSource());
+    }
+  }
+
+  @Test
+  void aCustomTileServerOffersItsOwnOriginRatherThanOpenStreetMaps() {
+    // A site pointing at its own tile server needs that host allowed, not this one's.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.service.tiles")).thenReturn("custom");
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.custom.tileserver.url"))
+          .thenReturn("https://tiles.example.com/{z}/{x}/{y}.png");
+      assertEquals("https://tiles.example.com", FindMapTilesCredentialsCommand.cspImageSource());
+    }
+  }
+
+  @Test
+  void anInvalidCustomUrlFallsBackToTheOpenStreetMapHost() {
+    // getCredentials already falls back to openstreetmap when the custom url is unusable; the
+    // policy has to follow it there, or the fallback map renders blank.
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.service.tiles")).thenReturn("custom");
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.custom.tileserver.url")).thenReturn("not a url");
+      assertEquals("https://tile.openstreetmap.org", FindMapTilesCredentialsCommand.cspImageSource());
+    }
+  }
+
+  @Test
+  void noTileServiceOffersNothingToThePolicy() {
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("maps.service.tiles")).thenReturn(null);
+      assertNull(FindMapTilesCredentialsCommand.cspImageSource());
+    }
+  }
+
+  @Test
+  void aTileServerOnANonDefaultPortKeepsThePortInTheOrigin() {
+    // An origin without the port would not match the request, and the map would still be blank.
+    assertEquals("https://tiles.example.com:8443",
+        FindMapTilesCredentialsCommand.originOf("https://tiles.example.com:8443/{z}/{x}/{y}.png"));
+  }
+
 }

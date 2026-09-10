@@ -32,13 +32,31 @@
   }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <small><c:out value="${webPage.link}" /></small>
 <c:if test="${empty webPage.pageXml}">
   <p class="subheader">Page layout does not exist! Choose a template or design the page yourself...</p>
 </c:if>
+<%-- Issue #1725: a widget can declare inline html AND reference a saved content record. The
+     record always wins, so that inline html is inert -- editing it here changes nothing on the
+     page. Nothing said so before, which made it look as though the editor was not saving. --%>
+<c:if test="${!empty overriddenInlineDefaults}">
+  <div class="callout warning radius">
+    <p style="margin-bottom:6px"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+      <strong>Some inline HTML below is not what visitors see.</strong></p>
+    <p style="margin-bottom:6px">These content blocks have saved content, which takes priority over
+      the <code>&lt;html&gt;</code> written into the layout. Editing that inline HTML here will not
+      change the page &mdash; edit the block on the page itself, or through Content.</p>
+    <ul style="margin-bottom:0">
+      <c:forEach items="${overriddenInlineDefaults}" var="overriddenUniqueId">
+        <li><code><c:out value="${overriddenUniqueId}"/></code></li>
+      </c:forEach>
+    </ul>
+  </div>
+</c:if>
+
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -69,21 +87,21 @@
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">
-        <h4>Keyboard</h4>
+        <h3 class="h4">Keyboard</h3>
         <dl>
           <dt>Delete Line</dt>
           <dd>CTRL+D / CMD+D</dd>
           <dt>Duplicate Line</dt>
           <dd>CTRL+SHIFT+D / CMD+SHIFT+D</dd>
         </dl>
-        <h4>Page</h4>
+        <h3 class="h4">Page</h3>
         <dl>
           <dd><strong>page</strong> class="full-page"</dd>
           <dd><strong>section</strong> id="" class="grid-x grid-margin-x platform-no-margin align-middle align-center" hr="true"</dd>
           <dd><strong>column</strong> id="" class="small-12 cell text-center callout radius round" hr="true"</dd>
           <dd><strong>widget</strong> id="" name="" hr="true"</dd>
         </dl>
-        <h4>Widgets</h4>
+        <h3 class="h4">Widgets</h3>
         <dl>
           <dt>content</dt>
           <dd>uniqueId, html</dd>

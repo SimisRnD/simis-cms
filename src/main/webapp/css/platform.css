@@ -4,9 +4,9 @@
 
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
+  font-size: var(--sc-font-base, 1rem);
+  font-weight: var(--sc-weight-regular, 400);
+  line-height: var(--sc-leading-relaxed, 1.5);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color:transparent;
 }
@@ -14,8 +14,8 @@ body {
 .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
   margin-bottom: .5rem;
-  font-weight: 500;
-  line-height: 1.2;
+  font-weight: var(--sc-weight-medium, 500);
+  line-height: var(--sc-leading-tight, 1.2);
 }
 
 .h1, h1 {
@@ -24,7 +24,7 @@ body {
 
 @media (min-width: 1200px) {
   .h1, h1 {
-    font-size:2.5rem;
+    font-size: var(--sc-font-3xl, 2.5rem);
   }
 }
 
@@ -34,7 +34,7 @@ body {
 
 @media (min-width: 1200px) {
   .h2, h2 {
-    font-size:2rem;
+    font-size: var(--sc-font-2xl, 2rem);
   }
 }
 
@@ -54,7 +54,130 @@ body {
 
 @media (min-width: 1200px) {
   .h4, h4 {
-    font-size:1.5rem;
+    font-size: var(--sc-font-xl, 1.5rem);
+  }
+}
+
+/* Widget titles (#1511).
+
+   A widget's configured title is a section heading on the page it appears on, so it renders as
+   an h2 for document structure -- it used to be h4 in all 213 JSPs, which meant an h1 -> h4 jump
+   on every page that had one (WCAG 1.3.1).
+
+   Its appearance is pinned here rather than left to h2's default, and that is the point: an h2
+   renders at 2rem, so taking the default would have resized every widget title on every page.
+   That is a design change, not the accessibility fix this is. These values are h4's, carried
+   over unchanged, so the markup moves and nothing on screen does.
+
+   Styling widget titles by class rather than by tag also means the next level change does not
+   silently orphan a stylesheet -- which has now happened twice (see #1502). */
+.widget-title {
+  font-size:calc(1.275rem + .3vw);
+}
+
+/* Admin console typography.
+
+   Foundation styles .help-text italic. That is reasonable for a one-line hint and wrong at the
+   volume these settings screens carry: /admin/site-properties alone renders ~4,775 characters of
+   it across 32 elements, and /admin/web-pages opens with ~1,700 before the table. Italic body
+   text at this length is measurably harder to read, and it is the single largest reason the
+   console reads as unfinished rather than considered. Upright, muted, with room to breathe.
+
+   Foundation's heading weight is 500, and .widget-title above sets only a size -- so page titles,
+   section labels and body copy all land within one weight step of each other and nothing reads as
+   a heading. 700 restores the hierarchy without touching sizes.
+
+   Scoped to body.admin-console so the public site, and the page-editing screens that deliberately
+   render in site chrome, are untouched. */
+/* Console chrome, sitting on the token retune.
+
+   The tokens gave the rail its navy; these are the parts that are geometry and depth rather
+   than colour, and they are what separates "the palette changed" from "this looks designed".
+
+   The header is the one that matters most. It is site chrome, not console chrome, so the admin
+   scoping deliberately leaves it alone -- which is how the warm-dark attempt ended up with a
+   warm console under a cool header and read as bolted-on. Restyling it here, and only under
+   body.admin-console, closes that seam without touching the public site, where the header keeps
+   whatever theme.header.* says.
+
+   The gradients are built from the chrome tokens rather than fresh literals, so the header can
+   never drift away from the rail it sits above. */
+/* nav .sticky, not .sticky. Foundation's Sticky plugin puts the class on ANY element it makes
+   sticky, and it adds it at runtime -- so it is not visible by reading the markup. Several admin
+   screens use a sticky side panel (the "Add a user group" form on /admin/groups is one), and the
+   broader selector painted the chrome gradient onto those panels while their text stayed the
+   light-mode ink. Dark on dark, unreadable. Only the header's sticky lives inside nav; the
+   content panels are inside main. */
+body.admin-console nav .sticky {
+  background: linear-gradient(180deg,
+    var(--sc-chrome-raised, #00292d) 0%,
+    var(--sc-chrome, #001416) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+body.admin-console .admin-menu {
+  background: linear-gradient(180deg,
+    var(--sc-chrome-raised, #00292d) 0%,
+    var(--sc-chrome, #001416) 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 13px in a rail this long is the readability complaint, not the contrast: the labels measured
+   7.95:1 before this and the difficulty was size and density. A point larger with room to
+   breathe, which costs nothing since the rail scrolls anyway. */
+body.admin-console .admin-menu nav a {
+  font-size: 0.875rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Tiles as objects on the workspace rather than outlines drawn on it. Now reachable from here:
+   until the tile markup stopped shipping its own <style> block, an inline rule outranked this
+   stylesheet. */
+body.admin-console .platform-dashboard-group > .cell {
+  border-radius: var(--sc-radius-md, 4px);
+  box-shadow: var(--sc-shadow-raised, 0 1px 2px rgba(23, 25, 30, 0.05), 0 6px 16px -8px rgba(23, 25, 30, 0.16));
+}
+
+body.admin-console .statistic-card-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+body.admin-console .help-text {
+  font-style: normal;
+  color: var(--sc-text-muted, #6c6861);
+  line-height: 1.5;
+}
+
+/* Dashboard statistic tiles.
+
+   These rules used to be emitted by the tile JSPs themselves, inside a <style> block rendered
+   once per tile. The colour rule in there was per-instance and had to be, but the size rules
+   were global and identical, so a dashboard with fourteen tiles shipped the same declaration
+   fourteen times -- and, being inline, it outranked this stylesheet, so the tiles could not be
+   restyled from here at all.
+
+   The per-instance icon colour moved to a style attribute on the icon, which is what a
+   one-off value should have been in the first place. */
+.statistic-card-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.admin-console h1,
+body.admin-console h2,
+body.admin-console h3,
+body.admin-console h4,
+body.admin-console h5,
+body.admin-console .widget-title {
+  font-weight: 700;
+}
+
+@media (min-width: 1200px) {
+  .widget-title {
+    font-size: var(--sc-font-xl, 1.5rem);
   }
 }
 
@@ -63,7 +186,7 @@ body {
 }
 
 .h6, h6 {
-  font-size:1rem;
+  font-size: var(--sc-font-base, 1rem);
 }
 
 p {
@@ -89,7 +212,7 @@ p {
 }
 
 .modal-prompt {
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   padding: 50px;
   text-align: center;
 }
@@ -132,8 +255,8 @@ p {
 #platform-menu .menu-text {
   padding: 0;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 15.5px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-base, 1rem);
 }
 #platform-menu ul.menu li.logo a:hover {
   background: transparent !important;
@@ -149,34 +272,68 @@ p {
 #platform-small-menu ul.menu li a,
 #platform-small-menu .title-bar-title {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 17.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-lg, 1.125rem);
 }
 #platform-menu ul.menu li > a:hover,
 #platform-menu ul.menu li.is-active > a,
 #platform-menu .is-active .is-dropdown-submenu-item a:hover {
-  font-weight: 500;
+  font-weight: var(--sc-weight-medium, 500);
 }
 /* Contact Us/Login/My Account/Log Out come from the header's "menu" widget
    (class="float-right header-item"), a separate widget instance from the
    Home/Solutions-style nav tabs above -- kept at 16px rather than the 17.5px
    those get, per request. */
-#platform-menu .header-item.float-right ul.menu li a {
-  font-size: 16px;
+/* Was style="font-size: 14px;" on the widget in header-layout.xml. XMLContainerCommands turns a
+   widget's style attribute into an inline style on its wrapper, and an inline style attribute
+   cannot carry a CSP nonce -- so each one keeps 'unsafe-inline' alive in style-src. This renders
+   on every page.
+
+   0.875rem is 14px at the default root size, and unlike the literal it scales with a reader who
+   has raised their browser font size. Note the rule below already overrides this for the anchors
+   inside, so the wrapper size only reaches text that is not a link. */
+.header-item-compact {
+  font-size: var(--sc-font-md, 0.875rem);
 }
+
+#platform-menu .header-item.float-right ul.menu li a {
+  font-size: var(--sc-font-base, 1rem);
+}
+/* Foundation resets the anchor of an OPEN top-level tab -- `.dropdown.menu > li.is-active > a
+   { background: initial }` -- so the <li>'s own colour shows through and the menu stays the
+   colour the site painted it. It does nothing equivalent one level down, so a submenu item
+   opened by click or keyboard gets `.menu .is-active > a`'s stock #1779ba laid over whatever
+   the dropdown is themed to (issue #1787). Hovering the same row looked right, so one row had
+   two unrelated open states depending on how it was opened.
+
+   The same reset, one level down. No colour is invented here: with nothing themed the row simply
+   shows the dropdown's own background instead of Foundation blue, and when
+   theme.topbar.menu.text.hoverBackgroundColor is set, main.jsp's rule for the open row outranks
+   this and paints it -- which is what makes hover and open finally agree.
+
+   Specificity (1,2,2) beats Foundation's (0,2,1) without !important, the same way the admin
+   shell's active state does below. */
+#platform-menu .is-dropdown-submenu li.is-active > a {
+  background: initial;
+}
+
 #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 17.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-lg, 1.125rem);
 }
 
 /* fa-angle-down replaces Foundation's default CSS-triangle dropdown caret
-   (a border-color-trick ::after). Matches Foundation's own selector set
-   exactly -- base, medium/large-horizontal responsive variants, and nested
-   submenus -- so this wins on source order (platform.css loads after
-   foundation.min.css) without needing extra specificity. The theme's
-   arrow-color override in main.jsp switches from border-color to color to
-   match -- see theme.topbar.menu.arrow.color there. */
+   (a border-color-trick ::after), for a menu that drops downward: the base
+   selector and the medium/large-horizontal responsive variants, plus the
+   nested-submenu nudge. The two side-opening variants are a separate block
+   below, because they need a different glyph and Foundation gives them a
+   higher specificity than source order can beat (issue #1775).
+   Winning here does rely on source order -- platform.css loads after
+   foundation.min.css -- so anything added to Foundation's own selector set
+   for these arrows has to be mirrored here or the triangle comes back.
+   The theme's arrow-color override in main.jsp sets color rather than
+   border-color to match -- see theme.topbar.menu.arrow.color there. */
 .dropdown.menu > li.is-dropdown-submenu-parent > a::after,
 .dropdown.menu.medium-horizontal > li.is-dropdown-submenu-parent > a::after,
 .dropdown.menu.large-horizontal > li.is-dropdown-submenu-parent > a::after,
@@ -191,6 +348,43 @@ p {
   margin-top: -7px;
 }
 
+/* The same replacement for the two side-opening variants (issue #1775). Foundation
+   adds .opens-left / .opens-right from JS at runtime, based on the space available,
+   so they are absent from the markup and easy to miss when matching its selector set
+   by hand -- and they carry a class more than the rule above, so they win the cascade
+   and put the stock blue border-triangle back on any submenu that opens sideways.
+   That stayed invisible until a third menu level existed to open one.
+   The glyph points the way the flyout opens: angle-right / angle-left, not the
+   angle-down used for a menu that drops. Positioning is inherited rather than
+   restated -- .is-dropdown-submenu-parent a::after already places it, and the
+   nested nudge to right:14px comes from the rule above -- except on the left
+   variant, where Foundation's own right:auto/left:5px has to be kept. */
+.dropdown.menu.vertical > li.opens-right > a::after,
+.is-dropdown-submenu .is-dropdown-submenu-parent.opens-right > a::after {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  content: "\f105";
+  border: 0;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-top: -7px;
+}
+
+.dropdown.menu.vertical > li.opens-left > a::after,
+.is-dropdown-submenu .is-dropdown-submenu-parent.opens-left > a::after {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  content: "\f104";
+  border: 0;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-top: -7px;
+  right: auto;
+  left: 5px;
+}
+
 #platform-small-menu .logo { margin-left: auto; margin-right: auto; }
 #platform-small-menu .logo img { max-height: 35px; }
 #platform-small-menu .utility-icons { margin-left: .25rem; margin-right: .25rem; }
@@ -202,8 +396,8 @@ p {
   background-color: #000000;
   color: var(--sc-text-inverse, #ffffff);
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 11.5px;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-2xs, 0.6875rem);
 }
 .utility-links {
   float: right;
@@ -233,19 +427,29 @@ p {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 6px 0 10px;
+  margin: 26px 0 12px;
   text-transform: uppercase;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: 0.05em;
-  color: #53575c;
+  font-weight: var(--sc-weight-medium, 500);
+  /* Size held at 1rem rather than reduced. The mockup sets these labels at ~11px and gets a
+     lot of its precision from that, but small type is the thing this admin's users have
+     specifically asked not to have -- so the label keeps its size and gets its structure
+     from tracking instead. The extra letter-spacing is not decoration: uppercase set tight
+     runs together, and opening it is as much of the legibility win as size would have been. */
+  font-size: var(--sc-font-base, 1rem);
+  letter-spacing: 0.1em;
+  /* --sc-text-muted, not --sc-chrome-raised, even though the #53575c that was here is that
+     token's value exactly. Issue 1590 names this pairing as a trap: the value matches, the ROLE
+     does not -- --sc-chrome-raised is a raised surface in the admin rail. Binding a dashboard
+     label to it looks right until chrome is re-themed and the label follows it somewhere it was
+     never meant to go. */
+  color: var(--sc-text-muted, #6c6861);
 }
 .platform-dashboard-section-label::after {
   content: '';
   flex: 1;
   height: 1px;
-  background-color: #d9dce1;
+  background-color: var(--sc-border, #ddd8cf);
 }
 /* Panel binding each group's tiles into one visible unit -- the label sits
    above it (its own section, so it stays outside the tint), the individual
@@ -267,13 +471,68 @@ p {
   padding-right: 20px;
 }
 
+/* The tinted panel that used to bind each group is gone, and its removal did more for how
+   this page reads than any colour change. A group is a full-width tinted box whatever it
+   holds, so a section with one tile drew a box that was 75% empty -- measured on
+   Deliverability -- and four such boxes stacked made the page read as boxy and dated. The
+   section label already groups the row; the tiles do not also need a container.
+
+   The tiles keep their own card treatment, which is what carries the grouping now: they sit
+   directly on the canvas with a border and a soft shadow, the way every direction in the
+   mockup set does. */
 .platform-dashboard-group {
-  background-color: #eceef1;
-  border: 1px solid var(--sc-border, #d9dce1);
-  border-radius: 10px;
-  padding: 20px;
   margin-top: 10px;
   margin-bottom: 16px;
+}
+
+/* Cards, not cells. The radius and the two-layer shadow are the difference between a panel
+   and a card -- a tight 1px shadow reads as a border, a single wide one reads as a smudge;
+   the pair reads as lift. Both are tokenised so a theme can flatten them. */
+.platform-dashboard-group > .cell > .callout,
+.platform-dashboard-group > .cell.callout {
+  border-radius: 10px;
+  border: 1px solid var(--sc-border, #ddd8cf);
+  box-shadow: var(--sc-shadow-md, 0 1px 3px rgba(23, 25, 30, 0.08));
+}
+
+/* The stat icon as a chip rather than a bare glyph. This is what lets the admin keep Font
+   Awesome Solid and still read as current: at 14px inside a 34px tinted square the chip
+   carries the visual weight, and the difference between a filled glyph and a stroked one
+   stops registering. Tested against the alternative -- Font Awesome Free's Regular set
+   covers only ~163 icons, and switching to it turned most of this admin's icons into
+   missing-glyph boxes. */
+.platform-dashboard-group .cell i.fa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--sc-info-light, #e7f4f6);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  color: var(--sc-info, #03727e);
+}
+
+/* Positioning contexts moved out of inline style attributes.
+ *
+ * These carry no visual opinion -- each one only establishes a containing block for an
+ * absolutely positioned child (a menu dropdown, a chart overlay). They live here rather
+ * than on the element because a CSP nonce covers <style> ELEMENTS and not style
+ * ATTRIBUTES, so every inline style= on the site forces style-src to keep
+ * 'unsafe-inline'. The menu rule alone accounts for six attributes on all 133 published
+ * pages -- 798 of the 1,417 counted site-wide.
+ */
+
+.platform-menu-container {
+  position: relative;
+}
+
+/* Wraps the <canvas> in a progress card; the value overlay is absolutely positioned
+ * against it. A dedicated class rather than .cell, which is Foundation's grid primitive
+ * and used site-wide. */
+.platform-progress-chart {
+  position: relative;
 }
 
 /* Body */
@@ -331,7 +590,7 @@ p {
   border-right: 1px solid #999999; padding: 0 8px;
 }
 .platform-footer .menu-title {
-  font-weight: bold;
+  font-weight: var(--sc-weight-bold, 700);
 }
 
 /* Default page adjustments for footer when there is minimal content */
@@ -356,12 +615,12 @@ callout.round, .callout.round {
 /* Labels */
 
 label {
-  font-size: 1rem;
+  font-size: var(--sc-font-base, 1rem);
 }
 
 span.required {
-  color: #ae1515;
-  font-weight: bold;
+  color: var(--sc-danger, #ba403e);
+  font-weight: var(--sc-weight-bold, 700);
 }
 
 label.radius, .label.radius {
@@ -380,7 +639,7 @@ label.button {
 }
 
 .input-error {
-  color: #ae1515;
+  color: var(--sc-danger, #ba403e);
 }
 
 /* Tables */
@@ -397,6 +656,21 @@ table td .input-group {
 .admin-web-content {
   min-height: 500px;
   overflow-x: auto;
+}
+/* The admin console draws from the token layer rather than the site's own page colours.
+   main.jsp scopes theme.body.* and theme.link.color away from .admin-console for this;
+   without these declarations the console would fall through to Foundation's defaults.
+   Buttons are excluded from the link rule because they carry their own ink. */
+body.admin-console {
+  background-color: var(--sc-surface);
+  color: var(--sc-text);
+}
+body.admin-console a:not(.button) {
+  color: var(--sc-link);
+}
+body.admin-console a:not(.button):hover,
+body.admin-console a:not(.button):focus {
+  color: var(--sc-link-hover);
 }
 .admin-web-content .platform-body {
   margin-top: 10px;
@@ -422,6 +696,32 @@ table td .input-group {
 .platform-content {
   margin-bottom: 10px;
 }
+/* The opt-in "Last updated" line under a content block. Muted via the semantic token rather than a
+   literal, so it moves with the theme and needs no dark-mode override to keep in parity -- and so
+   it stays above the 4.5:1 the token is chosen to hold, since this is body text, not decoration.
+
+   Sized here rather than left to inherit. This is a metadata stamp, and it previously took its size
+   from whatever the surrounding site set on `p`, with the inner <small> then taking 80% of that --
+   so on a site with large body copy it rendered as body text, and the actual size varied per site
+   for what should be a consistent platform component. Setting it on the paragraph and having the
+   <small> inherit keeps one predictable size and stops the 80% applying twice.
+
+   Deliberately kept at a single class so a site can still override it: the size is a sane default,
+   not a rule the platform needs to win. No inline padding for the same reason -- the line is a
+   sibling of .platform-content and should stay flush with it, so padding here would misalign the
+   stamp from the content it belongs to on a standard layout. */
+.platform-content-last-updated {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  color: var(--sc-text-muted, #6c6861);
+}
+
+.platform-content-last-updated small {
+  font-size: inherit;
+}
+
 
 @media print, screen and (min-width: 40em) {
   .position-absolute .platform-content {
@@ -435,21 +735,21 @@ table td .input-group {
 ul.pagination li.page {
   height: 45px;
   width: 45px;
-  border: 1px solid #D1D1D1;
+  border: 1px solid var(--sc-border, #ddd8cf);
   padding: 0;
   vertical-align: middle;
   border-radius: .25rem;
 }
 
 ul.pagination li.page:hover {
-  border: 1px solid var(--sc-fnd-primary, #1779ba);
+  border: 1px solid var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.page a {
   padding: 0;
   height: 100%;
   line-height: 40px;
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.page a:hover {
@@ -459,12 +759,12 @@ ul.pagination li.page a:hover {
 
 ul.pagination li.current {
   line-height: 40px;
-  border: 1px solid var(--sc-fnd-primary, #1779ba);
+  border: 1px solid var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.pagination-previous a,
 ul.pagination li.pagination-next a {
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 ul.pagination li.pagination-previous a:hover,
@@ -593,7 +893,7 @@ ul.pagination li.pagination-next a:hover {
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option {
   position: relative;
   padding-right: 1.5rem;
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 .platform-sort-options .dropdown.menu > li.is-dropdown-submenu-parent div.platform-sort-option::before {
@@ -604,7 +904,7 @@ ul.pagination li.pagination-next a:hover {
   content: '';
   border-bottom-width: 0;
   border-top-style: solid;
-  border-color: var(--sc-fnd-primary, #1779ba) transparent transparent;
+  border-color: var(--sc-fnd-primary, #06828f) transparent transparent;
   left: 5px;
   right: auto;
   margin-right: 5px;
@@ -675,6 +975,9 @@ ul.pagination li.pagination-next a:hover {
   padding-top: 0;
 }
 
+/* This rule already named h2 while blog-post-list-cards.jsp emitted h3, so it matched nothing and
+   the card titles rendered at Foundation's default h3 size. Levelling the post-title heading to h2
+   (issue 1458) makes it apply for the first time, which is the intent the selector recorded. */
 .platform-blog-cards-container .blog-title h2 {
   font-size: 28px;
   padding-bottom: 0;
@@ -719,11 +1022,15 @@ ul.pagination li.pagination-next a:hover {
 }
 
 /* Orbit Hero */
+/* The slide and caption paint a dark SURFACE, so they take --sc-fnd-ink-surface rather
+   than --sc-fnd-ink, which is the text role. Same colour, but the two move apart the
+   moment either is themed -- and they did: pointing light-mode --sc-fnd-ink at the page
+   ink would have turned both of these hero backgrounds warm-dark by accident. */
 
 .clean-hero-slider .orbit-caption {
   width: auto;
   height: auto;
-  background: var(--sc-fnd-black, #0a0a0a);
+  background: var(--sc-fnd-ink-surface, #0a0a0a);
   position: absolute;
   text-align: center;
   right: 0;
@@ -759,33 +1066,33 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-caption p {
-  font-size: 0.9rem;
+  font-size: var(--sc-font-md, 0.875rem);
   line-height: 1.25;
 }
 
 @media print, screen and (min-width: 40em) {
   .clean-hero-slider .orbit-caption p {
-    font-size: 1.1rem;
+    font-size: var(--sc-font-lg, 1.125rem);
   }
 }
 
 .clean-hero-slider .orbit-caption h3 {
-  color: var(--sc-fnd-warning, #ffae00);
-  font-size: 1.5rem;
-  font-weight: bold;
+  color: var(--sc-fnd-warning, #feaf0a);
+  font-size: var(--sc-font-xl, 1.5rem);
+  font-weight: var(--sc-weight-bold, 700);
   margin-bottom: 0;
 }
 
 @media print, screen and (min-width: 40em) {
   .clean-hero-slider .orbit-caption h3 {
-    font-size: 2.5rem;
-    font-weight: normal;
+    font-size: var(--sc-font-3xl, 2.5rem);
+    font-weight: var(--sc-weight-regular, 400);
   }
 }
 
 .clean-hero-slider .orbit-slide {
   padding-bottom: 40%;
-  background: var(--sc-fnd-black, #0a0a0a);
+  background: var(--sc-fnd-ink-surface, #0a0a0a);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -795,13 +1102,13 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .clean-hero-slider .orbit-controls button {
-  background: var(--sc-fnd-warning, #ffae00);
+  background: var(--sc-fnd-warning, #feaf0a);
   padding: 1rem 0.5rem;
 }
 
 .clean-hero-slider .orbit-controls button:hover {
-  background: var(--sc-fnd-white, #fefefe);
-  color: var(--sc-fnd-black, #0a0a0a);
+  background: var(--sc-fnd-surface, #fefefe);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 @media print, screen and (min-width: 40em) {
@@ -834,11 +1141,11 @@ ul.pagination li.pagination-next a:hover {
   width: 3rem;
   height: 0.4rem;
   border-radius: 0;
-  background-color: var(--sc-fnd-white, #fefefe);
+  background-color: var(--sc-fnd-surface, #fefefe);
 }
 
 .clean-hero-slider .orbit-bullets button.is-active {
-  background-color: var(--sc-fnd-warning, #ffae00);
+  background-color: var(--sc-fnd-warning, #feaf0a);
 }
 
 .clean-hero-slider li.orbit-slide {
@@ -856,10 +1163,10 @@ ul.pagination li.pagination-next a:hover {
 /* Activity Input */
 
 .status-update-input-box {
-  background-color: var(--sc-fnd-white, #fefefe);
+  background-color: var(--sc-fnd-surface, #fefefe);
   padding: 0;
   width: 100%;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
 }
 
 .status-update-input-box .input-box-container textarea {
@@ -868,7 +1175,11 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .input-box-container textarea:focus {
-  border: 1px solid #999;
+  /* --sc-border-control, not the #999 that was here: a control's boundary has to clear 3:1
+     against what surrounds it (SC 1.4.11), and #999 on the white field fell under that floor -- on
+     a focus state, which is the one moment the boundary is doing real work. The token clears it,
+     and is already the answer everywhere else in this file. */
+  border: 1px solid var(--sc-border-control, #878581);
   box-shadow: none;
 }
 
@@ -885,7 +1196,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box {
   padding: 0;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -893,7 +1204,7 @@ ul.pagination li.pagination-next a:hover {
 
 .status-update-input-box .user-action-container .user-action-box .action-area {
   width: 20%;
-  border-right: 0.0625rem solid var(--sc-fnd-medium-gray, #cacaca);
+  border-right: 0.0625rem solid var(--sc-fnd-medium-gray, #cdc9c3);
   text-align: center;
   padding-top: 0.275rem;
   padding-bottom: 0.275rem;
@@ -909,12 +1220,12 @@ ul.pagination li.pagination-next a:hover {
 }
 
 .status-update-input-box .user-action-container .user-action-box .action-area .action-anchor .fa {
-  color: var(--sc-fnd-primary, #1779ba);
+  color: var(--sc-fnd-primary, #06828f);
 }
 
 .status-update-input-box .user-action-container .user-submit-box {
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
@@ -959,12 +1270,18 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   padding: 0;
   min-height: 90vh;
-  background-color: #17191e;
+  /* Espresso, not black, and not flat: Crema's rail is a slow vertical gradient from
+     --sc-chrome down to --sc-chrome-raised (the mockup's --sidebar-bg / --sidebar-bg-2).
+     Both are warm -- red channel highest in each -- which is what stops a very dark rail
+     reading as grey. background-color stays as the fallback for anything that cannot
+     paint the gradient. */
+  background-color: var(--sc-chrome, #001416);
+  background-image: linear-gradient(180deg, var(--sc-chrome, #001416) 0%, var(--sc-chrome-raised, #00292d) 100%);
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 13.5px;
-  line-height: 1.4;
-  color: #d9dce1;
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-sm, 0.8125rem);
+  line-height: var(--sc-leading-normal, 1.4);
+  color: var(--sc-chrome-ink-muted, #a1babc);
 }
 .admin-menu .platform-content {
   margin: 0;
@@ -972,12 +1289,12 @@ ul.pagination li.pagination-next a:hover {
 .admin-menu .app-title {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  font-weight: 500;
-  font-size: 15.5px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-base, 1rem);
   line-height: 1.3;
   padding: 10px 20px;
-  background-color: #17191e;
-  color: var(--sc-text-inverse, #ffffff);
+  background-color: var(--sc-chrome, #001416);
+  color: var(--sc-chrome-ink, #e4f0f1);
 }
 /* Version number: de-emphasized metadata under the product name, not part
    of the product-name treatment above. */
@@ -985,80 +1302,152 @@ ul.pagination li.pagination-next a:hover {
   display: block;
   margin-top: 2px;
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--sc-field-placeholder, #979ca4);
+  font-weight: var(--sc-weight-regular, 400);
+  font-size: var(--sc-font-2xs, 0.6875rem);
+  color: var(--sc-text-subtle, #a09b93);
 }
+/* No fill. It used to take --sc-chrome-raised, which is the same token the ACTIVE nav item
+   took, so the signed-in user read as a selected menu entry and the rail appeared to have
+   two selections. Crema's sidebar treats the user row the same way: no band, separated
+   from the nav by a hairline, with the dove reserved for the one item that is actually
+   selected. */
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  background-color: #53575c;
+  border-bottom: 1px solid var(--sc-chrome-border, rgba(232, 238, 246, 0.09));
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--sc-text-inverse, #ffffff);
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-sm, 0.8125rem);
+  color: var(--sc-chrome-ink, #e4f0f1);
 }
 .admin-menu .app-user i {
-  color: var(--sc-field-placeholder, #979ca4);
+  /* Not --sc-text-subtle: that is calibrated for the rail (6.37:1) and lands at
+     2.64:1 on this lighter strip. Issue 1574. */
+  color: var(--sc-chrome-ink-muted, #a1babc);
 }
 .admin-menu .section-title {
   margin-top: 4px;
   text-transform: uppercase;
-  font-weight: 500;
-  font-size: 11px;
+  font-weight: var(--sc-weight-medium, 500);
+  font-size: var(--sc-font-2xs, 0.6875rem);
   letter-spacing: 0.05em;
-  padding-left: 20px;
-  color: var(--sc-field-placeholder, #979ca4);
+  /* Aligned to the pill's text, not the rail edge: the items are inset 12px by the list
+     gutter and padded 12px again inside, so their label starts at 24px. */
+  padding-left: 24px;
+  padding-bottom: 6px;
+  color: var(--sc-text-subtle, #a09b93);
 }
-.admin-menu a {
+/* Scoped with body.admin-console and :not(.button) so this outranks the console's blanket
+   content-link rule (body.admin-console a:not(.button), specificity 0-2-2), which was silently
+   painting this dark rail with --sc-link -- the LIGHT-mode link colour. #276caa on #17191e is
+   3.19:1, below the 4.5:1 floor for body text, on the navigation every admin page carries. The
+   rail's own colour below was correct all along and simply never applied; only the .is-active
+   rule, which happens to sit later in the file, was winning. Raising the rail rather than
+   excluding the rail from the blanket rule keeps the failure mode safe: if this selector is ever
+   not understood, the rail falls back to today's behaviour instead of every console link losing
+   its ink. */
+body.admin-console .admin-menu a:not(.button) {
   padding-left: 20px;
-  color: #d9dce1;
-  font-weight: 400;
+  color: var(--sc-chrome-ink-muted, #a1babc);
+  font-weight: var(--sc-weight-regular, 400);
 }
 /* Icons read one step quieter than their label -- pewter at rest, white
    only once the item is active (see .is-active > a i below). */
 .admin-menu a i {
-  color: var(--sc-field-placeholder, #979ca4);
+  color: var(--sc-text-subtle, #a09b93);
 }
+/* Crema's nav is a column of inset pills rather than full-bleed bands: the list carries a
+   12px gutter, and each item is a rounded rectangle inside it. The gutter is not decoration
+   -- it is what the active marker occupies, sitting at left:-12px against the rail rather
+   than on top of the item. */
 .admin-menu ul {
   padding-left: 0;
+  padding-right: 0;
   padding-bottom: 10px;
 }
 .admin-menu ul li {
   margin-top: 0;
   margin-left: 0;
-  padding-left: 0;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 .admin-menu ul li a {
-  padding-left: 25px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  position: relative;
+  display: block;
+  padding: 8px 12px;
+  /* The mockup asks for 6px; this takes the platform's own --sc-radius-sm, which is 4px.
+     A 2px divergence, taken deliberately: a one-off literal here would put the nav off the
+     radius scale, and moving the scale to 6px is a change to every rounded thing in the
+     product, not to this nav. Worth revisiting if Crema is adopted wholesale. */
+  border-radius: var(--sc-radius-sm, 4px);
 }
-.admin-menu li:hover {
-  background-color: #3e4045;
+
+/* Hover moved from the li to the a. On the li it painted the full width of the rail, which
+   is the shape this change is getting rid of -- the wash has to follow the pill. */
+.admin-menu li > a:hover {
+  background-color: var(--sc-chrome-hover, rgba(232, 238, 246, 0.06));
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;
 }
-.admin-menu a:hover {
-  color: var(--sc-text-inverse, #ffffff);
+/* The RESTING state, which this scoping never covered. Only :hover and :focus were given
+   the higher-specificity rule below, so at rest the blanket content-link rule still won and
+   painted the rail's navigation with --sc-link -- the LIGHT-mode link colour -- at 3.17:1
+   on the rail. Under the 4.5:1 floor, on the navigation every admin page carries, in the
+   one state the links spend nearly all their time in.
+
+   The comment above describes this defect and the fix for it; the fix was simply only ever
+   applied to the two interactive states. Same specificity (0,3,2) as those, which is what
+   beats the blanket rule's (0,2,2). */
+body.admin-console .admin-menu a:not(.button) {
+  color: var(--sc-chrome-ink-muted, #a1babc);
+}
+body.admin-console .admin-menu a:not(.button):hover,
+body.admin-console .admin-menu a:not(.button):focus {
+  color: var(--sc-chrome-ink, #e4f0f1);
+}
+/* The active item overrides both: it carries dark ink on the dove fill, and these two rules
+   outrank .admin-menu li.is-active > a on specificity alone. */
+body.admin-console .admin-menu li.is-active > a:not(.button),
+body.admin-console .admin-menu li.is-active > a:not(.button):hover,
+body.admin-console .admin-menu li.is-active > a:not(.button):focus {
+  color: var(--sc-chrome-ink-selected, #ffffff);
 }
 /* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
    Higher specificity than Foundation's .menu .is-active > a (#1779ba) so
    the admin shell's own active state wins without !important. The literal
    indicator blue (#609ACE) is only 2.43:1 on this background -- below the
    3:1 floor for a meaningful-state graphic (WCAG 1.4.11) -- so the inset
-   bar uses a 20%-lightened variant (3.10:1); #609ACE is kept as-is
-   wherever it appears as body/dark-mode link text instead. Weight 500 (not
-   bold) carries the emphasis, matching every other active-state label. */
+   bar uses a 20%-lightened variant; #609ACE is kept as-is wherever it
+   appears as body/dark-mode link text instead. Weight 500 (not bold)
+   carries the emphasis, matching every other active-state label.
+
+   The bar's colour is --sc-chrome-active-marker, where its ratio is stated
+   and re-derived by the contrast gate. It lived here as a literal until
+   then, which meant a theme could restyle the whole rail and leave a blue
+   stripe behind it. */
 .admin-menu li.is-active > a {
-  background-color: #53575c;
-  color: var(--sc-text-inverse, #ffffff);
-  font-weight: 500;
-  box-shadow: inset 3px 0 0 #7faed7;
+  background-color: var(--sc-chrome-selected, #014e53);
+  color: var(--sc-chrome-ink-selected, #ffffff);
+  font-weight: var(--sc-weight-medium, 500);
+}
+/* The marker sits in the list gutter, against the rail -- not inset into the pill. That is
+   why it is brass again: on the rail it reads at 8.91:1, where the same brass laid over the
+   dove fill would have been close enough in luminance to vanish. It was an inset box-shadow
+   only because the item used to be a full-bleed band with no gutter to sit in. */
+.admin-menu li.is-active > a::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--sc-chrome-active-marker, #f97316);
 }
 .admin-menu li.is-active > a i {
-  color: var(--sc-text-inverse, #ffffff);
+  color: var(--sc-chrome-ink-selected, #ffffff);
 }
 
 /* Cards */
@@ -1080,7 +1469,7 @@ ul.pagination li.pagination-next a:hover {
   padding: 5px;
 }
 .admin.card:hover {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 .template.card {
   cursor: pointer;
@@ -1088,14 +1477,14 @@ ul.pagination li.pagination-next a:hover {
   padding: 5px;
 }
 .template.card:hover {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 /* Persistent "selected" state, layered on the existing hover-only .admin.card/.template.card
    highlight above -- needed for the logo-color card picker (which replaces a <select>, so the
    current value must stay visible at rest, not just on hover). */
 .admin.card.selected,
 .template.card.selected {
-  box-shadow: inset 0 0 0 3px #128ad2;
+  box-shadow: inset 0 0 0 3px var(--sc-focus-ring);
 }
 .admin.card.logo-color-card {
   width: 120px;
@@ -1148,20 +1537,20 @@ ul.pagination li.pagination-next a:hover {
   justify-content: center;
   min-height: 120px;
   padding: 1.5rem;
-  background: var(--sc-surface-sunken, #f4f6f8);
-  border: 1px dashed var(--sc-border, #d7dce2);
-  border-radius: var(--sc-radius-md, 6px);
-  color: var(--sc-text-muted, #5b6470);
-  font-size: 2rem;
+  background: var(--sc-surface-sunken, #ede9e3);
+  border: 1px dashed var(--sc-border, #ddd8cf);
+  border-radius: var(--sc-radius-md, 4px);
+  color: var(--sc-text-muted, #6c6861);
+  font-size: var(--sc-font-2xl, 2rem);
 }
 
 /* User Card Profile */
 
 .card-profile-stats {
-  border: 1px solid var(--sc-fnd-medium-gray, #cacaca);
+  border: 1px solid var(--sc-fnd-medium-gray, #cdc9c3);
   margin: 0 0 1.25rem;
   padding: 1.25rem;
-  background: var(--sc-fnd-white, #fefefe);
+  background: var(--sc-fnd-surface, #fefefe);
 }
 
 .card-profile-stats .card-profile-stats-intro {
@@ -1192,8 +1581,8 @@ ul.pagination li.pagination-next a:hover {
 .card-profile-stats .card-profile-stats-more .card-profile-stats-more-link {
   margin: 0;
   text-align: center;
-  font-size: 1.5rem;
-  color: var(--sc-fnd-black, #0a0a0a);
+  font-size: var(--sc-font-xl, 1.5rem);
+  color: var(--sc-fnd-ink, #2c2925);
   padding: 0.5rem;
   cursor: pointer;
 }
@@ -1256,15 +1645,34 @@ button.round, .button.round {
   border-radius: 1000px;
 }
 
+/* An outlined button drawn in the page's own ink, so it follows the theme the way its
+   background already did. The ink and border used to be pinned at a fixed near-black
+   while the fill followed --sc-surface, which goes dark in dark mode -- near-black on
+   near-black, 1.284:1, with the border failing SC 1.4.11 at the same ratio and hover
+   inverting into the identical pair (issue 1528). Hover is now a true inversion of the
+   base, so both states hold up in either mode:
+     base  light 17.585:1   dark 16.120:1
+     hover light 17.585:1   dark 16.120:1
+   The !important these declarations used to carry is gone (issue 1589). It was there to beat
+   Foundation's own .button colour, and it did -- but it also beat the site, which is the half
+   nobody wanted: the fill above is overridable at normal specificity while the ink was not, so a
+   site that repainted a .box button got the new fill and the old ink. That happened, at 2.89:1 on
+   the new fill, and the only way out was matching !important in site CSS -- not a fix an author
+   should have to find by measuring contrast.
+   Specificity alone is enough. Only three rules set colour on a .button.box: Foundation's `a`
+   (0,0,1) and `.button` (0,1,0), and the theme's `a` (0,0,1). These select at (0,2,0) from a later
+   stylesheet, so they win on their own, and a site's more specific rule now wins over them. The
+   theme's own button-text rule is not a competitor: it excludes .box alongside .clear and .hollow
+   -- see main.jsp. */
 button.box, .button.box {
-  background-color: var(--sc-surface, #ffffff);
-  border: 1px solid #2a2e31;
-  color: #2a2e31 !important;
+  background-color: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-text, #2c2925);
+  color: var(--sc-text, #2c2925);
 }
 
 button.box:hover, button.box:focus, .button.box:hover, .button.box:focus {
-  background-color: #2a2e31;
-  color: var(--sc-text-inverse, #ffffff) !important;
+  background-color: var(--sc-text, #2c2925);
+  color: var(--sc-surface, #f5f3ef);
 }
 
 /* Links */
@@ -1273,11 +1681,69 @@ a.read-more {
   text-decoration: underline;
 }
 
+/* The "this headline leaves the site" mark on a curated post (issue 1420).
+
+   It renders inside the h2, so it inherited the heading's full font size -- 32px on the pilot -- and
+   fa-fw padded a glyph about 15px wide out to 1.25em, or 40px. That is wider than the word beside it,
+   and at heading weight it read as a control rather than a mark: it was reported as a stray "edit
+   button" on the one post that had it. fa-fw is for icons stacked in a column, which this is not, so
+   it comes off the markup rather than being overridden here.
+
+   Sized in em so it tracks whatever a site sets its headings to, and no color is set so it stays the
+   headline's own ink and cannot fall out of contrast when a theme is repainted. The accessible text
+   is unaffected -- the glyph is aria-hidden and the adjacent show-for-sr span carries "(opens in a
+   new tab)". */
+.platform-external-indicator {
+  font-size: 0.55em;
+  vertical-align: 0.08em;
+  margin-left: 0.15em;
+}
+
 /* Callout */
 
+/* A callout carries its own background, so it must also own the colour of the text on it.
+
+   Without this, any rule that colours text from an outer scope wins over the callout, because a
+   descendant selector rooted at an ancestor out-specifies anything the callout says about itself.
+   A themed panel doing the ordinary thing --
+
+     .some-panel > .cell p { color: <light ink for the dark panel>; }
+
+   -- at (0,3,2) beats `.callout.warning p` at (0,2,1), so the paragraph keeps the panel's light ink
+   while the callout keeps its own light fill. That shipped: the subscribe form's validation and
+   success messages rendered light-on-light at 1.12:1, which is not "hard to read", it is invisible.
+   The panel rule is not wrong -- it simply cannot know a callout is nested inside it.
+
+   `inherit` rather than a colour, and this is the part that matters: the !important on .button.box's
+   ink was removed for good reason (issue 1589) because a fixed ink beat the site, so a repainted
+   fill kept the old ink and landed at 2.89:1. That failure cannot happen here. These declarations
+   pin no colour at all -- they say "whatever this callout's own colour is". Repaint .callout, or any
+   variant of it, and the text follows. The escape hatch is therefore intact and is the correct one:
+   style the callout, not its descendants from outside.
+
+   Links, buttons and labels are deliberately excluded -- they carry their own colour by design. */
+.callout p,
+.callout li,
+.callout dt,
+.callout dd,
+.callout td,
+.callout th,
+.callout blockquote,
+.callout small,
+.callout em,
+.callout strong,
+.callout h1,
+.callout h2,
+.callout h3,
+.callout h4,
+.callout h5,
+.callout h6 {
+  color: inherit !important;
+}
+
 .callout.box {
-  background-color: var(--sc-surface, #ffffff);
-  color: var(--sc-fnd-black, #0a0a0a);
+  background-color: var(--sc-surface, #f5f3ef);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 .callout.prototype {
@@ -1286,7 +1752,7 @@ a.read-more {
   background-position: center center;
   background-repeat: repeat;
   background-size: 16px;
-  color: var(--sc-fnd-black, #0a0a0a);
+  color: var(--sc-fnd-ink, #2c2925);
 }
 
 .callout.header {
@@ -1303,21 +1769,27 @@ a.read-more {
 
 /* Labels */
 
+/* Dark text, not inverse text -- see issue 1515. This fill is light in BOTH modes, so
+   --sc-text-inverse is the wrong role for it: that token means "text on the inverse of
+   the page", and the page's inverse is only dark while the page itself is light. White
+   on this green is 2.86:1. --sc-fnd-ink-on-accent is the token for exactly this pairing
+   and is deliberately never redefined for dark, so one declaration clears the floor in
+   both modes -- and light and dark stop rendering this label differently for no reason. */
 .label.success {
   background-color: #43AC6A;
-  color: var(--sc-text-inverse, #ffffff);
+  color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 
 /* Cards */
 
 .admin.card {
-  border: 1px solid #d8d8d8;
-  background-color: var(--sc-surface, #ffffff);
-  color: #15325d;
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-surface, #f5f3ef);
+  color: var(--sc-text);
 }
 
 .admin.card .card-divider {
-  background-color: #deebf8;
+  background-color: var(--sc-surface-sunken);
   min-height: 84px;
 }
 
@@ -1326,19 +1798,19 @@ a.read-more {
 }
 
 .admin.card .fa-3x {
-  color: #15325d;
+  color: var(--sc-text);
 }
 
 /* Content Tabs */
 
 .tabs {
   border: none;
-  border-bottom: 1px solid var(--sc-fnd-light-gray, #e6e6e6);
+  border-bottom: 1px solid var(--sc-fnd-light-gray, #e7e6e3);
 }
 .tabs li a {
-  font-size: 16px;
-  color: #000000;
-  background: var(--sc-fnd-light-gray, #e6e6e6);
+  font-size: var(--sc-font-base, 1rem);
+  color: var(--sc-text, #2c2925);
+  background: var(--sc-fnd-light-gray, #e7e6e3);
   transition: all 0.35s ease-in-out;
   padding: 0.5rem 1rem;
 }
@@ -1347,13 +1819,13 @@ a.read-more {
   padding-bottom: 2px;
 }
 .tabs .tabs-title>a:hover {
-  color: #000000;
+  color: var(--sc-text, #2c2925);
   background: #cdcdcd;
 }
 .tabs .tabs-title>a:focus, .tabs .tabs-title>a[aria-selected=true],
 .tabs .tabs-title.is-active a {
   color: var(--sc-text-inverse, #ffffff);
-  background: var(--sc-fnd-primary, #1779ba);
+  background: var(--sc-fnd-primary, #06828f);
 }
 
 .full-container {
@@ -1361,6 +1833,42 @@ a.read-more {
 }
 
 .no-gap { margin-bottom: 0 !important; }
+
+/* Admin secret fields: input plus its reveal toggle. No colour is named here on purpose --
+   the button inherits its surrounding ink, so it stays legible in both themes without adding
+   a token pair or a dark-mode override to keep in parity. */
+.secret-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.secret-reveal-toggle {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* The same reveal control on a full-width form field (sign in, register, set password), where the
+   admin's inline-flex wrapper would shrink the input to its content. Block-level flex instead, with
+   the input taking the free space and the button sitting on the end of the row.
+
+   Foundation gives an input a bottom margin; that margin moves to the wrapper so the row keeps the
+   spacing the form had before the button was added, and the button stays vertically centred on the
+   input rather than on the input-plus-margin. No colour is set for the same reason as the rule
+   above -- the button inherits its surrounding ink and needs no dark-mode pair to keep in parity. */
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 1rem;
+}
+.password-field input {
+  flex: 1 1 auto;
+  margin: 0;
+}
 .no-gap-all, .no-gap-all .platform-container, .no-gap-all .platform-content, .no-gap-all p, .no-gap-all img, .no-gap-all .button, .no-gap-all input[type="checkbox"], .no-gap-all input[type="text"], .no-gap-all input[type="search"], .no-gap-all select {
   margin: 0;
 }
@@ -1391,11 +1899,11 @@ a.read-more {
 .platform-scrollable-view {
   height: 50vh;
   overflow-y: scroll;
-  background-color: var(--sc-surface, #ffffff);
+  background-color: var(--sc-surface, #f5f3ef);
   margin-bottom: 20px;
   padding-left: 10px;
   padding-right: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sc-border, #ddd8cf);
 }
 .platform-scrollable-view::-webkit-scrollbar {
   -webkit-appearance: none;
@@ -1422,7 +1930,7 @@ a.read-more {
 .platform-activity-date {
   text-align: center;
   padding-bottom: 4px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--sc-border, #ddd8cf);
   margin: 12px 0 18px 0;
   font-size: 80%;
 }
@@ -1434,17 +1942,17 @@ a.read-more {
 }
 .platform-activity-content {
   margin-left: 50px;
-  line-height: 1.4;
+  line-height: var(--sc-leading-normal, 1.4);
 }
 .platform-activity-content-name {
   font-weight: bolder;
 }
 .platform-activity-content-date {
   font-size: 80%;
-  color: var(--sc-fnd-dark-gray, #8a8a8a);
+  color: var(--sc-text-muted, #6c6861);
 }
 .platform-activity-content-other {
-  color: var(--sc-fnd-dark-gray, #8a8a8a);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 /* Controls */
@@ -1499,11 +2007,21 @@ a.read-more {
 .text-no-wrap { white-space:nowrap; }
 .text-strike { text-decoration:line-through; }
 .text-no-strike { text-decoration:none; }
-.text-bold { font-weight: bold; }
+.text-bold { font-weight: var(--sc-weight-bold, 700); }
 /* For legible text inside a content widget placed on a dark section background -- content-widget
    HTML is sanitized on save and strips inline style= attributes, so a class is the only way to
    set this from page content (see .text-brand above, same restriction). */
-.text-white { color: #ffffff; }
+/* Doubled on purpose (issue #1784). The .callout ink guard above declares
+   `color: inherit !important` at (0,1,1); a plain `.text-white` is (0,1,0) and loses outright,
+   so white text an author asked for inside a callout came out as the callout's dark ink -- 1.22:1
+   on a dark panel, which is invisible rather than merely low. Adding !important alone does not
+   help: both declarations are then !important and specificity still decides. Doubling the class
+   takes this to (0,2,0).
+
+   Deliberately not scoped to `.callout .text-white`. A utility says what the author wants and
+   should win wherever it is used, so the next guard written at (0,1,1) cannot silently kill it
+   the way that one did. */
+.text-white.text-white { color: #ffffff !important; }
 
 /* Padding and Margins */
 
@@ -1906,6 +2424,16 @@ div.item-image-large img {
   max-width: 100%;
   height: 175px;
   text-align: center;
+  /* Deliberately NOT routed to tokens, and the last five literals in this file that are
+     not. This is the transparency checkerboard -- the conventional two-tone 10px tile
+     that means "there is no image data here", the same idiom every image editor uses.
+     Its job is to read as the ABSENCE of a colour; bound to surface tokens it would
+     follow the theme and start reading as a deliberate background instead, which is the
+     one thing it must not say.
+
+     Whether a dark theme should get a darker checker is a real question and a design
+     decision -- left open rather than answered here, because the honest fix is two
+     checker-specific tokens, not pointing these at surfaces that mean something else. */
   background-image: linear-gradient(45deg, #F6F6F6 25%, transparent 25%),
   linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
   linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
@@ -1995,7 +2523,8 @@ div.item-image-large img {
   margin-left: 30px;
   margin-bottom:30px;
 }
-.platform-calendar-event-block h4, .platform-calendar-event-block p {
+.platform-calendar-event-block h3, .platform-calendar-event-block h4,
+.platform-calendar-event-block p {
   margin: 0;
   padding: 0;
 }
@@ -2008,6 +2537,19 @@ div.item-image-large img {
   padding: 10px 0 10px 30px;
 }
 
+/* The event's own artwork, above the venue line. Capped so a large upload does not
+   dominate the page; the img itself still scales down on narrow viewports. */
+.platform-calendar-event-image {
+  margin: 16px 0;
+}
+
+.platform-calendar-event-image img {
+  max-width: 100%;
+  max-height: 420px;
+  height: auto;
+  border-radius: var(--sc-radius-md, 4px);
+}
+
 .platform-calendar-details-container .platform-calendar-event-summary {
   border: 1px solid #cccccc;
   margin: 20px 0 20px 22px;
@@ -2016,6 +2558,62 @@ div.item-image-large img {
 
 .platform-calendar-details-container .platform-calendar-event-block h1 {
   line-height: 1.0;
+}
+
+/* The event-block left rule is a timeline for the calendar LIST, threading many events under a
+   month heading. On the single-event page it is a line running past one item to nowhere, so the
+   detail view drops it and reclaims the indent the rule was holding. The list keeps it. */
+.platform-calendar-details-container .platform-calendar-event-block {
+  border-left: 0;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+/* Actions on one row rather than stacked. wrap keeps them readable on a narrow screen, and the
+   gap replaces the inline margin the Add-to-Calendar control used to carry. align-items keeps
+   buttons of differing heights on a shared baseline. */
+.platform-calendar-details-container .platform-calendar-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+}
+
+.platform-calendar-details-container .platform-calendar-event-actions .platform-calendar-event-buttons,
+.platform-calendar-details-container .platform-calendar-event-actions .add-to-calendar {
+  margin: 0;
+}
+
+/* The leading spacer icons exist to align text with the icon-prefixed lines above (date,
+   location). Inside a flex row they become stray gaps, so they are dropped here only. */
+.platform-calendar-details-container .platform-calendar-event-actions > .platform-calendar-event-buttons > .fa-fw:first-child {
+  display: none;
+}
+
+/* Every margin off the buttons in this row, not just the bottom one. Two libraries disagree about
+   spacing here: Foundation gives .button a 1rem bottom margin, and the vendored Add-to-Calendar
+   control sets "margin: 15px 50px 0 0" on its own button. Both are counted in the flex item's
+   height, so the Add-to-Calendar wrapper measured 56px around a 41px button while Learn More was
+   41px, and align-items centred the wrapper -- leaving the button inside it 7px low with 50px of
+   phantom space beside it. Zeroed here, the two buttons are the same box and the row's gap is the
+   only thing between them. */
+.platform-calendar-details-container .platform-calendar-event-actions .button {
+  margin: 0;
+}
+
+/* The summary is the event's own description -- what the thing actually is -- so it reads as body
+   copy rather than sitting in the 1px box this rule used to draw. That box is why simisinc.com's
+   site CSS hides this element outright, in a rule whose comment says it "read as a form field
+   rather than body copy"; restyling it here removes the reason for that override. Measure is
+   capped so a paragraph does not run the full column width. */
+.platform-calendar-details-container .platform-calendar-event-summary {
+  border: 0;
+  padding: 0;
+  margin: 14px 0 4px;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  max-width: 62ch;
 }
 
 .platform-calendar-details-container .platform-calendar-event-return {
@@ -2075,11 +2673,11 @@ div.item-image-large img {
    the button is for. The var() keeps a literal fallback so this holds whether or not
    the Foundation token layer is present. */
 .button.brand {
-  background-color: #ff8c00;
+  background-color: var(--sc-brand);
   color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 .button.brand:hover, .button.brand:focus {
-  background-color: #d97700;
+  background-color: var(--sc-brand-hover);
   color: var(--sc-fnd-ink-on-accent, #0a0a0a);
 }
 /* Same brand-orange accent as .button.brand above, for inline text (e.g. a small eyebrow/kicker
@@ -2087,7 +2685,7 @@ div.item-image-large img {
    attribute -- content-widget HTML is sanitized on save and strips inline style= attributes, so
    there is no other way to color a piece of page text without a real CSS class to reference. */
 .text-brand {
-  color: #ff8c00;
+  color: var(--sc-brand-text);
 }
 
 /* Full-bleed hero treatment for a contentSlider: image as a fixed-height cropped background with
@@ -2133,6 +2731,19 @@ div.item-image-large img {
   }
 }
 
+/* Until Swiper initializes, every slide is still in normal document flow, so a multi-slide hero
+   stacks them vertically (580px each, per the height above) and then collapses to a single visible
+   slide the moment Swiper runs -- pulling everything below the hero up by the height of the extra
+   slides. On a six-slide hero that is a ~2900px shift; it measured as CLS 0.938 against <main>,
+   i.e. effectively the page's entire layout-shift score. Hiding all but the first slide until
+   Swiper adds .swiper-initialized makes the reserved height before init equal the height after it,
+   so no shift occurs. This deliberately styles the pre-init state rather than reserving height on a
+   container: the slide already carries its own height rule, and a container height would have to be
+   kept in sync with it (and with the max-width:640px override) by hand. */
+.hero-banner .swiper:not(.swiper-initialized) .swiper-slide:not(:first-child) {
+  display: none;
+}
+
 /* ---------------------------------------------------------------------------
    Blog post list -- "showcase" view (blog-post-list-showcase.jsp)
 
@@ -2174,7 +2785,7 @@ div.item-image-large img {
   border: 0;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--sc-surface, #ffffff);
+  background: var(--sc-surface, #f5f3ef);
   box-shadow: var(--sc-shadow-lg, 0 2px 10px rgba(0, 0, 0, 0.10));
   transition: transform var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease),
               box-shadow var(--sc-motion-base, 200ms) var(--sc-motion-ease, ease);
@@ -2202,7 +2813,7 @@ div.item-image-large img {
    The sunken surface token gives the letterboxing a deliberate ground. */
 .platform-blog-showcase-container .card-image {
   overflow: hidden;
-  background: var(--sc-surface-sunken, #f4f5f7);
+  background: var(--sc-surface-sunken, #ede9e3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2220,10 +2831,10 @@ div.item-image-large img {
   transform: scale(1.045);
 }
 
-.platform-blog-showcase-container .card-section.blog-title h3,
-.platform-blog-showcase-container .card-section.blog-title h3 a {
+.platform-blog-showcase-container .card-section.blog-title h2,
+.platform-blog-showcase-container .card-section.blog-title h2 a {
   font-weight: 800;
-  font-size: 24px;
+  font-size: var(--sc-font-xl, 1.5rem);
   line-height: 1.22;
   letter-spacing: -0.01em;
   margin: 0;
@@ -2260,11 +2871,11 @@ div.item-image-large img {
 }
 
 .platform-blog-showcase-container .blog-showcase-date {
-  font-size: 0.78rem;
+  font-size: var(--sc-font-xs, 0.75rem);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 600;
-  color: var(--sc-text-muted, #71767d);
+  font-weight: var(--sc-weight-semibold, 600);
+  color: var(--sc-text-muted, #6c6861);
 }
 
 /* Shape only. The colours stay whatever the site's theme gives .button, so this
@@ -2273,8 +2884,8 @@ div.item-image-large img {
   border-radius: var(--sc-radius-pill, 999px);
   margin: 0;
   padding: 8px 16px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: var(--sc-font-sm, 0.8125rem);
+  font-weight: var(--sc-weight-semibold, 600);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -2317,8 +2928,8 @@ div.item-image-large img {
   min-width: 38px;
   height: 38px;
   padding: 0 10px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--sc-font-base, 1rem);
+  font-weight: var(--sc-weight-semibold, 600);
   color: inherit;
   opacity: 0.75;
   background: none;
@@ -2337,7 +2948,7 @@ div.item-image-large img {
   position: relative;
   min-width: 38px;
   padding: 0 10px;
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   font-weight: 800;
   color: inherit;
   background: none;
@@ -2363,12 +2974,12 @@ div.item-image-large img {
 .platform-blog-showcase-container nav ul.pagination li.ellipsis::after {
   color: inherit;
   opacity: 0.6;
-  font-size: 16px;
+  font-size: var(--sc-font-base, 1rem);
   line-height: 1;
 }
 
 .platform-blog-showcase-container nav ul.pagination li a:focus-visible {
-  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #2c79be);
+  outline: var(--sc-focus-ring-width, 2px) solid var(--sc-focus-ring, #04707c);
   outline-offset: var(--sc-focus-ring-offset, 2px);
   border-radius: 3px;
   opacity: 1;
@@ -2386,4 +2997,133 @@ div.item-image-large img {
   .platform-blog-showcase-container .card:hover .card-image img {
     transform: none;
   }
+}
+
+/* Mailing-list end states: subscription confirmed, unsubscribed, an expired confirmation link,
+   and the inline signup success message. These are the last thing a subscriber sees, and each was
+   a bare Foundation callout -- a stock green box sitting on an otherwise branded page, matching
+   neither the site around it nor the branded emails that led the reader here.
+
+   Built from the semantic tokens rather than a fixed palette, so each site's own theme carries
+   through and the platform is not imposing one. Deliberately no invented success-green: there is
+   no --sc-success token to reach for, and the outcome is already unambiguous from the wording, so
+   colour would be decoration rather than information. */
+.platform-subscription-result {
+  max-width: 34rem;
+  margin: var(--sc-space-6, 2rem) auto;
+  padding: var(--sc-space-6, 2rem);
+  background: var(--sc-surface, #f5f3ef);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  border-radius: var(--sc-radius-md, 4px);
+  box-shadow: var(--sc-shadow-md, 0 1px 3px rgba(23, 25, 30, 0.08));
+  text-align: center;
+  /* Paired with the fill above, and pinned (issue #1777). The card sets its own light surface but
+     sat on the page's inherited ink, so on a dark-themed site the message came out light-on-light
+     at 1.10:1 -- invisible, not merely low. A site's page-level paragraph rule routinely carries
+     three classes (`body:not(:has(.x)) .sub-page > .cell p` on the site that surfaced this) and
+     beats a two-class component rule, and it is not wrong to: it cannot know a component with its
+     own fill is nested inside it. Same shape as the .callout ink bug in issue #1757.
+
+     A token is pinned here, never a colour, so this is not the .button.box mistake from issue
+     #1589 where a fixed ink outlived a repainted fill and landed at 2.89:1. The escape hatch is
+     the designed one: redefine --sc-surface and --sc-text* together and fill and ink move as a
+     pair. Style the card's tokens, not its descendants from outside. */
+  color: var(--sc-text, #2c2925) !important;
+}
+
+.platform-subscription-result > :first-child {
+  margin-top: 0;
+}
+
+.platform-subscription-result h1,
+.platform-subscription-result h2,
+.platform-subscription-result h3 {
+  margin-bottom: var(--sc-space-2, 0.5rem);
+  color: var(--sc-text, #2c2925) !important;
+}
+
+.platform-subscription-result p {
+  margin-bottom: var(--sc-space-5, 1.5rem);
+  /* The one that actually broke: the site rule targets `p`, so the heading above kept its own
+     colour at 13.06:1 while the message dropped to 1.10:1. A half-styled card reads as a design
+     choice, which is why nobody spotted it until someone subscribed and saw nothing. */
+  color: var(--sc-text-muted, #6c6861) !important;
+  line-height: var(--sc-leading-relaxed, 1.5);
+}
+
+/* The action row is last; without this the card carries a stray gap under its buttons. */
+.platform-subscription-result > :last-child {
+  margin-bottom: 0;
+}
+
+/* Settings hub (issue #1765). A card carries a name AND a line saying what is behind it -- the
+   thing the flat menu could not do and the reason this page exists, so the description is styled
+   as content rather than as an afterthought.
+
+   Surface and ink are set together. A card that painted its own fill and left the text to whatever
+   the page said is exactly how the subscription card ended up at 1.10:1 (issue #1777); every colour
+   below comes from the same token set as the fill behind it. */
+.platform-settings-group {
+  margin-bottom: var(--sc-space-6, 2rem);
+}
+
+.platform-settings-group-title {
+  font-size: 1.1rem;
+  margin-bottom: var(--sc-space-2, 0.5rem);
+  color: var(--sc-text, #2c2925);
+}
+
+.platform-settings-group-description {
+  margin-bottom: var(--sc-space-5, 1.5rem);
+  color: var(--sc-text-muted, #6c6861);
+}
+
+.platform-settings-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--sc-space-5, 1.5rem);
+  background: var(--sc-surface, #f5f3ef);
+  color: var(--sc-text, #2c2925);
+  border: 1px solid var(--sc-border, #ddd8cf);
+  border-radius: var(--sc-radius-md, 4px);
+  /* The card is an anchor, so without this it takes the link colour and the description with it */
+  text-decoration: none;
+}
+
+.platform-settings-card:hover,
+.platform-settings-card:focus {
+  background: var(--sc-surface-raised, #ffffff);
+  border-color: var(--sc-link, #04707c);
+  color: var(--sc-text, #2c2925);
+  text-decoration: none;
+}
+
+/* Matches the platform's existing keyboard-focus treatment (issue #1501) rather than inventing a
+   second one, and is an outline so it is not lost against the hover fill. */
+.platform-settings-card:focus-visible {
+  outline: 3px solid var(--sc-focus-ring);
+  outline-offset: 2px;
+}
+
+.platform-settings-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin-bottom: var(--sc-space-2, 0.5rem);
+  color: var(--sc-text, #2c2925);
+}
+
+.platform-settings-card-label {
+  flex: 1 1 auto;
+}
+
+.platform-settings-card-state {
+  flex: 0 0 auto;
+}
+
+.platform-settings-card-description {
+  color: var(--sc-text-muted, #6c6861);
+  line-height: var(--sc-leading-relaxed, 1.5);
 }

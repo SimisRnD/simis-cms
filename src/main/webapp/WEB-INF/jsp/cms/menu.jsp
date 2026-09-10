@@ -28,7 +28,7 @@
 <jsp:useBean id="wrap" class="java.lang.String" scope="request"/>
 <jsp:useBean id="cartItemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cartEntryList" class="java.util.ArrayList" scope="request"/>
-<div class="platform-menu-container" style="position: relative;">
+<div class="platform-menu-container">
 <c:if test="${!empty title}">
   <span class="menu-title padding-left-15"><c:out value="${title}" /></span>
 </c:if>
@@ -50,7 +50,7 @@
 <c:if test="${showEditor eq 'true' && !empty uniqueId}">
   <c:choose>
     <c:when test="${!empty linkList}">
-      <div class="platform-toc-editor"><a class="hollow button small secondary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
+      <div class="platform-toc-editor"><a aria-label="Edit this table of contents" class="hollow button small secondary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
     </c:when>
     <c:otherwise>
       <a class="button tiny expanded radius secondary" href="${ctx}/table-of-contents-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i> Add Links</a>

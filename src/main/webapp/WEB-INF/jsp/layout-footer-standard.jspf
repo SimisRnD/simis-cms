@@ -34,7 +34,9 @@
                     <%-- Defaults to the bundled logo; upgrades to the admin-configured one only once
                          an Image() probe confirms it actually loads, so a fresh install never 404s
                          here. --%>
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-white').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-white.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-white').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -48,7 +50,9 @@
                   </c:when>
                   <c:otherwise>
                     <img id="footer-logo-white-color" src="${ctx}/images/logo-white-color.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-white-color').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-white-color').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -65,7 +69,9 @@
                   </c:when>
                   <c:otherwise>
                     <img id="footer-logo-default" src="${ctx}/images/logo-footer.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
-                    <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-footer.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-default').src=u;};i.src=u;})();</script>
+                    <c:if test="${!empty brandedAssetContext}">
+                      <script nonce="${cspNonce}">(function(){var u='${js:escape(brandedAssetContext)}/images/logo-footer.png';var i=new Image();i.onload=function(){document.getElementById('footer-logo-default').src=u;};i.src=u;})();</script>
+                    </c:if>
                   </c:otherwise>
                 </c:choose>
               </c:otherwise>

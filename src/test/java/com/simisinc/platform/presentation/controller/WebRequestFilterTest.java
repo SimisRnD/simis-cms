@@ -18,7 +18,9 @@ package com.simisinc.platform.presentation.controller;
 
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -45,21 +47,26 @@ import jakarta.servlet.http.HttpSession;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DoNotTrackCommand;
+import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
 import com.simisinc.platform.application.cms.LoadWebRedirectCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -162,7 +169,11 @@ class WebRequestFilterTest {
       WebRequestFilter filter = filterRequiringSSL(siteProperties);
       filter.doFilter(request, response, chain);
 
-      verify(response, never()).setHeader(anyString(), anyString());
+      // Narrowed from "no header at all" to the redirect specifically: every response now carries
+      // security headers, so a blanket assertion no longer expresses what this test is about --
+      // that the filter passed the request through instead of echoing an untrusted Host header.
+      verify(response, never()).setHeader(eq("Location"), anyString());
+      verify(response, never()).setStatus(anyInt());
       verify(chain).doFilter(request, response);
     }
   }
@@ -675,7 +686,9 @@ class WebRequestFilterTest {
       WebRequestFilter filter = filterWithoutSSL(siteProperties);
       filter.doFilter(requestForResource("/css/shared-path.css"), response, chain);
 
-      verify(response, never()).setHeader(anyString(), anyString());
+      // Location only, for the same reason as above: a disabled DB redirect must not fall
+      // through to the CSV map, which is a statement about Location and not about caching.
+      verify(response, never()).setHeader(eq("Location"), anyString());
       verify(chain).doFilter(any(), any());
     }
   }
@@ -715,7 +728,11 @@ class WebRequestFilterTest {
 
       HttpServletResponse secondResponse = mock(HttpServletResponse.class);
       filter.doFilter(requestForResource("/css/deleted-path.css"), secondResponse, chain);
-      verify(secondResponse, never()).setHeader(anyString(), anyString());
+      // Narrowed to Location, which is what this asserts: that the purged path no longer
+      // redirects. It used to say "no header at all", which also happened to be true only because
+      // nothing else set one -- these /css paths now carry a revalidation Cache-Control (issue
+      // 1827), and that is unrelated to whether the CSV fallback fired.
+      verify(secondResponse, never()).setHeader(eq("Location"), anyString());
       verify(chain).doFilter(any(), any());
     }
   }
@@ -742,6 +759,87 @@ class WebRequestFilterTest {
       verify(response).setHeader("Location", "/new-db-page");
       verify(response).setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
       verify(chain, never()).doFilter(any(), any());
+    }
+  }
+
+  // HSTS used to be set by PageServlet, so only a rendered page carried it. A redirect returns from
+  // do301()/do302() without reaching the servlet, so none of them advertised HTTPS-only -- including
+  // the trailing-slash canonical redirect, which fires on ordinary traffic constantly. Confirmed in
+  // production before the fix: a 200 page had the header, /careers/ and /employee-benefits (both
+  // 301s) had nosniff and Cross-Origin-Resource-Policy from the same filter block but no HSTS.
+  @Test
+  void aRedirectAdvertisesHstsRatherThanOnlyRenderedPagesDoing() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/old-db-page"))
+          .thenReturn(dbRedirect("/old-db-page", "/new-db-page", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      filter.doFilter(requestForResource("/old-db-page"), response, chain);
+
+      // The redirect still happens, and now says HTTPS-only on the way out
+      verify(response).setHeader("Location", "/new-db-page");
+      verify(response).setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+      verify(response).setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+  }
+
+  // Gated on system.ssl, unchanged from how PageServlet gated it: advertising HTTPS-only from a
+  // deployment that cannot serve HTTPS makes browsers refuse the site for the whole max-age.
+  @Test
+  void hstsIsWithheldWhenTheDeploymentIsNotConfiguredForSsl() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/old-db-page"))
+          .thenReturn(dbRedirect("/old-db-page", "/new-db-page", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/old-db-page"), response, chain);
+
+      verify(response).setHeader("Location", "/new-db-page");
+      verify(response, never()).setHeader(eq("Strict-Transport-Security"), anyString());
+    }
+  }
+
+  // The same block already covers static files for nosniff; HSTS rides along, which matters because
+  // a stylesheet or image is often the first response a browser gets from the site.
+  @Test
+  void aStaticResourceAlsoAdvertisesHsts() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      filter.doFilter(requestForResource("/css/platform.css"), response, chain);
+
+      verify(response).setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     }
   }
 
@@ -926,6 +1024,49 @@ class WebRequestFilterTest {
     }
   }
 
+  @Test
+  void theRootFaviconIsServedAsABrowserResourceRatherThanRoutedAsAPage() throws Exception {
+    // /favicon.ico is the one path a browser fetches on its own initiative, with no page having
+    // linked it -- from a bookmark, a new-tab tile, or an address-bar visit. PageServlet is mapped
+    // to "/" and therefore answers anything web.xml does not map, so before this fix the request
+    // ran the whole page pipeline: it minted an HTTP session and a visitor token, then rendered a
+    // 404 page in place of an icon this application already ships. Exempting it here is what lets
+    // it short-circuit to the default servlet the way every other static asset does.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      // Blocked for every resource, so reaching the chain can only be the browser-resource
+      // exemption and not a permissive stub -- the same construction as the CSS case above
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/favicon.ico"), response, chain);
+
+      verify(chain).doFilter(any(), any());
+      verify(response, never()).sendError(HttpServletResponse.SC_NOT_FOUND);
+    }
+  }
+
+  @Test
+  void onlyTheExactRootFaviconPathIsExemptAndNotSlugsAroundIt() throws Exception {
+    // The favicon entry is an equality check, not a prefix, so it cannot become the bypass the
+    // anchored prefixes above exist to prevent. "/favicon" is included deliberately: it is what
+    // this entry used to say, and nothing serves it -- a page could legitimately claim that slug,
+    // and it must route as a page rather than skipping the IP-block check.
+    for (String resource : new String[] { "/favicon", "/favicon.ico-generator", "/favicon.icon",
+        "/favicon.png", "/favicons/site.ico" }) {
+      assertBlockedIpIsRejectedFor(resource);
+    }
+  }
+
   private void assertBlockedIpIsRejectedFor(String resource) throws Exception {
     HttpServletResponse response = mock(HttpServletResponse.class);
     FilterChain chain = mock(FilterChain.class);
@@ -947,4 +1088,261 @@ class WebRequestFilterTest {
       verify(chain, never()).doFilter(any(), any());
     }
   }
+
+  // --- "Show login?" (site.login) and the remember-me cookie ---
+  // LoginWidget.finalizeLogin gates a password sign-in on site.login, but the remember-me restore in
+  // doFilter established a session by calling UserSession.login(user) directly and never consulted the
+  // setting. A non-admin who ticked "Stay logged in" before an admin turned the toggle off therefore kept
+  // getting authenticated sessions from the cookie -- and indefinitely, not for one fortnight, because
+  // each restore re-extends the token row and the cookie by another two weeks.
+
+  /** A request from a browser that holds a remember-me cookie but has no authenticated session yet. */
+  private HttpServletRequest anonymousRequestWithRememberMeCookie(HttpSession session, String token) {
+    UserSession userSession = new UserSession();
+    Assertions.assertFalse(userSession.isLoggedIn());
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    return loggedInRequest(session, new Cookie[] { new Cookie(CookieConstants.USER_TOKEN, token) });
+  }
+
+  private User userWithRoles(long id, String... roleCodes) {
+    User user = new User();
+    user.setId(id);
+    user.setEmail("user" + id + "@example.com");
+    List<Role> roleList = new ArrayList<>();
+    for (String code : roleCodes) {
+      roleList.add(new Role("Title", code));
+    }
+    user.setRoleList(roleList);
+    return user;
+  }
+
+  /**
+   * Runs one remember-me restore against a given site.login value and reports whether the filter
+   * established an authenticated session for the token's user.
+   *
+   * @return true when the cookie was honored and the user ended up logged in
+   */
+  private boolean rememberMeRestoreLogsIn(User user, String siteLoginValue, boolean expectCookieCleared)
+      throws Exception {
+    String token = "remember-me-token-" + user.getId();
+    HttpSession session = mock(HttpSession.class);
+    HttpServletRequest request = anonymousRequestWithRememberMeCookie(session, token);
+    UserSession userSession = (UserSession) session.getAttribute(SessionConstants.USER);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class);
+        MockedStatic<SaveVisitorCommand> visitors = mockStatic(SaveVisitorCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<BreakGlassAlertCommand> breakGlass = mockStatic(BreakGlassAlertCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString()))
+          .thenReturn(TEST_ZONE.getId());
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn(siteLoginValue);
+      // The remember-me token itself is valid and resolves to a live, enabled account -- the setting
+      // is the only thing under test here
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(token)).thenReturn(user);
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(user.getId())).thenReturn(user);
+      mfa.when(() -> MfaEnforcementCommand.requiresEnrollment(any(), eq(user))).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      // Whichever way the gate falls, the request itself is served rather than redirected
+      verify(chain).doFilter(request, response);
+      logout.verify(() -> LogoutCommand.logout(request, response), never());
+
+      // A refused restore must not quietly revoke the credential: the token stays valid in the
+      // database and the browser keeps its cookie, so re-enabling the setting restores these users
+      auth.verify(() -> AuthenticateLoginCommand.extendTokenExpiration(eq(token), anyInt()),
+          userSession.isLoggedIn() ? times(1) : never());
+      verify(response, expectCookieCleared ? times(1) : never()).addCookie(argThat(
+          cookie -> CookieConstants.USER_TOKEN.equals(cookie.getName()) && cookie.getMaxAge() == 0));
+
+      return userSession.isLoggedIn();
+    }
+  }
+
+  @Test
+  void aNonAdminRememberMeCookieIsRefusedWhileSignInsAreDisabled() throws Exception {
+    Assertions.assertFalse(rememberMeRestoreLogsIn(userWithRoles(60L), "false", false),
+        "A non-admin's remember-me cookie must not establish a session while site.login is off");
+  }
+
+  @Test
+  void aNonAdminRememberMeCookieStillWorksWhileSignInsAreEnabled() throws Exception {
+    // Guards the other direction: the gate must not break the ordinary remember-me path
+    Assertions.assertTrue(rememberMeRestoreLogsIn(userWithRoles(61L), "true", false),
+        "A non-admin's remember-me cookie must still work while site.login is on");
+  }
+
+  @Test
+  void anAdminRememberMeCookieStillWorksWhileSignInsAreDisabled() throws Exception {
+    // Mirrors LoginWidget.finalizeLogin's admin exemption, so a misconfigured toggle can never lock
+    // the site owner out of their own site
+    Assertions.assertTrue(rememberMeRestoreLogsIn(userWithRoles(62L, "admin"), "false", false),
+        "An admin's remember-me cookie must still work while site.login is off");
+  }
+  /**
+   * Which assets may be cached for a year. The exclusions matter more than the inclusions here: a
+   * path wrongly treated as immutable is cached by every visitor's browser for a year with no way
+   * to recall it.
+   */
+  @Nested
+  class ImmutableAssetCaching {
+
+    @Test
+    void contentAddressedAssetsAreImmutable() {
+      // upload timestamp + id in the path: a re-upload is a different URL
+      Assertions.assertTrue(WebRequestFilter.isImmutableAsset("/assets/img/20260903203907-332/logo.webp"));
+      // version in the filename
+      Assertions.assertTrue(WebRequestFilter.isImmutableAsset("/fonts/inter/inter-v11-latin-regular.woff2"));
+      // version in the vendor directory
+      Assertions.assertTrue(
+          WebRequestFilter.isImmutableAsset("/css/fontawesome-free-6.1.1-web/webfonts/fa-solid-900.woff2"));
+    }
+
+    @Test
+    void stylesheetsAndScriptsAreNotImmutable() {
+      // These are busted by a "?v=" stamp read from ApplicationInfo.VERSION, which is hand-edited
+      // and goes stale; caching them for a year would strand a deployed CSS fix on every browser
+      // that had already visited.
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/platform.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/platform-tokens.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css/custom/stylesheet.css"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/javascript/platform-password-reveal.js"));
+    }
+
+    @Test
+    void prefixesAreAnchoredAtAPathBoundary() {
+      // The trap isBrowserResourcePath() documents: an ordinary page slug that merely starts with
+      // the same letters must not inherit a year-long cache.
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/fonts-of-the-world"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/assets/imgur-review"));
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset("/css-tutorial-2026"));
+    }
+
+    @Test
+    void nullIsSafe() {
+      Assertions.assertFalse(WebRequestFilter.isImmutableAsset(null));
+    }
+  }
+
+
+  @Test
+  void trailingSlashRedirectsToTheCanonicalPath() {
+    // /news/ used to 404 while /news served the page, so an older link or a bookmark with the slash
+    // on the end was a dead end for real visitors.
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news/", null));
+    Assertions.assertEquals("/data-center", WebRequestFilter.trailingSlashRedirect("/data-center/", null));
+    // Repeated slashes collapse to the same canonical target rather than to "/news/"
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news///", null));
+  }
+
+  @Test
+  void trailingSlashRedirectKeepsTheQueryString() {
+    Assertions.assertEquals("/news?page=2", WebRequestFilter.trailingSlashRedirect("/news/", "page=2"));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesPathsWithoutATrailingSlashAlone() {
+    // The redirect must be a no-op for ordinary requests, or every page would bounce once
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/news", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect(null, null));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesTheSiteRootAlone() {
+    // "/" is served; redirecting it would be an infinite loop, and there is nothing shorter anyway
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("//", null));
+  }
+
+  @Test
+  void trailingSlashRedirectLeavesApiAndStaticDirectoriesAlone() {
+    // REST clients are not browsers and will not follow a 301; static directories belong to the
+    // default servlet rather than to page routing.
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/api/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/api/v1/items/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/css/", null));
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("/javascript/vendor/", null));
+  }
+
+  @Test
+  void trailingSlashRedirectRefusesToBuildAnUnsafeLocation() {
+    // A Location header is being built, so a protocol-relative path must never become the target --
+    // "//evil.example/" would send the visitor to another host entirely.
+    Assertions.assertNull(WebRequestFilter.trailingSlashRedirect("//evil.example/", null));
+    // A control character in the query would let a header be split; the path still redirects, the
+    // query is simply dropped rather than carried into the header.
+    Assertions.assertEquals("/news", WebRequestFilter.trailingSlashRedirect("/news/", "a=1\r\nX-Injected: 1"));
+  }
+
+  @Test
+  void trailingSlashRequestIs301edAndNeverReachesTheChain() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(httpRequestOverPlainHttp("www.example.com", "/news/"), response, chain);
+
+      verify(response).setHeader("Location", "/news");
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
+
+  // ---- security headers on every response, including static files ----
+
+  @Test
+  void publicAssetsAreEmbeddableByAnyOrigin() {
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/img/20260823/diagram.png"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/css/platform.css"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/javascript/jquery-3.7.1/jquery.min.js"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/fonts/inter/inter-v11-latin-regular.woff2"));
+    Assertions.assertTrue(WebRequestFilter.isPubliclyEmbeddableAsset("/favicon.ico"));
+  }
+
+  @Test
+  void permissionedDocumentsAreNotEmbeddableByAnyOrigin() {
+    // /assets/file is served according to a folder's permissions -- the case CORP exists for
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/file/20210303-32/report.pdf"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/about-us"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/sitemap.xml"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/.well-known/security.txt"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset(null));
+  }
+
+  @Test
+  void anOrdinaryPageWhoseSlugStartsLikeAnAssetDirectoryIsNotTreatedAsOne() {
+    // Same anchoring trap isBrowserResourcePath documents: an unanchored prefix would hand
+    // cross-origin to real content pages
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/images-of-our-team"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/css-tutorial-2026"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/javascript-basics"));
+    Assertions.assertFalse(WebRequestFilter.isPubliclyEmbeddableAsset("/assets/images-report"));
+  }
+
 }

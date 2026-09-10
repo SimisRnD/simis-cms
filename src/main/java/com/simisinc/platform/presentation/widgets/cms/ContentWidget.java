@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
+import com.simisinc.platform.application.cms.ContentVideoCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -64,28 +65,18 @@ public class ContentWidget extends GenericWidget {
     // Preferences
     context.getRequest().setAttribute("videoBackgroundUrl", context.getPreferences().get("videoBackgroundUrl"));
 
+    // Opt-in "Last updated" line. Off unless a page asks for it: it is wanted on the pages where
+    // currency is the point -- a policy, a certification, a published standard -- and is noise on a
+    // marketing panel or a call-to-action block, which is most of them.
+    context.getRequest().setAttribute("showLastUpdated", context.getPreferences().get("showLastUpdated"));
+
     // Use the final html
     context.getRequest().setAttribute("contentHtml", html);
 
-    // Handle scripts and iframes
-    if (html.contains("<script")) {
-      context.getResponse().setHeader("X-XSS-Protection", "0");
-    } else if (html.contains("<iframe")) {
-      // Allow iframes (can limit later to certain applications)
-      context.getResponse().setHeader("X-XSS-Protection", "0");
-      //        context.getResponse().setHeader("Content-Security-Policy", "script-src 'self' www.google-analytics.com ajax.googleapis.com;");
-      /*
-        if (html.contains("youtube.com")) {
-          context.getResponse().setHeader("Content-Security-Policy", "child-src 'self' *.youtube.com ;");
-        }
-        if (html.contains("vimeo.com")) {
-          context.getResponse().setHeader("Content-Security-Policy", "default-src *.vimeo.com ;");
-          context.getResponse().setHeader("Content-Security-Policy", "script-src *.vimeo.com *.vimeocdn.com *.newrelic.com *.nr-data.net ;");
-          context.getResponse().setHeader("Content-Security-Policy", "style-src *.vimeocdn.com ;");
-          context.getResponse().setHeader("Content-Security-Policy", "child-src 'self' *.vimeo.com *.vimeocdn.com ;");
-        }
-      */
-    }
+    // Report any self-hosted videos this block shows, so the page can describe them as VideoObject
+    // (issue #1795). Read from the finished html rather than from the stored content, because that
+    // is what the visitor and the crawler are actually given.
+    context.setVideos(ContentVideoCommand.findVideos(html));
 
     context.setJsp(JSP);
     return context;

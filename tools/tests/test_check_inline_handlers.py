@@ -74,8 +74,27 @@ def test_javascript_url_inside_a_script_block_is_ignored(repo):
 
 
 def test_refuses_to_run_against_too_few_jsps(repo):
-    # The no-op guard itself, since everything above depends on it.
+    # The no-op guard itself, since everything above depends on it. Exit 2, not 1:
+    # a tree too small to be the real one means the sweep did not happen, which is a
+    # different fact from "a file is over its allowlisted budget".
     write(repo, f"{JSP_ROOT}/only.jsp", CLEAN)
     r = run_tool(TOOL, repo, "--strict")
-    assert r.returncode != 0
+    assert r.returncode == 2, r.stdout + r.stderr
     assert "scanned only" in (r.stdout + r.stderr)
+
+
+def test_missing_jsp_tree_exits_two(repo):
+    # Nothing written at all: the directory this check reads does not exist. Exit 2
+    # keeps a moved JSP tree from landing in CI wearing the exit code of a real
+    # inline-handler finding.
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert "error:" in r.stderr
+    assert "not found" in r.stderr
+
+
+def test_missing_jsp_tree_exits_two_without_strict_too(repo):
+    # Report-only mode reports 0 for findings, but still cannot report on a tree it
+    # cannot find.
+    r = run_tool(TOOL, repo)
+    assert r.returncode == 2, r.stdout + r.stderr

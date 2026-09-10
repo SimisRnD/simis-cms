@@ -455,4 +455,88 @@ class BlogEditorWidgetTest extends WidgetBase {
       assertTrue(result.getSuccessMessage().contains("requires review"), result.getSuccessMessage());
     }
   }
+
+  @Test
+  void postRedirectsToTheFullBlogPostPathNotJustThePostSlug()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    BlogPost saved = blogPost(5L, new Timestamp(System.currentTimeMillis()));
+    saved.setBlogId(3L);
+    saved.setUniqueId("simis-supports-house-bill-858");
+    Blog blog = new Blog();
+    blog.setId(3L);
+    blog.setUniqueId("news");
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "enabled", "true");
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
+        MockedStatic<LoadBlogCommand> loadBlog = mockStatic(LoadBlogCommand.class);
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+      loadBlog.when(() -> LoadBlogCommand.loadBlogById(3L)).thenReturn(blog);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
+
+      WidgetContext result = new BlogEditorWidget().post(widgetContext);
+
+      // Without the blog segment this is /simis-supports-house-bill-858, which 404s -- the author
+      // lands on an error page immediately after a save that actually succeeded
+      assertEquals("/news/simis-supports-house-bill-858", result.getRedirect());
+    }
+  }
+
+  @Test
+  void postFallsBackToTheSiteRootRatherThanA404WhenTheBlogCannotBeResolved()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    BlogPost saved = blogPost(5L, new Timestamp(System.currentTimeMillis()));
+    saved.setBlogId(3L);
+    saved.setUniqueId("orphaned-post");
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "enabled", "true");
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
+        MockedStatic<LoadBlogCommand> loadBlog = mockStatic(LoadBlogCommand.class);
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+      loadBlog.when(() -> LoadBlogCommand.loadBlogById(3L)).thenReturn(null);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
+
+      WidgetContext result = new BlogEditorWidget().post(widgetContext);
+
+      assertEquals("/", result.getRedirect());
+    }
+  }
+
+  @Test
+  void postStillHonoursAnExplicitReturnPage() throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    BlogPost saved = blogPost(5L, new Timestamp(System.currentTimeMillis()));
+    saved.setBlogId(3L);
+    saved.setUniqueId("a-post");
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "enabled", "true");
+    addQueryParameter(widgetContext, "returnPage", "/news");
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
+        MockedStatic<LoadBlogCommand> loadBlog = mockStatic(LoadBlogCommand.class);
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
+
+      WidgetContext result = new BlogEditorWidget().post(widgetContext);
+
+      assertEquals("/news", result.getRedirect());
+      loadBlog.verifyNoInteractions();
+    }
+  }
+
 }

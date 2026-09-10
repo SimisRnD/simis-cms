@@ -26,7 +26,7 @@
 <jsp:useBean id="sectionList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="expandTopLevel" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
@@ -34,7 +34,7 @@
       <c:if test="${isDraft eq 'true'}">
         <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Publish this content?">DRAFT</a>
       </c:if>
-      <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Edit this content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>

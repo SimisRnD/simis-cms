@@ -34,7 +34,7 @@
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <div class="callout primary radius">
   <p style="margin-bottom:0">
@@ -90,9 +90,9 @@
           <fmt:formatNumber value="${empty blogPostCount[blog.id] ? 0 : blogPostCount[blog.id]}" />
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/blog?blogId=${blog.id}&returnPage=/admin/blogs"><i class="${font:fas()} fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(blog.name)}" href="${ctx}/admin/blog?blogId=${blog.id}&returnPage=/admin/blogs"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="#" data-js-call="deleteBlog" data-js-arg1="${blog.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(blog.name)}" href="#" data-js-call="deleteBlog" data-js-arg1="${blog.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>
@@ -137,7 +137,7 @@
     flagging as a follow-up if the list grows large enough that finding one by scrolling or a filter
     dropdown becomes painful.</li>
 </ul>
-<p class="help-text">
+<p class="help-text page-help">
   Blog and post data lives in the same Postgres database as everything else on the site, covered by
   normal database backup/restore -- there's nothing storage- or search-index-specific to know about
   here.

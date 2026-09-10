@@ -16,15 +16,15 @@
   -->
 <template name="Email Subscription Form" image="Email Subscription Form.png">
   <page>
-    <!-- Setup a mailing list named "Newsletter" in Admin/Mailing Lists, or edit the mailingList preference below to match one you've already created -->
+    <!-- Uses the "Newsletter" mailing list seeded at install. To point this at a different list, open Admin/Mailing Lists, copy that list's Unique Id, and put it in the mailingListUniqueId preference below -->
     <section class="align-center">
       <column class="small-12 medium-8 cell">
         <widget name="content">
           <uniqueId>${webPageName}-content</uniqueId>
         </widget>
         <widget name="emailSubscribe">
-          <!-- A mailing list with the unique id/name "Newsletter" must exist (create it in Admin/Mailing Lists) for this widget to work -->
-          <mailingList>Newsletter</mailingList>
+          <!-- A mailing list with this unique id must exist (Admin/Mailing Lists shows each list's Unique Id) or this widget will not render. Unlike a list's name, its unique id is fixed when the list is created and survives a rename. The older mailingList preference, which names a list instead, is still supported -->
+          <mailingListUniqueId>newsletter</mailingListUniqueId>
           <title>Subscribe to our mailing list</title>
           <buttonName>Subscribe</buttonName>
           <successMessage>You are now subscribed!</successMessage>

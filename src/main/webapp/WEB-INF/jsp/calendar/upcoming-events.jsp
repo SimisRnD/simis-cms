@@ -26,7 +26,7 @@
 <div class="platform-calendar-list-container">
 <c:if test="${!empty title}">
   <div class="platform-calendar-title text-center">
-    <h3><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h3>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </div>
 </c:if>
 <c:if test="${empty calendarEventList}">
@@ -54,10 +54,10 @@
   <div class="platform-calendar-event-block">
     <c:choose>
       <c:when test="${!empty calendarLink}">
-        <h4><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h4>
+        <h3><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h3>
       </c:when>
       <c:otherwise>
-        <h4><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h4>
+        <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h3>
       </c:otherwise>
     </c:choose>
     <c:set var="startDateTime" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" /></c:set>

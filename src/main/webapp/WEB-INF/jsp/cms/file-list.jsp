@@ -21,13 +21,15 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="file" uri="/WEB-INF/tlds/file-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="fileItemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useViewer" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLinks" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <c:if test="${empty fileItemList}">
   No documents were found
@@ -36,21 +38,32 @@
   <ul>
   <c:forEach items="${fileItemList}" var="file" varStatus="status">
     <li>
+      <%-- The file's own type icon, matching admin/folder-files-list.jsp so a document looks
+           the same wherever it is listed. Decorative: the link beside it already names the
+           file, so it is hidden from assistive technology rather than given a title
+           attribute, which would be announced as a second, redundant label. fa-fw gives it a
+           fixed 1.25em box, which both separates it from the title and lines the icons
+           up in a column -- c:set trims its body, so a trailing space here would not
+           survive. It is emitted
+           inside the link below so that it takes the link's own color; a site that themes
+           its links would otherwise leave the icon in the surrounding text color, which on
+           a dark panel can be invisible. --%>
+      <c:set var="fileIcon"><c:if test="${showIcon eq 'true'}"><i class="fa <c:out value="${file:icon(file.fileType)}"/> fa-fw" aria-hidden="true"></i> </c:if></c:set>
       <c:choose>
         <c:when test="${showLinks eq 'false'}">
-          <c:out value="${file.title}" />
+          ${fileIcon}<c:out value="${file.title}" />
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${useViewer eq 'true' && fn:toLowerCase(file.fileType) eq 'pdf'}">
-          <a target="_blank" href="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/assets/view/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:when>
         <c:otherwise>
-          <a href="${ctx}/assets/file/${file.url}"><c:out value="${file.title}" /></a>
+          <a href="${ctx}/assets/file/${file.url}">${fileIcon}<c:out value="${file.title}" /></a>
         </c:otherwise>
       </c:choose>
       <c:if test="${file.fileLength gt 0}">

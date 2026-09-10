@@ -21,7 +21,7 @@
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="tagList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
@@ -37,7 +37,7 @@
     <tr>
       <td>
         <a href="${ctx}/admin/blog-tag?blogId=${blog.id}&tagId=${tag.id}"><c:out value="${tag.name}" /></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${tag.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(tag.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${tag.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

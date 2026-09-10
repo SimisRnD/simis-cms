@@ -22,8 +22,11 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources. Azure Commercial (decision #1).')
 param location string = resourceGroup().location
 
-@description('Environment name, used in resource naming and tags, e.g. pilot.')
+@description('Environment token used in resource NAMING only, e.g. pilot. Azure resource names are immutable, so this cannot be changed for an estate that already exists -- changing it produces a second, parallel estate rather than renaming the first. See environmentLabel for what the resources actually serve.')
 param environmentName string = 'pilot'
+
+@description('What the deployed resources actually serve, used in TAGS only. Deliberately separate from environmentName: the live simisinc.com estate is named "pilot" because that is what it was called when it was built, and is tagged "production" because that is what it is.')
+param environmentLabel string = 'production'
 
 @description('Workload name, used in resource naming.')
 param workloadName string = 'simiscms'
@@ -72,8 +75,11 @@ param containerImage string = 'simis-cms:latest'
 @description('Database login the application connects with. Pilot default is the administrator login; a lesser application role is a hardening follow-up.')
 param dbUser string = 'simiscmsadmin'
 
-@description('CMS_TRUSTED_PROXIES value. Set to the edge egress ranges when the edge tier (#245) fronts the app.')
+@description('CMS_TRUSTED_PROXIES value. A Java regular expression -- NOT CIDR -- matching the immediate peer (the App Service front ends) when the edge tier (#245) fronts the app.')
 param trustedProxies string = ''
+
+@description('CMS_CLIENT_IP_HEADER value. Defaults to X-Azure-ClientIP because this template always deploys Front Door in front of the app, so X-Forwarded-For resolution can never be correct here -- it stops at the Front Door node and reports that as the visitor (issue #1675). Override only for an ingress that publishes the client elsewhere; empty restores X-Forwarded-For.')
+param clientIpHeader string = 'X-Azure-ClientIP'
 
 @description('Public URL of the site (CMS_URL). Empty means the App Service default hostname; the custom domain replaces it at cutover.')
 param customUrl string = ''
@@ -100,9 +106,17 @@ param vpnTenantId string = ''
 
 var namePrefix = '${workloadName}-${environmentName}'
 
+// environment carries environmentLabel, NOT environmentName. The two were one parameter, which
+// meant the only way to correct a misleading tag was to change the value that also builds every
+// resource name -- and that does not rename anything, it deploys a parallel estate beside the
+// live one. Splitting them lets the tag tell the truth while the names stay where they are.
+//
+// Concretely: the resources serving simisinc.com are named simiscms-pilot-* and are production.
+// A reader who trusts the name is wrong, and until this split the tag agreed with the name.
 var tags = {
   workload: workloadName
-  environment: environmentName
+  environment: environmentLabel
+  environmentName: environmentName
   managedBy: 'bicep'
   milestone: 'milestone-4'
 }
@@ -217,6 +231,7 @@ module appService 'modules/appservice.bicep' = {
     postgresDatabaseName: postgres.outputs.databaseName
     dbUser: dbUser
     trustedProxies: trustedProxies
+    clientIpHeader: clientIpHeader
     customUrl: publicUrl
     appInsightsConnectionString: appInsights.outputs.connectionString
   }

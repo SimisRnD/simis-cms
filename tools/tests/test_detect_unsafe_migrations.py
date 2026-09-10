@@ -160,3 +160,15 @@ def test_multi_commit_pr_via_github_base_ref_is_still_flagged(repo, monkeypatch)
     # happened in the PR's first commit, not its last.
     last_commit_diff = _git(repo, "diff", "HEAD~1..HEAD", "--", "src/main/java")
     assert "statusFlag" not in last_commit_diff.stdout
+
+
+def test_missing_migrations_directory_exits_two(repo):
+    # This one was not merely mislabelled, it was inverted: a missing upgrade/ directory
+    # printed a warning to stderr and then returned 0, so renaming the directory turned
+    # the gate off without failing a single build. Exit 2 is the documented "script
+    # error" code, and is distinct from both 0 (checked, nothing unsafe) and 1 (found
+    # something unsafe).
+    r = run_tool(TOOL, repo)
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert "error:" in r.stderr
+    assert "migrations directory not found" in r.stderr

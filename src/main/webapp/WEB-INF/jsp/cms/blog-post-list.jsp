@@ -35,7 +35,7 @@
 <jsp:useBean id="showDate" class="java.lang.String" scope="request"/>
 <jsp:useBean id="addDateToTitle" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!blog.enabled}">
@@ -72,12 +72,12 @@
       <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
         <div class="platform-blog-list-item">
           <div class="platform-blog-title">
-            <h3>
+            <h2>
               <c:choose>
                 <c:when test="${blogPost.hasSourceUrl}"><%--
                   #1420: a curated post points at someone else's article, so the headline goes
                   straight there. The post keeps its own permalink for the feed's <id>. --%>
-                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-fw fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
+                  <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" target="_blank" rel="noopener noreferrer">${html:toHtml(blogPost.title)}<i class="${font:fal()} fa-arrow-up-right-from-square platform-external-indicator" aria-hidden="true"></i><span class="show-for-sr"> (opens in a new tab)</span></a>
                 </c:when>
                 <c:otherwise>
                   <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
@@ -91,7 +91,7 @@
               </c:if>
               <c:if test="${empty blogPost.published}"><span class="label warning">not published</span></c:if>
               <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}" /></span></c:if>
-            </h3>
+            </h2>
           </div>
           <c:if test="${!empty blogPost.imageUrl}">
             <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
@@ -137,14 +137,21 @@
             <div class="grid-x grid-margin-x">
               <div class="small-12 cell">
                   ${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}
-                <c:choose>
-                  <c:when test="${blogPost.hasSourceUrl}">
-                    <a href="<c:out value="${url:sanitize(blogPost.sourceUrl)}"/>" class="read-more" target="_blank" rel="noopener noreferrer">Read the article<span class="show-for-sr"> (opens in a new tab)</span></a>
-                  </c:when>
-                  <c:otherwise>
-                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
-                  </c:otherwise>
-                </c:choose>
+                <%-- Every card's read-more goes to the post, curated or not (#1966).
+
+                     A curated post's headline goes to the cited article and is marked with the
+                     outbound glyph, so the source is already one click from here. This link used to
+                     go there as well, which meant both of a curated card's links led off-site and
+                     nothing on the site linked to the post at all -- the orphan #1966 was filed for.
+                     The first fix kept this link on the source and added a third, separately styled
+                     one beside it, which made curated cards the only ones in the list that scan
+                     differently and wrapped onto a second line on a narrow column.
+
+                     Repointing the link that was already here is the smaller change and the more
+                     consistent one: "Read more" means the same thing on every card, and a reader who
+                     wants the original still reaches it from the headline, or from "Read the full
+                     article" on the post itself (#1958). --%>
+                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
               </div>
             </div>
           </div>

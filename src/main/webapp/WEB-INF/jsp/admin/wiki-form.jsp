@@ -19,8 +19,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <c:choose>
-  <c:when test="${wiki.id eq -1}"><h4>New Wiki</h4></c:when>
-  <c:otherwise><h4>Update Wiki</h4></c:otherwise>
+  <c:when test="${wiki.id eq -1}"><h2 class="h4">New Wiki</h2></c:when>
+  <c:otherwise><h2 class="h4">Update Wiki</h2></c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
@@ -33,12 +33,12 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+    <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Documentation, Sales, Technical" name="name" aria-describedby="wikiNameHelpText" value="<c:out value="${wiki.name}"/>" required>
+    <input type="text" placeholder="Documentation, Sales, Technical" name="name" maxlength="255" aria-describedby="wikiNameHelpText" value="<c:out value="${wiki.name}"/>" required>
   </label>
   <p class="help-text" id="wikiNameHelpText">Renaming a wiki changes only its display name here in
     the admin -- its public URL prefix and every existing page link keep working, because the

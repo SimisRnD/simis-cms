@@ -18,9 +18,9 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="socialMediaLinkList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="socialMediaLinkRecordList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped stack">
@@ -34,23 +34,23 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${socialMediaLinkList}" var="record">
+    <c:forEach items="${socialMediaLinkRecordList}" var="record">
     <tr>
       <td><i class="fa ${fn:escapeXml(record.iconClass)}"></i></td>
       <td><c:out value="${record.platformName}" /></td>
       <td><a href="<c:out value="${record.url}"/>" target="_blank" rel="noopener noreferrer"><c:out value="${record.url}" /></a></td>
       <td><c:out value="${record.linkOrder}" /></td>
       <td nowrap="true">
-        <a href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i class="fa fa-pencil"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.platformName}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(record.platformName)}" href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i aria-hidden="true" class="fa fa-pencil"></i></a>
+        <a aria-label="Remove ${fn:escapeXml(record.platformName)}" href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.platformName}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
-    <c:if test="${empty socialMediaLinkList}">
+    <c:if test="${empty socialMediaLinkRecordList}">
       <tr>
         <td colspan="5">No social media links have been added yet</td>
       </tr>
     </c:if>
   </tbody>
 </table>
-<p class="help-text">These links show as icons in the site footer, in the order set above; the icon for each is picked automatically from the platform name.</p>
+<p class="help-text page-help">These links show as icons in the site footer, in the order set above; the icon for each is picked automatically from the platform name.</p>

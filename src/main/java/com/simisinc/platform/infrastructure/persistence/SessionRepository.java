@@ -149,15 +149,18 @@ public class SessionRepository {
 
   /**
    * Builds a day-bucketed, zero-filled series of session counts for the given bot status, spanning
-   * {@code daysToLimit} days ago through today (inclusive). Mirrors the generate_series + LEFT JOIN
-   * pattern used by {@link UserRepository#findDailyUserRegistrations(int)}. The is_bot filter lives in
-   * the JOIN condition rather than a WHERE clause so that days with no matching sessions still
-   * zero-fill instead of being dropped by the LEFT JOIN.
+   * {@code intervalValue} {@code intervalType} units ago through today (inclusive). The window is
+   * caller-supplied (the report's drop-down) rather than fixed, so a 90-day and a 3-month request
+   * both resolve here; the series step stays one day either way. Mirrors the generate_series +
+   * LEFT JOIN pattern used by {@link UserRepository#findDailyUserRegistrations(int)}. The is_bot
+   * filter lives in the JOIN condition rather than a WHERE clause so that days with no matching
+   * sessions still zero-fill instead of being dropped by the LEFT JOIN.
    */
-  public static List<StatisticsData> findDailySessionsByBotStatus(int daysToLimit, boolean isBot) {
+  public static List<StatisticsData> findDailySessionsByBotStatus(int intervalValue, char intervalType,
+      boolean isBot) {
     String SQL_QUERY =
         "SELECT DATE_TRUNC('day', day)::VARCHAR(10) AS date_column, COUNT(id) AS daily_count " +
-            "FROM (SELECT generate_series(NOW() - INTERVAL '" + daysToLimit + " days', NOW(), INTERVAL '1 day')::date) d(day) " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + intervalValue + " " + DB.intervalUnit(intervalType) + "', NOW(), INTERVAL '1 day')::date) d(day) " +
             "LEFT JOIN sessions ON DATE_TRUNC('day', created) = DATE_TRUNC('day', day) AND is_bot = " + isBot + " " +
             "GROUP BY d.day " +
             "ORDER BY d.day";
@@ -391,13 +394,7 @@ public class SessionRepository {
     String SQL_QUERY =
         "SELECT referer, count(referer) AS referer_count " +
             "FROM sessions " +
-            "WHERE created > NOW() - INTERVAL '" + value + " " +
-            (intervalType == 'y' ? "years" :
-                (intervalType == 'm' ? "months" :
-                    (intervalType == 'w' ? "weeks" :
-                        (intervalType == 'h' ? "hours" :
-                            "days")))) +
-            "' " +
+            "WHERE created > NOW() - INTERVAL '" + value + " " + DB.intervalUnit(intervalType) + "' " +
             "AND LOWER(referer) NOT LIKE 'http://localhost%' " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
@@ -405,6 +402,14 @@ public class SessionRepository {
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
             "AND LOWER(referer) NOT LIKE LOWER(?) " +
+            // A referrer from the host this request itself arrived on is a self-referral, whatever
+            // that host is. The six site.url spellings above can only ever name one hostname, so a
+            // site answering on a second one reports its own navigation as external (issue #1893).
+            // Rows written before the host column existed are NULL and stay with the site.url
+            // comparison alone, so historical data keeps its old meaning rather than shifting.
+            "AND (host IS NULL OR (" +
+            "  LOWER(referer) NOT LIKE 'http://' || LOWER(host) || '%' " +
+            "  AND LOWER(referer) NOT LIKE 'https://' || LOWER(host) || '%')) " +
             "AND is_bot = false " +
             "GROUP BY referer " +
             "ORDER BY referer_count desc " +
@@ -450,6 +455,7 @@ public class SessionRepository {
         .add("ip_address", record.getIpAddress())
         .add("user_agent", StringUtils.abbreviate(record.getUserAgent(), 255))
         .add("referer", StringUtils.abbreviate(referer, 255))
+        .add("host", StringUtils.abbreviate(record.getHost(), 255))
         .add("continent", record.getContinent())
         .add("country_iso", record.getCountryIso())
         .add("country", record.getCountry())
@@ -606,6 +612,7 @@ public class SessionRepository {
       record.setIpAddress(rs.getString("ip_address"));
       record.setUserAgent(rs.getString("user_agent"));
       record.setReferer(rs.getString("referer"));
+      record.setHost(rs.getString("host"));
       record.setContinent(rs.getString("continent"));
       record.setCountryIso(rs.getString("country_iso"));
       record.setCountry(rs.getString("country"));

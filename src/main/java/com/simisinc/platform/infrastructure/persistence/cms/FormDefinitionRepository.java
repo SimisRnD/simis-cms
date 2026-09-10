@@ -98,6 +98,7 @@ public class FormDefinitionRepository {
         .add("enabled", record.getEnabled())
         .add("show_privacy_notice", record.getShowPrivacyNotice())
         .add("send_confirmation_to_submitter", record.getSendConfirmationToSubmitter())
+        .addIfExists("notification_subject", StringUtils.trimToNull(record.getNotificationSubject()))
         .addIfExists("confirmation_subject", StringUtils.trimToNull(record.getConfirmationSubject()))
         .addIfExists("confirmation_message", StringUtils.trimToNull(record.getConfirmationMessage()))
         .add("created_by", record.getCreatedBy(), -1)
@@ -125,6 +126,7 @@ public class FormDefinitionRepository {
         .add("enabled", record.getEnabled())
         .add("show_privacy_notice", record.getShowPrivacyNotice())
         .add("send_confirmation_to_submitter", record.getSendConfirmationToSubmitter())
+        .add("notification_subject", StringUtils.trimToNull(record.getNotificationSubject()))
         .add("confirmation_subject", StringUtils.trimToNull(record.getConfirmationSubject()))
         .add("confirmation_message", StringUtils.trimToNull(record.getConfirmationMessage()))
         .add("modified_by", record.getModifiedBy(), -1)
@@ -183,6 +185,7 @@ public class FormDefinitionRepository {
       record.setEnabled(rs.getBoolean("enabled"));
       record.setShowPrivacyNotice(rs.getBoolean("show_privacy_notice"));
       record.setSendConfirmationToSubmitter(rs.getBoolean("send_confirmation_to_submitter"));
+      record.setNotificationSubject(rs.getString("notification_subject"));
       record.setConfirmationSubject(rs.getString("confirmation_subject"));
       record.setConfirmationMessage(rs.getString("confirmation_message"));
       record.setCreatedBy(rs.getLong("created_by"));
