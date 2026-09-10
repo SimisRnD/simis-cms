@@ -60,13 +60,44 @@
 </style>
 
 <script nonce="${cspNonce}">
+  <%-- The visible text under a field is the only thing that says WHAT is wrong. aria-invalid on its
+       own announces "invalid entry" and stops there, so a screen reader user was told a field was
+       bad and never told why, or how many others were. Tie the two together with aria-describedby
+       so the description travels with focus -- checkForm below moves focus to the first bad field,
+       and that focus move is what a screen reader actually speaks.
+
+       The live region on the <p> cannot carry the text by itself: the paragraph is display:none
+       until .show is added, and a region inserted into the accessibility tree with its content
+       already inside it is announced inconsistently across NVDA/JAWS/VoiceOver -- and the focus()
+       call below pre-empts a polite announcement regardless. Association is what makes it reliable.
+
+       Set and cleared in step with aria-invalid, which is what these helpers are for: the mark and
+       clear pair is repeated once per field type below, and a describedby left behind on a field the
+       visitor has since corrected would keep announcing an error that is no longer there. --%>
+  function markInvalid${widgetContext.uniqueId}(el, errorEl) {
+    el.classList.add("form-field-error");
+    el.setAttribute("aria-invalid", "true");
+    if (errorEl) {
+      el.setAttribute("aria-describedby", errorEl.id);
+    }
+  }
+
+  function clearInvalid${widgetContext.uniqueId}(el, errorEl) {
+    el.classList.remove("form-field-error");
+    el.setAttribute("aria-invalid", "false");
+    <%-- Only drop the reference this pair added -- a describedby present for another reason
+         (help text, a hint) has to survive being corrected. --%>
+    if (errorEl && el.getAttribute("aria-describedby") === errorEl.id) {
+      el.removeAttribute("aria-describedby");
+    }
+  }
+
   $(document).ready(function() {
     $('textarea').on('input', function(event) {
       var errorEl = document.getElementById("error-" + this.id);
       if (errorEl && this.value.trim() !== "") {
         errorEl.classList.remove("show");
-        this.classList.remove("form-field-error");
-        this.setAttribute("aria-invalid", "false");
+        clearInvalid${widgetContext.uniqueId}(this, errorEl);
       }
     });
     $('textarea').keypress(function(event) {
@@ -78,8 +109,7 @@
       var errorEl = document.getElementById("error-" + this.id);
       if (errorEl && this.value.trim() !== "") {
         errorEl.classList.remove("show");
-        this.classList.remove("form-field-error");
-        this.setAttribute("aria-invalid", "false");
+        clearInvalid${widgetContext.uniqueId}(this, errorEl);
       }
     });
     $('#form${widgetContext.uniqueId} input:not([type="submit"])').keydown(function(e) {
@@ -105,14 +135,12 @@
       if (errorEl) {
         errorEl.classList.add("show");
       }
-      field.classList.add("form-field-error");
-      field.setAttribute("aria-invalid", "true");
+      markInvalid${widgetContext.uniqueId}(field, errorEl);
       hasErrors = true;
       if (!firstErrorField) firstErrorField = field;
     } else if (errorEl) {
       errorEl.classList.remove("show");
-      field.classList.remove("form-field-error");
-      field.setAttribute("aria-invalid", "false");
+      clearInvalid${widgetContext.uniqueId}(field, errorEl);
     }
     </c:otherwise>
     </c:choose>
