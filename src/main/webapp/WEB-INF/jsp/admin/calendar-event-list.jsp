@@ -126,7 +126,7 @@
           </c:choose>
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/calendar-event?calendarEventId=${event.id}&returnPage=/admin/calendars"><i class="fa fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(event.title)}" href="${ctx}/admin/calendar-event?calendarEventId=${event.id}&returnPage=/admin/calendars"><i aria-hidden="true" class="fa fa-edit"></i></a>
         </td>
       </tr>
     </c:forEach>

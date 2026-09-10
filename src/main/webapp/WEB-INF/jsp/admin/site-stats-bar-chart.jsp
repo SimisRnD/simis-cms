@@ -29,7 +29,7 @@
 <%-- The canvas chart is not readable by assistive technology, so it is labeled and paired with an equivalent
      screen-reader-only data table (WCAG 2.1 SC 1.1.1 / 1.3.1; Section 508). --%>
 <canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100" role="img"
-        aria-label="<c:out value="${not empty title ? title : label}"/> chart. The data follows in a table."></canvas>
+        aria-label="${fn:escapeXml(not empty title ? title : label)} chart. The data follows in a table."></canvas>
 <table class="show-for-sr">
   <caption><c:out value="${not empty title ? title : label}"/> &ndash; data table</caption>
   <thead>

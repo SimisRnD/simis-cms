@@ -33,11 +33,11 @@
                     <c:set var="pageIndicator" value="warning" scope="request" />
                   </c:when>
                 </c:choose>
-                <a class="hollow button small secondary<c:if test="${!empty pageIndicator}"> ${pageIndicator}</c:if>" href="${ctx}/admin/web-page?webPage=<c:out value="${pageRenderInfo.pagePath}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i class="fa-fw fa fa-info"></i></a>
+                <a aria-label="Edit this page's settings" class="hollow button small secondary<c:if test="${!empty pageIndicator}"> ${pageIndicator}</c:if>" href="${ctx}/admin/web-page?webPage=<c:out value="${pageRenderInfo.pagePath}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i aria-hidden="true" class="fa-fw fa fa-info"></i></a>
               </c:if>
             </c:if>
             <c:if test="${userSession.hasRole('admin')}">
-              <a class="hollow button small secondary" href="${ctx}/admin/web-container-designer?name=<c:out value="${headerRenderInfo.name}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i class="fa-fw fa fa-code"></i></a>
+              <a aria-label="Edit the header layout" class="hollow button small secondary" href="${ctx}/admin/web-container-designer?name=<c:out value="${headerRenderInfo.name}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i aria-hidden="true" class="fa-fw fa fa-code"></i></a>
             </c:if>
           </div>
         </div>

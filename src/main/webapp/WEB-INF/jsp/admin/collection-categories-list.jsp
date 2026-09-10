@@ -63,7 +63,7 @@
           </c:otherwise>
         </c:choose>
         <a href="${ctx}/admin/category?collectionId=${collection.id}&categoryId=${category.id}"><c:out value="${category.name}" /></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${category.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(category.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${category.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
         <c:if test="${!empty category.description}">
           <br /><small><c:out value="${category.description}" /></small>
         </c:if>

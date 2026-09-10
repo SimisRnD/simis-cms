@@ -90,9 +90,9 @@
           <fmt:formatNumber value="${empty blogPostCount[blog.id] ? 0 : blogPostCount[blog.id]}" />
         </td>
         <td class="text-center">
-          <a href="${ctx}/admin/blog?blogId=${blog.id}&returnPage=/admin/blogs"><i class="${font:fas()} fa-edit"></i></a>
+          <a aria-label="Edit ${fn:escapeXml(blog.name)}" href="${ctx}/admin/blog?blogId=${blog.id}&returnPage=/admin/blogs"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
           <c:if test="${userSession.hasRole('admin')}">
-            <a href="#" data-js-call="deleteBlog" data-js-arg1="${blog.id}"><i class="fa fa-remove"></i></a>
+            <a aria-label="Delete ${fn:escapeXml(blog.name)}" href="#" data-js-call="deleteBlog" data-js-arg1="${blog.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

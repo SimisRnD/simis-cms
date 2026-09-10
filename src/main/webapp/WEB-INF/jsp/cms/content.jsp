@@ -66,7 +66,7 @@
           <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Return this content to the author?">REJECT</a>
         </c:when>
       </c:choose>
-      <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Edit this content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>

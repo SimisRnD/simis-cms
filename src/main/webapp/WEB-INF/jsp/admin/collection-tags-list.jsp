@@ -40,7 +40,7 @@
     <tr>
       <td>
         <a href="${ctx}/admin/tag?collectionId=${collection.id}&tagId=${tag.id}"><c:out value="${tag.name}" /></a>
-        <a href="#" data-confirm-post="Are you sure you want to delete <c:out value="${tag.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Delete ${fn:escapeXml(tag.name)}" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${tag.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&tagId=${tag.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
       <td class="text-center"><fmt:formatNumber value="${tag.itemCount}" /></td>
     </tr>
