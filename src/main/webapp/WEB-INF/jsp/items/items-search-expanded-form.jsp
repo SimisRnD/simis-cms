@@ -59,7 +59,7 @@
     <div class="input-group-button">
       <c:choose>
         <c:when test="${useIcon eq 'true'}">
-          <button id="button${widgetContext.uniqueId}" type="submit" class="button search"><i id="icon${widgetContext.uniqueId}" class="fa fa-search"></i></button>
+          <button aria-label="Search" id="button${widgetContext.uniqueId}" type="submit" class="button search"><i aria-hidden="true" id="icon${widgetContext.uniqueId}" class="fa fa-search"></i></button>
         </c:when>
         <c:otherwise>
           <input type="submit" class="button radius primary expanded" value="Search"/>

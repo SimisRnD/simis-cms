@@ -233,7 +233,7 @@
                 <option value="questrial"<c:if test="${siteProperty.value eq 'questrial'}"> selected</c:if>>Questrial</option>
                 <option value="rubik"<c:if test="${siteProperty.value eq 'rubik'}"> selected</c:if>>Rubik</option>
                 <option value="source-sans-pro"<c:if test="${siteProperty.value eq 'source-sans-pro'}"> selected</c:if>>Source Sans Pro</option>
-              </select> <a href="https://fonts.google.com" target="_blank" rel="noreferrer"><i class="fa fa-external-link-square"></i></a>
+              </select> <a aria-label="Browse Google Fonts (opens in a new tab)" href="https://fonts.google.com" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa fa-external-link-square"></i></a>
             </c:when>
             <c:when test="${siteProperty.type eq 'color'}">
               <input id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"

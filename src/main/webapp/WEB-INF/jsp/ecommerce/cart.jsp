@@ -270,7 +270,7 @@
           <hr/>
           <div>
             <div class="float-right">
-              <a class="accordion-button" href="#" data-js-call="showPromoCodeEntry"><i class="${font:fal()} fa-plus-circle"></i></a>
+              <a aria-label="Enter a promo code" class="accordion-button" href="#" data-js-call="showPromoCodeEntry"><i aria-hidden="true" class="${font:fal()} fa-plus-circle"></i></a>
             </div>
             <a class="accordion-button" href="#" data-js-call="showPromoCodeEntry">Promo Code</a>
           </div>

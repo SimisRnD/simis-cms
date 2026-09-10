@@ -41,8 +41,8 @@
       <td><a href="<c:out value="${record.url}"/>" target="_blank" rel="noopener noreferrer"><c:out value="${record.url}" /></a></td>
       <td><c:out value="${record.linkOrder}" /></td>
       <td nowrap="true">
-        <a href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i class="fa fa-pencil"></i></a>
-        <a href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.platformName}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}"><i class="fa fa-remove"></i></a>
+        <a aria-label="Edit ${fn:escapeXml(record.platformName)}" href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i aria-hidden="true" class="fa fa-pencil"></i></a>
+        <a aria-label="Remove ${fn:escapeXml(record.platformName)}" href="#" data-confirm-post="Are you sure you want to remove <c:out value="${record.platformName}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}"><i aria-hidden="true" class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

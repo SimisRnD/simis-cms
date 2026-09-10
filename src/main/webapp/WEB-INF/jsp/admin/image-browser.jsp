@@ -86,7 +86,7 @@
         <div class="image-browser" style="position: relative;">
           <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
                  data-filename="${fn:escapeXml(image.filename)}"
-                 aria-label="Select <c:out value="${image.filename}"/>"
+                 aria-label="Select ${fn:escapeXml(image.filename)}"
                  style="position:absolute; top: 5px; left: 5px; z-index: 1;">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
           <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
@@ -162,7 +162,7 @@
               <div class="image-browser" style="position: relative;">
                 <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
                        data-filename="${fn:escapeXml(image.filename)}"
-                       aria-label="Select <c:out value="${image.filename}"/>"
+                       aria-label="Select ${fn:escapeXml(image.filename)}"
                        style="position:absolute; top: 5px; left: 5px; z-index: 1;">
                 <c:set var="imageHref" value="/assets/img/${image.url}"/>
                 <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>

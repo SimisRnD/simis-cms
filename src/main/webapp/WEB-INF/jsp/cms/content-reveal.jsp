@@ -31,14 +31,14 @@
       <c:if test="${isDraft eq 'true'}">
         <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" data-confirm-href="Publish this content?">DRAFT</a>
       </c:if>
-      <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
+      <a aria-label="Edit this content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
     </div>
     <%@include file="../confirm_submit.jspf" %>
   </c:if>
   <c:if test="${!empty card1}">
     <c:if test="${!empty card2 && useIcon eq 'true'}">
       <div class="float-right">
-        <button class="reveal-button" data-toggle="modal${widgetContext.uniqueId}"><i class="${font:fal()} fa-plus-circle"></i></button>
+        <button aria-labelledby="reveal-button${widgetContext.uniqueId}" class="reveal-button" data-toggle="modal${widgetContext.uniqueId}"><i aria-hidden="true" class="${font:fal()} fa-plus-circle"></i></button>
       </div>
     </c:if>
     <button id="reveal-button${widgetContext.uniqueId}" class="reveal-button-text" data-toggle="modal${widgetContext.uniqueId}"><div class="button-reveal-content">${card1}</div></button>

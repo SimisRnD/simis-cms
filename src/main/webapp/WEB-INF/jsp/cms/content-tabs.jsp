@@ -32,7 +32,7 @@
   <c:forEach items="${contentTabList}" var="contentTab" varStatus="tabStatus">
     <div class="tabs-panel<c:if test="${tabStatus.first}"> is-active</c:if>" id="${contentTab.linkId}"<c:if test="${showEditor eq 'true' && !empty contentTab.contentUniqueId}"> data-simis-content-id="${contentTab.contentUniqueId}"</c:if>>
       <c:if test="${showEditor eq 'true'}">
-        <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${contentTab.contentUniqueId}&returnPage=${returnPage}#${contentTab.linkId}"><i class="${font:fas()} fa-edit"></i></a></div>
+        <div class="platform-content-editor"><a aria-label="Edit this tab's content" class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${contentTab.contentUniqueId}&returnPage=${returnPage}#${contentTab.linkId}"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a></div>
       </c:if>
       <div class="platform-content">
         ${contentTab.html}
