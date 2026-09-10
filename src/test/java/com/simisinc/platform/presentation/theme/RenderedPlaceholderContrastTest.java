@@ -34,31 +34,48 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 
 /**
- * Proof of concept for a rendered-contrast gate: measures the colours the browser actually
- * resolves, rather than the colours {@code platform-tokens.css} declares.
+ * Proof of concept for a rendered-contrast gate: measures the colors the browser actually
+ * resolves, rather than the colors {@code platform-tokens.css} declares.
  *
  * <p><b>Why this exists.</b> {@code tools/check-token-contrast.py} evaluates declared token
- * pairings. It cannot see a pairing that never applies. Issue #1506 is exactly that: no
- * light-mode rule applies {@code --sc-field-placeholder} anywhere - the only
- * {@code ::placeholder} rules in first-party CSS are the two dark-scoped ones - so Foundation's
- * own {@code ::placeholder{color:var(--sc-fnd-medium-gray,#cacaca)}} wins, and the rendered light
- * placeholder is <b>1.64:1</b>, not the 2.76:1 the tokens imply. The token gate reports that
- * pairing as 2.76:1 because that is what the declarations say.
+ * pairings. It cannot see a pairing that never applies, and it cannot see what wins when no
+ * first-party rule applies at all. Issue #1506 was exactly that: no light-mode rule applied
+ * {@code --sc-field-placeholder}, Foundation's own
+ * {@code ::placeholder{color:var(--sc-fnd-medium-gray,#cdc9c3)}} was the only declaration
+ * standing, and the rendered light placeholder was 1.64:1 while the token gate reported the
+ * pairing as 2.76:1. That defect is fixed -- an unscoped {@code input::placeholder} rule now
+ * applies the token in both themes -- so this no longer characterizes a bug. It measures a
+ * healthy pairing and would go red if one regressed.
+ *
+ * <p><b>The gap it demonstrates is still open.</b> Even with the placeholder fixed, light mode
+ * renders the placeholder on Foundation's {@code --sc-fnd-surface} rather than on the declared
+ * {@code --sc-field-bg}: the only rules applying that token are dark-scoped. So the declared
+ * pairing and the rendered pairing are still two different numbers, and the declared one is
+ * still the more flattering of the two. Today both clear the floor and the difference is small;
+ * the point is that a token nudged one step lighter would pass the declared check while failing
+ * on screen.
  *
  * <p><b>Why a static check cannot separate this case.</b> The obvious heuristic - "a selector
- * styled under a dark scope with no first-party light counterpart" - flags 77 of the 100
- * dark-scoped selectors in {@code platform-tokens.css}, and roughly 76 of those are correct by
+ * styled under a dark scope with no first-party light counterpart" - flags most of the
+ * dark-scoped selectors in {@code platform-tokens.css}, and nearly all of those are correct by
  * design: {@code .card}, {@code table} and every {@code input[type=...]} are deliberately
  * dark-only because Foundation already paints them acceptably in light mode. Structurally,
- * {@code input::placeholder} is indistinguishable from them. What separates it is the value
- * Foundation resolves to (19.63:1 for {@code .card}'s ink on its surface, 1.63:1 for the
- * placeholder grey), and that value lives in vendored CSS. Resolving it means running the
+ * {@code input::placeholder} was indistinguishable from them. What separated it was the value
+ * Foundation resolved to, and that value lives in vendored CSS. Resolving it means running the
  * cascade - and the cheapest correct cascade implementation is a browser.
  *
+ * <p><b>What is asserted, and what is only printed.</b> Nothing here pins a palette value. The
+ * first version of this test did, and it went red the moment the palette moved to the warm
+ * ramp - reporting a regression that had not happened while proving nothing about contrast.
+ * Every assertion below is either a WCAG floor or a relationship between two measurements
+ * ("rendered is no better than declared", "a first-party rule wins here"), both of which survive
+ * a repaint and both of which break for a real regression. Concrete colors are printed so a
+ * failure can be read, never asserted.
+ *
  * <p><b>Scope.</b> This covers one pairing, to prove the mechanism before committing to a
- * broader set. The contrast maths is duplicated from the Python tool here on purpose, so the
+ * broader set. The contrast math is duplicated from the Python tool here on purpose, so the
  * proof of concept stands alone; a production version should have the browser emit
- * {@code (selector, theme, colour, background)} and let the existing, already self-tested
+ * {@code (selector, theme, color, background)} and let the existing, already self-tested
  * calculator in {@code tools/check-token-contrast.py} apply the floors, rather than maintaining
  * two implementations of the thing that has to be right.
  *
@@ -117,77 +134,75 @@ class RenderedPlaceholderContrastTest {
   }
 
   /**
-   * The control: dark mode is where the field tokens are actually applied, so this proves the
-   * harness reads real cascaded values rather than defaults or noise. The ratio is printed rather
-   * than asserted because it is branch-dependent - on {@code main} it is 2.64:1, which is the
-   * #1489 defect PR #1490 fixes; on that branch it is 5.34:1. What is asserted is the thing that
-   * does not vary: that a first-party rule wins here, unlike in light mode.
+   * The control: dark mode is where both field tokens are applied by first-party rules, so this
+   * proves the harness reads real cascaded values rather than defaults or noise. Asserted against
+   * the token the stylesheet declares rather than a literal, so a repaint moves both sides
+   * together and only a broken cascade separates them.
    */
   @Test
   void darkModeAppliesTheFieldTokens() {
-    Measured m = measurePlaceholder("dark");
-    System.out.printf("  dark   placeholder %s on field %s = %.2f:1%n", m.fgHex(), m.bgHex(), m.ratio());
-    assertEquals("#979ca4", m.fgHex(), "dark mode should resolve --sc-field-placeholder");
-    assertNotEquals("#fefefe", m.bgHex(),
-        "dark mode should resolve --sc-field-bg, not fall through to Foundation's surface");
+    Probe p = probe("dark");
+    System.out.printf("  dark   placeholder %s on field %s = %.2f:1  (declared %s on %s)%n",
+        p.fgHex(), p.bgHex(), p.ratio(), p.declaredPlaceholder(), p.declaredFieldBg());
+    assertEquals(p.declaredPlaceholder(), p.fgHex(),
+        "dark mode should render the declared --sc-field-placeholder");
+    assertEquals(p.declaredFieldBg(), p.bgHex(),
+        "dark mode should render the declared --sc-field-bg, not fall through to Foundation");
+    assertTrue(p.ratio() >= TEXT_FLOOR,
+        "dark placeholder is below SC 1.4.3: " + p.describe());
   }
 
   /**
-   * The finding, and it is broader than the placeholder. In light mode <em>neither</em> field
-   * token reaches the field: the only first-party rules that apply {@code --sc-field-bg} and
-   * {@code --sc-field-placeholder} are the two dark-scoped ones, so Foundation wins on both
-   * sides of the pair. The rendered result is its {@code #cacaca} placeholder on its
-   * {@code var(--sc-fnd-surface,#fefefe)} input background - <b>1.63:1</b>.
+   * Light mode after #1506. The placeholder token now reaches the field, so the rendered ratio
+   * clears the text floor -- this is the assertion the original version of this test asked for
+   * once the defect was fixed.
    *
-   * <p>Note the declared light value of {@code --sc-field-bg} is {@code #ffffff}, which is why
-   * reasoning from the tokens gives 1.64:1 against a white field. The field is not white. That
-   * one hundredth is not important in itself; what it shows is that reading the declarations
-   * cannot tell you either half of this pair.
-   *
-   * <p>Written as a characterization of the current defect rather than as a gate, because a gate
-   * would be red on {@code main} until #1506 is fixed. It is strict in both directions on
-   * purpose: when #1506 is fixed these assertions start failing and this should be replaced with
-   * a plain {@code ratio >= TEXT_FLOOR} assertion, so it retires itself instead of entrenching
-   * the bug.
+   * <p>The other half of the original finding survives the fix and is asserted here: the field
+   * <em>background</em> token is still unapplied in light mode. The only rules setting
+   * {@code --sc-field-bg} are dark-scoped, so the light field is painted with Foundation's
+   * surface. It is close enough to the declared white that it costs only a few hundredths today,
+   * which is precisely why reading the declarations cannot tell you it happened.
    */
   @Test
-  void lightModeFieldTokensNeverReachTheField() {
-    Measured m = measurePlaceholder("light");
-    System.out.printf("  light  placeholder %s on field %s = %.2f:1  <-- issue #1506%n",
-        m.fgHex(), m.bgHex(), m.ratio());
-
-    assertEquals("#cacaca", m.fgHex(),
-        "light should still fall through to Foundation's --sc-fnd-medium-gray. If this now reads "
-            + "#979ca4 or darker, #1506 is fixed - replace this test with a plain floor assertion.");
-    assertEquals("#fefefe", m.bgHex(),
-        "the light field background is Foundation's --sc-fnd-surface, not the declared "
-            + "--sc-field-bg #ffffff - that token is unapplied in light mode too");
-    assertEquals(1.63, round2(m.ratio()),
-        "the rendered light placeholder ratio. The declared token pairing "
-            + "(--sc-field-placeholder #979ca4 on --sc-field-bg #ffffff) computes 2.76:1, which is "
-            + "what a token-pair check reports and is not what ships.");
-    assertTrue(m.ratio() < TEXT_FLOOR, "this is the defect being characterized");
+  void lightModePlaceholderClearsTheTextFloor() {
+    Probe p = probe("light");
+    System.out.printf("  light  placeholder %s on field %s = %.2f:1  (declared %s on %s)%n",
+        p.fgHex(), p.bgHex(), p.ratio(), p.declaredPlaceholder(), p.declaredFieldBg());
+    assertEquals(p.declaredPlaceholder(), p.fgHex(),
+        "light mode should render the declared --sc-field-placeholder (issue #1506)");
+    assertTrue(p.ratio() >= TEXT_FLOOR,
+        "light placeholder is below SC 1.4.3: " + p.describe());
+    assertNotEquals(p.declaredFieldBg(), p.bgHex(),
+        "if the light field now renders its declared --sc-field-bg, the dark-only scoping of that "
+            + "token has been fixed too -- drop this assertion and the paragraph above it");
   }
 
   /**
    * States the gap in one assertion: what the declarations imply and what the browser renders are
    * different numbers, and only one of them is what a user sees. This is the whole argument for a
-   * rendered check existing alongside the token check.
+   * rendered check existing alongside the token check, and it holds even now that both numbers
+   * pass -- the declared pairing is the optimistic one, so it is the wrong number to gate on.
    */
   @Test
-  void theRenderedRatioDiffersFromTheDeclaredTokenPairing() {
-    double declared = contrast(parseHex("#979ca4"), parseHex("#ffffff"));  // what the tokens say
-    double rendered = measurePlaceholder("light").ratio();                 // what the browser does
-    System.out.printf("  declared token pairing %.2f:1 vs rendered %.2f:1%n", declared, rendered);
-    assertEquals(2.76, round2(declared));
-    assertEquals(1.63, round2(rendered));
-    assertTrue(rendered < declared,
-        "the rendered value is worse than the declared one, so the token check is optimistic here");
+  void theRenderedRatioIsNoBetterThanTheDeclaredTokenPairing() {
+    Probe p = probe("light");
+    double declared = contrast(parseHex(p.declaredPlaceholder()), parseHex(p.declaredFieldBg()));
+    System.out.printf("  declared token pairing %.2f:1 vs rendered %.2f:1%n", declared, p.ratio());
+    assertTrue(p.ratio() <= declared,
+        "the token check is only safe to gate on while it is the pessimistic of the two. It reads "
+            + String.format(Locale.ROOT, "%.2f:1 and the browser renders %.2f:1", declared, p.ratio()));
+    assertTrue(p.ratio() >= TEXT_FLOOR,
+        "the rendered pairing is what ships and it is below SC 1.4.3: " + p.describe());
   }
 
   // ---------------------------------------------------------------- measurement
 
-  private record Measured(int[] fg, int[] bg) {
+  /**
+   * One theme's worth of measurement: the pair the browser paints, alongside the pair the
+   * stylesheet declares for the same two tokens. Holding both is what lets every assertion be a
+   * floor or a relationship rather than a pinned palette value.
+   */
+  private record Probe(int[] fg, int[] bg, String declaredPlaceholder, String declaredFieldBg) {
     double ratio() {
       return contrast(fg, bg);
     }
@@ -199,18 +214,23 @@ class RenderedPlaceholderContrastTest {
     String bgHex() {
       return toHex(bg);
     }
+
+    String describe() {
+      return String.format(Locale.ROOT, "%s on %s = %.2f:1", fgHex(), bgHex(), ratio());
+    }
   }
 
   /**
-   * Renders a bare text input under the given theme and reports the colour the browser resolves
-   * for its placeholder, against the field's effective background.
+   * Renders a bare text input under the given theme and reports the color the browser resolves
+   * for its placeholder, against the field's effective background, plus the two token values the
+   * stylesheet declares for that theme.
    *
    * <p>The background walk matters: {@code getComputedStyle} returns {@code rgba(0,0,0,0)} for a
-   * transparent element rather than the colour behind it, so a naive read produces a pair that
+   * transparent element rather than the color behind it, so a naive read produces a pair that
    * looks black and measures nothing. Walking up to the first non-transparent ancestor is what
    * makes the measured pair the one a user actually sees.
    */
-  private Measured measurePlaceholder(String theme) {
+  private Probe probe(String theme) {
     try (Page page = browser.newPage()) {
       page.setContent("<html data-theme=\"" + theme + "\"><body class=\"platform-body\">"
           + "<form><input id=\"probe\" type=\"text\" placeholder=\"Search\"></form>"
@@ -234,14 +254,28 @@ class RenderedPlaceholderContrastTest {
             return getComputedStyle(document.documentElement).backgroundColor;
           }
           """);
-      return new Measured(parseCssColour(fg), parseCssColour(bg));
+      return new Probe(parseCssColor(fg), parseCssColor(bg),
+          declaredToken(page, "--sc-field-placeholder"), declaredToken(page, "--sc-field-bg"));
     }
   }
 
-  // ---------------------------------------------------------------- colour maths
+  /**
+   * The value the stylesheet declares for a custom property under the page's current theme.
+   * Normalized to the lowercase {@code #rrggbb} form {@link #toHex} produces, so a declared value
+   * and a rendered one can be compared directly.
+   */
+  private static String declaredToken(Page page, String name) {
+    String raw = (String) page.evaluate(
+        "() => getComputedStyle(document.documentElement).getPropertyValue('" + name + "').trim()");
+    assertTrue(raw != null && raw.startsWith("#") && raw.length() == 7,
+        name + " should be declared as a #rrggbb literal for this comparison, but reads: " + raw);
+    return toHex(parseHex(raw));
+  }
+
+  // ---------------------------------------------------------------- color math
 
   /** Parses the {@code rgb(r, g, b)} / {@code rgba(r, g, b, a)} form getComputedStyle returns. */
-  private static int[] parseCssColour(String value) {
+  private static int[] parseCssColor(String value) {
     String inner = value.substring(value.indexOf('(') + 1, value.lastIndexOf(')'));
     String[] parts = inner.split("[,\\s/]+");
     return new int[] {
