@@ -311,6 +311,7 @@ class BlogPostTagRepositoryTest {
           + "blog_id BIGINT REFERENCES blogs(blog_id) NOT NULL, "
           + "post_unique_id VARCHAR(255) NOT NULL, "
           + "title VARCHAR(255) NOT NULL, "
+          + "share_image_url VARCHAR(255), "
           + "created_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "

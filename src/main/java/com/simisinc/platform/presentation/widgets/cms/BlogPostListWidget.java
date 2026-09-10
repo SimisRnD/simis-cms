@@ -171,13 +171,24 @@ public class BlogPostListWidget extends GenericWidget {
     // Batch-fetch existing image variants for every post's image in one query (issue #411 PR2) --
     // avoids one findByImageId call per row in the JSP loop, mirroring blogPostReviewStatusMap
     // immediately below.
+    // Resolved once, here, rather than per template (#1974): a list shows the share card when the
+    // post has one and the banner otherwise, and the srcset, alt text and focal point below all
+    // derive from the SAME resolved image. Resolving it in each JSP instead is how those end up
+    // describing different pictures -- alt text written for the banner read out over a share card,
+    // or a focal point computed for an image that is not the one on screen.
+    Map<Long, String> blogPostListImageUrl = new LinkedHashMap<>();
     List<Long> blogPostImageIds = new ArrayList<>();
     for (BlogPost blogPost : blogPostList) {
-      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      String listImageUrl = blogPost.getShareImageUrlOrDefault();
+      if (StringUtils.isNotBlank(listImageUrl)) {
+        blogPostListImageUrl.put(blogPost.getId(), listImageUrl);
+      }
+      Long imageId = ImageCommand.parseImageId(listImageUrl);
       if (imageId != null) {
         blogPostImageIds.add(imageId);
       }
     }
+    context.getRequest().setAttribute("blogPostListImageUrl", blogPostListImageUrl);
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(blogPostImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
     // The image records themselves, in one more query for the whole page rather than one per row.
@@ -210,7 +221,7 @@ public class BlogPostListWidget extends GenericWidget {
     // where nobody has set one.
     Map<Long, String> blogPostImageFocalPoint = new LinkedHashMap<>();
     for (BlogPost blogPost : blogPostList) {
-      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      Long imageId = ImageCommand.parseImageId(blogPost.getShareImageUrlOrDefault());
       if (imageId == null) {
         continue;
       }
@@ -245,6 +256,11 @@ public class BlogPostListWidget extends GenericWidget {
     // Show the editor
     if ("overview".equals(view)) {
       context.getRequest().setAttribute("showReadMore", context.getPreferences().getOrDefault("showReadMore", "false"));
+      // Thumbnails default OFF for this view specifically (#1974), overriding the widget-wide
+      // showImage default of "true" set above. This view has never rendered an image, so honouring
+      // that default would switch thumbnails on for every existing site using it. Same shape as
+      // showReadMore here and showBullets in the titles branch: a view states its own default.
+      context.getRequest().setAttribute("showImage", context.getPreferences().getOrDefault("showImage", "false"));
       context.setJsp(OVERVIEW_JSP);
     } else if ("titles".equals(view)) {
       context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
@@ -306,10 +322,10 @@ public class BlogPostListWidget extends GenericWidget {
       Map<Long, Image> imagesByImageId) {
     Map<Long, String> altTextByPostId = new LinkedHashMap<>();
     for (BlogPost blogPost : blogPostList) {
-      if (StringUtils.isBlank(blogPost.getImageUrl())) {
+      if (StringUtils.isBlank(blogPost.getShareImageUrlOrDefault())) {
         continue;
       }
-      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      Long imageId = ImageCommand.parseImageId(blogPost.getShareImageUrlOrDefault());
       Image image = (imageId != null ? imagesByImageId.get(imageId) : null);
       String storedAltText = (image != null ? StringUtils.trimToNull(image.getAltText()) : null);
       altTextByPostId.put(blogPost.getId(), storedAltText != null ? storedAltText : blogPost.getTitle());

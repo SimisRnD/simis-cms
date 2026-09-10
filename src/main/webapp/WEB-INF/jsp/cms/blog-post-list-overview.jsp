@@ -21,6 +21,7 @@
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
@@ -39,6 +40,23 @@
 <c:choose>
   <c:when test="${!empty blogPostList}">
     <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
+      <%-- Thumbnail (#1974). Off unless the widget is given showImage="true" -- this view has never
+           rendered an image, so BlogPostListWidget states "false" as its default rather than
+           inheriting the widget-wide "true", and every existing site keeps byte-identical markup.
+           The URL is resolved by the widget (share card when the post has one, banner otherwise), so
+           the srcset, alt text and focal point below all describe the image actually shown.
+           A fixed 1.91:1 box, the ratio a share card is authored at and the one Open Graph and
+           twitter:card render, so a row of these lines up regardless of what each source image
+           measures. --%>
+      <c:if test="${showImage eq 'true' && !empty blogPostListImageUrl[blogPost.id]}">
+        <c:set var="overviewSrcset" value="${image:srcsetBatch(blogPostListImageUrl[blogPost.id], imageVariantsByImageId, imageWidthsByImageId)}"/>
+        <a class="platform-blog-overview-thumbnail" href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img
+            alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>"
+            src="${ctx}<c:out value="${blogPostListImageUrl[blogPost.id]}"/>"
+            <c:if test="${not empty overviewSrcset}">srcset="<c:out value="${overviewSrcset}"/>" sizes="(min-width: 640px) 33vw, 100vw"</c:if>
+            <c:set var="overviewFocal" value="${blogPostImageFocalPoint[blogPost.id]}"/><c:if test="${not empty overviewFocal}">style="object-position: <c:out value="${overviewFocal}"/>"</c:if>
+            decoding="async" loading="lazy"/></a>
+      </c:if>
       <h5>
         <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
         <c:if test="${empty blogPost.published}"><span class="label warning">not published</span></c:if>

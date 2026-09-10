@@ -53,10 +53,10 @@
         <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
           <div class="cell">
             <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
-              <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
-                <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId, imageWidthsByImageId)}"/>
+              <c:if test="${showImage eq 'true' && !empty blogPostListImageUrl[blogPost.id]}">
+                <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPostListImageUrl[blogPost.id], imageVariantsByImageId, imageWidthsByImageId)}"/>
                 <div class="card-image">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="${ctx}<c:out value="${blogPostListImageUrl[blogPost.id]}"/>"
                     <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
                     <c:set var="blogImageFocal" value="${blogPostImageFocalPoint[blogPost.id]}"/><c:if test="${not empty blogImageFocal}"> style="object-position: <c:out value="${blogImageFocal}"/>"</c:if> decoding="async" loading="lazy"/></a>
                 </div>
