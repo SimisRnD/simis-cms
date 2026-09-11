@@ -61,13 +61,13 @@
         </td>
         <td>
           <input type="hidden" name="tab${status.count}" value="${tab.id}" />
-          <input type="text" name="order${status.count}" value="${status.count}" class="no-gap" />
+          <input aria-label="Order, row ${status.count}" type="text" name="order${status.count}" value="${status.count}" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="name${status.count}" value="<c:out value="${tab.name}"/>" class="no-gap" />
+          <input aria-label="Tab name, row ${status.count}" type="text" name="name${status.count}" value="<c:out value="${tab.name}"/>" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="link${status.count}" value="<c:out value="${tab.link}"/>" class="no-gap" />
+          <input aria-label="Profile tab link, row ${status.count}" type="text" name="link${status.count}" value="<c:out value="${tab.link}"/>" class="no-gap" />
         </td>
         <%--
         <td>
@@ -94,13 +94,13 @@
           </div>
         </td>
         <td>
-          <input type="text" name="order${collectionTabList.size() + i}" value="${collectionTabList.size() + i}" class="no-gap" />
+          <input aria-label="Order, new tab ${i + 1}" type="text" name="order${collectionTabList.size() + i}" value="${collectionTabList.size() + i}" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="name${collectionTabList.size() + i}" value="" class="no-gap" />
+          <input aria-label="Tab name, new tab ${i + 1}" type="text" name="name${collectionTabList.size() + i}" value="" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="link${collectionTabList.size() + i}" value="" class="no-gap" />
+          <input aria-label="Profile tab link, new tab ${i + 1}" type="text" name="link${collectionTabList.size() + i}" value="" class="no-gap" />
         </td>
         <%--
         <td>

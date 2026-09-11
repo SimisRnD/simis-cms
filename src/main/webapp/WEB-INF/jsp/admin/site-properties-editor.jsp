@@ -154,7 +154,7 @@
                        value="" always, so this can only ever show what was just typed, never the
                        value already on the server. --%>
                   <span class="secret-field">
-                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"
+                  <input aria-label="${fn:escapeXml(siteProperty.label)}" type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"
                       <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if>
@@ -187,7 +187,7 @@
               <%@include file="logo-color-picker.jspf" %>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.ui.mode'}">
-              <select name="${siteProperty.name}">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}">
                 <option value="light"<c:if test="${siteProperty.value ne 'dark' && siteProperty.value ne 'auto' && siteProperty.value ne 'user'}"> selected</c:if>>Light only</option>
                 <option value="dark"<c:if test="${siteProperty.value eq 'dark'}"> selected</c:if>>Dark only</option>
                 <option value="auto"<c:if test="${siteProperty.value eq 'auto'}"> selected</c:if>>Match visitor's device</option>
@@ -195,7 +195,7 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.menu.location'}">
-              <select name="${siteProperty.name}">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}">
                 <option value="center"<c:if test="${siteProperty.value eq 'center'}"> selected</c:if>>Centered</option>
                 <option value="left"<c:if test="${siteProperty.value eq 'left'}"> selected</c:if>>Left Justified</option>
                 <option value="right"<c:if test="${siteProperty.value eq 'right'}"> selected</c:if>>Right Justified</option>
@@ -205,20 +205,20 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.style'}">
-              <select name="${siteProperty.name}" aria-describedby="themeFooterStyleHelpText">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}" aria-describedby="themeFooterStyleHelpText">
                 <option value="default"<c:if test="${siteProperty.value eq 'default'}"> selected</c:if>>Basic</option>
                 <option value="custom"<c:if test="${siteProperty.value eq 'custom'}"> selected</c:if>>Custom XML</option>
                 <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>None</option>
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.layout'}">
-              <select name="${siteProperty.name}" aria-describedby="themeFooterLayoutHelpText">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}" aria-describedby="themeFooterLayoutHelpText">
                 <option value="footer.default"<c:if test="${siteProperty.value ne 'footer.4column'}"> selected</c:if>>Default Footer</option>
                 <option value="footer.4column"<c:if test="${siteProperty.value eq 'footer.4column'}"> selected</c:if>>4-Column Footer</option>
               </select>
             </c:when>
             <c:when test="${siteProperty.type eq 'font'}">
-              <select name="${siteProperty.name}">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}">
                 <option value=""<c:if test="${siteProperty.value eq ''}"> selected</c:if>>Default (Use CSS)</option>
                 <option value="abel"<c:if test="${siteProperty.value eq 'abel'}"> selected</c:if>>Abel</option>
                 <option value="bakbak-one"<c:if test="${siteProperty.value eq 'bakbak-one'}"> selected</c:if>>Bakbak One</option>
@@ -236,7 +236,7 @@
               </select> <a aria-label="Browse Google Fonts (opens in a new tab)" href="https://fonts.google.com" target="_blank" rel="noreferrer"><i aria-hidden="true" class="fa fa-external-link-square"></i></a>
             </c:when>
             <c:when test="${siteProperty.type eq 'color'}">
-              <input id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"
+              <input aria-label="${fn:escapeXml(siteProperty.label)}" id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"
                   <c:if test="${siteProperty.name eq 'site.newsletter.color'}"> aria-describedby="siteNewsletterColorHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'site.newsletter.backgroundColor'}"> aria-describedby="siteNewsletterBackgroundColorHelpText"</c:if>
                   >
@@ -244,7 +244,7 @@
             <c:when test="${siteProperty.type eq 'url'}">
               <div class="input-group">
                 <span class="input-group-label"><i class="fa fa-link"></i></span>
-                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"
+                <input aria-label="${fn:escapeXml(siteProperty.label)}" class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"
                     <c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if>
@@ -258,7 +258,7 @@
               <div class="grid-x grid-margin-x">
                 <div class="small-8 cell">
                   <div class="input-group">
-                    <input class="input-group-field" type="text" placeholder="Local Image URL" id="imageUrl${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"
+                    <input aria-label="${fn:escapeXml(siteProperty.label)}" class="input-group-field" type="text" placeholder="Local Image URL" id="imageUrl${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"
                         <c:if test="${siteProperty.name eq 'site.image'}"> aria-describedby="siteImageHelpText"</c:if>
                         <c:if test="${siteProperty.name eq 'site.logo'}"> aria-describedby="siteLogoHelpText"</c:if>
                         <c:if test="${siteProperty.name eq 'site.logo.white'}"> aria-describedby="siteLogoWhiteHelpText"</c:if>
@@ -284,7 +284,7 @@
               <c:forEach items="${groupList}" var="group">
                 <c:if test="${siteProperty.value eq group.uniqueId}"><c:set var="groupValueFound" value="true" /></c:if>
               </c:forEach>
-              <select name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}" aria-describedby="internalPagesGroupHelpText">
                 <option value="">None &#8212; &quot;Internal&quot; stays a label only</option>
                 <c:forEach items="${groupList}" var="group">
                   <option value="${html:toHtml(group.uniqueId)}"<c:if test="${siteProperty.value eq group.uniqueId}"> selected</c:if>><c:out value="${group.name}" /></option>
@@ -299,7 +299,7 @@
             </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
-                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
+                <input aria-label="${fn:escapeXml(siteProperty.label)}" class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"
                     <c:if test="${siteProperty.value eq 'true'}"> checked</c:if>
                     <c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if>
@@ -329,17 +329,17 @@
               </div>
             </c:when>
             <c:when test="${siteProperty.name eq 'site.timezone'}">
-              <select name="${siteProperty.name}" aria-describedby="siteTimezoneHelpText">
+              <select aria-label="${fn:escapeXml(siteProperty.label)}" name="${siteProperty.name}" aria-describedby="siteTimezoneHelpText">
                 <c:forEach items="<%= TimeZone.getAvailableIDs() %>" var="timezone">
                   <option value="${timezone}"<c:if test="${siteProperty.value eq timezone}"> selected</c:if>><c:out value="${timezone}" /></option>
                 </c:forEach>
               </select>
             </c:when>
             <c:when test="${siteProperty.type eq 'disabled'}">
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
+              <input aria-label="${fn:escapeXml(siteProperty.label)}" type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"
+              <input aria-label="${fn:escapeXml(siteProperty.label)}" type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"
                   <c:if test="${siteProperty.name eq 'analytics.service'}"> aria-describedby="analyticsServiceHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'analytics.google.key'}"> aria-describedby="analyticsGoogleKeyHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}"> aria-describedby="analyticsGoogleTagmanagerHelpText"</c:if>
