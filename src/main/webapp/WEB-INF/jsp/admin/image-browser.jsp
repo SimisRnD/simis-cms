@@ -71,7 +71,7 @@
   <span id="bulkSelectedCount"></span>
   <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
 </div>
-<div class="grid-container" style="padding: 0;">
+<div class="grid-container u-p-0">
   <c:if test="${empty imageList}">
     <p>No images were found.</p>
   </c:if>
@@ -104,7 +104,7 @@
             <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
             <c:if test="${!empty imageTagsByImageId[image.id]}">
               <c:forEach items="${imageTagsByImageId[image.id]}" var="cardTag">
-                <span class="label secondary" style="margin:1px;"><c:out value="${cardTag.name}"/></span>
+                <span class="label secondary u-m-1"><c:out value="${cardTag.name}"/></span>
               </c:forEach>
               <br/>
             </c:if>
@@ -150,7 +150,7 @@
       <span id="bulkSelectedCount"></span>
       <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
     </div>
-    <div class="grid-container" style="padding: 0;">
+    <div class="grid-container u-p-0">
       <label class="margin-bottom-10">
         <input type="checkbox" id="selectAllImages" aria-label="Select all images"> Select All
       </label>
@@ -180,7 +180,7 @@
                   <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
                   <c:if test="${!empty imageTagsByImageId[image.id]}">
                     <c:forEach items="${imageTagsByImageId[image.id]}" var="cardTag">
-                      <span class="label secondary" style="margin:1px;"><c:out value="${cardTag.name}"/></span>
+                      <span class="label secondary u-m-1"><c:out value="${cardTag.name}"/></span>
                     </c:forEach>
                     <br/>
                   </c:if>
@@ -271,7 +271,7 @@
 <div class="reveal" id="altTextReveal" role="dialog" aria-modal="true" aria-labelledby="altTextRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="altTextRevealTitle">Set Alt Text</h4>
-  <p class="callout secondary radius" style="padding:8px 12px;">
+  <p class="callout secondary radius u-py-8 u-px-12">
     Shown to visitors. Blog list views read this as the image's alt text, falling back to the
     post title when it is blank, so what is typed here is what a screen reader announces.
   </p>

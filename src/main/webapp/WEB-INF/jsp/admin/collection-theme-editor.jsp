@@ -24,7 +24,7 @@
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
 <script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     These fields style this collection's header and menu on the public site. Each one accepts a
     color value only -- a hex code (e.g. <code>#2f5f8a</code>) or an <code>rgb(...)</code> /
     <code>rgba(...)</code> value, picked from the swatch or typed in directly. Anything that isn't a

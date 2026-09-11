@@ -30,7 +30,7 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <div class="callout warning radius">
-    <p style="margin-bottom:0;">This is a general, <strong>site-wide</strong> allow rule, not scoped to any particular page. It always wins over a matching entry on the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, since this list is checked first, before the Blocked list is even consulted -- so an entry here can silently undo an existing block on the same address (saving a new block on the Blocked IP page now warns inline when that would happen). See the <a href="${ctx}/admin/allowed-ip-list">Allowed IP list</a> page for the "your current IP" diagnostic, useful if this deployment sits behind a reverse proxy or load balancer.</p>
+    <p class="u-mb-0">This is a general, <strong>site-wide</strong> allow rule, not scoped to any particular page. It always wins over a matching entry on the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, since this list is checked first, before the Blocked list is even consulted -- so an entry here can silently undo an existing block on the same address (saving a new block on the Blocked IP page now warns inline when that would happen). See the <a href="${ctx}/admin/allowed-ip-list">Allowed IP list</a> page for the "your current IP" diagnostic, useful if this deployment sits behind a reverse proxy or load balancer.</p>
   </div>
   <%-- Form Content --%>
   <label>IP Address or CIDR Range to Allow <span class="required">*</span>

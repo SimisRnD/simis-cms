@@ -54,7 +54,7 @@
       <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>
     </c:if>
     <a class="button small radius float-right" href="${ctx}/admin/modify-user?userId=${user.id}">Modify User</a>
-    <ul class="dropdown menu" style="padding-right: 15px;" data-dropdown-menu>
+    <ul class="dropdown menu u-pr-15" data-dropdown-menu>
       <li>
         <a href="#">Actions</a>
         <ul class="menu">
@@ -125,7 +125,7 @@
 </div>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Full detail and every single-account action for this one user. Bulk equivalents (suspend,
     unsuspend, reset password, grant a role) live on the <a href="${ctx}/admin/users">Users list</a>;
     a few actions here -- Delete, Unlock, Reset MFA, and approving/denying an unsuspend request --

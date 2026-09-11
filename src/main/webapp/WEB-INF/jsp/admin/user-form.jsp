@@ -258,7 +258,7 @@
             <label>Roles</label>
           </div>
           <div class="small-9 cell">
-            <p class="help-text" style="margin-bottom:6px">You can only grant a role at or below your
+            <p class="help-text u-mb-6">You can only grant a role at or below your
               own highest role level; a role you check above that level is silently not saved (no
               error is shown) -- and a role the account already holds above your level stays in place
               either way, whether or not you touch this list.</p>
@@ -301,7 +301,7 @@
             <label>Groups</label>
           </div>
           <div class="small-9 cell">
-            <p class="help-text" style="margin-bottom:6px">Unlike roles, group membership isn't
+            <p class="help-text u-mb-6">Unlike roles, group membership isn't
               level-ranked -- anyone who can reach this form can add or remove any group.</p>
             <c:forEach items="${groupList}" var="group">
               <c:choose>

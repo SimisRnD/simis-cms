@@ -44,12 +44,12 @@
      page. Nothing said so before, which made it look as though the editor was not saving. --%>
 <c:if test="${!empty overriddenInlineDefaults}">
   <div class="callout warning radius">
-    <p style="margin-bottom:6px"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+    <p class="u-mb-6"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
       <strong>Some inline HTML below is not what visitors see.</strong></p>
-    <p style="margin-bottom:6px">These content blocks have saved content, which takes priority over
+    <p class="u-mb-6">These content blocks have saved content, which takes priority over
       the <code>&lt;html&gt;</code> written into the layout. Editing that inline HTML here will not
       change the page &mdash; edit the block on the page itself, or through Content.</p>
-    <ul style="margin-bottom:0">
+    <ul class="u-mb-0">
       <c:forEach items="${overriddenInlineDefaults}" var="overriddenUniqueId">
         <li><code><c:out value="${overriddenUniqueId}"/></code></li>
       </c:forEach>

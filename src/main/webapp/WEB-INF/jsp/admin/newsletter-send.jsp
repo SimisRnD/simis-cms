@@ -107,8 +107,8 @@
 </ul>
 
 <c:if test="${!sendMethodConfigured}">
-  <div class="callout radius alert" style="margin-bottom:20px">
-    <p style="margin-bottom:0">
+  <div class="callout radius alert u-mb-20">
+    <p class="u-mb-0">
       <i class="fa fa-exclamation-triangle"></i> <strong>No email delivery method is configured.</strong>
       Sending now would queue recipients that can never actually be delivered. Set up SMTP on
       <a href="${ctx}/admin/mail-properties">Email Settings</a>, or enable MailChimp on
@@ -118,16 +118,16 @@
 </c:if>
 
 <c:if test="${empty mailingLists}">
-  <div class="callout radius warning" style="margin-bottom:20px">
-    <p style="margin-bottom:0">
+  <div class="callout radius warning u-mb-20">
+    <p class="u-mb-0">
       <i class="fa fa-exclamation-triangle"></i> No enabled mailing lists were found. Create or
       enable one from <a href="${ctx}/admin/mailing-lists">Mailing Lists</a> first.
     </p>
   </div>
 </c:if>
 <c:if test="${empty blogPosts}">
-  <div class="callout radius warning" style="margin-bottom:20px">
-    <p style="margin-bottom:0">
+  <div class="callout radius warning u-mb-20">
+    <p class="u-mb-0">
       <i class="fa fa-exclamation-triangle"></i> No published blog posts were found to notify
       subscribers about.
     </p>
@@ -166,9 +166,9 @@
     </div>
 
     <div id="newsletterPreview" class="callout radius" style="display:none; margin-bottom:20px">
-      <p style="margin-bottom:4px"><strong>Preview</strong></p>
-      <h5 id="newsletterPreviewTitle" style="margin-bottom:8px"></h5>
-      <p id="newsletterPreviewSummary" style="margin-bottom:0"></p>
+      <p class="u-mb-4"><strong>Preview</strong></p>
+      <h5 id="newsletterPreviewTitle" class="u-mb-8"></h5>
+      <p id="newsletterPreviewSummary" class="u-mb-0"></p>
     </div>
 
     <button type="submit" class="button radius primary">Send Newsletter</button>

@@ -40,19 +40,19 @@
       <tbody class="no-box">
       <c:forEach items="${orderList}" var="order">
         <tr class="no-box">
-          <td nowrap style="padding:0">
+          <td nowrap class="u-p-0">
             <fmt:formatDate pattern="MM-dd-yy" value="${order.created}"/>
           </td>
-          <td nowrap style="padding:0">
+          <td nowrap class="u-p-0">
             <c:out value="${order.uniqueId}"/>
           </td>
-          <td nowrap style="padding:0">
+          <td nowrap class="u-p-0">
             <c:out value="${order:currentStatus(order.statusId)}"/>
           </td>
             <%--          <td>--%>
             <%--            <a href="#">Track</a>--%>
             <%--          </td>--%>
-          <td nowrap style="padding:0">
+          <td nowrap class="u-p-0">
             <a href="${ctx}/order-details?order-number=${order.uniqueId}">Details</a>
           </td>
         </tr>

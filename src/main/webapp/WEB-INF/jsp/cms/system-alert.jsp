@@ -37,6 +37,6 @@
     </c:if>
   </c:if>
   <c:if test="${userSession.hasRole('admin')}">
-    <a aria-label="Edit site header settings" class="hollow button tiny secondary" style="padding:2px; margin:0;" href="${ctx}/admin/site-header-properties"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
+    <a aria-label="Edit site header settings" class="hollow button tiny secondary u-m-0 u-p-2" href="${ctx}/admin/site-header-properties"><i aria-hidden="true" class="${font:fas()} fa-edit"></i></a>
   </c:if>
 </div>

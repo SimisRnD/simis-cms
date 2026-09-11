@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <%-- Sits directly under the settings form's Save/Cancel buttons, so it needs its own breathing
      room rather than butting up against them. --%>
-<div style="margin-top: 2.5rem;">
+<div class="u-mt-2_5rem">
 <h2 class="h4">MFA status by role</h2>
 <%@include file="../page_messages.jspf" %>
 <p class="help-text page-help">Every role in the system and where it stands. <strong>Required</strong> means the role is listed above in

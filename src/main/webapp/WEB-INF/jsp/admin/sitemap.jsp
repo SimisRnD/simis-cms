@@ -34,7 +34,7 @@
   <strong>Add Item</strong> button saves immediately, the same as it always has.
 </p>
 <div class="callout radius page-help-figure">
-  <p style="margin-bottom:8px;"><strong>Example: what a tab and its items look like to a visitor</strong></p>
+  <p class="u-mb-8"><strong>Example: what a tab and its items look like to a visitor</strong></p>
   <div style="border:1px solid #ccc;border-radius:4px;overflow:hidden;font-size:0.9rem;">
     <div style="background:#2c2c2c;color:#fff;padding:8px 14px;display:flex;gap:20px;">
       <span>Home</span>
@@ -42,11 +42,11 @@
       <span>Contact Us</span>
     </div>
     <div style="background:#fff;padding:8px 14px;">
-      <div style="padding:2px 0;">Government Services</div>
-      <div style="padding:2px 0;">Commercial Services</div>
+      <div class="u-py-2 u-px-0">Government Services</div>
+      <div class="u-py-2 u-px-0">Commercial Services</div>
     </div>
   </div>
-  <p class="help-text" style="margin-top:8px;margin-bottom:0;">
+  <p class="help-text u-mt-8 u-mb-0">
     "Solutions" is a <strong>tab</strong> (Name: Solutions, Link: /solutions) sitting in the bar across the top
     of the site. "Government Services" and "Commercial Services" are <strong>items</strong> -- they only appear
     in the drop-down underneath "Solutions" when a visitor opens it. A tab with no items just links straight to
@@ -152,7 +152,7 @@
                      would mean a second copy of the drag and serialise machinery in a file that
                      already duplicates much of that editor. --%>
                 <c:if test="${!empty menuItem.menuItemList}">
-                  <ul class="site-map-subitem-readonly no-bullet" style="margin:4px 0 0 18px">
+                  <ul class="site-map-subitem-readonly no-bullet u-mt-4 u-mr-0 u-mb-0 u-ml-18">
                     <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
                       <li>
                         <small>
@@ -182,7 +182,7 @@
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
-<h5 style="margin-top: var(--sc-space-6);">Common problems and how to fix them</h5>
+<h5 class="u-mt-sp6">Common problems and how to fix them</h5>
 <ul>
   <li><strong>Deleting a tab also deletes every submenu item under it.</strong> The confirmation prompt tells you
     how many items will go with it, but there's no way to keep the items and only remove the tab -- move anything

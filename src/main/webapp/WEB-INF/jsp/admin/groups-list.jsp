@@ -26,7 +26,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Groups are access-control buckets, separate from <a href="${ctx}/admin/users">Roles</a>. A
     role decides what an account can <em>do</em> in the admin console (manage users, edit content,
     and so on); a group decides what content an account can <em>see</em> -- for example, a

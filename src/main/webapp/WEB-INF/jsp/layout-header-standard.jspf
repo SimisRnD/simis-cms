@@ -657,7 +657,7 @@
             <c:choose>
               <c:when test="${userSession.loggedIn}">
                 <li>
-                  <a style="margin-left: 30px" href="${ctx}/my-page">Account</a>
+                  <a class="u-ml-30" href="${ctx}/my-page">Account</a>
                   <ul class="menu vertical">
                     <li><a href="${ctx}/my-page"><i class="fa fa-user fa-fw"></i> My Page</a></li>
                     <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/' && !fn:contains(masterWebPage.link, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
@@ -682,7 +682,7 @@
                   <c:choose>
                     <c:when test="${'right' eq themePropertyMap['theme.menu.location']}">
                       <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
-                        <li><a class="button" style="margin-left:1.5rem;margin-top:0.4rem" href="${ctx}/register">Sign Up</a></li>
+                        <li><a class="button u-mt-0_4rem u-ml-1_5rem" href="${ctx}/register">Sign Up</a></li>
                       </c:if>
                       <c:if test="${'true' eq sitePropertyMap['site.login']}">
                         <li><a class="button" style="<c:if test="${'false' eq sitePropertyMap['site.registrations']}">margin-left:1.5rem;</c:if>margin-top:0.4rem" href="${ctx}/login">Log In</a></li>

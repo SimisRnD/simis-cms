@@ -50,7 +50,7 @@
           </c:choose>
           <c:if test="${showLaunchLink eq 'true' && !empty item.course.url}">
             <c:if test="${fn:startsWith(item.course.url, 'http://') || fn:startsWith(item.course.url, 'https://')}">
-              <a href="${url:encode(item.course.url)}" class="button primary tiny margin-0" style="padding: 0.2rem .2rem;" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.course.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
+              <a href="${url:encode(item.course.url)}" class="button primary tiny margin-0 u-p-0_2rem" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.course.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
             </c:if>
           </c:if>
           <c:if test="${item.course.enrollments gt 0}">

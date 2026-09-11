@@ -44,7 +44,7 @@
   <label>Name
     <input type="text" placeholder="Auto-generated from the label if left blank" name="name" value="<c:out value="${field.name}"/>">
   </label>
-  <p class="help-text" style="margin-top:-8px">
+  <p class="help-text u-mt-n8">
     An internal identifier, not shown to visitors. Left blank, it's slugified from the Label.
     <strong>Known issue, fix in progress:</strong> this doesn't currently check for a collision
     against this form's other fields, so two fields can end up sharing a Name (including two
@@ -73,7 +73,7 @@
   <label>Options
     <input type="text" placeholder="Select/Checkbox only, e.g. red=Red,blue=Blue,green=Green" name="options" value="<c:out value="${optionsText}"/>">
   </label>
-  <p class="help-text" style="margin-top:-8px">
+  <p class="help-text u-mt-n8">
     <strong>Filling this in overrides how the field renders, for every Type, not just Select and
     Checkbox.</strong> The live form checks "does this field have Options" before it checks Type --
     so a Text, Email, Textarea, or Date field with Options stops rendering as its normal input and

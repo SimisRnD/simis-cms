@@ -257,13 +257,13 @@
     </div>
   </div>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blogPost.id == -1 || !empty blogPost.published}">checked</c:if>/><label for="enabled">Publish it?</label>
-  <div class="full-container" style="margin-top:10px">
+  <div class="full-container u-mt-10">
     <input id="excludeFromFeed" type="checkbox" name="excludeFromFeed" value="true"<c:if test="${blogPost.excludeFromFeed}"> checked</c:if>/>
     <label for="excludeFromFeed">Leave this post out of the RSS feed?</label>
     <small>The post stays published, searchable, and at its own address -- it just is not pushed to feed subscribers. Use this instead of archiving, which hides a post everywhere.</small>
   </div>
   <c:if test="${!empty mailingLists}">
-    <div class="full-container" style="margin-top:10px">
+    <div class="full-container u-mt-10">
       <input id="notifySubscribers" type="checkbox" name="notifySubscribers" value="true" />
       <label for="notifySubscribers">Notify subscribers of a mailing list about this post?</label>
       <small>Only sent the moment this post is first published -- editing an already-published post won't re-notify anyone.</small>

@@ -39,7 +39,7 @@
 --%>
 <a class="button small radius alert margin-left-10" href="#" data-confirm-post="Are you sure you want to delete <c:out value="${collection.name}" />?" data-post-url="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}"><i class="fa fa-remove"></i> Delete</a>
 <div class="callout radius warning">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     <i class="fa fa-exclamation-triangle"></i> <strong>Before you delete this collection, know this:</strong>
     deleting it does <strong>not</strong> delete its items (records). The items become permanently
     orphaned -- invisible and unreachable through the admin UI or the public site, but still sitting

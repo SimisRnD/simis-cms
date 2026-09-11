@@ -104,24 +104,24 @@
             </p>
           </c:if>
           <c:if test="${'none' ne themePropertyMap['theme.menu.location']}">
-            <ul class="menu simple align-center-small align-right" style="margin: 12px 0">
+            <ul class="menu simple align-center-small align-right u-my-12 u-mx-0">
               <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
                 <c:choose>
                   <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
                     <%-- Hide Home (the first one) --%>
                   </c:when>
                   <c:otherwise>
-                    <li <c:if test="${!menuTabStatus.last || 'pro' eq themePropertyMap['theme.menu.location']}">class="footer-menu-item" </c:if>style="padding-left: 8px; margin: 0"><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a></li>
+                    <li class="u-m-0 u-pl-8<c:if test="${!menuTabStatus.last || 'pro' eq themePropertyMap['theme.menu.location']}"> footer-menu-item</c:if>"><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a></li>
                   </c:otherwise>
                 </c:choose>
               </c:forEach>
               <c:if test="${'pro' eq themePropertyMap['theme.menu.location']}">
-                <li style="padding-left: 8px; margin: 0"><a href="${ctx}/contact-us">Contact</a></li>
+                <li class="u-m-0 u-pl-8"><a href="${ctx}/contact-us">Contact</a></li>
               </c:if>
             </ul>
           </c:if>
           <c:if test="${'true' eq sitePropertyMap['site.privacy.policy'] || 'true' eq sitePropertyMap['site.terms.conditions']}">
-            <ul class="menu simple align-center-small align-right" style="margin-bottom: 12px">
+            <ul class="menu simple align-center-small align-right u-mb-12">
               <c:if test="${'true' eq sitePropertyMap['site.privacy.policy']}">
                 <li><a href="${ctx}/legal/privacy">Privacy Policy</a></li>
               </c:if>

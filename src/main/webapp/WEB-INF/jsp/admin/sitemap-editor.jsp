@@ -78,9 +78,9 @@
                 </c:when>
                 <c:otherwise>
                   <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
-                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab left"
+                  <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move tab left"
                           data-move="tabLeft" data-move-target="site-map-menu-tab-container-${menuTab.id}">&#9664;</button>
-                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab right"
+                  <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move tab right"
                           data-move="tabRight" data-move-target="site-map-menu-tab-container-${menuTab.id}">&#9654;</button>
                 </c:otherwise>
               </c:choose>
@@ -94,8 +94,8 @@
               <strong><c:out value="${menuTab.name}"/></strong>
             </c:when>
             <c:otherwise>
-              <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" title="Tab name shown in the menu" style="margin-bottom:0"/>
-              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" title="Page path starting with /, e.g. /solutions" style="margin-bottom:0" list="webPageLinks"/>
+              <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" title="Tab name shown in the menu" class="u-mb-0"/>
+              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" title="Page path starting with /, e.g. /solutions" class="u-mb-0" list="webPageLinks"/>
               <input type="text" name="menuTab${menuTab.id}icon" value="<c:out value="${menuTab.icon}" />" placeholder="Optional icon" title="Icon name without the fa- prefix, e.g. briefcase"/>
             </c:otherwise>
           </c:choose>
@@ -114,17 +114,17 @@
                 <div class="float-left">
                   <small class="subheader">
                     <i class="fa fa-arrows site-map-submenu-tab-drag-handle" aria-hidden="true"></i>
-                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item up"
+                    <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move item up"
                             data-move="itemUp" data-move-target="site-map-menu-item-${menuItem.id}">&#9650;</button>
-                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item down"
+                    <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move item down"
                             data-move="itemDown" data-move-target="site-map-menu-item-${menuItem.id}">&#9660;</button>
                     <%--<a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a>--%>
                   </small>
                 </div>
                 <div class="clear-float"></div>
                 <div>
-                  <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" style="margin-bottom:0"/>
-                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0" list="webPageLinks"/>
+                  <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" class="u-mb-0"/>
+                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" class="u-mb-0" list="webPageLinks"/>
                 </div>
                 <%-- Third level (issue #1728). The container is rendered whether or not it has
                      children, because dragula needs a drop target to exist before anything can be
@@ -136,16 +136,16 @@
                       <div class="float-left">
                         <small class="subheader">
                           <i class="fa fa-arrows site-map-subitem-drag-handle" aria-hidden="true"></i>
-                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item up"
+                          <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move sub-item up"
                                   data-move="subItemUp" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9650;</button>
-                          <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move sub-item down"
+                          <button type="button" class="button tiny secondary u-my-0 u-mx-2" aria-label="Move sub-item down"
                                   data-move="subItemDown" data-move-target="site-map-menu-subitem-${subMenuItem.id}">&#9660;</button>
                         </small>
                       </div>
                       <div class="clear-float"></div>
                       <div>
-                        <input type="text" name="menuItem${subMenuItem.id}name" value="<c:out value="${subMenuItem.name}" />" title="Sub-item name shown in the menu" style="margin-bottom:0"/>
-                        <input type="text" name="menuItem${subMenuItem.id}link" value="<c:out value="${subMenuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /rhtt-robotic-human-type-targets" style="margin-bottom:0" list="webPageLinks"/>
+                        <input type="text" name="menuItem${subMenuItem.id}name" value="<c:out value="${subMenuItem.name}" />" title="Sub-item name shown in the menu" class="u-mb-0"/>
+                        <input type="text" name="menuItem${subMenuItem.id}link" value="<c:out value="${subMenuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /rhtt-robotic-human-type-targets" class="u-mb-0" list="webPageLinks"/>
                       </div>
                     </div>
                   </c:forEach>
@@ -167,7 +167,7 @@
                            placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value=""/>
                     <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemLink"
                            placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks"/>
-                           <p class="help-text" style="margin-top:4px;margin-bottom:0;">
+                           <p class="help-text u-mt-4 u-mb-0">
                              Adds a third-level entry under <strong><c:out value="${menuItem.name}"/></strong>, shown when a
                              visitor opens this item. Name is required; the link is optional and is derived from the name when
                              left blank. Saved with the button at the bottom of the page.

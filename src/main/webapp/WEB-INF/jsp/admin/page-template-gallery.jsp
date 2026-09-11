@@ -21,7 +21,7 @@
   <h2 class="widget-title"><c:out value="${title}" /></h2>
 </c:if>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Every template available when creating a new web page, to browse and plan ahead of time --
     these aren't clickable here. To actually use one, start a new page from
     <a href="${ctx}/admin/web-pages">Web Pages</a>; the template step there offers the same list.

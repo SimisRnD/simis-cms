@@ -136,7 +136,7 @@
           <div class="small-8 cell">
             <div class="input-group">
               <input class="input-group-field" type="text" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${product.imageUrl}"/>">
-              <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
+              <span class="input-group-label u-p-0"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
             </div>
             <label for="imageFile" class="button">Upload Image File...</label>
             <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">

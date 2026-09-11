@@ -110,7 +110,7 @@
      gate on the exact branding-related prefixes so this callout only appears on the 4 pages it's
      actually relevant to, not on unrelated pages like Mail or Captcha Settings. --%>
 <c:if test="${prefix eq 'site' || prefix eq 'theme' || prefix eq 'social' || fn:startsWith(prefix, 'site.header')}">
-  <div class="callout secondary radius" style="margin-bottom:1rem">
+  <div class="callout secondary radius u-mb-1rem">
     <strong>Related settings:</strong>
     <ul class="menu" style="display:inline-block;margin-left:0.5rem">
       <c:if test="${prefix ne 'site'}"><li><a href="${ctx}/admin/site-properties">Site Settings</a></li></c:if>
@@ -264,7 +264,7 @@
                         <c:if test="${siteProperty.name eq 'site.logo.white'}"> aria-describedby="siteLogoWhiteHelpText"</c:if>
                         <c:if test="${siteProperty.name eq 'site.logo.mixed'}"> aria-describedby="siteLogoMixedHelpText"</c:if>
                         >
-                    <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal" data-photo-id="${siteProperty.id}">Browse Images</a></span>
+                    <span class="input-group-label u-p-0"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal" data-photo-id="${siteProperty.id}">Browse Images</a></span>
                   </div>
                   <label for="imageFile${siteProperty.id}" class="button">Upload Image File...</label>
                   <input type="file" id="imageFile${siteProperty.id}" class="show-for-sr" data-photo-upload="${siteProperty.id}">
@@ -773,7 +773,7 @@
   <c:if test="${prefix eq 'mailing-list'}">
     <p class="help-text page-help">Save the API Key and Audience/List Id above first, then use Test Connection to confirm they're valid without leaving this page.</p>
     <c:if test="${!empty mailChimpTestResult}">
-      <p class="callout radius ${mailChimpTestResult.success ? 'success' : 'alert'}" style="margin-top: -0.5rem;">
+      <p class="callout radius ${mailChimpTestResult.success ? 'success' : 'alert'} u-mt-n0_5rem">
         <c:choose>
           <c:when test="${mailChimpTestResult.success}"><i class="fa fa-check-circle"></i> </c:when>
           <c:otherwise><i class="fa fa-exclamation-circle"></i> </c:otherwise>

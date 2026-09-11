@@ -37,7 +37,7 @@
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     A Blog here is a named container for a group of related posts -- despite the name, it works well
     as a <strong>category</strong> (for example, "Press Releases", "Product Updates", "Engineering
     Blog", or "Customer Stories"), each with its own URL segment, its own private tag vocabulary (see
@@ -52,7 +52,7 @@
     with no existing Blog auto-creates the Blog record and the individual post/article page template,
     but never the listing page above -- that part is always a manual step.
   </p>
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Posts within any category go through a draft/publish workflow of their own on
     <a href="${ctx}/admin/blog-posts">All Blog Posts</a>. By default (site property
     <code>blogPost.review.required</code>, off unless turned on from

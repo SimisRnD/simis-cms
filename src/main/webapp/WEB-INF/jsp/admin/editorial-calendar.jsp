@@ -75,7 +75,7 @@
     <div class="cell small-6 medium-4 large-2"><span class="label success radius">Published</span></div>
     <div class="cell small-6 medium-4 large-2"><span class="label alert radius"><i class="fa fa-hourglass-end" aria-hidden="true"></i> Expiring</span></div>
   </div>
-  <p class="small" style="margin-top:8px; margin-bottom:0">
+  <p class="small u-mt-8 u-mb-0">
     <strong>Scheduled</strong> means the content is fully approved and ready -- it will go live
     automatically at its target date/time with no further action needed. <strong>Pending
     Review</strong> means a draft revision is still awaiting an approver's decision -- it will
@@ -87,7 +87,7 @@
 
 <c:if test="${canEditPagesAndPosts != 'true'}">
   <div class="callout radius">
-    <p style="margin-bottom:0">
+    <p class="u-mb-0">
       <i class="fa fa-info-circle" aria-hidden="true"></i> <strong>Why some entries aren't
       clickable:</strong> Page and Post entries below are shown for awareness but aren't
       clickable for your role -- you don't have edit access to Web Pages or Blog Posts elsewhere

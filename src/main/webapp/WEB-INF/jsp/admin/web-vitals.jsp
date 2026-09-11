@@ -98,7 +98,7 @@
       </tbody>
     </table>
 
-    <div style="margin-top: 20px;">
+    <div class="u-mt-20">
       <h3>Thresholds (Google Core Web Vitals)</h3>
       <table class="table table-sm">
         <tr>

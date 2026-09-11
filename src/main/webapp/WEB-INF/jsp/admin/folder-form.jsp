@@ -63,7 +63,7 @@
     <fieldset>
       <legend>Access Groups</legend>
       <div class="callout primary radius">
-        <p style="margin-bottom:0">
+        <p class="u-mb-0">
           <strong>Allowed Access?</strong> controls how much of this folder a group's members can see:
           <em>All Files</em> lets them view and download every file in this folder; <em>Own Files</em>
           limits them to files they added themselves; <em>Files By Token Only</em> limits them to files

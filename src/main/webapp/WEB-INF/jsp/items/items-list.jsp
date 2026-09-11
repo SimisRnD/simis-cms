@@ -90,7 +90,7 @@
           </c:if>
           <c:if test="${showLaunchLink eq 'true' && !empty item.url}">
             <c:if test="${fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://')}">
-              <a href="${url:encode(item.url)}" class="button primary tiny margin-0" style="padding: 0.2rem .2rem;" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
+              <a href="${url:encode(item.url)}" class="button primary tiny margin-0 u-p-0_2rem" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
             </c:if>
           </c:if>
           <c:if test="${showUrl eq 'true' && !empty item.url}">

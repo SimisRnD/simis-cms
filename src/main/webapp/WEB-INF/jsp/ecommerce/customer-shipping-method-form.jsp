@@ -54,7 +54,7 @@
             </c:otherwise>
           </c:choose>
           <c:if test="${!empty shippingRate.displayText}">
-            <p class="checkout-stage-text" style="padding-left: 26px;">
+            <p class="checkout-stage-text u-pl-26">
               <c:out value="${shippingRate.displayText}" />
             </p>
           </c:if>

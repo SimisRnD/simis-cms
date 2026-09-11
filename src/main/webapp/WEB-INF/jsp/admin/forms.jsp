@@ -27,7 +27,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Each row is a form definition -- its settings, success/notification text, and fields, built here
     and placed on a live page separately as a "Form" widget. Click a name (or the pencil) to open its
     full editor for Fields and Form Settings; use the "Add a form" panel to create a new one.

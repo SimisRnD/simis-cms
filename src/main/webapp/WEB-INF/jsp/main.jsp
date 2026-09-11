@@ -1233,8 +1233,8 @@
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="flex:1;min-width:200px;">This site uses analytics to understand how visitors use it.</span>
-      <button id="analytics-consent-accept" class="button small success" style="margin:0;">Accept</button>
-      <button id="analytics-consent-decline" class="button small secondary" style="margin:0;">Decline</button>
+      <button id="analytics-consent-accept" class="button small success u-m-0">Accept</button>
+      <button id="analytics-consent-decline" class="button small secondary u-m-0">Decline</button>
     </div>
     <script nonce="${cspNonce}">
       var analyticsConsentAccept = document.getElementById('analytics-consent-accept');

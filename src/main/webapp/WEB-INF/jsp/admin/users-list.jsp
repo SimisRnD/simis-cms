@@ -33,7 +33,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">
+  <p class="u-mb-0">
     Every account on the site: search and filter, add one at a time or in bulk, and act on many at
     once (suspend, unsuspend, reset password, grant a role). Click a name to open that account's
     <a href="${ctx}/admin/user-details">full detail page</a>, including its own actions (delete,
@@ -528,8 +528,8 @@
   each other's unsuspend requests (remember: the requester can't approve their own).
 </p>
 
-<div class="callout radius" style="margin-top:10px">
-  <p style="margin-bottom:0">
+<div class="callout radius u-mt-10">
+  <p class="u-mb-0">
     <i class="fa fa-info-circle"></i> <strong>Coming soon, not yet available:</strong> a CSV export/
     download button on this page, a "Reset MFA" action on the account detail page, and moving this
     page's access check from a hardcoded role list to the newer capability-grant system (so a custom

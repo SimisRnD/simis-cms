@@ -26,7 +26,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
-  <p style="margin-bottom:0">This tab only applies to JSON-family sources (<strong>JSON</strong>, <strong>JSON API</strong>, and <strong>GeoJSON</strong>) -- it configures where in the response body the array of records lives, and any JSON dot-notation column mappings, before field mapping happens on the Map Fields tab. For CSV, TSV, RSS+XML, and other non-JSON source types this tab is intentionally empty -- that's expected, not a bug.</p>
+  <p class="u-mb-0">This tab only applies to JSON-family sources (<strong>JSON</strong>, <strong>JSON API</strong>, and <strong>GeoJSON</strong>) -- it configures where in the response body the array of records lives, and any JSON dot-notation column mappings, before field mapping happens on the Map Fields tab. For CSV, TSV, RSS+XML, and other non-JSON source types this tab is intentionally empty -- that's expected, not a bug.</p>
 </div>
 <form method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
