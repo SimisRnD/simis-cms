@@ -76,7 +76,12 @@ public class WebContainerCommand implements Serializable {
       "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap",
       // Derived from systemPropertyMap alongside it; activity-list.jsp reads it during its own
       // widget turn, so it has to survive the per-widget reset exactly as that map does
-      "brandedAssetContext");
+      "brandedAssetContext",
+      // The style rules widgets register while rendering (issue #1999). They accumulate across
+      // every widget in the page, header and footer, and main.jsp writes them into the head after
+      // the walk -- wiped per widget, every widget's rule is lost and its element keeps a hook
+      // that nothing styles
+      PageStyleRules.RULES_ATTRIBUTE);
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
@@ -137,14 +142,7 @@ public class WebContainerCommand implements Serializable {
         for (Widget widget : column.getWidgets()) {
 
           // Reset the request attributes for each widget
-          Enumeration<?> attributeNames = request.getAttributeNames();
-          while (attributeNames.hasMoreElements()) {
-            String name = (String) attributeNames.nextElement();
-//              LOG.debug("Found attribute: " + name);
-            if (!isPreservedAcrossWidgetReset(name)) {
-              request.removeAttribute(name);
-            }
-          }
+          resetWidgetAttributes(request);
 
           // Check the user's role and groups
           if (!WebComponentCommand.allowsUser(widget, userSession)) {
@@ -740,6 +738,22 @@ public class WebContainerCommand implements Serializable {
   protected static boolean isPreservedAcrossWidgetReset(String name) {
     return name.startsWith("controller") || name.startsWith("master") || name.startsWith("request")
         || PAGE_LEVEL_ATTRIBUTE_NAMES.contains(name);
+  }
+
+  /**
+   * The per-widget reset: removes every request attribute the previous widget's turn may have
+   * left, except those {@link #isPreservedAcrossWidgetReset} keeps for the whole request.
+   *
+   * @param request the page request
+   */
+  static void resetWidgetAttributes(HttpServletRequest request) {
+    Enumeration<?> attributeNames = request.getAttributeNames();
+    while (attributeNames.hasMoreElements()) {
+      String name = (String) attributeNames.nextElement();
+      if (!isPreservedAcrossWidgetReset(name)) {
+        request.removeAttribute(name);
+      }
+    }
   }
 
   /**
