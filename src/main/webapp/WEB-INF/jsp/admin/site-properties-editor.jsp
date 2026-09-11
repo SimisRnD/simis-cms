@@ -112,7 +112,7 @@
 <c:if test="${prefix eq 'site' || prefix eq 'theme' || prefix eq 'social' || fn:startsWith(prefix, 'site.header')}">
   <div class="callout secondary radius u-mb-1rem">
     <strong>Related settings:</strong>
-    <ul class="menu" style="display:inline-block;margin-left:0.5rem">
+    <ul class="menu u-d-inline-block u-ml-0_5rem">
       <c:if test="${prefix ne 'site'}"><li><a href="${ctx}/admin/site-properties">Site Settings</a></li></c:if>
       <c:if test="${prefix ne 'theme'}"><li><a href="${ctx}/admin/theme-properties">Theme Settings</a></li></c:if>
       <c:if test="${!fn:startsWith(prefix, 'site.header')}"><li><a href="${ctx}/admin/site-header-properties">Utility Bar Settings</a></li></c:if>

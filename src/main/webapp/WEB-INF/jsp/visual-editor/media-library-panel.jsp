@@ -29,26 +29,26 @@
       <i class="fa fa-cloud-upload"></i>
       <p>Drop files here or <span class="upload-link">click to select</span></p>
     </div>
-    <input type="file" id="media-file-input" multiple style="display: none;" accept="image/*,.pdf,.svg+xml" />
+    <input type="file" id="media-file-input" class="u-d-none" multiple accept="image/*,.pdf,.svg+xml" />
   </div>
 
   <!-- Search -->
   <div class="media-panel-search">
     <input type="text" id="media-search-input" placeholder="Search files..." class="search-input" tabindex="0" />
-    <button class="search-clear" id="media-search-clear" aria-label="Clear search" style="display: none;">
+    <button class="search-clear" id="media-search-clear" aria-label="Clear search" hidden>
       <i class="fa fa-times"></i>
     </button>
   </div>
 
   <!-- File Grid -->
   <div class="media-panel-grid" id="media-grid" role="listbox">
-    <div class="loading" style="display: none;">
+    <div class="loading" hidden>
       <p>Loading files...</p>
     </div>
-    <div class="empty" style="display: none;">
+    <div class="empty" hidden>
       <p>No files found</p>
     </div>
-    <div class="error" style="display: none;" role="alert">
+    <div class="error" role="alert" hidden>
       <i class="fa fa-exclamation-triangle"></i>
       <p></p>
     </div>
@@ -56,7 +56,7 @@
   </div>
 
   <!-- Pagination -->
-  <div class="media-panel-pagination" id="media-pagination" style="display: none;">
+  <div class="media-panel-pagination hide" id="media-pagination">
     <button class="prev-page" aria-label="Previous page" tabindex="0">
       <i class="fa fa-chevron-left"></i>
     </button>
@@ -405,14 +405,14 @@
   }
 
   searchInput.addEventListener('input', (e) => {
-    searchClearBtn.style.display = e.target.value ? '' : 'none';
+    searchClearBtn.hidden = !e.target.value;
     currentPage = 0;
     loadFiles(e.target.value);
   });
 
   searchClearBtn.addEventListener('click', () => {
     searchInput.value = '';
-    searchClearBtn.style.display = 'none';
+    searchClearBtn.hidden = true;
     currentPage = 0;
     loadFiles();
   });
@@ -440,9 +440,9 @@
     const loading = grid.querySelector('.loading');
     const empty = grid.querySelector('.empty');
 
-    loading.style.display = '';
+    loading.hidden = false;
     gridContent.style.display = 'none';
-    empty.style.display = 'none';
+    empty.hidden = true;
     hideErrorState();
 
     const params = new URLSearchParams({
@@ -466,18 +466,18 @@
         lastTotal = data.total || 0;
         renderFiles();
         updatePagination(lastTotal);
-        loading.style.display = 'none';
+        loading.hidden = true;
         if (filteredAssets.length === 0) {
-          empty.style.display = '';
+          empty.hidden = false;
         } else {
           gridContent.style.display = '';
         }
       })
       .catch(err => {
         console.error('Error loading media library files:', err);
-        loading.style.display = 'none';
+        loading.hidden = true;
         gridContent.style.display = 'none';
-        empty.style.display = 'none';
+        empty.hidden = true;
         showErrorState('Unable to load files. Please try again.');
       });
   }
@@ -485,11 +485,11 @@
   function showErrorState(message) {
     const errorEl = grid.querySelector('.error');
     errorEl.querySelector('p').textContent = message;
-    errorEl.style.display = '';
+    errorEl.hidden = false;
   }
 
   function hideErrorState() {
-    grid.querySelector('.error').style.display = 'none';
+    grid.querySelector('.error').hidden = true;
   }
 
   function renderFiles() {
@@ -588,7 +588,7 @@
     const gridContent = grid.querySelector('.files');
     if (filteredAssets.length === 0) {
       gridContent.style.display = 'none';
-      grid.querySelector('.empty').style.display = '';
+      grid.querySelector('.empty').hidden = false;
     }
   }
 
@@ -709,7 +709,7 @@
     lastTotal += 1;
 
     const gridContent = grid.querySelector('.files');
-    grid.querySelector('.empty').style.display = 'none';
+    grid.querySelector('.empty').hidden = true;
     gridContent.style.display = '';
     renderFiles();
     updatePagination(lastTotal);
@@ -720,21 +720,21 @@
     loading.querySelector('p').textContent = total > 1
       ? ('Uploading ' + current + ' of ' + total + '…')
       : ('Uploading ' + filename + '…');
-    loading.style.display = '';
+    loading.hidden = false;
   }
 
   function hideUploadingState() {
     const loading = grid.querySelector('.loading');
-    loading.style.display = 'none';
+    loading.hidden = true;
     loading.querySelector('p').textContent = 'Loading files...';
   }
 
   function updatePagination(total) {
     const totalPages = Math.ceil(total / pageSize);
     if (totalPages <= 1) {
-      pagination.style.display = 'none';
+      pagination.classList.add('hide');
     } else {
-      pagination.style.display = 'flex';
+      pagination.classList.remove('hide');
       pagination.querySelector('.current-page').textContent = currentPage + 1;
       pagination.querySelector('.total-pages').textContent = totalPages;
 

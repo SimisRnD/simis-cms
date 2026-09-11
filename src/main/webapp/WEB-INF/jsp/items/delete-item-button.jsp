@@ -19,7 +19,7 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
 <c:if test="${item.id gt 0}">
-<form method="post" action="${widgetContext.uri}" style="display:inline;" data-confirm-submit="Are you sure you want to delete <c:out value="${item.name}" /> and all related information?">
+<form method="post" action="${widgetContext.uri}" class="u-d-inline" data-confirm-submit="Are you sure you want to delete <c:out value="${item.name}" /> and all related information?">
   <input type="hidden" name="command" value="delete"/>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>

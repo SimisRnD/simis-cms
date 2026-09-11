@@ -165,7 +165,7 @@
       </div>
     </div>
 
-    <div id="newsletterPreview" class="callout radius" style="display:none; margin-bottom:20px">
+    <div id="newsletterPreview" class="callout radius u-mb-20" hidden>
       <p class="u-mb-4"><strong>Preview</strong></p>
       <h5 id="newsletterPreviewTitle" class="u-mb-8"></h5>
       <p id="newsletterPreviewSummary" class="u-mb-0"></p>
@@ -180,12 +180,12 @@
         var preview = document.getElementById('newsletterPreview');
         var option = select.options[select.selectedIndex];
         if (!option.value) {
-          preview.style.display = 'none';
+          preview.hidden = true;
           return;
         }
         document.getElementById('newsletterPreviewTitle').textContent = option.getAttribute('data-title') || '';
         document.getElementById('newsletterPreviewSummary').textContent = option.getAttribute('data-summary') || '';
-        preview.style.display = '';
+        preview.hidden = false;
       }
     };
   </script>

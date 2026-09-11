@@ -804,7 +804,7 @@
       <c:if test="${!fn:startsWith(pageRenderInfo.name, '/content-editor')}">
         <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-') && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${js:escape(analyticsPropertyMap['analytics.google.tagmanager'])}"
-        height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+        height="0" width="0" class="u-d-none u-vis-hidden"></iframe></noscript>
         </c:if>
       </c:if>
       <div class="web-content">
@@ -837,7 +837,7 @@
               </p>
               <p>
                 <button id="site-confirmation-yes" class="button secondary">Yes</button>
-                <span style="display:inline-block; vertical-align: middle; height:40px;">or</span>
+                <span class="u-d-inline-block u-va-middle u-h-40">or</span>
                 <button id="site-confirmation-no" class="button secondary">No</button>
               </p>
             </div>

@@ -40,7 +40,7 @@
     var qty = $('#item-' + itemId + '-quantity').find(":selected").text();
     $('#item-' + itemId + '-total').html(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(qty * price));
     $('#cart-subtotal').html('Update cart for new subtotal');
-    $('#update-button').show();
+    $('#update-button').removeClass('hide');
   }
 
   function removeItem${widgetContext.uniqueId}(itemId) {
@@ -48,7 +48,7 @@
   }
 
   function showPromoCodeEntry(e) {
-    $('#promoCodeEntry').show();
+    $('#promoCodeEntry').prop('hidden', false);
     $('#promoCodeInput').focus();
   }
 </script>
@@ -274,7 +274,7 @@
             </div>
             <a class="accordion-button" href="#" data-js-call="showPromoCodeEntry">Promo Code</a>
           </div>
-          <div id="promoCodeEntry" style="display:none" class="margin-top-10">
+          <div id="promoCodeEntry" class="margin-top-10" hidden>
             <div class="grid-x">
               <div class="small-7">
                 <input id="promoCodeInput" type="text" name="promoCode" value="<c:out value="${cart.promoCode}" />" placeholder="Promo Code" class="no-gap" />
@@ -315,7 +315,7 @@
                 <button id="update-button" class="button secondary expanded">Update Cart</button>
               </c:when>
               <c:otherwise>
-                <button id="update-button" style="display:none" class="button secondary expanded">Update Cart</button>
+                <button id="update-button" class="button secondary expanded hide">Update Cart</button>
               </c:otherwise>
             </c:choose>
             <button class="button primary expanded" name="button" value="checkout"<c:if test="${preventCheckout eq 'true'}"> disabled="true"</c:if>>Check Out</button>

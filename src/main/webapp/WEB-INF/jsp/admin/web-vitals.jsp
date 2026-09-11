@@ -174,7 +174,7 @@
   </c:if>
 
   <c:if test="${not empty trendUrls}">
-    <div class="trend-controls" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end; margin-bottom:1rem;">
+    <div class="trend-controls u-d-flex u-flexwrap-wrap u-gap-1rem u-ai-flex-end u-mb-1rem">
       <label>URL
         <select id="trendUrlSelect${widgetContext.uniqueId}">
           <c:forEach items="${trendUrls}" var="urlOption">
