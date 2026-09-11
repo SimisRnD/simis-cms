@@ -28,7 +28,7 @@
   <c:when test="${!empty product.caption && combineCaption eq 'true'}">
     <c:choose>
       <c:when test="${showPrice eq 'true'}">
-        <h1 style="margin-bottom: 0; line-height: 1.2"><c:out value="${product.name}"/> <c:out value="${product.caption}" /></h1>
+        <h1 class="u-lh-1_2 u-mb-0"><c:out value="${product.name}"/> <c:out value="${product.caption}" /></h1>
       </c:when>
       <c:otherwise>
         <h1><c:out value="${product.name}"/> <c:out value="${product.caption}" /></h1>
@@ -36,7 +36,7 @@
     </c:choose>
   </c:when>
   <c:when test="${!empty product.caption || showPrice eq 'true'}">
-    <h1 style="margin-bottom: 0; line-height: 1.2"><c:out value="${product.name}"/></h1>
+    <h1 class="u-lh-1_2 u-mb-0"><c:out value="${product.name}"/></h1>
   </c:when>
   <c:otherwise>
     <h1><c:out value="${product.name}"/></h1>
@@ -45,7 +45,7 @@
 <c:if test="${!empty product.caption && combineCaption ne 'true'}">
   <c:choose>
     <c:when test="${showPrice eq 'true'}">
-      <h2 style="margin-bottom: 0; line-height: 1.2"><c:out value="${product.caption}"/></h2>
+      <h2 class="u-lh-1_2 u-mb-0"><c:out value="${product.caption}"/></h2>
     </c:when>
     <c:otherwise>
       <h2><c:out value="${product.caption}"/></h2>

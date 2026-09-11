@@ -28,7 +28,7 @@
   <c:when test="${!empty collectionList}">
     <div class="grid-x grid-margin-x small-up-2 medium-up-4 large-up-5">
     <c:forEach items="${collectionList}" var="collection">
-      <div class="cell card" style="width: 200px;">
+      <div class="cell card u-w-200">
         <div class="card-section">
           <p class="text-center">
             <c:if test="${!empty collection.icon}"><i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i></c:if>

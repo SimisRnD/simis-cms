@@ -31,7 +31,7 @@
 </div>
 <c:forEach items="${collectionList}" var="collection">
   <a href="${ctx}/admin/collection-details?collectionId=${collection.id}">
-    <div class="admin card float-left" style="min-height: 160px">
+    <div class="admin card float-left u-minh-160">
       <div class="card-divider" style="background-color: <c:out value="${collection.headerBgColor}" />">
         <p style="color: <c:out value="${collection.headerTextColor}" />">
           <c:set var="thisIcon" scope="request" value="database"/>

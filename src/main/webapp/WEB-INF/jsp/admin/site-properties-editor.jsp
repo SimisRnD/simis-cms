@@ -271,7 +271,7 @@
                 </div>
                 <div class="small-4 cell">
                   <c:set var="previewSrcset" value="${image:srcset(siteProperty.value)}"/>
-                  <img id="imageUrlPreview${siteProperty.id}" src="<c:out value="${siteProperty.value}"/>" style="max-height: 150px; max-width: 150px"
+                  <img id="imageUrlPreview${siteProperty.id}" src="<c:out value="${siteProperty.value}"/>" class="u-maxh-150 u-maxw-150"
                     <c:if test="${not empty previewSrcset}"> srcset="<c:out value="${previewSrcset}"/>" sizes="150px"</c:if>
                     loading="lazy" decoding="async"/>
                 </div>
@@ -814,7 +814,7 @@
      never fires. Omitting it uses Foundation's default, non-animated (and non-transitionend-
      dependent) open, which works. --%>
 <div class="reveal large" id="imageBrowserReveal" data-reveal role="dialog" aria-modal="true" aria-label="Image Browser">
-  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
+  <iframe id="imageBrowserFrame" title="Image Browser" class="u-w-100p u-h-70vh u-border-0"></iframe>
 </div>
 <script nonce="${cspNonce}">
   <%-- Map the variable property to the mapped CSS classes --%>

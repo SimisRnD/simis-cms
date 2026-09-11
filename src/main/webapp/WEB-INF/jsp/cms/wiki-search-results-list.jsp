@@ -37,7 +37,7 @@
   <c:if test="${!empty wikiFacets}">
     <div class="cell medium-3">
       <h6><c:out value="${wikiFacetLabel}"/></h6>
-      <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+      <ul class="no-bullet u-ti-n11 u-ml-21">
         <c:forEach items="${wikiFacets}" var="facet">
           <li>
             <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>

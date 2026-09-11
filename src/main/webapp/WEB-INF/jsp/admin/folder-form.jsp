@@ -52,11 +52,11 @@
     <legend>File Categories</legend>
     <c:forEach items="${folder.folderCategoryList}" var="category" varStatus="categoryStatus">
       <input type="hidden" name="category${categoryStatus.index}id" value="${category.id}" />
-      <input type="text" name="category${categoryStatus.index}name" placeholder="Category Name" value="<c:out value="${category.name}" />" style="width:200px; float:left; margin-right: 20px;" />
+      <input type="text" name="category${categoryStatus.index}name" placeholder="Category Name" value="<c:out value="${category.name}" />" class="u-w-200 u-float-left u-mr-20" />
     </c:forEach>
     <c:forEach begin="${fn:length(folder.folderCategoryList)}" end="${fn:length(folder.folderCategoryList) + 4}" varStatus="loop">
 <%--      <input type="checkbox" name="category${loop.index + fn:length(folder.folderCategoryList)}enabled" value="true" />--%>
-      <input type="text" name="category${loop.index}name" placeholder="Category Name" value="" style="width:200px; float:left; margin-right: 20px;" />
+      <input type="text" name="category${loop.index}name" placeholder="Category Name" value="" class="u-w-200 u-float-left u-mr-20" />
     </c:forEach>
   </fieldset>
   <c:if test="${!empty groupList}">

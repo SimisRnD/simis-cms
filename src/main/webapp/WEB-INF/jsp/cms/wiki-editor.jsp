@@ -84,7 +84,7 @@
       </ul>
       <div class="tabs-content" data-tabs-content="wikiEditorSideTabs">
         <div class="tabs-panel is-active" id="wikiHelpPanel">
-          <div class="callout secondary" style="height:65vh;overflow:scroll">
+          <div class="callout secondary u-h-65vh u-o-scroll">
             <%-- https, and rel on a target=_blank: commonmark.org 301s http to https anyway, and an
                  opener-less new tab cannot reach back into this editor via window.opener. --%>
             <p><a target="_blank" rel="noopener noreferrer" href="https://commonmark.org/help">CommonMark Help</a>
@@ -116,7 +116,7 @@
           </div>
         </div>
         <div class="tabs-panel" id="wikiPreviewPanel">
-          <div class="callout secondary markdown-body" id="wikiPreviewContent" style="height:65vh;overflow:scroll">
+          <div class="callout secondary markdown-body u-h-65vh u-o-scroll" id="wikiPreviewContent">
             <em>Click Preview to render the current content.</em>
           </div>
         </div>

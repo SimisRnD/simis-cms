@@ -237,7 +237,7 @@
     <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
   </p>
   <c:if test="${!empty calendarEvent.imageUrl}">
-    <img id="imageUrlPreview" alt="" src="<c:out value="${calendarEvent.imageUrl}"/>" style="max-height: 150px; max-width: 150px">
+    <img id="imageUrlPreview" alt="" src="<c:out value="${calendarEvent.imageUrl}"/>" class="u-maxh-150 u-maxw-150">
   </c:if>
   <small class="help-text"><i class="fa fa-info-circle"></i> Shown on the event's page, and used as its social card when the event is shared. Without one, a shared link falls back to the site-wide default image.</small>
   <label>Tags
@@ -265,7 +265,7 @@
      when the animation class is added, so the transitionend it waits for to reveal the element
      never fires. Omitting it uses Foundation's default, non-animated open, which works. --%>
 <div class="reveal large" id="imageBrowserReveal" data-reveal role="dialog" aria-modal="true" aria-label="Image Browser">
-  <iframe id="imageBrowserFrame" title="Image Browser" style="width: 100%; height: 70vh; border: 0;"></iframe>
+  <iframe id="imageBrowserFrame" title="Image Browser" class="u-w-100p u-h-70vh u-border-0"></iframe>
 </div>
 <script nonce="${cspNonce}">
     // Load the image browser in an iframe so its own nonce-valid script runs and can populate the

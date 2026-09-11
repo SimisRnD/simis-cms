@@ -34,7 +34,7 @@
   <a href="#" data-confirm-post="Clear ALL caches? This cannot be undone." data-post-url="${widgetContext.uri}?command=clearAll&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" class="button alert">Clear All Caches</a>
 </p>
 
-<div style="overflow-x: auto">
+<div class="u-ox-auto">
 <table class="unstriped">
   <thead>
     <tr>

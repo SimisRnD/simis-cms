@@ -19,7 +19,7 @@
          data-sticky data-margin-top="0" data-sticky-on="small">
       <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && (userSession.hasRole('admin') || (userSession.hasRole('content-manager') && pageRenderInfo.name ne '/'))}">
         <div class="platform-content-container">
-          <div class="platform-content-editor" style="top:-4px">
+          <div class="platform-content-editor u-top-n4">
             <c:if test="${masterWebPage.draft && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
               <span class="label alert tiny">Draft</span>
             </c:if>

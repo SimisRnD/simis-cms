@@ -798,13 +798,13 @@
       </div>
       <c:if test="${!empty sitePropertyMap['site.confirmation'] && sitePropertyMap['site.confirmation'] eq 'true'}">
         <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast" role="dialog" aria-modal="true" aria-label="Site Confirmation">
-          <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
+          <div class="u-pos-abs u-top-50p u-left-50p u-translate-center">
             <div class="modal-prompt">
               <p>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
                     <c:set var="modalLogoSrcset" value="${image:srcset(sitePropertyMap['site.logo'])}"/>
-                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>"
+                    <img alt="Logo" class="u-maxw-75p" src="<c:out value="${sitePropertyMap['site.logo']}"/>"
                       <c:if test="${not empty modalLogoSrcset}"> srcset="<c:out value="${modalLogoSrcset}"/>" sizes="200px"</c:if>
                       loading="eager" decoding="async" />
                   </c:when>
@@ -1232,7 +1232,7 @@
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <span style="flex:1;min-width:200px;">This site uses analytics to understand how visitors use it.</span>
+      <span class="u-flex-1 u-minw-200">This site uses analytics to understand how visitors use it.</span>
       <button id="analytics-consent-accept" class="button small success u-m-0">Accept</button>
       <button id="analytics-consent-decline" class="button small secondary u-m-0">Decline</button>
     </div>

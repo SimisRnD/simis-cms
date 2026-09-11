@@ -53,7 +53,7 @@
   <div id="form-fields-container" class="form-fields-container">
     <c:forEach items="${fieldList}" var="field">
       <div id="form-field-row-${field.id}" class="form-field-row">
-        <div style="position: absolute; right: 5px; top: 5px;">
+        <div class="u-pos-abs u-right-5 u-top-5">
           <small>
             <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}&fieldId=${field.id}" title="Edit this field"><i class="${font:fas()} fa-edit"></i></a>
             <a href="#" data-js-call="deleteField" data-js-arg1="${field.id}" data-js-arg2="<c:out value="${field.label}"/>" title="Delete this field"><i class="fa fa-circle-xmark"></i></a>

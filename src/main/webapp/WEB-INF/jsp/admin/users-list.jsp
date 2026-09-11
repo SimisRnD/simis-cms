@@ -91,7 +91,7 @@
     <option value="enabled"<c:if test="${mfaFilter eq 'enabled'}"> selected</c:if>>MFA Enabled</option>
     <option value="disabled"<c:if test="${mfaFilter eq 'disabled'}"> selected</c:if>>MFA Not Enabled</option>
   </select>
-  <label class="float-left width-auto margin-right-10" style="line-height: 2.4375rem;">
+  <label class="float-left width-auto margin-right-10 u-lh-2_4375rem">
     <input id="agingPasswordFilter" type="checkbox" name="agingPasswordFilter" value="1"<c:if test="${agingPasswordFilter eq '1'}"> checked</c:if> />
     Aging passwords
   </label>

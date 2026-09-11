@@ -61,7 +61,7 @@
         <td>
           <c:if test="${!empty product.imageUrl}">
             <c:set var="listThumbSrcset" value="${image:srcset(product.imageUrl)}"/>
-            <img src="<c:out value="${product.imageUrl}"/>" style="max-height: 100px; max-width: 100px"
+            <img src="<c:out value="${product.imageUrl}"/>" class="u-maxh-100 u-maxw-100"
               <c:if test="${not empty listThumbSrcset}"> srcset="<c:out value="${listThumbSrcset}"/>" sizes="100px"</c:if>
               loading="lazy" decoding="async"/>
           </c:if>
@@ -128,7 +128,7 @@
               <span class="label success">Sync'd</span>
             </c:when>
             <c:otherwise>
-              <span class="label warning" style="white-space: nowrap">Not Sync'd</span>
+              <span class="label warning u-ws-nowrap">Not Sync'd</span>
             </c:otherwise>
           </c:choose>
         </td>

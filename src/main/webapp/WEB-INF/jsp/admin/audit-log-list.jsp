@@ -240,7 +240,7 @@
     <span aria-hidden="true">&times;</span>
   </button>
   <h4 id="auditDetailsTitle">Event Details</h4>
-  <pre id="auditDetailsContent" class="break-word" style="white-space:pre-wrap"></pre>
+  <pre id="auditDetailsContent" class="break-word u-ws-prewrap"></pre>
 </div>
 <script nonce="${cspNonce}">
   $(function() {

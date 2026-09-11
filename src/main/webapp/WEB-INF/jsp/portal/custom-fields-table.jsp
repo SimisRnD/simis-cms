@@ -30,10 +30,10 @@
   <tbody>
 <c:forEach items="${fieldList}" var="field" varStatus="status">
   <tr>
-    <td style="vertical-align: top">
+    <td class="u-va-top">
       <c:out value="${field.label}"/>
     </td>
-    <td style="vertical-align: top">
+    <td class="u-va-top">
       <c:choose>
         <c:when test="${'html' eq field.type}">
           ${html:clean(field.value)}

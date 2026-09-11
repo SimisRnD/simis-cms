@@ -26,7 +26,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+<ul class="no-bullet u-ti-n11 u-ml-21">
   <c:choose>
     <c:when test="${!empty listingsLink}">
       <c:set var="listingsLinkPrefix" scope="request" value="${listingsLink}"/>

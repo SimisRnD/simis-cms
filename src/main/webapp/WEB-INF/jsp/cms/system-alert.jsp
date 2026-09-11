@@ -28,7 +28,7 @@
     <c:if test="${!empty sitePropertyMap['site.header.page']}">
       <c:choose>
         <c:when test="${!empty sitePropertyMap['site.header.link']}">
-          <a style="white-space: nowrap" href="<c:out value="${ctx}${sitePropertyMap['site.header.page']}"/>"><c:out value="${sitePropertyMap['site.header.link']}" /></a>
+          <a class="u-ws-nowrap" href="<c:out value="${ctx}${sitePropertyMap['site.header.page']}"/>"><c:out value="${sitePropertyMap['site.header.link']}" /></a>
         </c:when>
         <c:otherwise>
           <a href="<c:out value="${ctx}${sitePropertyMap['site.header.page']}"/>">Details</a>
