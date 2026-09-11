@@ -171,15 +171,15 @@ public class BlogPostListWidget extends GenericWidget {
     // Batch-fetch existing image variants for every post's image in one query (issue #411 PR2) --
     // avoids one findByImageId call per row in the JSP loop, mirroring blogPostReviewStatusMap
     // immediately below.
-    // Resolved once, here, rather than per template (#1974): a list shows the share card when the
-    // post has one and the banner otherwise, and the srcset, alt text and focal point below all
-    // derive from the SAME resolved image. Resolving it in each JSP instead is how those end up
-    // describing different pictures -- alt text written for the banner read out over a share card,
-    // or a focal point computed for an image that is not the one on screen.
+    // Resolved once, here, rather than per template (#1974), and every image-derived value below --
+    // srcset, alt text, focal point -- reads THIS map rather than resolving again. Resolving in
+    // more than one place is how they end up describing different pictures: alt text written for
+    // the banner read out over a share card, or a focal point computed for an image that is not
+    // the one on screen. See listImageUrlFor() for which image a given view shows.
     Map<Long, String> blogPostListImageUrl = new LinkedHashMap<>();
     List<Long> blogPostImageIds = new ArrayList<>();
     for (BlogPost blogPost : blogPostList) {
-      String listImageUrl = blogPost.getShareImageUrlOrDefault();
+      String listImageUrl = listImageUrlFor(blogPost, view);
       if (StringUtils.isNotBlank(listImageUrl)) {
         blogPostListImageUrl.put(blogPost.getId(), listImageUrl);
       }
@@ -206,7 +206,8 @@ public class BlogPostListWidget extends GenericWidget {
     // Resolved per post rather than per image, because the fallback needs the post: an image can be
     // reused across posts, and the title is what distinguishes the cards when the library has
     // nothing stored. Keyed by post id so the JSPs read one value and make no decision of their own.
-    context.getRequest().setAttribute("blogPostImageAltText", resolveImageAltText(blogPostList, imagesByImageId));
+    context.getRequest().setAttribute("blogPostImageAltText",
+        resolveImageAltText(blogPostList, blogPostListImageUrl, imagesByImageId));
     // Focal point as a ready-to-use object-position value (issue #1436). The admin offers a focal
     // point on every image, but until now only generateSquareVariant() ever read it -- the card
     // views crop with CSS object-fit:cover, which centres at 50% 50% regardless, so setting one
@@ -221,7 +222,7 @@ public class BlogPostListWidget extends GenericWidget {
     // where nobody has set one.
     Map<Long, String> blogPostImageFocalPoint = new LinkedHashMap<>();
     for (BlogPost blogPost : blogPostList) {
-      Long imageId = ImageCommand.parseImageId(blogPost.getShareImageUrlOrDefault());
+      Long imageId = ImageCommand.parseImageId(blogPostListImageUrl.get(blogPost.getId()));
       if (imageId == null) {
         continue;
       }
@@ -318,14 +319,38 @@ public class BlogPostListWidget extends GenericWidget {
    *
    * @return alt text keyed by blog post id, for every post that has a banner image
    */
+  /**
+   * The image a list view shows for a post.
+   *
+   * <p>Only the {@code overview} view uses the share card. That view is the compact list -- the
+   * homepage news column -- where every thumbnail sits in a fixed 1.91:1 box, and 1.91:1 is the
+   * shape a share card is authored in, so it fits without cropping away the subject. Every other
+   * view shows the banner, because that is the image the editor authored for the page it sits on.
+   *
+   * <p>The first version of #1974 made every view prefer the share card. That was wrong: an editor
+   * who set a square banner and a wide share card saw the wide one on the news listing, where they
+   * had chosen the square one. The share card's job is link previews and the compact thumbnail;
+   * it was never meant to replace the banner.
+   *
+   * <p>The overview still falls back to the banner when no share card is set, so a post that
+   * predates the field renders exactly as it did.
+   */
+  static String listImageUrlFor(BlogPost blogPost, String view) {
+    if ("overview".equals(view)) {
+      return blogPost.getShareImageUrlOrDefault();
+    }
+    return blogPost.getImageUrl();
+  }
+
   static Map<Long, String> resolveImageAltText(List<BlogPost> blogPostList,
-      Map<Long, Image> imagesByImageId) {
+      Map<Long, String> listImageUrlByPostId, Map<Long, Image> imagesByImageId) {
     Map<Long, String> altTextByPostId = new LinkedHashMap<>();
     for (BlogPost blogPost : blogPostList) {
-      if (StringUtils.isBlank(blogPost.getShareImageUrlOrDefault())) {
+      String listImageUrl = listImageUrlByPostId.get(blogPost.getId());
+      if (StringUtils.isBlank(listImageUrl)) {
         continue;
       }
-      Long imageId = ImageCommand.parseImageId(blogPost.getShareImageUrlOrDefault());
+      Long imageId = ImageCommand.parseImageId(listImageUrl);
       Image image = (imageId != null ? imagesByImageId.get(imageId) : null);
       String storedAltText = (image != null ? StringUtils.trimToNull(image.getAltText()) : null);
       altTextByPostId.put(blogPost.getId(), storedAltText != null ? storedAltText : blogPost.getTitle());
