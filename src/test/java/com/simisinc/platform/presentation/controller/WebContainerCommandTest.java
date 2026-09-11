@@ -295,6 +295,37 @@ class WebContainerCommandTest {
   }
 
   @Test
+  void registeredStyleRulesSurviveThePerWidgetReset() {
+    // Regression test for issue #1999: widget JSPs register their computed styles
+    // (css:register -> PageStyleRules) and main.jsp writes them into the head after the whole walk.
+    // The reset wiped them before main.jsp read them, so on the live site every registered element
+    // rendered with its data-sc-style hook and no rule: the contact page's map collapsed to 0px,
+    // and calendar swatches and category colors lost their backgrounds. PageStyleRulesTest could
+    // not see it -- it registers and reads on one request with no widget walk in between.
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset(PageStyleRules.RULES_ATTRIBUTE));
+  }
+
+  @Test
+  void aWidgetsRegisteredRuleIsStillInTheHeadAfterTheNextWidgetsReset() {
+    // The sequence the live page runs: a widget registers, its own attributes are left behind, the
+    // next widget's turn resets, and main.jsp reads the head rules at the end
+    Map<String, Object> attributes = new HashMap<>();
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getAttribute(anyString())).thenAnswer(i -> attributes.get(i.getArgument(0, String.class)));
+    when(request.getAttributeNames()).thenAnswer(i -> Collections.enumeration(new ArrayList<>(attributes.keySet())));
+    doAnswer(i -> attributes.put(i.getArgument(0), i.getArgument(1))).when(request).setAttribute(anyString(), any());
+    doAnswer(i -> attributes.remove(i.getArgument(0, String.class))).when(request).removeAttribute(anyString());
+
+    request.setAttribute("mapHeight", "290px");
+    String hook = PageStyleRules.register(request, "height: 290px");
+    WebContainerCommand.resetWidgetAttributes(request);
+
+    Assertions.assertNull(request.getAttribute("mapHeight"), "an ordinary widget attribute is still reset");
+    String head = PageStyleRules.headRules(request);
+    Assertions.assertTrue(head.contains("[data-sc-style=\"" + hook + "\"]"), head);
+  }
+
+  @Test
   void sitePropertyMapsSurviveThePerWidgetReset() {
     // Regression test: PageServlet.java now publishes systemPropertyMap/sitePropertyMap/
     // themePropertyMap/socialPropertyMap/socialMediaLinkList/analyticsPropertyMap/
