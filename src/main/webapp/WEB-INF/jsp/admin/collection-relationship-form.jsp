@@ -32,7 +32,7 @@
   <%@include file="../page_messages.jspf" %>
   <p class="help-text page-help">This only declares that <c:out value="${collection.name}" /> and the collection you pick below are allowed to link records to each other -- it doesn't link any specific records. That happens later, on an individual item's own page. The relationship is one-directional: it does not automatically make the other collection relate back to this one.</p>
   <%-- Form Content --%>
-  <select name="relatedCollectionId">
+  <select aria-label="Related collection" name="relatedCollectionId">
     <option value=""></option>
     <c:forEach items="${collectionList}" var="relatedCollection">
       <option value="${relatedCollection.id}"><c:out value="${relatedCollection.name}"/></option>

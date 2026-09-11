@@ -136,7 +136,7 @@
           </div>
       </div>
       <div class="medium-4 cell">
-        <select name="scheduleFrequency">
+        <select aria-label="Schedule frequency" name="scheduleFrequency">
           <option value="">Choose</option>
           <c:forEach items="${scheduleOptionsMap}" var="option">
             <option value="<c:out value="${option.key}" />"<c:if test="${dataset.scheduleFrequency eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
@@ -158,7 +158,7 @@
         </div>
       </div>
       <div class="medium-4 cell">
-        <select name="syncMergeType">
+        <select aria-label="Sync merge type" name="syncMergeType">
           <option value="">Choose</option>
           <option value="sync"<c:if test="${dataset.syncMergeType eq 'sync'}"> selected</c:if>>Full Merge: Add, Update, and Delete records</option>
         </select>

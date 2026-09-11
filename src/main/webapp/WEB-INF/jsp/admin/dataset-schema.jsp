@@ -80,7 +80,7 @@
           <small class="subheader"><c:out value="${text:trim(sampleRow[status.index], 30, true)}" /></small>
         </td>
         <td>
-          <select name="columnMapping${status.index}">
+          <select aria-label="Field mapping for column ${fn:escapeXml(column)}" name="columnMapping${status.index}">
             <option value=""></option>
             <option value="name"<c:if test="${fieldMappingsList[status.index] eq 'name'}"> selected</c:if>>Name</option>
             <option value="category"<c:if test="${fieldMappingsList[status.index] eq 'category'}"> selected</c:if>>Category</option>

@@ -88,7 +88,7 @@
             All Guests (Non-Users and Users)
           </td>
           <td>
-            <select name="guestPrivacyType">
+            <select aria-label="Privacy for All Guests (Non-Users and Users)" name="guestPrivacyType">
               <option value="-1"></option>
                 <%--<option value="1000"<c:if test='${folder.guestPrivacyType == 1000}'> selected</c:if>>Own Files</option>--%>
               <option value="2000"<c:if test='${folder.guestPrivacyType == 2000}'> selected</c:if>>All Files</option>
@@ -105,7 +105,7 @@
               <c:out value="${group.name}" />
             </td>
             <td>
-              <select name="groupId${group.id}privacyType">
+              <select aria-label="Privacy for ${fn:escapeXml(group.name)}" name="groupId${group.id}privacyType">
                 <option value=""></option>
                 <option value="public"<c:if test='${!empty folderGroup && folderGroup.privacyType == 2000}'> selected</c:if>>All Files</option>
                 <option value="private"<c:if test='${!empty folderGroup && folderGroup.privacyType == 1000}'> selected</c:if>>Own Files</option>
