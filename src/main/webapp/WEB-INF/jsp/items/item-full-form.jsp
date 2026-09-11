@@ -102,14 +102,14 @@
     var uploadBtn = document.querySelector("label[for='imageFile']");
 
     if (errorEl) {
-      errorEl.style.display = "none";
+      errorEl.hidden = true;
     }
 
     // Client-side validation first
     var maxSize = 5242880; // 5MB
     if (file.size > maxSize) {
       errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File too large. Maximum size is 5 MB.';
-      errorEl.style.display = "block";
+      errorEl.hidden = false;
       document.getElementById("imageFile").value = "";
       return;
     }
@@ -117,7 +117,7 @@
     var validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (validTypes.indexOf(file.type) === -1) {
       errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File type not supported. Please use .jpg or .png.';
-      errorEl.style.display = "block";
+      errorEl.hidden = false;
       document.getElementById("imageFile").value = "";
       return;
     }
@@ -146,7 +146,7 @@
           document.getElementById("imageFile").value = "";
           errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Upload failed. Please check the file and try again.';
           if (errorEl) {
-            errorEl.style.display = "block";
+            errorEl.hidden = false;
           }
           if (uploadBtn) {
             uploadBtn.innerHTML = 'Upload Image File...';
@@ -298,7 +298,7 @@
             </c:if>
           </label>
           <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-            <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
+            <div id="imageUploadError" class="callout alert u-mt-1rem u-p-1rem" role="alert" hidden>
               <p id="imageErrorMsg" class="u-m-0"></p>
             </div>
           </c:if>

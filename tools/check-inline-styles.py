@@ -55,44 +55,28 @@ _ICON_GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-ico
 # May only go down. Recorded 2026-09-10 at 351 across 122 templates; lowered the same day to
 # 228 across 89 when the spacing-only attributes became u-* classes, then to 135 across 61 when
 # the sizing, position, overflow and text ones did, then to 98 across 54 when layout and category
-# styles moved to nonced head rules, then to 67 across 35 when the rest of the computed values did.
+# styles moved to nonced head rules, then to 67 across 35 when the rest of the computed values did,
+# then to 30 across 18 when the display ones became classes and the hidden attribute.
 # Paths are relative to src/main/webapp/WEB-INF/jsp.
 BACKLOG = {
     "admin/audit-log-list.jsp": 1,
-    "admin/blog-post-list.jsp": 1,
-    "admin/calendar-event-list.jsp": 1,
-    "admin/folder-files-list.jsp": 1,
-    "admin/image-browser.jsp": 12,
-    "admin/items-list.jsp": 1,
-    "admin/newsletter-send.jsp": 1,
-    "admin/site-properties-editor.jsp": 1,
-    "admin/site-stats-alert-card.jsp": 1,
+    "admin/image-browser.jsp": 7,
     "admin/site-stats-recent-actions.jsp": 1,
     "admin/sitemap.jsp": 4,
-    "admin/user-form.jsp": 2,
-    "admin/users-list.jsp": 2,
-    "admin/web-page-list.jsp": 1,
-    "admin/web-vitals.jsp": 1,
+    "admin/user-form.jsp": 1,
     "calendar/calendar-search-results.jsp": 1,
-    "calendar/full-calendar.jsp": 3,
-    "calendar/small-calendar.jsp": 1,
     "cms/form.jsp": 1,
     "cms/image-browser.jsp": 2,
     "cms/table-widget.jsp": 1,
     "cms/web-page-search-results.jsp": 1,
     "cms/wiki-search-results-list.jsp": 1,
-    "ecommerce/cart.jsp": 2,
     "ecommerce/customer-payment-form.jsp": 1,
-    "ecommerce/shipping-address-form.jsp": 2,
-    "items/delete-item-button.jsp": 1,
-    "items/item-full-form.jsp": 3,
+    "items/item-full-form.jsp": 2,
     "items/item-job-form.jsp": 1,
     "items/items-integrated-search-results-list.jsp": 1,
     "layout-header-standard.jspf": 1,
-    "main.jsp": 4,
-    "userProfile/my-email-preferences.jsp": 2,
+    "main.jsp": 2,
     "userProfile/my-profile-form.jsp": 1,
-    "visual-editor/media-library-panel.jsp": 6,
 }
 
 

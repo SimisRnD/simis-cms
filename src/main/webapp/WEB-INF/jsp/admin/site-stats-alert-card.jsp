@@ -31,7 +31,7 @@
 <div class="callout radius ${fn:escapeXml(severityClass)} u-h-100p u-m-0">
   <c:choose>
     <c:when test="${!empty link}">
-      <a href="<c:out value="${link}" />" style="color: inherit; text-decoration: none; display: block;">
+      <a href="<c:out value="${link}" />" class="u-color-inherit u-td-none u-d-block">
         <p class="statistic-card-value no-gap u-fs-32 u-fw-bold u-lh-1">
           <fmt:formatNumber value="${numberValue}" />
         </p>

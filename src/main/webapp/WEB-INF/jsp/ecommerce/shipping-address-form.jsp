@@ -100,9 +100,9 @@
             </label>
           </div>
           <div class="small-4 cell">
-            <input style="<c:if test="${address.country eq 'United States'}">display:none</c:if>" type="text" id="province" name="province" value="<c:out value="${address.state}" />" aria-label="State/Province" />
+            <input<c:if test="${address.country eq 'United States'}"> class="hide"</c:if> type="text" id="province" name="province" value="<c:out value="${address.state}" />" aria-label="State/Province" />
             <label for="state">State/Province <span class="required">*</span></label>
-            <select style="<c:if test="${address.country ne 'United States'}">display:none</c:if>" id="state" name="state">
+            <select<c:if test="${address.country ne 'United States'}"> class="hide"</c:if> id="state" name="state">
                 <option value="">Choose</option>
                 <option value="AL"<c:if test="${address.state eq 'AL'}"> selected</c:if>>Alabama (AL)</option>
                 <option value="AK"<c:if test="${address.state eq 'AK'}"> selected</c:if>>Alaska (AK)</option>
@@ -185,11 +185,11 @@
     var countryElement = document.getElementById("country");
     var country = countryElement.options[countryElement.selectedIndex].value;
     if (country === 'United States') {
-      $('#province').hide();
-      $('#state').show();
+      $('#province').addClass('hide');
+      $('#state').removeClass('hide');
     } else {
-      $('#state').hide();
-      $('#province').show();
+      $('#state').addClass('hide');
+      $('#province').removeClass('hide');
     }
   }
 </script>

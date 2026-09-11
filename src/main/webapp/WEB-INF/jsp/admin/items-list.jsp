@@ -65,7 +65,7 @@
     Include archived items
   </label>
 </form>
-<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+<div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
   <span id="bulkSelectedCount"></span>
   <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
   <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
@@ -278,7 +278,7 @@
     function refresh() {
       var n = selected().length;
       $count.text(n + (n === 1 ? ' item selected  ' : ' items selected  '));
-      $bar.toggle(n > 0);
+      $bar.prop('hidden', !(n > 0));
       $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
       $selectAll.prop('checked', n > 0 && n === $rows.length);
     }

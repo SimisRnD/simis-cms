@@ -113,7 +113,7 @@
     document.getElementById("tableOptionsForm").submit();
   }
 </script>
-<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+<div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
   <span id="bulkSelectedCount"></span>
   <button type="button" class="button tiny radius" id="bulkAssignRolesBtn">Assign Roles</button>
   <button type="button" class="button tiny radius" id="bulkResetPasswordBtn">Reset Password</button>
@@ -192,7 +192,7 @@
 <div class="reveal" id="bulkSuspendReveal" role="dialog" aria-modal="true" aria-labelledby="bulkSuspendRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="bulkSuspendRevealTitle">Suspend <span id="bulkSuspendCount">0</span> Account(s)</h4>
-  <p id="bulkSuspendSelfNotice" style="display:none;"><em>Your own account is selected and will be skipped.</em></p>
+  <p id="bulkSuspendSelfNotice" hidden><em>Your own account is selected and will be skipped.</em></p>
   <ul id="bulkSuspendList"></ul>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -302,7 +302,7 @@
     function refresh() {
       var n = selected().length;
       $count.text(n + (n === 1 ? ' account selected  ' : ' accounts selected  '));
-      $bar.toggle(n > 0);
+      $bar.prop('hidden', !(n > 0));
       $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
       $selectAll.prop('checked', n > 0 && n === $rows.length);
     }
@@ -329,7 +329,7 @@
       });
       $('#' + revealId + 'Count').text(selected().length);
       if (checkSelf) {
-        $('#bulkSuspendSelfNotice').toggle(includesSelf);
+        $('#bulkSuspendSelfNotice').prop('hidden', !includesSelf);
       }
       $reveal.foundation('open');
     }
