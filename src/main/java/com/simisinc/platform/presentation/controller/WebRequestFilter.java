@@ -183,7 +183,8 @@ public class WebRequestFilter implements Filter {
     // successful read.
     if (servletResponse instanceof HttpServletResponse) {
       if (isImmutableAsset(resource)
-          || isStampedPlatformAsset(resource, httpServletRequest.getQueryString())) {
+          || isStampedPlatformAsset(resource, httpServletRequest.getQueryString(),
+              (String) request.getServletContext().getAttribute("assetVersion"))) {
         servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse);
       } else if (isRevalidatedAsset(resource)) {
         // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above, and so are
@@ -862,7 +863,7 @@ public class WebRequestFilter implements Filter {
    * True for a platform asset that may be cached for a year because its URL genuinely identifies
    * its content.
    *
-   * <p>Two conditions, and both are load-bearing:
+   * <p>Three conditions, and all of them are load-bearing:
    *
    * <p><b>The path must be one the stamp is computed from.</b> The {@code ?v=} token is the newest
    * modification time across {@link ContextListener#STAMPED_ASSET_PATHS}, so a change to any of
@@ -876,11 +877,32 @@ public class WebRequestFilter implements Filter {
    * particular version, and answering that with {@code immutable} would freeze whatever happened to
    * be current for a year. Without a {@code v} parameter the request falls through to
    * revalidation, which is correct rather than merely cautious.
+   *
+   * <p><b>The stamp must be THIS instance's stamp</b> (issue #1997). Checking only that a {@code v}
+   * is present let any instance grant {@code immutable} to any version at all -- including one it
+   * does not have. A rolling deploy runs old and new instances side by side, so a page rendered by
+   * a new instance asks for {@code platform.css?v=<new>}, the request lands on an old one, the old
+   * one serves its own file (static handling ignores the query string) and stamps it immutable.
+   * The edge then holds the old build's CSS under the new build's URL for a year. It happened on
+   * 2026-09-11: {@code TCP_HIT} with the previous build's {@code last-modified}, cleared only by a
+   * manual Front Door purge.
+   *
+   * <p>A mismatched stamp is not an error, just a version this instance cannot vouch for, so it
+   * falls through to the revalidation branch like an unstamped request. That is enough on its own:
+   * the edge will not pin a revalidating response, and the next request, landing on an instance
+   * that does have that version, gets the right file with {@code immutable}.
+   *
+   * <p>This is the 200 counterpart of what {@link ImmutableAssetResponse} already does for a 404.
+   * That wrapper withdraws the header from "a file missing after a bad deploy"; a version mismatch
+   * returns 200 with the wrong content, which the status check can never see.
+   *
+   * @param assetVersion this instance's own stamp, from the {@code assetVersion} context attribute
    */
-  static boolean isStampedPlatformAsset(String resource, String queryString) {
+  static boolean isStampedPlatformAsset(String resource, String queryString, String assetVersion) {
     return resource != null
         && ContextListener.STAMPED_ASSET_PATH_SET.contains(resource)
-        && hasVersionStamp(queryString);
+        && assetVersion != null
+        && assetVersion.equals(versionStamp(queryString));
   }
 
   /**
@@ -891,17 +913,27 @@ public class WebRequestFilter implements Filter {
    * POST, which would consume the stream before anything downstream can read it.
    */
   static boolean hasVersionStamp(String queryString) {
+    return versionStamp(queryString) != null;
+  }
+
+  /**
+   * The value of the first {@code v} parameter, or null when there is none or it is empty. Parsed by
+   * hand for the same reason as {@link #hasVersionStamp}: this runs on every request, and asking
+   * the container for a parameter would consume a POST body.
+   */
+  static String versionStamp(String queryString) {
     if (queryString == null || queryString.isEmpty()) {
-      return false;
+      return null;
     }
     for (String pair : queryString.split("&")) {
       int equals = pair.indexOf('=');
       if (equals <= 0 || !"v".equals(pair.substring(0, equals))) {
         continue;
       }
-      return equals + 1 < pair.length();
+      String value = pair.substring(equals + 1);
+      return value.isEmpty() ? null : value;
     }
-    return false;
+    return null;
   }
 
   static boolean isRevalidatedAsset(String resource) {
