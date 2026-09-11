@@ -9,3 +9,9 @@
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .text-justify { text-align: justify; }
+
+/*
+ * New tables carry no inline style either (table_default_styles in cms/content-editor.jsp), so the
+ * frame gets the two properties Foundation's table rule gives every table on the page.
+ */
+table { border-collapse: collapse; width: 100%; }

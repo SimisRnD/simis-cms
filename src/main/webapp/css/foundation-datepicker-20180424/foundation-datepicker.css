@@ -1,3 +1,5 @@
+/* Local change (SimIS, issue #1999): .datepicker-close is width:auto, the value the close
+ * button's template used to set in a style attribute (see foundation-datepicker.js). */
 .datepicker {
   display: none;
   position: absolute;
@@ -140,7 +142,7 @@
   position: absolute;
   top: -30px;
   right: 0;
-  width: 15px;
+  width: auto;
   height: 30px;
   padding: 0;
   display: none; }

@@ -64,6 +64,13 @@
       alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-right' },
       alignjustify: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-justify' }
     },
+    // New tables get no inline style (issue #1999). By default TinyMCE writes
+    // style="border-collapse: collapse; width: 100%" on the table and a percentage width on each
+    // column, which a style-src without 'unsafe-inline' refuses and the server removes on save
+    // anyway. On the page, Foundation's table rule sets both; in the editing frame,
+    // platform-editor-content.css does.
+    table_default_styles: {},
+    table_sizing_mode: 'responsive',
     external_plugins: {
         "fontawesome": "${ctx}/javascript/tinymce-plugins/fontawesome/plugin.min.js"
     },

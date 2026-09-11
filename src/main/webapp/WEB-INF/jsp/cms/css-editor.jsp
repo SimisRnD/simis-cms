@@ -21,6 +21,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="stylesheet" class="com.simisinc.platform.domain.model.cms.Stylesheet" scope="request"/>
 <script src="${ctx}/javascript/ace-1.32.0/ace.js" type="text/javascript" charset="utf-8"></script>
+<%-- Gives the <style> elements Ace injects the page's nonce (issue #1999); must load before any editor is created. --%>
+<script nonce="${cspNonce}" src="${ctx}/javascript/ace-csp-nonce.js"></script>
 <script src="${ctx}/javascript/ace-1.32.0/mode-css.js" type="text/javascript" charset="utf-8"></script>
 <%--<script src="${ctx}/javascript/ace-1.32.0/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
 <style nonce="${cspNonce}">

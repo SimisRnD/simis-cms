@@ -37,6 +37,12 @@
     plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code insertdatetime media table wordcount',
     // No backcolor: it can only write an inline style, and content may not keep one (issue #1999).
     toolbar: 'link image media table | undo redo | blocks | bold italic | bullist numlist outdent indent hr | removeformat | visualblocks code',
+    // New tables get no inline style (issue #1999). By default TinyMCE writes
+    // style="border-collapse: collapse; width: 100%" on the table and a percentage width on each
+    // column, which a style-src without 'unsafe-inline' refuses and the server removes on save
+    // anyway. On the page, Foundation's table rule sets both.
+    table_default_styles: {},
+    table_sizing_mode: 'responsive',
     image_class_list: [
       {title: 'None', value: ''},
       {title: 'Image Left/Wrap Text Right', value: 'image-left'},
