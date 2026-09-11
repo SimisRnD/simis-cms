@@ -134,6 +134,14 @@ class StyleRuleCommandTest {
   }
 
   @Test
+  void anUnsetOptionalValueIsSkippedAndTheRestKept() {
+    // What a template builds when its optional value is empty, e.g. 'color:' += iconColor
+    assertNull(StyleRuleCommand.safeDeclarations("color:"));
+    assertEquals("", StyleRuleCommand.hook("object-position: "));
+    assertEquals(StyleRuleCommand.hook("margin-top: 6px"), StyleRuleCommand.hook("margin-top: 6px;background-color:"));
+  }
+
+  @Test
   void theSameDeclarationsAlwaysGiveTheSameHook() {
     String a = StyleRuleCommand.hook("margin: 0; padding: 4px");
     assertEquals(a, StyleRuleCommand.hook("margin:0 ; padding:4px;"));

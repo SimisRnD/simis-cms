@@ -87,7 +87,7 @@ class PageStyleRulesTest {
         "background-color: #0b1024", "border-top: 1px solid #ccc"}) {
       assertTrue(rules.contains(StyleRuleCommand.rule(css)), "missing rule for " + css + " in " + rules);
     }
-    assertEquals(5, rules.split("\n").length);
+    assertEquals(6, rules.split("\n").length);
   }
 
   @Test
@@ -95,7 +95,8 @@ class PageStyleRulesTest {
     HttpServletRequest request = request();
     String hook = PageStyleRules.register(request, "background:#336699;color:#ffffff");
     assertEquals(StyleRuleCommand.hook("background:#336699;color:#ffffff"), hook);
-    assertEquals(StyleRuleCommand.rule("background:#336699;color:#ffffff"), PageStyleRules.headRules(request));
+    assertEquals(StyleRuleCommand.rule("background:#336699;color:#ffffff") + "\n" + PageStyleRules.PRINT_RESET,
+        PageStyleRules.headRules(request));
   }
 
   @Test
@@ -104,7 +105,20 @@ class PageStyleRulesTest {
     for (int i = 0; i < 25; i++) {
       PageStyleRules.register(request, "background:#336699;color:#ffffff");
     }
-    assertEquals(1, PageStyleRules.headRules(request).split("\n").length);
+    assertEquals(2, PageStyleRules.headRules(request).split("\n").length);
+  }
+
+  @Test
+  void printGetsFoundationsResetBackAfterEveryRule() {
+    // Foundation's print reset used to beat the attribute; the !important rules would beat it instead
+    HttpServletRequest request = request();
+    PageStyleRules.register(request, "background:#336699;color:#ffffff");
+    PageStyleRules.register(request, "box-shadow: 0 2px 4px #000");
+    String rules = PageStyleRules.headRules(request);
+    assertTrue(rules.endsWith("\n" + PageStyleRules.PRINT_RESET), rules);
+    assertEquals(1, rules.split("@media print", -1).length - 1);
+    assertEquals("@media print{[data-sc-style]{background:0 0 !important;color:#000 !important;"
+        + "box-shadow:none !important;text-shadow:none !important}}", PageStyleRules.PRINT_RESET);
   }
 
   @Test
@@ -112,6 +126,35 @@ class PageStyleRulesTest {
     HttpServletRequest request = request();
     assertEquals("", PageStyleRules.register(request, "color: red}</style>"));
     assertEquals("", PageStyleRules.headRules(request));
+  }
+
+  @Test
+  void aUrlNeedsNoQuotesAndStillPassesTheGrammar() {
+    String url = PageStyleRules.url("/assets/view/2026/photo (1) 'a\".png");
+    assertEquals("url(/assets/view/2026/photo%20%281%29%20%27a%22.png)", url);
+    assertEquals("background-image: " + url + " !important",
+        StyleRuleCommand.safeDeclarations("background-image:" + url));
+    // A YouTube poster, as VideoWidget builds it
+    assertFalse(PageStyleRules.register(request(), "background-image: "
+        + PageStyleRules.url("https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg")).isEmpty());
+    // Encoding is not validation: an address the grammar refuses is still refused
+    assertEquals("", PageStyleRules.register(request(), "background-image: " + PageStyleRules.url("//evil.example/a.png")));
+    assertEquals("", PageStyleRules.url(null));
+    assertEquals("", PageStyleRules.url("  "));
+  }
+
+  @Test
+  void theMenuTabWidthMatchesTheScriptletItReplaced() {
+    // layout-header-standard.jspf computed 100 / (tabs - 1) in integer arithmetic; one tab is the hidden Home link
+    assertEquals("width: 100%", PageStyleRules.menuTabWidth(List.of("home", "a")));
+    assertEquals("width: 33%", PageStyleRules.menuTabWidth(List.of("home", "a", "b", "c")));
+    assertEquals("width: 25%", PageStyleRules.menuTabWidth(List.of("home", "a", "b", "c", "d")));
+    assertEquals("width: 14%", PageStyleRules.menuTabWidth(List.of("home", "a", "b", "c", "d", "e", "f", "g")));
+    // With one tab shown the scriptlet divided by zero; there is nothing to size then
+    assertEquals("", PageStyleRules.menuTabWidth(List.of("home")));
+    assertEquals("", PageStyleRules.menuTabWidth(List.of()));
+    assertEquals("", PageStyleRules.menuTabWidth(null));
+    assertEquals("", PageStyleRules.register(request(), PageStyleRules.menuTabWidth(null)));
   }
 
   @Test

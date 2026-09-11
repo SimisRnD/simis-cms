@@ -262,7 +262,7 @@
                       <c:choose>
                         <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}"><%-- Hide Home (the first one) --%></c:when>
                         <c:when test="${!empty menuTab.menuItemList}">
-                          <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if> style="width: <%= (100/(masterMenuTabList.size() - 1)) %>%">
+                          <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if><c:if test="${!empty scMenuTabHook}"> data-sc-style="${scMenuTabHook}"</c:if>>
                             <c:choose>
                               <c:when test="${menuTab.link eq '#'}">
                                 <a href="#"><c:out value="${menuTab.name}" /></a>
@@ -295,7 +295,7 @@
                           </li>
                         </c:when>
                         <c:otherwise>
-                          <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if> style="width: <%= (100/(masterMenuTabList.size() - 1)) %>%">
+                          <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if><c:if test="${!empty scMenuTabHook}"> data-sc-style="${scMenuTabHook}"</c:if>>
                             <c:choose>
                               <c:when test="${menuTab.link eq '#'}">
                                 <a href="#"><c:out value="${menuTab.name}" /></a>
@@ -685,7 +685,7 @@
                         <li><a class="button u-mt-0_4rem u-ml-1_5rem" href="${ctx}/register">Sign Up</a></li>
                       </c:if>
                       <c:if test="${'true' eq sitePropertyMap['site.login']}">
-                        <li><a class="button" style="<c:if test="${'false' eq sitePropertyMap['site.registrations']}">margin-left:1.5rem;</c:if>margin-top:0.4rem" href="${ctx}/login">Log In</a></li>
+                        <li><a class="button u-mt-0_4rem<c:if test="${'false' eq sitePropertyMap['site.registrations']}"> u-ml-1_5rem</c:if>" href="${ctx}/login">Log In</a></li>
                       </c:if>
                     </c:when>
                     <c:otherwise>

@@ -15,6 +15,7 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="title" class="java.lang.String" scope="request"/>
 <jsp:useBean id="aspectRatio" class="java.lang.String" scope="request"/>
@@ -29,19 +30,20 @@
 <jsp:useBean id="canBuildLayout" class="java.lang.String" scope="request"/>
 <c:set var="videoWidgetId" value="video-widget${widgetContext.uniqueId}"/>
 <%-- aspectRatio is free-form (see VideoWidget#execute); any value not recognized below simply
-     falls through to the 16:9 default, so it never needs sanitizing to be safe here. --%>
+     falls through to the 16:9 default, so it never needs sanitizing to be safe here. Each ratio is a
+     platform.css class rather than a style attribute (issue #1999). --%>
 <c:choose>
-  <c:when test="${aspectRatio eq '4:3'}"><c:set var="aspectRatioCss" value="4 / 3"/></c:when>
-  <c:when test="${aspectRatio eq '1:1'}"><c:set var="aspectRatioCss" value="1 / 1"/></c:when>
-  <c:when test="${aspectRatio eq '9:16'}"><c:set var="aspectRatioCss" value="9 / 16"/></c:when>
-  <c:otherwise><c:set var="aspectRatioCss" value="16 / 9"/></c:otherwise>
+  <c:when test="${aspectRatio eq '4:3'}"><c:set var="aspectRatioClass" value="u-ar-4-3"/></c:when>
+  <c:when test="${aspectRatio eq '1:1'}"><c:set var="aspectRatioClass" value="u-ar-1-1"/></c:when>
+  <c:when test="${aspectRatio eq '9:16'}"><c:set var="aspectRatioClass" value="u-ar-9-16"/></c:when>
+  <c:otherwise><c:set var="aspectRatioClass" value="u-ar-16-9"/></c:otherwise>
 </c:choose>
 <c:choose>
   <%-- Gate 1: no analytics consent yet -- VideoWidget#execute never even populates embedUrl/
        provider/thumbnailUrl without consent, so there is nothing here that identifies the video or
        could cause a request to YouTube/Vimeo, only a static placeholder (issue #428 / #366) --%>
   <c:when test="${consentGiven ne 'true'}">
-    <div class="platform-video-widget-consent-placeholder" role="note" style="aspect-ratio: <c:out value="${aspectRatioCss}"/>;">
+    <div class="platform-video-widget-consent-placeholder <c:out value="${aspectRatioClass}"/>" role="note">
       <i class="fa fa-video" aria-hidden="true"></i>
       <p>This video is hidden until analytics cookies are accepted.</p>
     </div>
@@ -49,7 +51,7 @@
   <%-- Consent is present, but no videoUrl preference was set, or it didn't match a recognized
        YouTube/Vimeo URL --%>
   <c:when test="${empty embedUrl}">
-    <div class="platform-video-widget-placeholder" role="img" style="aspect-ratio: <c:out value="${aspectRatioCss}"/>;"
+    <div class="platform-video-widget-placeholder <c:out value="${aspectRatioClass}"/>" role="img"
          aria-label="<c:out value="${empty title ? 'No video configured' : title}"/>">
       <i class="fa fa-video" aria-hidden="true"></i>
     </div>
@@ -69,10 +71,10 @@
   <%-- Gate 2: consent is present and the video is recognized, but the iframe is still not embedded
        until the visitor clicks --%>
   <c:otherwise>
-    <div id="${videoWidgetId}" class="platform-video-widget" style="aspect-ratio: <c:out value="${aspectRatioCss}"/>;"
+    <div id="${videoWidgetId}" class="platform-video-widget <c:out value="${aspectRatioClass}"/>"
          data-embed-url="<c:out value="${embedUrl}"/>" data-video-title="<c:out value="${title}"/>">
-      <button type="button" class="platform-video-play-button"
-              <c:if test="${provider eq 'youtube'}">style="background-image: url('<c:out value="${thumbnailUrl}"/>');"</c:if>
+      <c:if test="${provider eq 'youtube'}"><c:set var="scHook" value="${css:register(pageContext.request, 'background-image: ' += css:url(thumbnailUrl))}"/></c:if>
+      <button type="button" class="platform-video-play-button"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>
               aria-label="Play video<c:if test="${!empty title}">: <c:out value="${title}"/></c:if>">
         <i class="fa fa-play-circle" aria-hidden="true"></i>
       </button>

@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="numberValue" class="java.lang.String" scope="request"/>
@@ -28,7 +29,7 @@
 <div class="grid-x align-middle text-middle">
   <c:if test="${!empty icon}">
     <div class="small-5 cell">
-      <i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon"<c:if test="${!empty iconColor}"> style="color:<c:out value="${iconColor}" />"</c:if>></i>
+      <c:set var="scHook" value="${css:register(pageContext.request, 'color:' += iconColor)}"/><i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>></i>
     </div>
   </c:if>
   <div class="auto cell">

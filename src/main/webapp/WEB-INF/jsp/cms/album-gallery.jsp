@@ -20,6 +20,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="subFolderList" class="java.util.ArrayList" scope="request"/>
@@ -74,8 +75,8 @@
     <div class="grid-x grid-margin-x text-center align-stretch small-up-<c:out value="${smallCardCount}" /> medium-up-<c:out value="${mediumCardCount}" /> large-up-<c:out value="${largeCardCount}" />">
       <c:forEach items="${subFolderList}" var="subFolder">
         <div class="card-container${widgetContext.uniqueId} cell">
-          <button type="button" class="card${widgetContext.uniqueId}<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>"
-                  style="background-image:url('${ctx}/assets/view/${subFolder.posterFileItem.url}');"
+          <c:set var="scHook" value="${css:register(pageContext.request, 'background-image:' += css:url(ctx += '/assets/view/' += subFolder.posterFileItem.url))}"/>
+          <button type="button" class="card${widgetContext.uniqueId}<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>
                   onclick="showAlbum${controlId}(${subFolder.id})"
                   aria-label="<c:out value="${subFolder.name}"/>">
             <div class="card-content">

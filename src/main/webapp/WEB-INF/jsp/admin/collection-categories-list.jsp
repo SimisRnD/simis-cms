@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -43,14 +44,15 @@
       <td>
         <c:choose>
           <c:when test="${!empty category.headerBgColor && !empty category.headerTextColor}">
+            <c:set var="scHook" value="${css:register(pageContext.request, 'background-color:' += category.headerBgColor += ';color:' += category.headerTextColor)}"/>
             <c:choose>
               <c:when test="${!empty category.icon}">
-                <span class="padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+                <span class="padding-10 padding-width-10 margin-right-10"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
                   <i class="${font:far()} fa-fw fa-<c:out value="${category.icon}" />"></i>
                 </span>
               </c:when>
               <c:otherwise>
-              <span class="padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+              <span class="padding-10 padding-width-10 margin-right-10"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
                 <i class="${font:far()} fa-fw"></i>
               </span>
               </c:otherwise>

@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="mapCredentials" class="com.simisinc.platform.domain.model.maps.MapCredentials" scope="request"/>
@@ -34,7 +35,8 @@
 <script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
-<div id="mapid${widgetContext.uniqueId}" style="height: ${mapHeight}px;"></div>
+<c:set var="scHook" value="${css:register(pageContext.request, 'height: ' += mapHeight += 'px')}"/>
+<div id="mapid${widgetContext.uniqueId}"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>></div>
 <script nonce="${cspNonce}">
   var map${widgetContext.uniqueId} = L.map('mapid${widgetContext.uniqueId}').setView([${latitude}, ${longitude}], ${mapZoomLevel});
   <c:choose>

@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="mapCredentials" class="com.simisinc.platform.domain.model.maps.MapCredentials" scope="request"/>
@@ -157,7 +158,8 @@
     </div>
   </div>
   <div class="cell small-12 medium-4 large-6">
-    <div id="mapid${widgetContext.uniqueId}" style="height: ${mapHeight};"></div>
+    <c:set var="scHook" value="${css:register(pageContext.request, 'height: ' += mapHeight)}"/>
+    <div id="mapid${widgetContext.uniqueId}"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>></div>
   </div>
 </div>
 <script nonce="${cspNonce}">

@@ -2252,7 +2252,7 @@ a.platform-blog-overview-thumbnail img {
      pos top right bottom left z  position             o ox oy                  overflow
      ta ti td ws wb va lh fs fw   text                 float clear flex border translate
    Values are px unless a unit follows (p = %, vh, rem); "n" is negative, "_" a decimal point,
-   "sp6" the --sc-space-6 token.
+   "sp6" the --sc-space-6 token. ar is aspect-ratio, width then height: u-ar-16-9 is 16 / 9.
    Every declaration is !important on purpose: an inline style outranks every normal selector,
    so a plain class could lose to an existing rule the attribute used to beat. Two differences
    from an attribute remain, and neither applies where these are used: an existing !important
@@ -2330,6 +2330,10 @@ a.platform-blog-overview-thumbnail img {
 .u-maxh-100 { max-height: 100px !important; }
 .u-maxh-150 { max-height: 150px !important; }
 .u-maxh-20rem { max-height: 20rem !important; }
+.u-ar-1-1 { aspect-ratio: 1 / 1 !important; }
+.u-ar-4-3 { aspect-ratio: 4 / 3 !important; }
+.u-ar-9-16 { aspect-ratio: 9 / 16 !important; }
+.u-ar-16-9 { aspect-ratio: 16 / 9 !important; }
 .u-pos-abs { position: absolute !important; }
 .u-pos-fixed { position: fixed !important; }
 .u-pos-rel { position: relative !important; }
