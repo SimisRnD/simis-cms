@@ -1,0 +1,11 @@
+/*
+ * Loaded inside the TinyMCE editing frame (content_css in cms/content-editor.jsp), which does not
+ * load Foundation. The alignment buttons write Foundation's text-* classes rather than an inline
+ * style="text-align: ..." -- page content may not carry inline styles, because the page's CSP
+ * would then need style-src 'unsafe-inline' (issue #1999). Without these rules the editor would
+ * not show the alignment it had just applied. On the published page Foundation supplies them.
+ */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-justify { text-align: justify; }
