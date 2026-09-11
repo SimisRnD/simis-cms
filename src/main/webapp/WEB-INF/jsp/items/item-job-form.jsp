@@ -193,7 +193,7 @@
     <div id="item-form-info-7" class="small-12 cell">
       <div class="input-container">
         <label>Job Description  <span class="required">*</span>
-          <textarea placeholder="" name="summary" required="true" style="height:300px"><c:out value="${item.summary}"/></textarea>
+          <textarea placeholder="" name="summary" required="true" class="textarea-h-300"><c:out value="${item.summary}"/></textarea>
         </label>
       </div>
     </div>

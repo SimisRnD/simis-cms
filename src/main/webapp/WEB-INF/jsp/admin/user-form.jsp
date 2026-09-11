@@ -33,7 +33,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Fixed header --%>
   <div id="sticky-container" data-sticky-container>
-    <div id="sticky-item" data-sticky style="width:100%" data-top-anchor="1" data-sticky-on="small">
+    <div id="sticky-item" class="u-w-100p" data-sticky data-top-anchor="1" data-sticky-on="small">
       <c:set var="scHook" value="${css:register(pageContext.request, 'padding-top:16px;background-color:' += themePropertyMap['theme.body.backgroundColor'])}"/>
       <div<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
         <div class="button-container float-right">
