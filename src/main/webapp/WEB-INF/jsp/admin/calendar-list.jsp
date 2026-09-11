@@ -18,6 +18,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="calendarList" class="java.util.ArrayList" scope="request"/>
@@ -94,7 +95,7 @@
     <c:forEach items="${calendarList}" var="calendar">
       <tr>
         <td>
-          <c:if test="${!empty calendar.color}"><small style="padding-right: 10px;border:1px solid #000;background-color:<c:out value="${calendar.color}" />">&nbsp;</small></c:if>
+          <c:if test="${!empty calendar.color}"><c:set var="scHook" value="${css:register(pageContext.request, 'padding-right: 10px;border:1px solid #000;background-color:' += calendar.color)}"/><small<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>&nbsp;</small></c:if>
           <c:out value="${calendar.name}" />
           <c:if test="${!calendar.enabled}"><span class="label warning">offline</span></c:if>
           <c:if test="${!empty calendar.description}">

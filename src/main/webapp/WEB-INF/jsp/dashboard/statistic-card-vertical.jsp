@@ -20,6 +20,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="statisticCard" class="com.simisinc.platform.domain.model.dashboard.StatisticCard" scope="request"/>
@@ -30,7 +31,7 @@
 <div class="grid-y align-middle text-middle">
   <c:if test="${!empty statisticCard.icon}">
     <div class="small-5 cell padding-width-30 text-center">
-      <i id="icon${widgetContext.uniqueId}" class="fa fa-<c:out value="${statisticCard.icon}" /> statistic-card-icon"<c:if test="${!empty iconColor}"> style="color:<c:out value="${iconColor}" />"</c:if>></i>
+      <c:set var="scHook" value="${css:register(pageContext.request, 'color:' += iconColor)}"/><i id="icon${widgetContext.uniqueId}" class="fa fa-<c:out value="${statisticCard.icon}" /> statistic-card-icon"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>></i>
     </div>
   </c:if>
   <div class="small-4 cell padding-top-20">

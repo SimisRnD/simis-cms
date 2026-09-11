@@ -18,6 +18,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collectionList" class="java.util.ArrayList" scope="request"/>
@@ -32,8 +33,10 @@
 <c:forEach items="${collectionList}" var="collection">
   <a href="${ctx}/admin/collection-details?collectionId=${collection.id}">
     <div class="admin card float-left u-minh-160">
-      <div class="card-divider" style="background-color: <c:out value="${collection.headerBgColor}" />">
-        <p style="color: <c:out value="${collection.headerTextColor}" />">
+      <c:set var="scHook" value="${css:register(pageContext.request, 'background-color: ' += collection.headerBgColor)}"/>
+      <div class="card-divider"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
+        <c:set var="scHook" value="${css:register(pageContext.request, 'color: ' += collection.headerTextColor)}"/>
+        <p<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
           <c:set var="thisIcon" scope="request" value="database"/>
           <c:if test="${!empty collection.icon}">
             <c:set var="thisIcon" scope="request" value="${collection.icon}"/>

@@ -14,6 +14,8 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="iframeUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
-<iframe src="<c:out value="${iframeUrl}"/>" frameborder="0" width="100%" style="min-height: <c:out value="${height}"/>;"></iframe>
+<c:set var="scHook" value="${css:register(pageContext.request, 'min-height: ' += height)}"/>
+<iframe src="<c:out value="${iframeUrl}"/>" frameborder="0" width="100%"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>></iframe>

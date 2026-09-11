@@ -48,4 +48,22 @@
         <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
         <function-signature>java.lang.String headRules(jakarta.servlet.ServletRequest)</function-signature>
     </function>
+    <function>
+        <description>
+            A CSS url() for a path or address -- unquoted, with space, quotes, parentheses and backslash
+            percent-encoded -- or an empty string. Lets EL build a url() value with no quote characters.
+        </description>
+        <name>url</name>
+        <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
+        <function-signature>java.lang.String url(java.lang.String)</function-signature>
+    </function>
+    <function>
+        <description>
+            The standard header's equal tab width, "width: N%" with N = 100 / (tabs - 1) in integer
+            arithmetic, or an empty string when there are fewer than two tabs.
+        </description>
+        <name>menuTabWidth</name>
+        <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
+        <function-signature>java.lang.String menuTabWidth(java.util.Collection)</function-signature>
+    </function>
 </taglib>

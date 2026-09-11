@@ -23,6 +23,7 @@
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
@@ -98,7 +99,7 @@
             <div class="platform-blog-image">
               <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="<c:out value="${blogPostImageAltText[blogPost.id]}"/>" src="<c:out value="${ctx}${blogPostListImageUrl[blogPost.id]}"/>"
                 <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="100vw"</c:if>
-                <c:set var="blogImageFocal" value="${blogPostImageFocalPoint[blogPost.id]}"/><c:if test="${not empty blogImageFocal}"> style="object-position: <c:out value="${blogImageFocal}"/>"</c:if> decoding="async" loading="lazy"/></a>
+                <c:set var="scHook" value="${css:register(pageContext.request, 'object-position: ' += blogPostImageFocalPoint[blogPost.id])}"/><c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if> decoding="async" loading="lazy"/></a>
             </div>
           </c:if>
           <c:if test="${showAuthor eq 'true' || (showDate eq 'true' && !empty blogPost.startDate) || !empty blogPost.tagsList}">

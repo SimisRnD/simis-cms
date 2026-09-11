@@ -19,6 +19,7 @@
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="geoip" uri="/WEB-INF/tlds/geoip-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -48,7 +49,8 @@
     postAction('${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
 </script>
-<div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
+<c:set var="scHook" value="${css:register(pageContext.request, 'margin-top: 6px;background-color:' += themePropertyMap['theme.body.backgroundColor'])}"/>
+<div<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
   <div class="button-container float-right">
     <c:if test="${userSession.hasRole('admin')}">
       <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>

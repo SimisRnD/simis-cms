@@ -112,6 +112,11 @@ public class StyleRuleCommand {
         LOG.warn("Dropped a style declaration with an invalid property name");
         continue;
       }
+      // An optional value left unset -- "color:" from a template whose color is empty -- is not a
+      // fault, so it is skipped without a warning. The browser ignores it too.
+      if (value.isEmpty()) {
+        continue;
+      }
       // Some script-bearing CSS is in the property name (-moz-binding, behavior), not the value
       if (SCRIPT_BEARING.matcher(property + ":" + value).find()) {
         LOG.warn("Dropped script-bearing CSS for style property: " + property);

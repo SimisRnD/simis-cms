@@ -222,6 +222,11 @@
        layout's section, column and widget styles, and values widgets computed while rendering. Every
        value is validated before it gets here (StyleRuleCommand). Placed before the stylesheets so an
        existing !important rule of equal specificity still wins, as it did over the attribute. --%>
+  <%-- The "pro" header gives each menu tab an equal width. The header renders after this point, so
+       its rule is registered here and the header reads the hook from scMenuTabHook. --%>
+  <c:if test="${'pro' eq themePropertyMap['theme.menu.location']}">
+    <c:set var="scMenuTabHook" scope="request" value="${css:register(pageContext.request, css:menuTabWidth(masterMenuTabList))}"/>
+  </c:if>
   <c:set var="scHeadRules" value="${css:headRules(pageContext.request)}"/>
   <c:if test="${!empty scHeadRules}">
     <style nonce="${cspNonce}">${scHeadRules}</style>

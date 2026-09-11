@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,16 @@ public class PageStyleRules {
   /** Request attribute holding the rules registered so far, hook to rule, in first-seen order. */
   static final String RULES_ATTRIBUTE = PageStyleRules.class.getName() + ".rules";
 
+  /**
+   * Foundation's print reset, {@code @media print { * { background: 0 0 !important; color: #000
+   * !important; ... } }}, beat a style="" attribute, which is never !important. The rules here are
+   * !important and more specific than *, so they would beat it instead, and a hooked element would
+   * print its colors, backgrounds and shadows where it used to print plain. This gives hooked elements
+   * the same reset back. It follows the rules, so it wins at equal specificity.
+   */
+  static final String PRINT_RESET = "@media print{[" + StyleRuleCommand.HOOK_ATTRIBUTE + "]{background:0 0 !important;"
+      + "color:#000 !important;box-shadow:none !important;text-shadow:none !important}}";
+
   private static final String[] CONTAINERS = {
       RequestConstants.PAGE_RENDER_INFO,
       RequestConstants.HEADER_RENDER_INFO,
@@ -54,6 +65,51 @@ public class PageStyleRules {
   /** The hook for a style value, or an empty string when nothing in it is safe. */
   public static String hook(String css) {
     return StyleRuleCommand.hook(css);
+  }
+
+  /**
+   * A CSS url() for a path or address, or an empty string when there is none.
+   *
+   * <p>Unquoted, with space, quotes, parentheses and backslash percent-encoded -- which the browser
+   * decodes back to the same request -- so a value built in EL needs no quote characters. Quotes inside
+   * an EL string inside a JSP attribute are escaped once by the JSP parser and again by EL, which is
+   * how they get corrupted.</p>
+   */
+  public static String url(String address) {
+    if (address == null || address.isBlank()) {
+      return "";
+    }
+    StringBuilder encoded = new StringBuilder("url(");
+    for (char c : address.trim().toCharArray()) {
+      switch (c) {
+        case ' ': encoded.append("%20"); break;
+        case '"': encoded.append("%22"); break;
+        case '\'': encoded.append("%27"); break;
+        case '(': encoded.append("%28"); break;
+        case ')': encoded.append("%29"); break;
+        case '\\': encoded.append("%5C"); break;
+        default:
+          if (c < 0x20 || c == 0x7f) {
+            encoded.append(String.format("%%%02X", (int) c));
+          } else {
+            encoded.append(c);
+          }
+      }
+    }
+    return encoded.append(')').toString();
+  }
+
+  /**
+   * The standard header's equal tab width, "width: N%" -- exactly what its scriptlet computed,
+   * 100 / (tabs - 1) in integer arithmetic, one tab being the hidden Home link -- or an empty string
+   * when there are fewer than two tabs. The header renders after the head, so main.jsp registers this
+   * and hands the header the hook.
+   */
+  public static String menuTabWidth(Collection<?> tabs) {
+    if (tabs == null || tabs.size() < 2) {
+      return "";
+    }
+    return "width: " + (100 / (tabs.size() - 1)) + "%";
   }
 
   /**
@@ -71,7 +127,8 @@ public class PageStyleRules {
 
   /**
    * Every rule this page needs: the layout's section, column and widget styles, plus whatever widgets
-   * registered. One per distinct style, newline-separated, or an empty string when there are none.
+   * registered. One per distinct style, newline-separated and followed by {@link #PRINT_RESET}, or an
+   * empty string when there are none.
    */
   public static String headRules(ServletRequest request) {
     if (request == null) {
@@ -84,7 +141,7 @@ public class PageStyleRules {
       }
     }
     Map<String, String> rules = rules(request);
-    return rules.isEmpty() ? "" : String.join("\n", rules.values());
+    return rules.isEmpty() ? "" : String.join("\n", rules.values()) + "\n" + PRINT_RESET;
   }
 
   private static void registerLayout(ServletRequest request, ContainerRenderInfo container) {

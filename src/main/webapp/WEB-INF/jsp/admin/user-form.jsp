@@ -19,6 +19,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
 <%@ taglib prefix="geoip" uri="/WEB-INF/tlds/geoip-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -33,7 +34,8 @@
   <%-- Fixed header --%>
   <div id="sticky-container" data-sticky-container>
     <div id="sticky-item" data-sticky style="width:100%" data-top-anchor="1" data-sticky-on="small">
-      <div style="padding-top:16px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
+      <c:set var="scHook" value="${css:register(pageContext.request, 'padding-top:16px;background-color:' += themePropertyMap['theme.body.backgroundColor'])}"/>
+      <div<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
         <div class="button-container float-right">
             <input type="submit" class="button small radius success" value="Save"/>
             <a class="button small radius secondary" href="${ctx}/admin/user-details?userId=${user.id}">Cancel</a>

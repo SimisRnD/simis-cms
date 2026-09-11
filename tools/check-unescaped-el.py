@@ -287,8 +287,6 @@ ALLOWLIST: dict[str, str] = {
         "the label is sliced from the accordion html preference, which ContentHtmlCommand now runs through HtmlCommand.cleanContent before any widget sees it",
     "${siteProperty.name}":
         "None applied, and none needed: the string is never attacker-influenced.",
-    "${subFolder.posterFileItem.url}":
-        "Not HtmlCommand.",
     "${thisDay}":
         "thisDay is produced one line earlier by <fmt:formatDate pattern='MMMM d, yyyy' value='${calendarEvent.startDate}'> (calendar-search-results.jsp:47 and upcoming-events.jsp:47) appli",
     "${titleHtml}":
@@ -465,12 +463,16 @@ ALLOWLIST: dict[str, str] = {
         "(or empty) as css:hook() -- PageStyleRules.register() -> StyleRuleCommand.hook().",
     "${scHookTall}":
         "Same as ${scHook}: set one line earlier from css:register().",
+    "${scMenuTabHook}":
+        "Same as ${scHook}, set in main.jsp's head from css:register() -- the header renders after the "
+        "head, so the hook is registered there and read by the header.",
     "${scHeadRules}":
         "Set one line earlier from css:headRules() and rendered only inside <style nonce>. It is a "
         "newline-joined list of StyleRuleCommand.rule() outputs, [data-sc-style=\"sc-<12 hex>\"]{...}, "
         "where every declaration passed StyleRuleCommand's grammar: property [-a-z0-9]+, and a value "
         "with no < > { } \\ @ or control characters, no comment markers, balanced quotes and "
-        "parentheses, and url() only to this site or http(s). It therefore contains no '<' and cannot "
+        "parentheses, and url() only to this site or http(s). The only other text is the fixed "
+        "PageStyleRules.PRINT_RESET constant after them. It therefore contains no '<' and cannot "
         "close the style element or open markup. HTML-escaping it would corrupt the CSS -- a style "
         "element is raw text -- and add nothing.",
 }
