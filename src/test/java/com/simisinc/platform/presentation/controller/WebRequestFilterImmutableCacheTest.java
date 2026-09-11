@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -145,8 +146,8 @@ class WebRequestFilterImmutableCacheTest {
 
   @Test
   void aStampedPlatformAssetMayBeCachedForAYear() {
-    assertTrue(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v=1788564491791"));
-    assertTrue(WebRequestFilter.isStampedPlatformAsset("/javascript/platform-editor.js", "v=17885"));
+    assertTrue(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v=1788564491791", "1788564491791"));
+    assertTrue(WebRequestFilter.isStampedPlatformAsset("/javascript/platform-editor.js", "v=17885", "17885"));
   }
 
   @Test
@@ -155,7 +156,7 @@ class WebRequestFilterImmutableCacheTest {
     // also start being served immutable -- otherwise it silently keeps paying a conditional
     // request per visit for a stamp it is already moving.
     for (String path : ContextListener.STAMPED_ASSET_PATHS) {
-      assertTrue(WebRequestFilter.isStampedPlatformAsset(path, "v=1"),
+      assertTrue(WebRequestFilter.isStampedPlatformAsset(path, "v=1", "1"),
           path + " contributes to the ?v= token but is not served immutable");
     }
   }
@@ -165,24 +166,67 @@ class WebRequestFilterImmutableCacheTest {
     // The critical case. These are referenced from the JSPs with no ?v= at all, and the token is
     // computed only from the platform's own files, so nothing about their URL tracks their content.
     // A year-long cache here could pin a stale copy with no way to recall it.
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/animate-3.7.2/animate.min.css", "v=1"));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/javascript/ace-1.32.0/ace.js", "v=1"));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset(
-        "/css/foundation-6.8.1/foundation.tokens.min.css", "v=1"));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/custom/stylesheet.css", "v=1"));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/images/favicon.png", "v=1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/animate-3.7.2/animate.min.css", "v=1", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/javascript/ace-1.32.0/ace.js", "v=1", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/foundation-6.8.1/foundation.tokens.min.css", "v=1", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/custom/stylesheet.css", "v=1", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/images/favicon.png", "v=1", "1"));
   }
 
   @Test
   void anUnstampedRequestForAStampedAssetStillRevalidates() {
     // A bare URL -- typed, bookmarked, or fetched by a monitor -- addresses no particular version,
     // so answering it with a year-long cache would freeze whatever happened to be current.
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", null));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", ""));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v="));
-    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "cb=123"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", null, "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v=", "1"));
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "cb=123", "1"));
     assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"),
         "and it must land on the revalidating branch rather than falling through with no header");
+  }
+
+  @Test
+  void aStampFromADifferentBuildIsNotImmutable() {
+    // Issue #1997, the case that reached production. A rolling deploy runs old and new instances
+    // side by side: a page rendered by a new instance asks for platform.css?v=<new>, the request
+    // lands on an old instance, and the old instance serves its own file. Checking only that a v
+    // was present let it stamp that old file immutable, and Front Door held it for a year under
+    // the new URL. An instance must only vouch for its own version.
+    assertFalse(WebRequestFilter.isStampedPlatformAsset(
+        "/css/platform.css", "v=1789084644000", "1789079750000"),
+        "an old instance must not grant immutable to a newer build's URL");
+    assertFalse(WebRequestFilter.isStampedPlatformAsset(
+        "/css/platform.css", "v=1789079750000", "1789084644000"),
+        "nor a new instance to an older one's -- a stale v is just as unvouchable");
+    assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"),
+        "and the mismatch must land on revalidation, which the edge will not pin, not on no header");
+  }
+
+  @Test
+  void aStampMatchingThisInstanceIsImmutable() {
+    assertTrue(WebRequestFilter.isStampedPlatformAsset(
+        "/css/platform.css", "v=1789084644000", "1789084644000"));
+    assertTrue(WebRequestFilter.isStampedPlatformAsset(
+        "/css/platform.css", "a=1&v=1789084644000&b=2", "1789084644000"),
+        "the stamp is matched as a parameter, wherever it sits in the query");
+  }
+
+  @Test
+  void anInstanceWithNoVersionVouchesForNothing() {
+    // resolveAssetVersion always falls back to ApplicationInfo.VERSION, so this should not happen
+    // -- but if the attribute were ever missing, the safe answer is revalidation, not immutable.
+    assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/platform.css", "v=1", null));
+  }
+
+  @Test
+  void versionStampReturnsTheValueOrNull() {
+    Assertions.assertEquals("1789084644000", WebRequestFilter.versionStamp("v=1789084644000"));
+    Assertions.assertEquals("2", WebRequestFilter.versionStamp("a=1&v=2&b=3"));
+    Assertions.assertNull(WebRequestFilter.versionStamp("v="));
+    Assertions.assertNull(WebRequestFilter.versionStamp("vv=1"));
+    Assertions.assertNull(WebRequestFilter.versionStamp("cb=1"));
+    Assertions.assertNull(WebRequestFilter.versionStamp(""));
+    Assertions.assertNull(WebRequestFilter.versionStamp(null));
   }
 
   @Test
