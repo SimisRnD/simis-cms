@@ -43,8 +43,8 @@
           <c:forEach items="${mailingList}" var="mailingListItem" varStatus="status">
             <div class="small-12 cell">
               <input type="checkbox" id="mailingListCheck${mailingListItem.id}" name="mailingListCheck${mailingListItem.id}" value="${mailingListItem.id}"<c:if test="${fn:contains(subscribedLists, mailingListItem.id)}"> checked</c:if>/><label class="no-gap" for="mailingListCheck${mailingListItem.id}"><c:out value="${mailingListItem.title}"/></label>
-              <span id="mailingListAdded${mailingListItem.id}" class="label success" style="display:none">subscribed</span>
-              <span id="mailingListRemoved${mailingListItem.id}" class="label warning" style="display:none">unsubscribed</span>
+              <span id="mailingListAdded${mailingListItem.id}" class="label success hide">subscribed</span>
+              <span id="mailingListRemoved${mailingListItem.id}" class="label warning hide">unsubscribed</span>
               <c:if test="${!empty mailingListItem.description}">
               <p class="platform-indent"><c:out value="${mailingListItem.description}"/></p>
               </c:if>
@@ -60,15 +60,15 @@
           if ($(this).prop("checked") === true) {
             $.getJSON("${ctx}/json/mailingList?token=${userSession.formToken}&command=subscribe&id=" + encodeURIComponent(mailingListId), function(data) {
               if (data.status !== undefined && data.status === '0') {
-                $('#mailingListRemoved' + mailingListId).hide();
-                $('#mailingListAdded' + mailingListId).show();
+                $('#mailingListRemoved' + mailingListId).addClass('hide');
+                $('#mailingListAdded' + mailingListId).removeClass('hide');
               }
             });
           } else if ($(this).prop("checked") === false) {
             $.getJSON("${ctx}/json/mailingList?token=${userSession.formToken}&command=unsubscribe&id=" + encodeURIComponent(mailingListId), function(data) {
               if (data.status !== undefined && data.status === '0') {
-                $('#mailingListAdded' + mailingListId).hide();
-                $('#mailingListRemoved' + mailingListId).show();
+                $('#mailingListAdded' + mailingListId).addClass('hide');
+                $('#mailingListRemoved' + mailingListId).removeClass('hide');
               }
             });
           }

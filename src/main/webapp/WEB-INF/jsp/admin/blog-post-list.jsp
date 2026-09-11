@@ -61,7 +61,7 @@
   <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
   <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
 </form>
-<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+<div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
   <span id="bulkSelectedCount"></span>
   <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
   <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
@@ -276,7 +276,7 @@
     function refresh() {
       var n = selected().length;
       $count.text(n + (n === 1 ? ' post selected  ' : ' posts selected  '));
-      $bar.toggle(n > 0);
+      $bar.prop('hidden', !(n > 0));
       $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
       $selectAll.prop('checked', n > 0 && n === $rows.length);
     }

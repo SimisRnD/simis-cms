@@ -67,7 +67,7 @@
     <button type="button" class="button tiny secondary radius usage-filter-btn" data-usage-filter="used">Used only</button>
   </div>
 </c:if>
-<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+<div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
   <span id="bulkSelectedCount"></span>
   <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
 </div>
@@ -146,7 +146,7 @@
     <p>No duplicates found. Click <strong>Scan for Duplicates</strong> above to check images that haven't been scanned yet.</p>
   </c:if>
   <c:if test="${!empty duplicateGroups}">
-    <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+    <div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
       <span id="bulkSelectedCount"></span>
       <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
     </div>
@@ -214,7 +214,7 @@
 <div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> Image(s)</h4>
-  <p id="bulkDeleteUsageNotice" class="callout warning radius" style="display:none;padding:8px 12px;">
+  <p id="bulkDeleteUsageNotice" class="callout warning radius u-py-8 u-px-12" hidden>
     One or more selected images are still in use -- see the list below.
   </p>
   <ul id="bulkDeleteList"></ul>
@@ -237,8 +237,8 @@
      aria-labelledby="focalPointRevealTitle" data-reveal data-close-on-click="true">
   <h4 id="focalPointRevealTitle">Set Focal Point</h4>
   <p>Click the image where the subject is, so a future square crop keeps it in frame.</p>
-  <div id="focalPointImageWrap" style="position:relative; display:inline-block; max-width:100%;">
-    <img id="focalPointImage" src="" alt="" style="display:block; max-width:100%; height:auto; cursor:crosshair;">
+  <div id="focalPointImageWrap" class="u-pos-rel u-d-inline-block u-maxw-100p">
+    <img id="focalPointImage" src="" alt="" class="u-d-block u-maxw-100p u-h-auto u-cursor-crosshair">
     <div id="focalPointMarker" style="position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px;
          border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #000, 0 0 4px rgba(0,0,0,.6);
          pointer-events:none; left:50%; top:50%;"></div>
@@ -495,7 +495,7 @@
     function refresh() {
       var n = selected().length;
       $count.textContent = n + (n === 1 ? ' image selected  ' : ' images selected  ');
-      $bar.style.display = n > 0 ? '' : 'none';
+      $bar.hidden = !(n > 0);
       if ($selectAll) {
         $selectAll.indeterminate = n > 0 && n < rowCheckboxes.length;
         $selectAll.checked = n > 0 && n === rowCheckboxes.length;
@@ -550,7 +550,7 @@
             $list.append($('<li>').text(text));
           });
           $('#bulkDeleteCount').text(ids.length);
-          $notice.toggle(anyInUse);
+          $notice.prop('hidden', !anyInUse);
           $reveal.foundation('open');
         });
       });

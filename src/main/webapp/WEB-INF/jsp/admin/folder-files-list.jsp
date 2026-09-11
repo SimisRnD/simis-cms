@@ -78,7 +78,7 @@
   <%-- Mirrors blog-post-list.jsp's bulk actions bar (id names/classes copied from there), adapted to
        this page's single bulk action (Delete). Hidden until a row is checked; the JS below (already
        present) shows/hides it, keeps the count current, and opens #bulkDeleteReveal on click. --%>
-  <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+  <div id="bulkActionsBar" class="callout radius u-py-10 u-px-15 u-mb-10" hidden>
     <span id="bulkSelectedCount"></span>
     <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
   </div>
@@ -304,7 +304,7 @@
         $count.textContent = n + (n === 1 ? ' file selected ' : ' files selected ');
       }
       if ($bar) {
-        $bar.style.display = n > 0 ? '' : 'none';
+        $bar.hidden = !(n > 0);
       }
       if ($selectAll) {
         $selectAll.indeterminate = n > 0 && n < rowCheckboxes.length;

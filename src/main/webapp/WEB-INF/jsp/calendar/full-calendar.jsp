@@ -118,8 +118,11 @@
 <%-- Render the widget --%>
 <%@include file="../page_messages.jspf" %>
 <div id="calendar"><c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}"><small><i class="fa fa-calendar-plus-o"></i> Select a date range to create events</small></c:if></div>
-<div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
+<div id="tooltip" class="tooltip top align-center under-reveal" hidden></div>
 <script nonce="${cspNonce}">
+  // Hidden by its hidden attribute until here (issue #1999). From now on jQuery shows and hides it with
+  // an inline display, as before: fadeIn and the outerHeight measurement both need that.
+  $('#tooltip').hide().prop('hidden', false);
   function showTooltip(el, event) {
     let content = "<h5>" + event.title+"</h5>";
     if (event.allDay === undefined || !event.allDay) {
@@ -207,8 +210,8 @@
               $('#allDay')[0].checked = false;
             }
             // Show the form
-            $('#duplicateButton').hide();
-            $('#deleteButton').hide();
+            $('#duplicateButton').addClass('hide');
+            $('#deleteButton').addClass('hide');
             var $modal = $('#formReveal');
             $modal.foundation('open');
           }
@@ -275,8 +278,8 @@
               document.getElementById('title').value = data.title;
 
               // Show the form dialog
-              $('#duplicateButton').show();
-              $('#deleteButton').show();
+              $('#duplicateButton').removeClass('hide');
+              $('#deleteButton').removeClass('hide');
               var $modal = $('#modalReveal');
               $modal.foundation('open');
             });
@@ -502,8 +505,8 @@
       <p class="help-text">Unchecked saves this event as a draft, hidden from the public calendar.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
-        <input id="duplicateButton" style="display:none" type="submit" class="button radius primary expanded" name="duplicate" value="Duplicate" />
-        <a id="deleteButton" style="display:none" href="#" data-js-call="deleteCalendarEvent" class="button radius alert expanded">Delete</a>
+        <input id="duplicateButton" type="submit" class="button radius primary expanded hide" name="duplicate" value="Duplicate" />
+        <a id="deleteButton" href="#" data-js-call="deleteCalendarEvent" class="button radius alert expanded hide">Delete</a>
       </div>
     </form>
   </div>

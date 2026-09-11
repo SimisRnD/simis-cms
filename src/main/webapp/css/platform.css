@@ -2251,6 +2251,8 @@ a.platform-blog-overview-thumbnail img {
      m / p (+ t r b l, or x y)  margin / padding     w h minw minh maxw maxh  sizes
      pos top right bottom left z  position             o ox oy                  overflow
      ta ti td ws wb va lh fs fw   text                 float clear flex border translate
+     d vis                        display, visibility  flexwrap gap ai          flex layout
+     color cursor                 color, cursor
    Values are px unless a unit follows (p = %, vh, rem); "n" is negative, "_" a decimal point,
    "sp6" the --sc-space-6 token. ar is aspect-ratio, width then height: u-ar-16-9 is 16 / 9.
    Every declaration is !important on purpose: an inline style outranks every normal selector,
@@ -2258,7 +2260,10 @@ a.platform-blog-overview-thumbnail img {
    from an attribute remain, and neither applies where these are used: an existing !important
    rule now competes on specificity instead of simply winning, and a script setting el.style
    now loses instead of overriding. That second one is why elements a script or a Foundation
-   plugin sizes or positions (Sticky, OffCanvas, a resizable textarea) keep their attribute. */
+   plugin sizes or positions (Sticky, OffCanvas, a resizable textarea) keep their attribute.
+   The same goes for showing: u-d-none is only for an element nothing ever shows. One a script
+   reveals starts with the hidden attribute -- or Foundation's .hide where its own classes set
+   display, which [hidden] would lose to -- and the script toggles that instead of el.style. */
 .u-m-0 { margin: 0 !important; }
 .u-m-1 { margin: 1px !important; }
 .u-mx-0 { margin-left: 0 !important; margin-right: 0 !important; }
@@ -2269,10 +2274,12 @@ a.platform-blog-overview-thumbnail img {
 .u-my-12 { margin-top: 12px !important; margin-bottom: 12px !important; }
 .u-mt-n0_5rem { margin-top: -0.5rem !important; }
 .u-mt-n8 { margin-top: -8px !important; }
+.u-mt-0 { margin-top: 0 !important; }
 .u-mt-4 { margin-top: 4px !important; }
 .u-mt-0_4rem { margin-top: 0.4rem !important; }
 .u-mt-8 { margin-top: 8px !important; }
 .u-mt-10 { margin-top: 10px !important; }
+.u-mt-1rem { margin-top: 1rem !important; }
 .u-mt-20 { margin-top: 20px !important; }
 .u-mt-2_5rem { margin-top: 2.5rem !important; }
 .u-mt-sp6 { margin-top: var(--sc-space-6, 2rem) !important; }
@@ -2284,9 +2291,11 @@ a.platform-blog-overview-thumbnail img {
 .u-mb-5 { margin-bottom: 5px !important; }
 .u-mb-6 { margin-bottom: 6px !important; }
 .u-mb-8 { margin-bottom: 8px !important; }
+.u-mb-10 { margin-bottom: 10px !important; }
 .u-mb-12 { margin-bottom: 12px !important; }
 .u-mb-1rem { margin-bottom: 1rem !important; }
 .u-mb-20 { margin-bottom: 20px !important; }
+.u-ml-0_5rem { margin-left: 0.5rem !important; }
 .u-ml-18 { margin-left: 18px !important; }
 .u-ml-21 { margin-left: 21px !important; }
 .u-ml-1_5rem { margin-left: 1.5rem !important; }
@@ -2294,11 +2303,14 @@ a.platform-blog-overview-thumbnail img {
 .u-p-0 { padding: 0 !important; }
 .u-p-2 { padding: 2px !important; }
 .u-p-0_2rem { padding: 0.2rem !important; }
+.u-p-1rem { padding: 1rem !important; }
 .u-px-0 { padding-left: 0 !important; padding-right: 0 !important; }
 .u-px-12 { padding-left: 12px !important; padding-right: 12px !important; }
+.u-px-15 { padding-left: 15px !important; padding-right: 15px !important; }
 .u-px-30 { padding-left: 30px !important; padding-right: 30px !important; }
 .u-py-2 { padding-top: 2px !important; padding-bottom: 2px !important; }
 .u-py-8 { padding-top: 8px !important; padding-bottom: 8px !important; }
+.u-py-10 { padding-top: 10px !important; padding-bottom: 10px !important; }
 .u-py-30 { padding-top: 30px !important; padding-bottom: 30px !important; }
 .u-pr-0 { padding-right: 0 !important; }
 .u-pr-15 { padding-right: 15px !important; }
@@ -2317,10 +2329,13 @@ a.platform-blog-overview-thumbnail img {
 .u-h-65vh { height: 65vh !important; }
 .u-h-70vh { height: 70vh !important; }
 .u-h-100p { height: 100% !important; }
+.u-h-40 { height: 40px !important; }
 .u-h-320 { height: 320px !important; }
+.u-h-auto { height: auto !important; }
 .u-minw-200 { min-width: 200px !important; }
 .u-minh-160 { min-height: 160px !important; }
 .u-maxw-75p { max-width: 75% !important; }
+.u-maxw-100p { max-width: 100% !important; }
 .u-maxw-100 { max-width: 100px !important; }
 .u-maxw-150 { max-width: 150px !important; }
 .u-maxw-180 { max-width: 180px !important; }
@@ -2334,6 +2349,12 @@ a.platform-blog-overview-thumbnail img {
 .u-ar-4-3 { aspect-ratio: 4 / 3 !important; }
 .u-ar-9-16 { aspect-ratio: 9 / 16 !important; }
 .u-ar-16-9 { aspect-ratio: 16 / 9 !important; }
+.u-d-none { display: none !important; }
+.u-d-block { display: block !important; }
+.u-d-inline { display: inline !important; }
+.u-d-inline-block { display: inline-block !important; }
+.u-d-flex { display: flex !important; }
+.u-vis-hidden { visibility: hidden !important; }
 .u-pos-abs { position: absolute !important; }
 .u-pos-fixed { position: fixed !important; }
 .u-pos-rel { position: relative !important; }
@@ -2355,10 +2376,14 @@ a.platform-blog-overview-thumbnail img {
 .u-float-right { float: right !important; }
 .u-clear-both { clear: both !important; }
 .u-flex-1 { flex: 1 !important; }
+.u-flexwrap-wrap { flex-wrap: wrap !important; }
+.u-gap-1rem { gap: 1rem !important; }
+.u-ai-flex-end { align-items: flex-end !important; }
 .u-border-0 { border: 0 !important; }
 .u-ta-left { text-align: left !important; }
 .u-ta-right { text-align: right !important; }
 .u-ti-n11 { text-indent: -11px !important; }
+.u-td-none { text-decoration: none !important; }
 .u-td-underline { text-decoration: underline !important; }
 .u-ws-nowrap { white-space: nowrap !important; }
 .u-ws-prewrap { white-space: pre-wrap !important; }
@@ -2372,6 +2397,8 @@ a.platform-blog-overview-thumbnail img {
 .u-fs-0_875rem { font-size: 0.875rem !important; }
 .u-fs-32 { font-size: 32px !important; }
 .u-fw-bold { font-weight: bold !important; }
+.u-color-inherit { color: inherit !important; }
+.u-cursor-crosshair { cursor: crosshair !important; }
 
 @media screen and (max-width: 39.9375em) {
   .small-margin-0 { margin-top: 0; margin-bottom: 0; }
