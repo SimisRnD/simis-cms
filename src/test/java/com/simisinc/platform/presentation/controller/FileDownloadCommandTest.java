@@ -114,11 +114,44 @@ class FileDownloadCommandTest {
 
   @Test
   void inlineMediaHeadersSetNosniffAndSandboxCsp() {
+    // An SVG opened directly is styled by its own <style> or style attributes, so it keeps
+    // style-src 'unsafe-inline'; script and outbound requests stay blocked (issue #1999).
     HttpServletResponse response = mock(HttpServletResponse.class);
     FileDownloadCommand.applyInlineMediaHeaders(response, "image/svg+xml");
     verify(response).setHeader("X-Content-Type-Options", "nosniff");
     verify(response).setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     verify(response).setContentType("image/svg+xml");
+  }
+
+  @Test
+  void aRasterImageGetsTheSandboxWithNoStyleKeyword() {
+    // A raster image has no styles, so 'unsafe-inline' would only be an unsafe-* keyword for a
+    // header scanner to report (issue #1999).
+    for (String type : new String[] { "image/png", "image/jpeg", "image/webp", "image/gif" }) {
+      HttpServletResponse response = mock(HttpServletResponse.class);
+      FileDownloadCommand.applyInlineMediaHeaders(response, type);
+      verify(response).setHeader("X-Content-Type-Options", "nosniff");
+      verify(response).setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+    }
+  }
+
+  @Test
+  void svgIsRecognizedWhateverItsCaseOrParameters() {
+    for (String type : new String[] { "IMAGE/SVG+XML", " image/svg+xml ", "image/svg+xml; charset=utf-8" }) {
+      HttpServletResponse response = mock(HttpServletResponse.class);
+      FileDownloadCommand.applyInlineMediaHeaders(response, type);
+      verify(response).setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    }
+  }
+
+  @Test
+  void aMissingOrUnknownTypeGetsTheStrictPolicy() {
+    // Only SVG earns the exception. HTML included: served here it is an image source, never a page.
+    for (String type : new String[] { null, "", "application/octet-stream", "text/html" }) {
+      HttpServletResponse response = mock(HttpServletResponse.class);
+      FileDownloadCommand.applyInlineMediaHeaders(response, type);
+      verify(response).setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+    }
   }
 
   @Test
