@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -119,6 +120,9 @@
       <c:forEach items="${itemList}" var="item" varStatus="status">
         <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
         <c:set var="categoryHeaderCSS" scope="request" value="${category:headerColorCSS(item.categoryId)}"/>
+        <%-- The category colors as a head rule, not a style attribute (issue #1999) --%>
+        <c:set var="scHook" value="${css:register(pageContext.request, categoryHeaderCSS)}"/>
+        <c:set var="scHookTall" value="${css:register(pageContext.request, (categoryHeaderCSS += ';height: 175px'))}"/>
         <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
@@ -127,7 +131,7 @@
                 <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
                 decoding="async" loading="lazy"
               </c:set>
-              <div class="card-top no-gap text-center image-browser" style="<c:out value="${categoryHeaderCSS}" />">
+              <div class="card-top no-gap text-center image-browser"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
               <c:choose>
                 <c:when test="${showLink eq 'true'}">
                   <img src="<c:out value="${item.imageUrl}"/>" ${itemImageAttrs}/>
@@ -145,7 +149,7 @@
               </div>
             </c:when>
             <c:otherwise>
-              <div class="card-top no-gap no-border text-center" style="<c:out value="${categoryHeaderCSS}" />;height: 175px">
+              <div class="card-top no-gap no-border text-center"<c:if test="${!empty scHookTall}"> data-sc-style="${scHookTall}"</c:if>>
                 <div class="text-middle">
                   <c:set var="thisIcon" scope="request" value="bookmark-o" />
                   <c:if test="${showIcon eq 'true' && !empty categoryIcon}">
@@ -153,13 +157,13 @@
                   </c:if>
                   <c:choose>
                     <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                      <a aria-label="${fn:escapeXml(item.name)}" target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="${fn:escapeXml(item.name)}" target="_blank" href="${item.url}"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:when test="${useInfoLink eq 'true'}">
-                      <a aria-label="${fn:escapeXml(item.name)}" href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a aria-label="${fn:escapeXml(item.name)}" href="${ctx}/show/${item.uniqueId}"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>><i aria-hidden="true" class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:otherwise>
-                      <p style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></p>
+                      <p<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></p>
                     </c:otherwise>
                   </c:choose>
                 </div>

@@ -23,6 +23,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
@@ -216,6 +217,14 @@
   <%-- JSON-LD structured data for search engines and AI (issue #403) --%>
   <c:if test="${!empty pageRenderInfo.jsonLdData}">
     <script type="application/ld+json"><c:out value="${pageRenderInfo.jsonLdData}" escapeXml="false" /></script>
+  </c:if>
+  <%-- Dynamic styles, from one nonced element instead of style="" attributes (issue #1999): the page
+       layout's section, column and widget styles, and values widgets computed while rendering. Every
+       value is validated before it gets here (StyleRuleCommand). Placed before the stylesheets so an
+       existing !important rule of equal specificity still wins, as it did over the attribute. --%>
+  <c:set var="scHeadRules" value="${css:headRules(pageContext.request)}"/>
+  <c:if test="${!empty scHeadRules}">
+    <style nonce="${cspNonce}">${scHeadRules}</style>
   </c:if>
   <%-- CSS --%>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">

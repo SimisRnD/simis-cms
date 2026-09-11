@@ -18,6 +18,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
 <!doctype html>
 <html class="no-js" lang="en">
@@ -26,6 +27,12 @@
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title><c:out value="${sitePropertyMap['site.name']}"/></title>
+  <%-- The layout's section, column and widget styles, from one nonced element instead of style=""
+       attributes (issue #1999). Every value is validated first (StyleRuleCommand). --%>
+  <c:set var="scHeadRules" value="${css:headRules(pageContext.request)}"/>
+  <c:if test="${!empty scHeadRules}">
+    <style nonce="${cspNonce}">${scHeadRules}</style>
+  </c:if>
 </head>
 <body>
 <c:forEach items="${pageRenderInfo.sectionRenderInfoList}" var="section">
@@ -34,29 +41,29 @@
   </c:if>
   <c:choose>
     <c:when test="${!empty section.cssClass}">
-  <div class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+  <div class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> data-sc-style="${css:hook(section.cssStyle)}"</c:if>>
     </c:when>
     <c:otherwise>
-  <div class="grid-container"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+  <div class="grid-container"<c:if test="${!empty section.cssStyle}"> data-sc-style="${css:hook(section.cssStyle)}"</c:if>>
     <div class="grid-x grid-margin-x">
     </c:otherwise>
   </c:choose>
   <c:forEach items="${section.columnRenderInfoList}" var="column">
     <c:choose>
       <c:when test="${!empty column.cssClass}">
-      <div class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if>>
+      <div class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> data-sc-style="${css:hook(column.cssStyle)}"</c:if>>
       </c:when>
       <c:otherwise>
-        <div class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if>>
+        <div class="small-12 cell"<c:if test="${!empty column.cssStyle}"> data-sc-style="${css:hook(column.cssStyle)}"</c:if>>
       </c:otherwise>
     </c:choose>
     <c:forEach items="${column.widgetRenderInfoList}" var="widget">
       <c:choose>
         <c:when test="${!empty widget.cssClass}">
-          <div class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if>>
+          <div class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> data-sc-style="${css:hook(widget.cssStyle)}"</c:if>>
         </c:when>
         <c:otherwise>
-          <div<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if>>
+          <div<c:if test="${!empty widget.cssStyle}"> data-sc-style="${css:hook(widget.cssStyle)}"</c:if>>
         </c:otherwise>
       </c:choose>
       ${widget.content}

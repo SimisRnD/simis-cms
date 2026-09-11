@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -62,8 +63,10 @@
       <c:forEach items="${itemList}" var="item">
         <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
         <c:set var="categoryHeaderCSS" scope="request" value="${category:headerColorCSS(item.categoryId)}"/>
+        <%-- The category colors as a head rule, not a style attribute (issue #1999) --%>
+        <c:set var="scHook" value="${css:register(pageContext.request, categoryHeaderCSS)}"/>
         <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
-          <div class="card-top no-gap no-border text-center" style="<c:out value="${categoryHeaderCSS}" />">
+          <div class="card-top no-gap no-border text-center"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>>
             <c:choose>
               <c:when test="${!empty categoryIcon}">
                 <i class="fa fa-2x fa-<c:out value="${categoryIcon}" />"></i>

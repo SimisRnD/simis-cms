@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="headerRenderInfo" class="com.simisinc.platform.presentation.controller.HeaderRenderInfo" scope="request"/>

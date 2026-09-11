@@ -54,7 +54,8 @@ _ICON_GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-ico
 
 # May only go down. Recorded 2026-09-10 at 351 across 122 templates; lowered the same day to
 # 228 across 89 when the spacing-only attributes became u-* classes, then to 135 across 61 when
-# the sizing, position, overflow and text ones did. Paths are relative to src/main/webapp/WEB-INF/jsp.
+# the sizing, position, overflow and text ones did, then to 98 across 54 when layout and category
+# styles moved to nonced head rules. Paths are relative to src/main/webapp/WEB-INF/jsp.
 BACKLOG = {
     "admin/audit-log-list.jsp": 1,
     "admin/blog-post-list.jsp": 1,
@@ -98,17 +99,10 @@ BACKLOG = {
     "ecommerce/cart.jsp": 2,
     "ecommerce/customer-payment-form.jsp": 1,
     "ecommerce/shipping-address-form.jsp": 2,
-    "embedded.jsp": 6,
     "items/delete-item-button.jsp": 1,
     "items/item-full-form.jsp": 3,
     "items/item-job-form.jsp": 1,
-    "items/items-card-view.jsp": 5,
-    "items/items-category-card-view.jsp": 1,
-    "items/items-integrated-search-results-list.jsp": 2,
-    "items/items-list.jsp": 1,
-    "layout-body-renderer.jspf": 8,
-    "layout-footer-renderer.jspf": 7,
-    "layout-header-renderer.jspf": 8,
+    "items/items-integrated-search-results-list.jsp": 1,
     "layout-header-standard.jspf": 4,
     "main.jsp": 4,
     "maps/items-map-app.jsp": 1,
