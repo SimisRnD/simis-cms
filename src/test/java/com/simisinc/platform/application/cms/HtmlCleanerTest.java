@@ -65,7 +65,9 @@ class HtmlCleanerTest {
         "<p><img class=\"image-right\" src=\"/assets/img/20210219211416-3/Office%20Desk.jpg\" alt=\"Desk\" width=\"129\" height=\"97\" /></p>\n" +
         "<p>This is some content.</p>\n" +
         "<p>This is some content too.</p>";
-    String expected = "<h3><span style=\"background-color: #f1c40f\">Info Area</span></h3>\n" +
+    // The span existed only to carry a background color. Content may not keep inline styles
+    // (issue #1999), so the span is left with no attributes and is unwrapped, keeping its text.
+    String expected = "<h3>Info Area</h3>\n" +
         "<p>This is some content.</p>\n" +
         "<p><a title=\"First tab\" href=\"/first-tab\">This is some content</a>. <i class=\"fas fa-bowling-ball\"></i></p>\n" +
         "<p>Another line. <i class=\"fas fa-wind\"></i></p>\n" +
@@ -79,6 +81,63 @@ class HtmlCleanerTest {
     // Run it through again
     String newValue = HtmlCommand.cleanContent(value);
     assertEquals(expected, newValue);
+  }
+
+  // Issue #1999: the page's CSP needs style-src 'unsafe-inline' for as long as any rendered element
+  // carries a style attribute, and content renders on the same page as the template. So no element
+  // keeps one -- including the tags that used to (span, p, h1-h6, table, th, td).
+  @Test
+  void inlineStylesAreRemovedFromEveryElementThatUsedToKeepThem() {
+    String html = "<h1 style=\"font-weight: 800\">One</h1><h2 style=\"text-align: center\">Two</h2>"
+        + "<h3 style=\"margin-top: 48px\">Three</h3><h4 style=\"letter-spacing: 0.14em\">Four</h4>"
+        + "<h5 style=\"text-transform: uppercase\">Five</h5><h6 style=\"max-width: 46ch\">Six</h6>"
+        + "<p style=\"text-align: center; margin-top: 24px\">Para</p>"
+        + "<p>Text <span class=\"note\" style=\"background-color: #f1c40f\">marked</span></p>";
+    String expected = "<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6>"
+        + "<p>Para</p><p>Text <span class=\"note\">marked</span></p>";
+    assertEquals(expected, HtmlCommand.cleanContent(html));
+  }
+
+  @Test
+  void alignmentIsKeptAsAClass() {
+    // What the editor's alignment buttons write instead of style="text-align: ...".
+    String html = "<p class=\"text-center\">Centered</p><h3 class=\"text-right\">Right</h3>"
+        + "<p class=\"text-justify\">Justified</p><p class=\"text-left\">Left</p>";
+    assertEquals(html, HtmlCommand.cleanContent(html));
+  }
+
+  @Test
+  void aSpanThatOnlyCarriedAStyleIsUnwrapped() {
+    String html = "<p>Before <span style=\"color: red\">inside</span> after</p>";
+    assertEquals("<p>Before inside after</p>", HtmlCommand.cleanContent(html));
+  }
+
+  @Test
+  void aStyleThatIsOnlyAColonIsSimplyRemoved() {
+    // This value used to reach a hand-written style filter and throw, aborting every later step of
+    // the clean. With style no longer allowed, the Cleaner drops the attribute before any of that.
+    assertEquals("<p>Text</p>", HtmlCommand.cleanContent("<p style=\":\">Text</p>"));
+  }
+
+  @Test
+  void tablesKeepTheirStructureButNotTheirStyles() {
+    // TinyMCE's table plugin writes these. Foundation's own table rule already sets
+    // border-collapse: collapse and width: 100%, so a content table renders the same without them.
+    // A cell's alignment used to ride on its style; as a class it survives.
+    String html = "<table style=\"border-collapse: collapse; width: 100%;\"><tbody><tr>"
+        + "<th style=\"width: 50%;\">Head</th><td class=\"text-center\" style=\"width: 50%;\" colspan=\"2\">Cell</td>"
+        + "</tr></tbody></table>";
+    String result = HtmlCommand.cleanContent(html);
+    assertFalse(result.contains("style"), "no table element may keep a style attribute: " + result);
+    assertEquals("<table><tbody><tr><th>Head</th><td class=\"text-center\" colspan=\"2\">Cell</td></tr></tbody></table>", result);
+  }
+
+  @Test
+  void theRenderPathRemovesStylesToo() {
+    // cleanStoredContent re-cleans page-layout XML html on every page view, so for that content the
+    // rule is retroactive -- which is why styled content was converted to classes before it shipped.
+    assertEquals("<p class=\"text-center\">x</p>",
+        HtmlCommand.cleanStoredContent("<p class=\"text-center\" style=\"text-align: center\">x</p>"));
   }
 
   @Test

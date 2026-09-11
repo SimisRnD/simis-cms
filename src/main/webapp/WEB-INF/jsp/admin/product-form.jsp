@@ -35,7 +35,8 @@
     relative_urls: false,
     convert_urls: true,
     plugins: 'advlist autolink lists link charmap preview anchor searchreplace visualblocks code insertdatetime media table wordcount',
-    toolbar: 'link table | undo redo | blocks | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code',
+    // No backcolor: it can only write an inline style, and content may not keep one (issue #1999).
+    toolbar: 'link table | undo redo | blocks | bold italic | bullist numlist outdent indent | removeformat | visualblocks code',
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}',
     automatic_uploads: true
   });
