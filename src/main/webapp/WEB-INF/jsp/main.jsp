@@ -612,7 +612,7 @@
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">
       <%-- Draw the admin menu--%>
       <div class="off-canvas-wrapper">
-        <div class="off-canvas position-left reveal-for-medium admin-menu hide-for-print" style="z-index: 1005 !important; padding-bottom: 50px" id="offCanvas" data-off-canvas>
+        <div class="off-canvas position-left reveal-for-medium admin-menu hide-for-print u-z-1005 u-pb-50" id="offCanvas" data-off-canvas>
           <div class="app-title">
             <c:out value="<%= PRODUCT_NAME %>"/><br />
             <small>v<c:out value="<%= VERSION %>"/></small>

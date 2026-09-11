@@ -371,7 +371,7 @@
             </select>
           </c:when>
           <c:when test="${formField.type eq 'textarea'}">
-            <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
+            <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="textarea-h-120"
                 <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
                 <c:if test="${formField.required}">required</c:if>><c:if test="${!empty initialValue}"><c:out value="${initialValue}" /></c:if></textarea>
           </c:when>

@@ -56,27 +56,22 @@ _ICON_GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-ico
 # 228 across 89 when the spacing-only attributes became u-* classes, then to 135 across 61 when
 # the sizing, position, overflow and text ones did, then to 98 across 54 when layout and category
 # styles moved to nonced head rules, then to 67 across 35 when the rest of the computed values did,
-# then to 30 across 18 when the display ones became classes and the hidden attribute.
+# then to 30 across 18 when the display ones became classes and the hidden attribute, then to
+# 22 across 12 when the script- and plugin-driven ones got normal declarations.
 # Paths are relative to src/main/webapp/WEB-INF/jsp.
 BACKLOG = {
     "admin/audit-log-list.jsp": 1,
     "admin/image-browser.jsp": 7,
     "admin/site-stats-recent-actions.jsp": 1,
     "admin/sitemap.jsp": 4,
-    "admin/user-form.jsp": 1,
     "calendar/calendar-search-results.jsp": 1,
-    "cms/form.jsp": 1,
     "cms/image-browser.jsp": 2,
     "cms/table-widget.jsp": 1,
     "cms/web-page-search-results.jsp": 1,
     "cms/wiki-search-results-list.jsp": 1,
     "ecommerce/customer-payment-form.jsp": 1,
-    "items/item-full-form.jsp": 2,
-    "items/item-job-form.jsp": 1,
     "items/items-integrated-search-results-list.jsp": 1,
-    "layout-header-standard.jspf": 1,
-    "main.jsp": 2,
-    "userProfile/my-profile-form.jsp": 1,
+    "main.jsp": 1,
 }
 
 

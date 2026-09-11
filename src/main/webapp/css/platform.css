@@ -227,6 +227,12 @@ p {
 #platform-menu {
   z-index: 1004;
 }
+/* The default header's menu is fixed to the top (u-pos-fixed u-w-100p). top is a normal
+   declaration, not u-top-0: Foundation Sticky writes top as it sticks and unsticks, and an
+   !important class would pin it (issue #1999). */
+#platform-menu.platform-menu-fixed {
+  top: 0;
+}
 #platform-menu li.is-dropdown-submenu-item a {
   width: 100%;
 }
@@ -2259,8 +2265,11 @@ a.platform-blog-overview-thumbnail img {
    so a plain class could lose to an existing rule the attribute used to beat. Two differences
    from an attribute remain, and neither applies where these are used: an existing !important
    rule now competes on specificity instead of simply winning, and a script setting el.style
-   now loses instead of overriding. That second one is why elements a script or a Foundation
-   plugin sizes or positions (Sticky, OffCanvas, a resizable textarea) keep their attribute.
+   now loses instead of overriding. So a property a script or plugin writes is never a u-*
+   class: Foundation Sticky writes top, and the resize handle writes a textarea's height, so
+   those get normal declarations instead (#platform-menu.platform-menu-fixed, textarea-h-*).
+   What such an element's scripts never touch -- Sticky never writes position or width -- can
+   still be a u-* class.
    The same goes for showing: u-d-none is only for an element nothing ever shows. One a script
    reveals starts with the hidden attribute -- or Foundation's .hide where its own classes set
    display, which [hidden] would lose to -- and the script toggles that instead of el.style. */
@@ -2315,6 +2324,7 @@ a.platform-blog-overview-thumbnail img {
 .u-pr-0 { padding-right: 0 !important; }
 .u-pr-15 { padding-right: 15px !important; }
 .u-pr-20 { padding-right: 20px !important; }
+.u-pb-50 { padding-bottom: 50px !important; }
 .u-pl-8 { padding-left: 8px !important; }
 .u-pl-16 { padding-left: 16px !important; }
 .u-pl-26 { padding-left: 26px !important; }
@@ -2368,6 +2378,7 @@ a.platform-blog-overview-thumbnail img {
 .u-left-50p { left: 50% !important; }
 .u-z-1 { z-index: 1 !important; }
 .u-z-1001 { z-index: 1001 !important; }
+.u-z-1005 { z-index: 1005 !important; }
 .u-translate-center { transform: translateY(-50%) translateX(-50%) !important; }
 .u-o-scroll { overflow: scroll !important; }
 .u-ox-auto { overflow-x: auto !important; }
@@ -2399,6 +2410,14 @@ a.platform-blog-overview-thumbnail img {
 .u-fw-bold { font-weight: bold !important; }
 .u-color-inherit { color: inherit !important; }
 .u-cursor-crosshair { cursor: crosshair !important; }
+
+/* Starting heights for the resizable textareas (issue #1999). Normal declarations on purpose, not
+   u-* classes: dragging the resize handle writes an inline height, which an !important class
+   would override. textarea.x is (0,1,1), so these still beat Foundation's textarea and
+   textarea[rows] heights, as the attribute did. */
+textarea.textarea-h-120 { height: 120px; }
+textarea.textarea-h-180 { height: 180px; }
+textarea.textarea-h-300 { height: 300px; }
 
 @media screen and (max-width: 39.9375em) {
   .small-margin-0 { margin-top: 0; margin-bottom: 0; }

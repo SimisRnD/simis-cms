@@ -187,7 +187,7 @@
           </label>
           <label>
             Provide an optional summary for the item
-            <textarea placeholder="optional description" name="summary" style="height:180px"><c:out value="${item.summary}"/></textarea>
+            <textarea placeholder="optional description" name="summary" class="textarea-h-180"><c:out value="${item.summary}"/></textarea>
           </label>
           <p>
             <label>
@@ -606,7 +606,7 @@
                   <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.value}"><c:out value="${formField.value}" /></c:if></textarea>
               </c:when>
               <c:when test="${formField.type eq 'textarea'}">
-                <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
+                <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="textarea-h-120"
                   <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
                   <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.value}"><c:out value="${formField.value}" /></c:if></textarea>
               </c:when>
