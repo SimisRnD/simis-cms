@@ -122,6 +122,14 @@ jobs:
       # shrinks as things are fixed rather than accumulating (issue #1991).
       - name: Fail on a platform-* class with no rule
         run: python3 tools/check-platform-class-rules.py . --strict
+      # The style half of the inline-handler gate above. style-src has to keep 'unsafe-inline'
+      # while any template renders a style= attribute -- a nonce covers <style> elements, never
+      # attributes, and 'unsafe-hashes' is itself an unsafe-* keyword -- and SecurityScorecard
+      # reports that keyword as a finding. 351 exist across 122 templates, recorded in BACKLOG
+      # as a per-file count that may only shrink, so the migration cannot be outpaced by new
+      # ones and a PR that removes one is never blocked (issue #1999).
+      - name: Fail on a new inline style attribute
+        run: python3 tools/check-inline-styles.py . --strict
       # Who sees an admin menu row (main.jsp) and who may open the page it links to
       # (the layout XML) are decided in two files, usually in two different PRs, with
       # nothing connecting them. A row wider than its page is a link the user is denied
