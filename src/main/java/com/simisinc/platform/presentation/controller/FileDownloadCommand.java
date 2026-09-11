@@ -96,6 +96,13 @@ public class FileDownloadCommand {
    * uploaded SVG/HTML cannot execute in this origin. Unlike {@link #applyContentHeaders} this does not force
    * a download, because forcing an attachment would break legitimate inline image embedding.
    *
+   * <p>{@code style-src 'unsafe-inline'} goes to SVG only (issue #1999). An SVG opened directly is a
+   * document styled by its own {@code <style>} element or style attributes, and without it the shapes
+   * render unstyled -- black. Embedded with {@code <img>}, as pages use it, the response's policy does not
+   * apply at all. A raster image has no styles, so there the keyword did nothing but put an unsafe-*
+   * keyword in front of a header scanner. The one visible difference: Chrome's viewer centers an image
+   * opened directly with an inline style, so a raster image opened in its own tab now sits at the top left.
+   *
    * @param response    the servlet response
    * @param contentType the file's stored content type (set as-is when present)
    */
@@ -104,21 +111,29 @@ public class FileDownloadCommand {
       return;
     }
     response.setHeader("X-Content-Type-Options", "nosniff");
-    response.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    response.setHeader("Content-Security-Policy", "image/svg+xml".equals(baseType(contentType))
+        ? "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        : "default-src 'none'; sandbox");
     if (StringUtils.isNotBlank(contentType)) {
       response.setContentType(contentType.trim());
     }
   }
 
-  /** True when a content type is on the allow-list of types safe to render inline in a browser. */
-  static boolean isSafeToDisplayInline(String mimeType) {
+  /** The content type lowercased, without any ";charset=..." parameter, or null when blank. */
+  private static String baseType(String mimeType) {
     if (StringUtils.isBlank(mimeType)) {
-      return false;
+      return null;
     }
     String type = mimeType.trim().toLowerCase();
     int semicolon = type.indexOf(';');
-    if (semicolon > -1) {
-      type = type.substring(0, semicolon).trim(); // drop any ";charset=..." parameter
+    return semicolon > -1 ? type.substring(0, semicolon).trim() : type;
+  }
+
+  /** True when a content type is on the allow-list of types safe to render inline in a browser. */
+  static boolean isSafeToDisplayInline(String mimeType) {
+    String type = baseType(mimeType);
+    if (type == null) {
+      return false;
     }
     if (SAFE_INLINE_TYPES.contains(type)) {
       return true;
