@@ -2,6 +2,10 @@
 // https://github.com/bgrins/spectrum
 // Author: Brian Grinstead
 // License: MIT
+//
+// Local change (SimIS, issue #1999): a palette swatch gets its color through the CSSOM once it is
+// in the page -- see applySwatchColors -- instead of a style attribute in the generated HTML, which
+// a style-src without 'unsafe-inline' refuses. The rendered result is the same.
 
 (function (factory) {
     "use strict";
@@ -139,12 +143,11 @@
                 var c = tiny.toHsl().l < 0.5 ? "sp-thumb-el sp-thumb-dark" : "sp-thumb-el sp-thumb-light";
                 c += (tinycolor.equals(color, current)) ? " sp-thumb-active" : "";
                 var formattedString = tiny.toString(opts.preferredFormat || "rgb");
-                var swatchStyle = rgbaSupport ? ("background-color:" + tiny.toRgbString()) : "filter:" + tiny.toFilter();
-                html.push('<span title="' + formattedString + '" data-color="' + tiny.toRgbString() + '" class="' + c + '"><span class="sp-thumb-inner" style="' + swatchStyle + ';"></span></span>');
+                html.push('<span title="' + formattedString + '" data-color="' + tiny.toRgbString() + '" class="' + c + '"><span class="sp-thumb-inner"></span></span>');
             } else {
                 var cls = 'sp-clear-display';
                 html.push($('<div />')
-                    .append($('<span data-color="" style="background-color:transparent;" class="' + cls + '"></span>')
+                    .append($('<span data-color="" class="' + cls + '"></span>')
                         .attr('title', opts.noColorSelectedText)
                     )
                     .html()
@@ -152,6 +155,13 @@
             }
         }
         return "<div class='sp-cf " + className + "'>" + html.join('') + "</div>";
+    }
+
+    // Colors each swatch from its data-color, through the CSSOM (see the note at the top of this file)
+    function applySwatchColors(container) {
+        container.find(".sp-thumb-inner").each(function () {
+            this.style.backgroundColor = this.parentNode.getAttribute("data-color");
+        });
     }
 
     function hideAll() {
@@ -553,6 +563,7 @@
             }
 
             paletteContainer.html(html.join(""));
+            applySwatchColors(paletteContainer);
         }
 
         function drawInitial() {
@@ -560,6 +571,7 @@
                 var initial = colorOnShow;
                 var current = get();
                 initialColorContainer.html(paletteTemplate([initial, current], current, "sp-palette-row-initial", opts));
+                applySwatchColors(initialColorContainer);
             }
         }
 

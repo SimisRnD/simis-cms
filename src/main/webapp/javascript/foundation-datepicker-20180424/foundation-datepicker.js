@@ -3,6 +3,9 @@
  * Copyright 2015 Peter Beno, najlepsiwebdesigner@gmail.com, @benopeter
  * project website http://foundation-datepicker.peterbeno.com
  * ========================================================= */
+/* Local change (SimIS, issue #1999): the close button's width:auto moved from a style attribute in
+ * the template to .datepicker-close in foundation-datepicker.css, because a style-src without
+ * 'unsafe-inline' refuses the attribute. The rendered result is the same. */
 ! function($) {
 
     function UTCDate() {
@@ -1425,7 +1428,7 @@
         DPGlobal.footTemplate +
         '</table>' +
         '</div>' +
-        '<a class="button datepicker-close tiny alert right" style="width:auto;">' + closeIcon + '</a>' +
+        '<a class="button datepicker-close tiny alert right">' + closeIcon + '</a>' +
         '</div>')};
 
     $.fn.fdatepicker.DPGlobal = DPGlobal;

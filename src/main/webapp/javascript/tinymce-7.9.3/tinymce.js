@@ -2,6 +2,13 @@
  * TinyMCE version 7.9.3 (2026-05-19)
  */
 
+/**
+ * Local change (SimIS, issue #1999): the caret marker used to scroll the selection into view
+ * (createMarker$1 in tinymce.js) gets display:inline-block through the CSSOM instead of a style
+ * attribute in its HTML, which a style-src without 'unsafe-inline' refuses. It is inserted on every
+ * Enter, so the refusal would recur throughout editing. The rendered result is the same.
+ */
+
 (function () {
     'use strict';
 
@@ -13739,7 +13746,8 @@
     };
     const createMarker$1 = (element, offset) => {
         const startPoint = descend(element, offset);
-        const span = SugarElement.fromHtml('<span data-mce-bogus="all" style="display: inline-block;">' + ZWSP$1 + '</span>');
+        const span = SugarElement.fromHtml('<span data-mce-bogus="all">' + ZWSP$1 + '</span>');
+        span.dom.style.display = 'inline-block';
         before$3(startPoint.element, span);
         return markerInfo(span, () => remove$8(span));
     };

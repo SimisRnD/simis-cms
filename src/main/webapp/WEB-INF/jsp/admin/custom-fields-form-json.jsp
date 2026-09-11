@@ -22,6 +22,8 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="json" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/ace-1.32.0/ace.js" type="text/javascript" charset="utf-8"></script>
+<%-- Gives the <style> elements Ace injects the page's nonce (issue #1999); must load before any editor is created. --%>
+<script nonce="${cspNonce}" src="${ctx}/javascript/ace-csp-nonce.js"></script>
 <script src="${ctx}/javascript/ace-1.32.0/mode-json.js" type="text/javascript" charset="utf-8"></script>
 <form method="post">
   <%-- Required by controller --%>
