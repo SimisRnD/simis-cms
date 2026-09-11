@@ -28,7 +28,6 @@ import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -304,17 +303,26 @@ public class HtmlCommand {
     // <p><iframe src="//www.youtube.com/embed/GBcWPk4ohwM#action=share" width="560" height="314"
     // allowfullscreen="allowfullscreen"></iframe></p>
 
+    // No element may carry an inline style attribute (issue #1999). The page's
+    // Content-Security-Policy needs style-src 'unsafe-inline' for as long as any rendered element
+    // does -- a nonce covers a <style> element, never a style="" attribute -- and content renders
+    // on the same page as the template around it, so one styled paragraph keeps the whole page on
+    // 'unsafe-inline'. Formatting is expressed with classes instead: the editor's alignment
+    // buttons write Foundation's text-left / text-center / text-right / text-justify.
+    //
+    // This is retroactive where the render path re-cleans (cleanStoredContent), so content that
+    // relied on inline styles was converted to classes before this shipped.
     Safelist safelist = Safelist.relaxed().preserveRelativeLinks(true);
     safelist.addAttributes("div", "class", "role", "aria-label", "data-orbit");
-    safelist.addAttributes("span", "class", "style");
+    safelist.addAttributes("span", "class");
     safelist.addAttributes("img", "class");
-    safelist.addAttributes("h1", "class", "style");
-    safelist.addAttributes("h2", "class", "style");
-    safelist.addAttributes("h3", "class", "style");
-    safelist.addAttributes("h4", "class", "style");
-    safelist.addAttributes("h5", "class", "style");
-    safelist.addAttributes("h6", "class", "style");
-    safelist.addAttributes("p", "class", "style");
+    safelist.addAttributes("h1", "class");
+    safelist.addAttributes("h2", "class");
+    safelist.addAttributes("h3", "class");
+    safelist.addAttributes("h4", "class");
+    safelist.addAttributes("h5", "class");
+    safelist.addAttributes("h6", "class");
+    safelist.addAttributes("p", "class");
     safelist.addAttributes("a", "id", "name", "class", "target");
     safelist.addAttributes("i", "class");
     safelist.addAttributes("ul", "class");
@@ -370,13 +378,11 @@ public class HtmlCommand {
     // script-execution vector.
     safelist.addTags("track");
     safelist.addAttributes("track", "kind", "src", "srclang", "label", "default");
-    // style="border-collapse: collapse; width: 100%;"
-    safelist.addTags("table");
-    safelist.addAttributes("table", "style");
-    safelist.addTags("th");
-    safelist.addAttributes("th", "style");
-    safelist.addTags("td");
-    safelist.addAttributes("td", "style");
+    // Tables no longer keep the style TinyMCE's table plugin writes ("border-collapse: collapse;
+    // width: 100%;"). Foundation's table rules already give a content table exactly that.
+    // A cell's alignment used to ride on its style too; class is allowed so a text-* class survives.
+    safelist.addAttributes("th", "class");
+    safelist.addAttributes("td", "class");
 
     Document dirty = Jsoup.parseBodyFragment(contentHtml, "http://localhost:8080");
     Cleaner cleaner = new Cleaner(safelist);
@@ -388,15 +394,8 @@ public class HtmlCommand {
     settings.charset("ASCII");
 
     try {
-      // Use the above settings to manipulate the clean document
-      removeUnallowedStyles(clean, "span");
-      removeUnallowedStyles(clean, "p");
-      removeUnallowedStyles(clean, "h1");
-      removeUnallowedStyles(clean, "h2");
-      removeUnallowedStyles(clean, "h3");
-      removeUnallowedStyles(clean, "h4");
-      removeUnallowedStyles(clean, "h5");
-      removeUnallowedStyles(clean, "h6");
+      // Use the above settings to manipulate the clean document. A span that only existed to carry
+      // a style now has no attributes, so this unwraps it and keeps its text.
       removeEmptyEnclosingElements(clean, "span");
       removeEmptyEnclosingElements(clean, "div");
       handleVideoTags(clean);
@@ -428,48 +427,6 @@ public class HtmlCommand {
     }
 
     return cleanedContent;
-  }
-
-  private static void removeUnallowedStyles(Document document, String tagName) {
-    ArrayList<String> unAllowedItems = new ArrayList<>();
-    unAllowedItems.add("margin");
-    unAllowedItems.add("padding");
-    unAllowedItems.add("line-height");
-    unAllowedItems.add("color");
-    unAllowedItems.add("font-family");
-    unAllowedItems.add("font-size");
-
-    Elements e = document.getElementsByTag(tagName);
-    if (e == null) {
-      return;
-    }
-    for (Element element : e) {
-      if (!element.hasAttr("style")) {
-        continue;
-      }
-      String[] styles = element.attr("style").split(";");
-      ArrayList<String> filteredItems = new ArrayList<>();
-      for (String item : styles) {
-        // Read the property name with indexOf rather than split(":")[0]. Java's split drops
-        // trailing empty strings, so while "color: red".split(":") is ["color", " red"],
-        // ":".split(":") is a ZERO-length array and indexing [0] throws
-        // ArrayIndexOutOfBoundsException. A style value of ":" is preserved by the Cleaner (jsoup
-        // does not parse CSS), reaches here, and used to abort the whole manipulation phase --
-        // one character of authored content was enough to skip every remaining mutator. A
-        // declaration with no property name matches nothing on the list above and is kept, which
-        // is how any other unrecognized declaration is already treated.
-        int colon = item.indexOf(':');
-        String key = (colon < 0 ? item : item.substring(0, colon)).trim().toLowerCase();
-        if (!unAllowedItems.contains(key)) {
-          filteredItems.add(item);
-        }
-      }
-      if (filteredItems.size() == 0) {
-        element.removeAttr("style");
-      } else {
-        element.attr("style", StringUtils.join(filteredItems, ";"));
-      }
-    }
   }
 
   private static void handleVideoTags(Document document) {
@@ -559,32 +516,6 @@ public class HtmlCommand {
       div.appendChild(element);
     }
   }
-
-  /*
-  private static void allowCertainAllSpanStyles(Document document) {
-    // Need to determine what is allowed...
-    ArrayList<String> allowedItems = new ArrayList<String>();
-    allowedItems.add("color");
-    allowedItems.add("font-size");
-  
-    Elements e = document.getElementsByTag("span");
-    for (Element element : e) {
-      String[] styles = element.attr("style").split(";");
-      ArrayList<String> filteredItems = new ArrayList<>();
-      for (String item : styles) {
-        String key = (item.split(":"))[0].trim().toLowerCase();
-        if (allowedItems.contains(key)) {
-          filteredItems.add(item);
-        }
-      }
-      if (filteredItems.size() == 0) {
-        element.removeAttr("style");
-      } else {
-        element.attr("style", StringUtils.join(filteredItems, ";"));
-      }
-    }
-  }
-  */
 
   private static void removeEmptyEnclosingElements(Document document, String tagName) {
     Elements e = document.getElementsByTag(tagName);

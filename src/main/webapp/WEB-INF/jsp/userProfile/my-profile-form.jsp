@@ -35,7 +35,8 @@
     convert_urls: true,
     browser_spellcheck: true,
     plugins: 'advlist autolink lists charmap preview anchor searchreplace visualblocks code wordcount',
-    toolbar: 'undo redo | blocks | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code'
+    // No backcolor: it can only write an inline style, and content may not keep one (issue #1999).
+    toolbar: 'undo redo | blocks | bold italic | bullist numlist outdent indent | removeformat | visualblocks code'
   });
 </script>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>

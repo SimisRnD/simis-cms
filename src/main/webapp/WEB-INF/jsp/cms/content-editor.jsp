@@ -49,11 +49,21 @@
     menubar: false,
     relative_urls : false,
     convert_urls : true,
-    content_css: ['${ctx}/css/${font:fontawesome()}/css/all.min.css'],
+    content_css: ['${ctx}/css/${font:fontawesome()}/css/all.min.css', '${ctx}/css/platform-editor-content.css'],
     noneditable_class: 'tinymce-noedit',
     browser_spellcheck: true,
     plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code media table wordcount fontawesome',
-    toolbar: 'link image media table | undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent hr anchor | fontawesome removeformat visualblocks code',
+    // No backcolor: it can only write an inline style, and content may not keep one (issue #1999).
+    toolbar: 'link image media table | undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent hr anchor | fontawesome removeformat visualblocks code',
+    // Alignment writes Foundation's text-* classes, not style="text-align: ...". The server removes
+    // inline styles from content (issue #1999), so the default would look right in the editor and
+    // be lost on save. platform-editor-content.css shows these classes inside the editing frame.
+    formats: {
+      alignleft: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-left' },
+      aligncenter: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-center' },
+      alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-right' },
+      alignjustify: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,li', classes: 'text-justify' }
+    },
     external_plugins: {
         "fontawesome": "${ctx}/javascript/tinymce-plugins/fontawesome/plugin.min.js"
     },
