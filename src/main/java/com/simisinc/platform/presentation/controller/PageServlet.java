@@ -203,13 +203,18 @@ public class PageServlet extends HttpServlet {
     // be fetched from any origin. Measured against every published page before choosing these --
     // all 12 served stylesheets (including the site-specific one) reference zero external origins,
     // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
-    // 'unsafe-inline' stays for now (issue #1999). The templates render no style="" attributes and
-    // every <style> element carries this nonce, both held by tools/check-inline-styles.py -- but
-    // content saved before #2001 and script-built markup can still produce inline style, and only
-    // a browser finds those, which is what the report-only trial is for. Do not add the nonce to
-    // style-src on its own: in CSP3 a nonce in the directive makes browsers ignore 'unsafe-inline',
-    // so the nonce and the removal have to land together. Even so, style-src is strictly stronger
-    // than absent, because a foreign stylesheet is refused.
+    //
+    // style-src admits no inline style (issue #1999): a <style> element applies only with this
+    // request's nonce -- the one script-src uses, since the templates stamp the same cspNonce on
+    // both -- and a style="" attribute never applies, because a nonce cannot authorize one. That
+    // rests on every source of inline style being closed: the templates render no attribute and
+    // nonce every <style> (tools/check-inline-styles.py), content cannot keep a style attribute
+    // (HtmlCommand drops it on save, #2001), and the vendored libraries write styles through the
+    // CSSOM or with the nonce (#2012). Script is unaffected where it uses the CSSOM -- el.style and
+    // insertRule are not governed by CSP -- and refused where it parses markup: innerHTML, a jQuery
+    // HTML string, setAttribute('style'). A browser sweep of the admin pages and a report-only trial
+    // of this exact directive on live traffic found nothing left before it was enforced. Keep the
+    // report-only policy configured: it is what shows a new inline style in /admin/csp-violations.
     //
     // img-src and default-src are deliberately NOT set yet (issue #1430). img-src is the directive
     // that would close the CSS-based exfiltration channel, but published content still references
@@ -263,7 +268,7 @@ public class PageServlet extends HttpServlet {
 
       response.setHeader("Content-Security-Policy",
           "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-              + "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+              + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self'; "
               + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
               + "https://api.weather.gov"
               + mapTileImageSource + "; "

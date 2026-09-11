@@ -83,9 +83,9 @@ class HtmlCleanerTest {
     assertEquals(expected, newValue);
   }
 
-  // Issue #1999: the page's CSP needs style-src 'unsafe-inline' for as long as any rendered element
-  // carries a style attribute, and content renders on the same page as the template. So no element
-  // keeps one -- including the tags that used to (span, p, h1-h6, table, th, td).
+  // Issue #1999: the page's CSP admits no inline style, so a rendered style attribute would be
+  // refused, and content renders on the same page as the template. So no element keeps one --
+  // including the tags that used to (span, p, h1-h6, table, th, td).
   @Test
   void inlineStylesAreRemovedFromEveryElementThatUsedToKeepThem() {
     String html = "<h1 style=\"font-weight: 800\">One</h1><h2 style=\"text-align: center\">Two</h2>"

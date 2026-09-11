@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """Fail when a JSP renders inline style the page's CSP would refuse (issue #1999).
 
-The enforced Content-Security-Policy carries ``style-src 'self' 'unsafe-inline'``, which
-SecurityScorecard reports as "Content Security Policy Contains 'unsafe-*' Directive". It
-cannot be removed while the page renders inline style attributes, and it cannot be worked
-around: a CSP nonce applies to a ``<style>`` element, never to a ``style=`` attribute, and
-the only other way to permit attributes is ``'unsafe-hashes'`` -- itself an unsafe-* keyword.
-So clearing the finding means the page emits none.
+The enforced Content-Security-Policy's style-src is ``'self'`` plus the request's nonce, with no
+``'unsafe-inline'`` -- the keyword SecurityScorecard reports as "Content Security Policy Contains
+'unsafe-*' Directive". A CSP nonce applies to a ``<style>`` element, never to a ``style=``
+attribute, and the only other way to permit attributes is ``'unsafe-hashes'`` -- itself an
+unsafe-* keyword. So a template's inline style attribute is refused by the browser, and keeping
+the finding closed means templates emit none.
 
-The same directive governs ``<style>`` elements, which a nonce *can* authorize: once
-``'unsafe-inline'`` goes, a ``<style>`` without ``nonce="${cspNonce}"`` stops applying. Nothing shows
-that today -- ``'unsafe-inline'`` still admits it -- so a missing nonce fails here as well.
+The same directive governs ``<style>`` elements, which a nonce *can* authorize: a ``<style>``
+without ``nonce="${cspNonce}"`` does not apply, so a missing nonce fails here as well.
 
 351 existed across 122 templates when this was added, recorded per file as a backlog that could
 only shrink. It reached zero on 2026-09-11, so the backlog is gone and the check is absolute: any
@@ -27,16 +26,17 @@ the page's one nonced ``<style>`` element (``PageStyleRules``).
 
 What this does not cover
 ------------------------
-Templates are one of three sources, and CSP is page-wide, so this reaching zero is necessary
-but not sufficient to drop ``'unsafe-inline'``:
+Templates are one of three sources of inline style, and CSP is page-wide, so this staying at zero
+is necessary but not sufficient -- the other two are refused in the browser just the same:
 
   * stored content -- the HTML sanitizer (``HtmlCommand``) has dropped ``style`` since #2001, but
     content records and blog posts are cleaned when they are saved, so any saved before that
     still carry it until they are re-saved (page-XML HTML is re-cleaned on every render);
   * script -- markup built as a string (``innerHTML``, ``$('<div style=...>')``) or
     ``setAttribute('style', ...)`` is refused the same way. ``<script>`` bodies are blanked
-    before scanning, so none of it is counted here; a report-only trial of the stricter
-    policy is what finds it. (``el.style.x = ...`` is CSSOM, not an attribute, and is allowed.)
+    before scanning, so none of it is counted here; a browser sweep and the report-only policy
+    in Security Settings are what find it. (``el.style.x = ...`` is CSSOM, not an attribute, and
+    is allowed.)
     A ``<style>`` element a script creates needs its nonce set in script (``el.nonce``) -- also
     beyond this scan.
 
@@ -143,8 +143,8 @@ def main(argv=None):
             print("  jsp/%s: line%s %s" % (rel, "" if len(hits) == 1 else "s",
                                        ", ".join(str(n) for n in hits)))
         print()
-        print('Give it the page\'s nonce: <style nonce="${cspNonce}">. Without it the element applies')
-        print("only while style-src keeps 'unsafe-inline'. See issue #1999.")
+        print('Give it the page\'s nonce: <style nonce="${cspNonce}">. Without it the element does not')
+        print("apply: style-src admits a <style> only with the page's nonce. See issue #1999.")
     if found or unnonced:
         return 1 if args.strict else 0
 

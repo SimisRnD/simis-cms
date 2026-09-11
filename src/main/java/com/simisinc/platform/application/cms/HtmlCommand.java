@@ -304,10 +304,10 @@ public class HtmlCommand {
     // allowfullscreen="allowfullscreen"></iframe></p>
 
     // No element may carry an inline style attribute (issue #1999). The page's
-    // Content-Security-Policy needs style-src 'unsafe-inline' for as long as any rendered element
-    // does -- a nonce covers a <style> element, never a style="" attribute -- and content renders
-    // on the same page as the template around it, so one styled paragraph keeps the whole page on
-    // 'unsafe-inline'. Formatting is expressed with classes instead: the editor's alignment
+    // Content-Security-Policy admits no inline style -- a nonce covers a <style> element, never a
+    // style="" attribute -- so a styled paragraph would render without its style, and allowing it
+    // would put the whole page back on 'unsafe-inline', since content renders on the same page as
+    // the template around it. Formatting is expressed with classes instead: the editor's alignment
     // buttons write Foundation's text-left / text-center / text-right / text-justify.
     //
     // This is retroactive where the render path re-cleans (cleanStoredContent), so content that

@@ -91,6 +91,17 @@ class PageServletSecurityHeadersTest {
     return session;
   }
 
+  /** One directive of a policy, trimmed -- "style-src 'self' 'nonce-...'" -- or "" when absent. */
+  private static String directive(String policy, String name) {
+    for (String part : policy.split(";")) {
+      String trimmed = part.trim();
+      if (trimmed.startsWith(name + " ")) {
+        return trimmed;
+      }
+    }
+    return "";
+  }
+
   @Test
   void serviceSendsTheNonceBasedContentSecurityPolicyExactlyOnceAndDoesNotClobberIt() throws Exception {
     HttpServletRequest request = mockRequest(mockSession());
@@ -130,8 +141,17 @@ class PageServletSecurityHeadersTest {
     // Issue #1430: with no default-src, an absent directive falls back to nothing -- styles and
     // fonts were governed by neither. Both origins were measured as entirely first-party before
     // being locked to 'self'.
-    assertTrue(actualCsp.contains("style-src 'self' 'unsafe-inline'"),
+    assertTrue(actualCsp.contains("style-src 'self' 'nonce-"),
         "style-src must be present so a stylesheet cannot be loaded from a foreign origin: " + actualCsp);
+    // Issue #1999: no inline style. style-src is exactly 'self' plus this request's nonce, and the
+    // nonce is the one script-src carries -- the templates stamp the same cspNonce on <script> and
+    // <style>, so two different values would leave every <style> element unapplied. And no unsafe-*
+    // keyword anywhere, which is the finding SecurityScorecard reports.
+    String scriptNonce = directive(actualCsp, "script-src").replaceAll("^script-src 'self' 'nonce-([^']+)'$", "$1");
+    assertEquals("style-src 'self' 'nonce-" + scriptNonce + "'", directive(actualCsp, "style-src"),
+        "style-src must admit exactly 'self' and the request's nonce: " + actualCsp);
+    assertTrue(!actualCsp.contains("'unsafe-"),
+        "the page policy must carry no unsafe-* keyword: " + actualCsp);
     assertTrue(actualCsp.contains("font-src 'self'"),
         "font-src must be present so a webfont cannot be loaded from a foreign origin: " + actualCsp);
     // The directive that closes the CSS-based exfiltration channel: without it, a background-image

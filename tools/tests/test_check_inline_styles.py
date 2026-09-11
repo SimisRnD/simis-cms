@@ -1,8 +1,8 @@
 """check-inline-styles.py: a JSP may not have an inline style attribute.
 
-The page's CSP has to carry style-src 'unsafe-inline' for as long as any template
-renders a style= attribute -- a nonce covers <style> elements, never attributes --
-and SecurityScorecard reports that keyword as a finding. The per-file backlog these
+The page's CSP admits no inline style -- a nonce covers <style> elements, never
+attributes -- so a template's style= attribute would be refused, and 'unsafe-inline',
+the keyword SecurityScorecard reports as a finding, is gone. The per-file backlog these
 tests once covered reached zero (issue #1999), so the check is now absolute.
 """
 
@@ -143,8 +143,8 @@ def test_missing_jsp_tree_exits_two(repo):
     assert "MISSING" in result.stderr
 
 
-# <style> elements: a nonce can authorize one, so once style-src drops 'unsafe-inline' every one
-# has to carry the page's nonce. Today 'unsafe-inline' still admits a bare one, so only this notices.
+# <style> elements: a nonce can authorize one, and style-src has no 'unsafe-inline', so every one
+# has to carry the page's nonce or it does not apply.
 
 def test_style_element_without_the_nonce_fails(repo):
     fill(repo)

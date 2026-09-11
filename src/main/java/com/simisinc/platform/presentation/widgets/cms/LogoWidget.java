@@ -84,8 +84,8 @@ public class LogoWidget extends GenericWidget {
    * <p>These two preferences used to be concatenated into the value unchecked, which was survivable
    * while the result went into a style ATTRIBUTE -- the worst a stray character could do there was
    * produce a malformed declaration the browser drops. logo.jsp now renders them into a
-   * &lt;style&gt; ELEMENT instead, so the page can eventually drop 'unsafe-inline' from style-src
-   * (a nonce covers style elements and cannot cover attributes). A stylesheet is a much wider blast
+   * &lt;style&gt; ELEMENT instead, because style-src has no 'unsafe-inline' and a nonce covers style
+   * elements but cannot cover attributes. A stylesheet is a much wider blast
    * radius: a value carrying "}" closes the rule and everything after it becomes page-wide CSS.
    *
    * <p>Rejected rather than escaped, deliberately. There is no legitimate logo size that is not a
