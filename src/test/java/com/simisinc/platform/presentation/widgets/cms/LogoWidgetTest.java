@@ -132,8 +132,8 @@ class LogoWidgetTest extends WidgetBase {
   /**
    * maxWidth/maxHeight used to be concatenated into the value unchecked. That was survivable while
    * the result went into a style ATTRIBUTE -- a stray character produced a malformed declaration the
-   * browser drops. logo.jsp now renders them into a &lt;style&gt; ELEMENT so the page can drop
-   * 'unsafe-inline' from style-src, and a stylesheet is a far wider blast radius: a value carrying
+   * browser drops. logo.jsp now renders them into a &lt;style&gt; ELEMENT, because style-src has no
+   * 'unsafe-inline', and a stylesheet is a far wider blast radius: a value carrying
    * "}" closes the rule and the rest becomes page-wide CSS.
    */
   @Test

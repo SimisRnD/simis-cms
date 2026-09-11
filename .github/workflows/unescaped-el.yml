@@ -122,12 +122,11 @@ jobs:
       # shrinks as things are fixed rather than accumulating (issue #1991).
       - name: Fail on a platform-* class with no rule
         run: python3 tools/check-platform-class-rules.py . --strict
-      # The style half of the inline-handler gate above. style-src has to keep 'unsafe-inline'
-      # while any template renders a style= attribute -- a nonce covers <style> elements, never
-      # attributes, and 'unsafe-hashes' is itself an unsafe-* keyword -- and SecurityScorecard
-      # reports that keyword as a finding. The ones that remain are recorded in BACKLOG as a
-      # per-file count that may only shrink, so the migration cannot be outpaced by new ones and
-      # a PR that removes one is never blocked (issue #1999).
+      # The style half of the inline-handler gate above. style-src admits no inline style -- a
+      # nonce covers <style> elements, never attributes, and 'unsafe-hashes' is itself an unsafe-*
+      # keyword -- so a template's style= attribute is refused by the browser, and a <style>
+      # without the page's nonce does not apply. Both fail here, before anyone ships a page that
+      # silently renders unstyled (issue #1999).
       - name: Fail on a new inline style attribute
         run: python3 tools/check-inline-styles.py . --strict
       # Who sees an admin menu row (main.jsp) and who may open the page it links to

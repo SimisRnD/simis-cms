@@ -33,8 +33,8 @@ import org.apache.commons.logging.LogFactory;
  * Turns a style="" value into a stylesheet rule, so it can be served from a nonced &lt;style&gt;
  * element instead of an inline attribute (issue #1999).
  *
- * <p>The page's Content-Security-Policy needs style-src 'unsafe-inline' for as long as any element
- * carries a style attribute: a nonce covers a &lt;style&gt; element, never a style="" attribute. Some
+ * <p>The page's Content-Security-Policy refuses style attributes: its style-src has no 'unsafe-inline',
+ * and a nonce covers a &lt;style&gt; element, never a style="" attribute. Some
  * values are genuinely dynamic -- a page layout's section, column or widget style, a category's header
  * colors -- so they cannot become fixed classes. Instead each element carries a
  * {@code data-sc-style="sc-..."} hook and its declarations are served as
