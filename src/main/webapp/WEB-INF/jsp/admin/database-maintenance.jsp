@@ -55,7 +55,7 @@
 </c:if>
 
 <h5>Tables</h5>
-<div style="overflow-x: auto">
+<div class="u-ox-auto">
 <table class="unstriped">
   <thead>
     <tr>
@@ -103,7 +103,7 @@
 
 <h5>Indexes</h5>
 <p class="small">Sorted by scan count, least-used first -- a 0-scan index on a table with real traffic may be a candidate to drop.</p>
-<div style="overflow-x: auto">
+<div class="u-ox-auto">
 <table class="unstriped">
   <thead>
     <tr>
@@ -135,7 +135,7 @@
     <p class="small">No active (non-idle) queries right now.</p>
   </c:when>
   <c:otherwise>
-    <div style="overflow-x: auto">
+    <div class="u-ox-auto">
     <table class="unstriped">
       <thead>
         <tr>

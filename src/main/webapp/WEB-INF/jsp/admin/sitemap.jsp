@@ -103,7 +103,7 @@
     <c:forEach items="${menuTabList}" var="menuTab" varStatus="status">
       <div id="site-map-menu-tab-container-${status.first ? 0 : menuTab.id}" class="site-map-menu-tab">
         <div>
-          <div style="position: absolute;right: 5px;top: 0;">
+          <div class="u-pos-abs u-right-5 u-top-0">
             <small>
               <c:if test="${!status.first}"><a href="#" class="site-map-delete-tab" data-menu-tab-id="${menuTab.id}" data-menu-tab-name="<c:out value="${menuTab.name}" />" data-menu-item-count="${fn:length(menuTab.menuItemList)}" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></c:if>
             </small>
@@ -131,7 +131,7 @@
           <div id="site-map-submenu-tab-container-${menuTab.id}" class="site-map-submenu-container">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
               <div id="site-map-menu-item-${menuItem.id}" class="site-map-submenu-tab">
-                <div style="position: absolute;right: 5px;top: 0;">
+                <div class="u-pos-abs u-right-5 u-top-0">
                   <small>
                     <a href="#" class="site-map-delete-item" data-menu-item-id="${menuItem.id}" data-menu-item-name="<c:out value="${menuItem.name}" />" title="Delete this item"><i class="fa fa-circle-xmark"></i></a>
                   </small>

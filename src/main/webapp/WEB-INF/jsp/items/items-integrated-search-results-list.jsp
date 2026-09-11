@@ -53,7 +53,7 @@
              unchecked one adds it alongside whatever else is already checked. Plain <a> links, not
              <input type="checkbox"> in a <form>, since a normal navigation (no JS, no AJAX library
              vendored in this codebase) already produces the right multi-value URL on its own. --%>
-        <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+        <ul class="no-bullet u-ti-n11 u-ml-21">
           <c:forEach items="${categoryFacets}" var="facet">
             <li>
               <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
@@ -72,7 +72,7 @@
         <h6><c:out value="${tagFacetLabel}"/></h6>
         <%-- Checkbox-style multi-select (issue #632), same toggle-link pattern as the category
              facet above -- each option's link toggles it in/out of the current tagId selection. --%>
-        <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+        <ul class="no-bullet u-ti-n11 u-ml-21">
           <c:forEach items="${tagFacets}" var="facet">
             <li>
               <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
@@ -89,7 +89,7 @@
       </c:if>
       <c:if test="${!empty dateFacets}">
         <h6><c:out value="${dateFacetLabel}"/></h6>
-        <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+        <ul class="no-bullet u-ti-n11 u-ml-21">
           <c:forEach items="${dateFacets}" var="facet">
             <li>
               <a href="${facet.url}">

@@ -41,7 +41,7 @@
         <p>Response status: <strong><c:out value="${testSendResult.statusCode}" /></strong></p>
         <c:if test="${!empty testSendResult.responseSnippet}">
           <p>Response body:</p>
-          <pre style="white-space: pre-wrap; word-break: break-all;"><c:out value="${testSendResult.responseSnippet}" /></pre>
+          <pre class="u-ws-prewrap u-wb-breakall"><c:out value="${testSendResult.responseSnippet}" /></pre>
         </c:if>
       </c:when>
       <c:otherwise>

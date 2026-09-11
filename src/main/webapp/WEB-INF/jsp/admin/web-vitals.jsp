@@ -102,10 +102,10 @@
       <h3>Thresholds (Google Core Web Vitals)</h3>
       <table class="table table-sm">
         <tr>
-          <th style="width: 25%;">Metric</th>
-          <th style="width: 25%;"><span class="badge badge-good">Good</span></th>
-          <th style="width: 25%;"><span class="badge badge-needsWork">Needs Work</span></th>
-          <th style="width: 25%;"><span class="badge badge-poor">Poor</span></th>
+          <th class="u-w-25p">Metric</th>
+          <th class="u-w-25p"><span class="badge badge-good">Good</span></th>
+          <th class="u-w-25p"><span class="badge badge-needsWork">Needs Work</span></th>
+          <th class="u-w-25p"><span class="badge badge-poor">Poor</span></th>
         </tr>
         <tr>
           <td><strong>LCP</strong></td>

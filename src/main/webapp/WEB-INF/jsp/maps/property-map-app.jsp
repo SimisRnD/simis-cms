@@ -140,7 +140,7 @@
     </form>
   </div>
   <div class="cell small-12 medium-4 large-3 u-py-30 u-px-0">
-    <div id="tableContainer" style="height:56vh; overflow:scroll">
+    <div id="tableContainer" class="u-h-56vh u-o-scroll">
       <table>
         <thead>
           <tr>

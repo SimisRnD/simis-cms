@@ -27,12 +27,12 @@
 <table class="leaderboard">
   <thead>
     <tr>
-      <th style="text-align: left;">Rank</th>
-      <th style="text-align: left;" width="100%">Player</th>
-      <th style="text-align: right;">
+      <th class="u-ta-left">Rank</th>
+      <th class="u-ta-left" width="100%">Player</th>
+      <th class="u-ta-right">
       <c:if test="${!empty optionsList}">
         <form id="leaderboardForm${widgetContext.uniqueId}" method="get">
-          <select name="filter" id="filter${widgetContext.uniqueId}" style="width: 160px;">
+          <select name="filter" id="filter${widgetContext.uniqueId}" class="u-w-160">
             <c:forEach items="${optionsList}" var="option" varStatus="status">
               <option value="<c:out value="${option.value}"/>"<c:if test="${selectedFilter eq option.value}"> selected</c:if>><c:out value="${option.key}" /></option>
             </c:forEach>

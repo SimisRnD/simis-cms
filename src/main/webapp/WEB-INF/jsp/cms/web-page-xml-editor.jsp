@@ -86,7 +86,7 @@
       </div>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
-      <div id="information" class="callout secondary" style="overflow:scroll">
+      <div id="information" class="callout secondary u-o-scroll">
         <h3 class="h4">Keyboard</h3>
         <dl>
           <dt>Delete Line</dt>

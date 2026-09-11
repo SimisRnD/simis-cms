@@ -17,7 +17,7 @@
 <nav aria-label="Primary navigation">
 <div data-sticky-container>
   <%-- Small Title Bar--%>
-  <div id="platform-small-menu" class="hide-for-medium" style="position: fixed; z-index: 1001;top: 0;width:100%;">
+  <div id="platform-small-menu" class="hide-for-medium u-pos-fixed u-z-1001 u-top-0 u-w-100p">
     <div class="title-bar" data-responsive-toggle="platform-small-toggle-menu">
       <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu" aria-label="Open menu" aria-controls="platform-small-toggle-menu" aria-expanded="false"></button>
       <div class="logo">
@@ -196,7 +196,7 @@
                   </c:if>
                 </div>
                 <div class="medium-8 hide-for-print">
-                  <div style="float:right">
+                  <div class="u-float-right">
                   <c:if test="${!empty sitePropertyMap['site.header.line1']}">
                     <p class="menu-header-text"><c:out value="${sitePropertyMap['site.header.line1']}" /></p>
                   </c:if>
@@ -321,7 +321,7 @@
       <c:set var="stickyMarginTop" scope="request" value="5"/>
       <div id="platform-menu" class="show-for-medium<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>" data-sticky data-options="marginTop:0;">
         <div class="top-bar-center">
-          <div style="position:absolute;top:0;right:10px" class="hide-for-print">
+          <div class="hide-for-print u-pos-abs u-top-0 u-right-10">
             <ul class="dropdown menu" data-dropdown-menu>
               <c:if test="${'true' eq sitePropertyMap['site.cart']}">
                 <c:choose>
@@ -390,7 +390,7 @@
             </c:otherwise>
           </c:choose>
         </div>
-        <div class="row column" style="width: 100%; margin:0 auto;">
+        <div class="row column u-w-100p u-my-0 u-mx-auto">
       </c:if>
       <ul class="dropdown menu align-center hide-for-print" data-dropdown-menu>
         <%--<li class="menu-text"><c:out value="${sitePropertyMap['site.name']}"/></li>--%>
@@ -457,7 +457,7 @@
     <c:otherwise>
       <div id="platform-menu" class="show-for-medium<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>" data-sticky data-options="marginTop:0;" style="position:fixed;top:0;width:100%">
       <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
-      <div class="row column" style="width: 100%; max-width: 75rem; margin:0 auto;">
+      <div class="row column u-w-100p u-maxw-75rem u-my-0 u-mx-auto">
       </c:if>
       <div class="top-bar">
         <c:if test="${themePropertyMap['theme.logo.color'] ne 'none'}">

@@ -58,7 +58,7 @@
       </div>
     </div>
     <div class="small-12 hide-for-small-only medium-4 cell">
-      <div id="information" style="overflow:scroll;padding-right:20px">
+      <div id="information" class="u-o-scroll u-pr-20">
         <h3 class="h4">Typography</h3>
         <h1>H1 Header</h1>
         <h2>H2 Header</h2>
@@ -99,22 +99,22 @@
           <span class="warning badge">B</span>
         </div>
         <div class="primary progress" role="progressbar" tabindex="0" aria-valuenow="25" aria-valuemin="0" aria-valuetext="25 percent" aria-valuemax="100">
-          <div class="progress-meter" style="width: 25%">
+          <div class="progress-meter u-w-25p">
             <p class="progress-meter-text">25%</p>
           </div>
         </div>
         <div class="warning progress">
-          <div class="progress-meter" style="width: 50%">
+          <div class="progress-meter u-w-50p">
             <p class="progress-meter-text">50%</p>
           </div>
         </div>
         <div class="alert progress">
-          <div class="progress-meter" style="width: 75%">
+          <div class="progress-meter u-w-75p">
             <p class="progress-meter-text">75%</p>
           </div>
         </div>
         <div class="success progress" role="progressbar" tabindex="0" aria-valuenow="100" aria-valuemin="0" aria-valuetext="100 percent" aria-valuemax="100">
-          <div class="progress-meter" style="width: 100%">
+          <div class="progress-meter u-w-100p">
             <p class="progress-meter-text">100%</p>
           </div>
         </div>

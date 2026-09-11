@@ -28,18 +28,18 @@
   warning; zero bot sessions is not).
 --%>
 <c:set var="severityClass" value="${severity eq 'critical' ? 'alert' : (severity eq 'warning' ? 'warning' : '')}"/>
-<div class="callout radius ${fn:escapeXml(severityClass)}" style="height: 100%; margin: 0;">
+<div class="callout radius ${fn:escapeXml(severityClass)} u-h-100p u-m-0">
   <c:choose>
     <c:when test="${!empty link}">
       <a href="<c:out value="${link}" />" style="color: inherit; text-decoration: none; display: block;">
-        <p class="statistic-card-value no-gap" style="font-size: 32px; font-weight: bold; line-height: 1;">
+        <p class="statistic-card-value no-gap u-fs-32 u-fw-bold u-lh-1">
           <fmt:formatNumber value="${numberValue}" />
         </p>
         <p class="no-gap"><c:out value="${title}"/></p>
       </a>
     </c:when>
     <c:otherwise>
-      <p class="statistic-card-value no-gap" style="font-size: 32px; font-weight: bold; line-height: 1;">
+      <p class="statistic-card-value no-gap u-fs-32 u-fw-bold u-lh-1">
         <fmt:formatNumber value="${numberValue}" />
       </p>
       <p class="no-gap"><c:out value="${title}"/></p>

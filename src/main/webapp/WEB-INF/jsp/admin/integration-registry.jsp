@@ -30,7 +30,7 @@
 <div class="grid-x grid-margin-x">
   <c:forEach items="${integrationCardList}" var="card">
     <div class="small-12 medium-6 large-4 cell">
-      <div class="callout radius" style="height: 100%;">
+      <div class="callout radius u-h-100p">
         <h5><i class="fa ${fn:escapeXml(card.definition.iconClass)}"></i> <c:out value="${card.definition.name}" />
           <c:choose>
             <c:when test="${card.installed}"><span class="label success">Installed</span></c:when>

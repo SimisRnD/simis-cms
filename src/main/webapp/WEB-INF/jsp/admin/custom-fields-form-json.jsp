@@ -42,7 +42,7 @@
       </p>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
-      <div id="information" class="callout secondary" style="overflow:scroll">
+      <div id="information" class="callout secondary u-o-scroll">
         <h3 class="h4">JSON Array</h3>
         <h3 class="h4">Custom Fields</h3>
         <dl>

@@ -136,7 +136,7 @@
               <c:if test="${!empty serviceError.stackTrace}">
                 <details>
                   <summary>View</summary>
-                  <pre style="white-space:pre-wrap;font-size:0.75rem;max-height:20rem;overflow-y:auto;"><c:out value="${serviceError.stackTrace}"/></pre>
+                  <pre class="u-ws-prewrap u-fs-0_75rem u-maxh-20rem u-oy-auto"><c:out value="${serviceError.stackTrace}"/></pre>
                 </details>
               </c:if>
             </td>
@@ -153,5 +153,5 @@
 <h5>The <code>/healthz</code> endpoint</h5>
 <div class="callout radius">
   <p><code>GET /healthz</code> is a separate, unauthenticated endpoint (not this page) meant for load balancers and container platforms &mdash; it answers before hostname, blocked-IP, or SSL checks run, so it can't be locked out by those. It returns <code>200 {"status":"UP"}</code> when the app finished startup, the database is reachable, and the file store is writable, or <code>503 {"status":"DOWN"}</code> otherwise &mdash; no version or topology detail, by design.</p>
-  <p class="callout alert radius" style="font-size:0.875rem"><strong>Readiness, not liveness.</strong> Wire this to Azure App Service's <em>Health check</em> path (Monitoring blade) so an unhealthy instance is taken out of load-balancer rotation. Do <strong>not</strong> use it to trigger a restart/recycle policy: the database is a dependency shared by every instance, so a single DB blip would fail <code>/healthz</code> on all of them at once &mdash; a restart-on-failure policy would crash-loop the entire fleet simultaneously instead of just routing traffic around it while it recovers. The same applies if this app is deployed on Azure Container Apps or AKS instead: map <code>/healthz</code> to a <em>readiness</em> probe, never a <em>liveness</em> probe.</p>
+  <p class="callout alert radius u-fs-0_875rem"><strong>Readiness, not liveness.</strong> Wire this to Azure App Service's <em>Health check</em> path (Monitoring blade) so an unhealthy instance is taken out of load-balancer rotation. Do <strong>not</strong> use it to trigger a restart/recycle policy: the database is a dependency shared by every instance, so a single DB blip would fail <code>/healthz</code> on all of them at once &mdash; a restart-on-failure policy would crash-loop the entire fleet simultaneously instead of just routing traffic around it while it recovers. The same applies if this app is deployed on Azure Container Apps or AKS instead: map <code>/healthz</code> to a <em>readiness</em> probe, never a <em>liveness</em> probe.</p>
 </div>

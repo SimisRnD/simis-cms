@@ -19,8 +19,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="title" class="java.lang.String" scope="request"/>
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
-<div class="callout radius" style="height: 100%; margin: 0;">
-  <p class="no-gap" style="font-weight: bold;"><c:out value="${title}"/></p>
+<div class="callout radius u-h-100p u-m-0">
+  <p class="no-gap u-fw-bold"><c:out value="${title}"/></p>
   <c:choose>
     <c:when test="${empty recentActionsList}">
       <p class="no-gap text-muted">No recent activity</p>

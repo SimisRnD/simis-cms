@@ -44,7 +44,7 @@
     <input class="input-group-field" type="search" name="query" aria-label="Search images by filename"
            placeholder="<c:if test="${empty query}">Search filenames...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
     <label for="imageSortBy" class="show-for-sr">Sort by</label>
-    <select id="imageSortBy" name="sortBy" class="input-group-field" style="max-width:220px;">
+    <select id="imageSortBy" name="sortBy" class="input-group-field u-maxw-220">
       <option value="date" <c:if test="${sortBy eq 'date'}">selected</c:if>>Date (Newest First)</option>
       <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
       <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
@@ -54,14 +54,14 @@
     </div>
   </div>
 </form>
-<div style="clear: both;"></div>
+<div class="u-clear-both"></div>
 <%-- Client-side only -- filters the usage badges already being computed lazily below, on whichever
      images are on the current page. This deliberately does NOT run a server-side query across the
      whole (possibly 200+ image) list: ImageUsageCommand's usage scan is meant to run for one image
      at a time on demand, not eagerly for a full list (see its class docs), so "Orphaned only" here
      only ever narrows what's already been fetched for this page, not the whole library. --%>
 <c:if test="${!empty imageList}">
-  <div id="usageFilterBar" class="button-group margin-bottom-10" style="clear:both;">
+  <div id="usageFilterBar" class="button-group margin-bottom-10 u-clear-both">
     <button type="button" class="button tiny primary radius usage-filter-btn" data-usage-filter="all">All (this page)</button>
     <button type="button" class="button tiny secondary radius usage-filter-btn" data-usage-filter="orphaned">Orphaned only</button>
     <button type="button" class="button tiny secondary radius usage-filter-btn" data-usage-filter="used">Used only</button>
@@ -83,11 +83,11 @@
   <div class="grid-x grid-margin-x small-up-2 medium-up-3 large-up-5">
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card" data-image-card-id="${image.id}">
-        <div class="image-browser" style="position: relative;">
-          <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
+        <div class="image-browser u-pos-rel">
+          <input type="checkbox" class="imageRowCheckbox u-pos-abs u-top-5 u-left-5 u-z-1" value="${image.id}"
                  data-filename="${fn:escapeXml(image.filename)}"
                  aria-label="Select ${fn:escapeXml(image.filename)}"
-                 style="position:absolute; top: 5px; left: 5px; z-index: 1;">
+                >
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
           <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
           <img src="<c:out value="${ctx}${imageHref}"/>"
@@ -159,11 +159,11 @@
         <div class="grid-x grid-margin-x small-up-2 medium-up-3 large-up-5">
           <c:forEach items="${duplicateGroup.value}" var="image" varStatus="status">
             <div class="cell card" data-image-card-id="${image.id}">
-              <div class="image-browser" style="position: relative;">
-                <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
+              <div class="image-browser u-pos-rel">
+                <input type="checkbox" class="imageRowCheckbox u-pos-abs u-top-5 u-left-5 u-z-1" value="${image.id}"
                        data-filename="${fn:escapeXml(image.filename)}"
                        aria-label="Select ${fn:escapeXml(image.filename)}"
-                       style="position:absolute; top: 5px; left: 5px; z-index: 1;">
+                      >
                 <c:set var="imageHref" value="/assets/img/${image.url}"/>
                 <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId, imageWidthsByImageId)}"/>
                 <img src="<c:out value="${ctx}${imageHref}"/>"

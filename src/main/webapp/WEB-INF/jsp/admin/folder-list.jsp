@@ -31,7 +31,7 @@
 <form method="get" autocomplete="off" class="float-right">
   <div class="input-group no-gap width-auto">
     <input class="input-group-field" type="search" name="query" aria-label="Search folders" placeholder="<c:if test="${empty query}">Search folders...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
-    <select class="input-group-field" name="sort" aria-label="Sort folders" onchange="this.form.submit()" style="max-width:180px;">
+    <select class="input-group-field u-maxw-180" name="sort" aria-label="Sort folders" onchange="this.form.submit()">
       <option value="name" <c:if test="${sort eq 'name'}">selected</c:if>>Name (A-Z)</option>
       <option value="name_desc" <c:if test="${sort eq 'name_desc'}">selected</c:if>>Name (Z-A)</option>
       <option value="files_desc" <c:if test="${sort eq 'files_desc'}">selected</c:if>># of Files (High-Low)</option>

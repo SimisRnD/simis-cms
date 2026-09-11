@@ -173,8 +173,8 @@
   </c:if>
   <c:if test="${useCaptcha eq 'true' && empty googleSiteKey && empty turnstileSiteKey}">
     <p class="help-text">
-      Enter the text shown: <img src="/assets/captcha" alt="captcha" style="vertical-align: middle;" height="40" decoding="async" />
-      <a href="#" data-captcha-refresh class="margin-left-5" title="Get a new image" aria-label="Get a new captcha image" style="vertical-align: middle;"><i class="fa fa-sync-alt"></i></a>
+      Enter the text shown: <img src="/assets/captcha" alt="captcha" class="u-va-middle" height="40" decoding="async" />
+      <a href="#" data-captcha-refresh class="margin-left-5 u-va-middle" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a>
       <input type="text" id="captcha${widgetContext.uniqueId}" required/>
     </p>
   </c:if>

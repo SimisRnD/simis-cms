@@ -2244,16 +2244,21 @@ a.platform-blog-overview-thumbnail img {
 .padding-width-100 { padding-left: 100px; padding-right: 100px; }
 .padding-width-200 { padding-left: 200px; padding-right: 200px; }
 
-/* Spacing that used to be inline style="" attributes in the templates (issue #1999).
+/* Single-purpose classes that replace inline style="" attributes in the templates (issue #1999).
    The page's CSP needs style-src 'unsafe-inline' for as long as any template renders a style
-   attribute, so each one is replaced by these. One class per value actually used: u-{m|p}
-   then an optional side (t r b l) or axis (x y), then the value -- px unless it says rem,
-   "n" for negative, "_" for a decimal point, "sp6" for the --sc-space-6 token.
+   attribute, so each one is replaced by these -- one class per value actually used, so every
+   element keeps exactly what it had. Names are u-<property>-<value>:
+     m / p (+ t r b l, or x y)  margin / padding     w h minw minh maxw maxh  sizes
+     pos top right bottom left z  position             o ox oy                  overflow
+     ta ti td ws wb va lh fs fw   text                 float clear flex border translate
+   Values are px unless a unit follows (p = %, vh, rem); "n" is negative, "_" a decimal point,
+   "sp6" the --sc-space-6 token.
    Every declaration is !important on purpose: an inline style outranks every normal selector,
    so a plain class could lose to an existing rule the attribute used to beat. Two differences
    from an attribute remain, and neither applies where these are used: an existing !important
    rule now competes on specificity instead of simply winning, and a script setting el.style
-   now loses instead of overriding. */
+   now loses instead of overriding. That second one is why elements a script or a Foundation
+   plugin sizes or positions (Sticky, OffCanvas, a resizable textarea) keep their attribute. */
 .u-m-0 { margin: 0 !important; }
 .u-m-1 { margin: 1px !important; }
 .u-mx-0 { margin-left: 0 !important; margin-right: 0 !important; }
@@ -2273,6 +2278,7 @@ a.platform-blog-overview-thumbnail img {
 .u-mt-sp6 { margin-top: var(--sc-space-6, 2rem) !important; }
 .u-mr-0 { margin-right: 0 !important; }
 .u-mr-5 { margin-right: 5px !important; }
+.u-mr-20 { margin-right: 20px !important; }
 .u-mb-0 { margin-bottom: 0 !important; }
 .u-mb-4 { margin-bottom: 4px !important; }
 .u-mb-5 { margin-bottom: 5px !important; }
@@ -2282,6 +2288,7 @@ a.platform-blog-overview-thumbnail img {
 .u-mb-1rem { margin-bottom: 1rem !important; }
 .u-mb-20 { margin-bottom: 20px !important; }
 .u-ml-18 { margin-left: 18px !important; }
+.u-ml-21 { margin-left: 21px !important; }
 .u-ml-1_5rem { margin-left: 1.5rem !important; }
 .u-ml-30 { margin-left: 30px !important; }
 .u-p-0 { padding: 0 !important; }
@@ -2295,10 +2302,72 @@ a.platform-blog-overview-thumbnail img {
 .u-py-30 { padding-top: 30px !important; padding-bottom: 30px !important; }
 .u-pr-0 { padding-right: 0 !important; }
 .u-pr-15 { padding-right: 15px !important; }
+.u-pr-20 { padding-right: 20px !important; }
 .u-pl-8 { padding-left: 8px !important; }
 .u-pl-16 { padding-left: 16px !important; }
 .u-pl-26 { padding-left: 26px !important; }
 .u-pl-30 { padding-left: 30px !important; }
+.u-w-25p { width: 25% !important; }
+.u-w-50p { width: 50% !important; }
+.u-w-75p { width: 75% !important; }
+.u-w-100p { width: 100% !important; }
+.u-w-160 { width: 160px !important; }
+.u-w-200 { width: 200px !important; }
+.u-h-56vh { height: 56vh !important; }
+.u-h-65vh { height: 65vh !important; }
+.u-h-70vh { height: 70vh !important; }
+.u-h-100p { height: 100% !important; }
+.u-h-320 { height: 320px !important; }
+.u-minw-200 { min-width: 200px !important; }
+.u-minh-160 { min-height: 160px !important; }
+.u-maxw-75p { max-width: 75% !important; }
+.u-maxw-100 { max-width: 100px !important; }
+.u-maxw-150 { max-width: 150px !important; }
+.u-maxw-180 { max-width: 180px !important; }
+.u-maxw-220 { max-width: 220px !important; }
+.u-maxw-75rem { max-width: 75rem !important; }
+.u-maxh-50 { max-height: 50px !important; }
+.u-maxh-100 { max-height: 100px !important; }
+.u-maxh-150 { max-height: 150px !important; }
+.u-maxh-20rem { max-height: 20rem !important; }
+.u-pos-abs { position: absolute !important; }
+.u-pos-fixed { position: fixed !important; }
+.u-pos-rel { position: relative !important; }
+.u-top-n4 { top: -4px !important; }
+.u-top-0 { top: 0 !important; }
+.u-top-5 { top: 5px !important; }
+.u-top-50p { top: 50% !important; }
+.u-right-5 { right: 5px !important; }
+.u-right-10 { right: 10px !important; }
+.u-left-5 { left: 5px !important; }
+.u-left-50p { left: 50% !important; }
+.u-z-1 { z-index: 1 !important; }
+.u-z-1001 { z-index: 1001 !important; }
+.u-translate-center { transform: translateY(-50%) translateX(-50%) !important; }
+.u-o-scroll { overflow: scroll !important; }
+.u-ox-auto { overflow-x: auto !important; }
+.u-oy-auto { overflow-y: auto !important; }
+.u-float-left { float: left !important; }
+.u-float-right { float: right !important; }
+.u-clear-both { clear: both !important; }
+.u-flex-1 { flex: 1 !important; }
+.u-border-0 { border: 0 !important; }
+.u-ta-left { text-align: left !important; }
+.u-ta-right { text-align: right !important; }
+.u-ti-n11 { text-indent: -11px !important; }
+.u-td-underline { text-decoration: underline !important; }
+.u-ws-nowrap { white-space: nowrap !important; }
+.u-ws-prewrap { white-space: pre-wrap !important; }
+.u-wb-breakall { word-break: break-all !important; }
+.u-va-middle { vertical-align: middle !important; }
+.u-va-top { vertical-align: top !important; }
+.u-lh-1 { line-height: 1 !important; }
+.u-lh-1_2 { line-height: 1.2 !important; }
+.u-lh-2_4375rem { line-height: 2.4375rem !important; }
+.u-fs-0_75rem { font-size: 0.75rem !important; }
+.u-fs-0_875rem { font-size: 0.875rem !important; }
+.u-fs-32 { font-size: 32px !important; }
+.u-fw-bold { font-weight: bold !important; }
 
 @media screen and (max-width: 39.9375em) {
   .small-margin-0 { margin-top: 0; margin-bottom: 0; }
