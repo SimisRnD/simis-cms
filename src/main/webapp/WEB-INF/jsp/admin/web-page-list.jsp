@@ -330,7 +330,7 @@
     </td>
   </tr>
   <tr>
-    <td colspan="9" style="padding:0;">
+    <td colspan="9" class="u-p-0">
       <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin:0;">
         <span id="bulkSelectedCount"></span>
         <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>

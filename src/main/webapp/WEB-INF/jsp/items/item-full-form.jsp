@@ -289,7 +289,7 @@
                    handler and just hangs on "Loading...", and the upload POST 404s. Everyone can
                    still fall back to typing/pasting a URL directly into the field above. --%>
               <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-                <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
+                <span class="input-group-label u-p-0"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
               </c:if>
             </div>
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
@@ -299,7 +299,7 @@
           </label>
           <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
             <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
-              <p id="imageErrorMsg" style="margin: 0;"></p>
+              <p id="imageErrorMsg" class="u-m-0"></p>
             </div>
           </c:if>
         </div>

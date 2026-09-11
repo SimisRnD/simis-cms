@@ -146,7 +146,7 @@
 --%>
     </c:when>
     <c:when test="${!empty link['divider'] && link['divider'] eq 'true'}">
-      <hr style="margin: .01rem auto;" />
+      <hr class="u-my-0_01rem u-mx-auto" />
     </c:when>
     <c:when test="${!empty link['icon'] && link['icon-only'] eq 'true'}">
       <a title="<c:out value="${link['name']}"/>" href="<c:out value="${ctx}${link['link']}"/>"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><i class="fa-fw <c:out value="${link['icon']}" />"></i></a>

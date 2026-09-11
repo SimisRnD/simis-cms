@@ -45,7 +45,7 @@
   }
 </style>
 <div class="grid-x grid-margin-x map-container">
-  <div class="cell small-12 medium-5 large-4" style="padding: 0">
+  <div class="cell small-12 medium-5 large-4 u-p-0">
     <div id="tableContainer${widgetContext.uniqueId}">
       <table class="unstriped">
         <c:if test="${!empty title}">

@@ -39,7 +39,7 @@
   <%@include file="../page_messages.jspf" %>
   <c:if test="${blog.id != -1}">
     <div class="callout radius warning">
-      <p style="margin-bottom:0">
+      <p class="u-mb-0">
         <i class="fa fa-exclamation-triangle"></i> This category's Unique Id
         (<code><c:out value="${blog.uniqueId}"/></code>) is part of every one of its posts' URLs
         (<code>/<c:out value="${blog.uniqueId}"/>/post-unique-id</code>). Changing Name below

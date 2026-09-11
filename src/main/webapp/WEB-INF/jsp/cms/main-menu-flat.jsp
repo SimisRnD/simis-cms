@@ -59,7 +59,7 @@
                    than as another level, so a third-level page is still reachable here and does not
                    silently disappear from the one view that is meant to show everything (#1728). --%>
               <c:forEach items="${menuItem.menuItemList}" var="subMenuItem">
-                <li class="site-map-nested-item<c:if test="${useHighlight eq 'true' && subMenuItem.link eq pagePath}"> active</c:if>" style="padding-left:16px"><a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.name}" /></a></li>
+                <li class="site-map-nested-item u-pl-16<c:if test="${useHighlight eq 'true' && subMenuItem.link eq pagePath}"> active</c:if>"><a href="${ctx}${subMenuItem.link}"><c:out value="${subMenuItem.name}" /></a></li>
               </c:forEach>
             </c:forEach>
           </ul>

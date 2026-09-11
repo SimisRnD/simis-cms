@@ -2,10 +2,11 @@
 
 The page's CSP has to carry style-src 'unsafe-inline' for as long as any template
 renders a style= attribute -- a nonce covers <style> elements, never attributes --
-and SecurityScorecard reports that keyword as a finding. 351 attributes exist today,
+and SecurityScorecard reports that keyword as a finding. The ones that remain are
 recorded per file as a backlog that may only shrink (issue #1999).
 """
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -14,8 +15,19 @@ from conftest import TOOLS_DIR, run_tool, write
 
 TOOL = "check-inline-styles.py"
 JSP_ROOT = "src/main/webapp/WEB-INF/jsp"
-# A real BACKLOG entry, recorded at 1.
-BACKLOGGED = "admin/allowed-ip-list-form.jsp"
+
+
+def _smallest_backlog_entry():
+    """A real BACKLOG entry, read from the tool rather than named here. The backlog shrinks as
+    files are converted, so a hard-coded name stops being an entry and every test below would
+    quietly start testing an unlisted file instead."""
+    spec = importlib.util.spec_from_file_location("check_inline_styles", TOOLS_DIR / TOOL)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return min(module.BACKLOG.items(), key=lambda kv: (kv[1], kv[0]))
+
+
+BACKLOGGED, RECORDED = _smallest_backlog_entry()
 
 CLEAN = '<p class="callout">Nothing to see</p>\n'
 
@@ -70,7 +82,7 @@ def test_single_quoted_attribute_counts(repo):
 
 
 def test_computed_attribute_counts(repo):
-    # 32 of today's 351 are built from EL -- still an attribute, still refused.
+    # Many of the remaining ones are built from EL -- still an attribute, still refused.
     fill(repo)
     write(repo, f"{JSP_ROOT}/cms/new.jsp", '<img style="object-position: <c:out value="${pos}"/>">\n')
     assert check(repo, "--strict").returncode == 1
@@ -78,17 +90,16 @@ def test_computed_attribute_counts(repo):
 
 def test_backlogged_file_within_its_count_passes(repo):
     fill(repo)
-    write(repo, f"{JSP_ROOT}/{BACKLOGGED}", '<div style="display:none">x</div>\n')
+    write(repo, f"{JSP_ROOT}/{BACKLOGGED}", '<div style="display:none">x</div>\n' * RECORDED)
     assert check(repo, "--strict").returncode == 0
 
 
 def test_backlogged_file_over_its_count_fails(repo):
     fill(repo)
-    write(repo, f"{JSP_ROOT}/{BACKLOGGED}",
-          '<div style="display:none">x</div>\n<div style="display:none">y</div>\n')
+    write(repo, f"{JSP_ROOT}/{BACKLOGGED}", '<div style="display:none">x</div>\n' * (RECORDED + 1))
     result = check(repo, "--strict")
     assert result.returncode == 1
-    assert "backlog allows 1" in result.stdout
+    assert f"backlog allows {RECORDED}" in result.stdout
 
 
 def test_a_backlog_ahead_of_its_counts_is_noted_not_failed(repo):
@@ -97,7 +108,7 @@ def test_a_backlog_ahead_of_its_counts_is_noted_not_failed(repo):
     result = check(repo, "--strict")
     assert result.returncode == 0
     assert "NOTE" in result.stdout
-    assert f"jsp/{BACKLOGGED}: 1 -> 0" in result.stdout
+    assert f"jsp/{BACKLOGGED}: {RECORDED} -> 0" in result.stdout
 
 
 def test_similar_attribute_names_are_not_findings(repo):

@@ -45,16 +45,16 @@
 
 <c:choose>
   <c:when test="${sitemapActuallyServed}">
-    <div class="callout radius success" style="margin-bottom:20px">
-      <p style="margin-bottom:0">
+    <div class="callout radius success u-mb-20">
+      <p class="u-mb-0">
         <i class="fa fa-check-circle"></i> The sitemap is enabled and being served.
         <a href="${ctx}/sitemap.xml" target="_blank" rel="noopener">Preview the live sitemap.xml <i class="fa fa-external-link"></i></a>
       </p>
     </div>
   </c:when>
   <c:otherwise>
-    <div class="callout radius warning" style="margin-bottom:20px">
-      <p style="margin-bottom:0">
+    <div class="callout radius warning u-mb-20">
+      <p class="u-mb-0">
         <i class="fa fa-exclamation-triangle"></i>
         <c:choose>
           <c:when test="${!sitemapEnabled}">

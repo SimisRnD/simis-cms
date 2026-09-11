@@ -30,7 +30,7 @@
 <c:if test="${!empty activeFilters}">
   <div class="margin-bottom-10">
     <c:forEach items="${activeFilters}" var="activeFilter">
-      <span class="label secondary" style="margin-right:5px">
+      <span class="label secondary u-mr-5">
         <c:out value="${activeFilter.facetLabel}"/>: <c:out value="${activeFilter.valueLabel}"/>
         <%-- clearUrl is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
         <a href="${activeFilter.clearUrl}" style="color:inherit" title="Remove this filter"><i class="fa fa-times"></i></a>

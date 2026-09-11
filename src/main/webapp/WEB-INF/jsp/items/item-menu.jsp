@@ -168,7 +168,7 @@
       <c:if test="${userSession.hasRole('admin') || collection.showSearch}">
         <ul class="dropdown menu text-left" data-dropdown-menu>
           <c:if test="${collection.showSearch}">
-            <li><input type="search" placeholder="Search" style="margin-right:0"></li>
+            <li><input type="search" placeholder="Search" class="u-mr-0"></li>
             <li>
               <button type="button" class="button">Search</button>
             </li>

@@ -47,7 +47,7 @@
   }
   .map-information .card h4, .map-information .card .subheader { padding: 0; margin: 0; }
 </style>
-<div class="grid-x grid-margin-x map-information" style="padding: 8px 30px">
+<div class="grid-x grid-margin-x map-information u-py-8 u-px-30">
   <div class="cell small-12">
     <small><strong>INFORMATION ON THIS AREA</strong></small>
   </div>
@@ -80,7 +80,7 @@
   </div>
 </div>
 <div class="grid-x grid-margin-x map-container">
-  <div class="cell small-12 medium-4 large-3" style="padding: 30px 0 30px 30px;">
+  <div class="cell small-12 medium-4 large-3 u-py-30 u-pr-0 u-pl-30">
     <form id="searchForm${widgetContext.uniqueId}" autocomplete="off">
       <div class="input-group">
         <span class="input-group-label">
@@ -139,7 +139,7 @@
       <input type="reset" class="button secondary" value="Reset Form" data-map-reset />
     </form>
   </div>
-  <div class="cell small-12 medium-4 large-3" style="padding: 30px 0">
+  <div class="cell small-12 medium-4 large-3 u-py-30 u-px-0">
     <div id="tableContainer" style="height:56vh; overflow:scroll">
       <table>
         <thead>

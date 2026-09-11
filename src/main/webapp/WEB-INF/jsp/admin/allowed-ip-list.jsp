@@ -30,12 +30,12 @@
 </c:if>
 <p class="help-text page-help">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through, for every page on the site (aside from a couple of hardcoded exemptions, like the <code>/healthz</code> health check), not just specific ones. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
 <div class="callout radius">
-  <p style="margin-bottom:5px;"><strong>Your current request is being seen as:</strong> <code><c:out value="${currentClientIp}"/></code></p>
-  <p class="help-text page-help" style="margin-bottom:0;">This is the same value the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>'s check compares entries against. If it doesn't look like your real IP -- for example, an internal/private address while you're browsing from the public internet -- this deployment is likely behind a reverse proxy or load balancer without <code>CMS_TRUSTED_PROXIES</code> configured, and every visitor is seen as the proxy's own address. Until that's fixed by whoever manages the deployment, IP blocking will silently not work correctly for anyone.</p>
+  <p class="u-mb-5"><strong>Your current request is being seen as:</strong> <code><c:out value="${currentClientIp}"/></code></p>
+  <p class="help-text page-help u-mb-0">This is the same value the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>'s check compares entries against. If it doesn't look like your real IP -- for example, an internal/private address while you're browsing from the public internet -- this deployment is likely behind a reverse proxy or load balancer without <code>CMS_TRUSTED_PROXIES</code> configured, and every visitor is seen as the proxy's own address. Until that's fixed by whoever manages the deployment, IP blocking will silently not work correctly for anyone.</p>
 </div>
 <div class="callout warning radius">
   <h6>Before you add an entry here</h6>
-  <ul style="margin-bottom:0;">
+  <ul class="u-mb-0">
     <li>Because an Allowed entry always wins, it's easy to accidentally undo a block: an entry here that also matches a <a href="${ctx}/admin/blocked-ip-list">Blocked IP</a> entry lets that address through anyway, since this list is checked first, before the block list is even consulted. Saving a new block on the Blocked IP page now warns inline when an Allowed entry like this would cover the same address.</li>
     <li>A block only matches its own address family: an IPv4 entry never matches an IPv6 request and vice versa.</li>
   </ul>

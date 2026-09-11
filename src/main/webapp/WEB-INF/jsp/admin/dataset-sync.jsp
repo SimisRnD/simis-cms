@@ -55,10 +55,10 @@
 <%@include file="../page_messages.jspf" %>
 <div class="callout primary radius">
   <p>This tab controls two independent things: whether the source file is <strong>re-downloaded on a schedule</strong>, and whether a successful download is <strong>synced into the mapped Collection</strong> as Items. Turning on "Download on a schedule?" by itself only refreshes the source file periodically -- it does not write or update any Items unless "Automatically sync to a collection?" is also turned on. Before relying on the schedule, click <strong>Save &amp; Sync</strong> once here to confirm the mapping actually produces the Items you expect.</p>
-  <p style="margin-bottom:0">After every sync, check <strong>Last Sync</strong> and its message below -- that's the primary place errors surface. It's a single status string, not a per-row log, so a partial failure (some rows succeeded, others didn't) may need manual reconciliation rather than give a full picture of what went wrong.</p>
+  <p class="u-mb-0">After every sync, check <strong>Last Sync</strong> and its message below -- that's the primary place errors surface. It's a single status string, not a per-row log, so a partial failure (some rows succeeded, others didn't) may need manual reconciliation rather than give a full picture of what went wrong.</p>
 </div>
 <div class="callout warning radius">
-  <p style="margin-bottom:0">If scheduled downloads keep failing, retries back off from every 5 minutes up to once a day. After 30 consecutive failed attempts the dataset is marked permanently failed and the schedule stops retrying on its own -- there's no email or other proactive notice, only the Schedule Status badge on the <a href="${ctx}/admin/datasets">Datasets list</a> turning to "Failed". Check that page on a regular cadence, or set up external monitoring against it, if a dataset's freshness matters.</p>
+  <p class="u-mb-0">If scheduled downloads keep failing, retries back off from every 5 minutes up to once a day. After 30 consecutive failed attempts the dataset is marked permanently failed and the schedule stops retrying on its own -- there's no email or other proactive notice, only the Schedule Status badge on the <a href="${ctx}/admin/datasets">Datasets list</a> turning to "Failed". Check that page on a regular cadence, or set up external monitoring against it, if a dataset's freshness matters.</p>
 </div>
 <form method="post">
   <%-- Required by controller --%>

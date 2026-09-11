@@ -53,7 +53,7 @@
          show just that one record instead of the normal filter form, which would otherwise imply a
          filter is active that isn't --%>
     <div class="callout radius primary margin-bottom-10">
-      <p style="margin-bottom:0">
+      <p class="u-mb-0">
         <i class="fa fa-link"></i> Showing the one submission linked from your notification email, regardless of its current status.
         <a href="${widgetContext.uri}">View all submissions</a>
       </p>

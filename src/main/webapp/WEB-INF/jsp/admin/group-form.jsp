@@ -31,7 +31,7 @@
   <%@include file="../page_messages.jspf" %>
   <c:if test="${group.name eq 'All Users'}">
     <div class="callout radius warning">
-      <p style="margin-bottom:0">
+      <p class="u-mb-0">
         <i class="fa fa-exclamation-triangle"></i> This is the built-in default group every new
         account is automatically added to, looked up by this exact name. Changing the name here
         means new accounts stop being found by that lookup and silently miss the group they're

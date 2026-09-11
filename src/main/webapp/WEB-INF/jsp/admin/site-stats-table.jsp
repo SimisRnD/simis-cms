@@ -75,7 +75,7 @@
   <%-- Revealed by the script below once auto-refresh gives up. Rendered hidden rather than built in
        JavaScript so the text is in the accessibility tree before role="alert" fires. --%>
   <div class="callout radius warning" id="stopped${widgetContext.uniqueId}" role="alert" hidden>
-    <p class="text-center" style="margin-bottom:0">Live updates stopped. Your session may have expired &mdash; reload the page to resume.</p>
+    <p class="text-center u-mb-0">Live updates stopped. Your session may have expired &mdash; reload the page to resume.</p>
   </div>
 </c:if>
 </div>
