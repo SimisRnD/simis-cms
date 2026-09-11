@@ -33,7 +33,7 @@
 <script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
-<style>
+<style nonce="${cspNonce}">
   .leaflet-popup-content h5,
   .leaflet-popup-content p {
     margin: 0 0 5px 0;

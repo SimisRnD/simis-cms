@@ -26,7 +26,7 @@
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
 <%-- Include the formatting for when TinyMCE uses an iFrame to open the image browser --%>
 <%-- All of Foundation.css would override colors and stuff when using the browser directly --%>
-<style>
+<style nonce="${cspNonce}">
   body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     font-size: 1rem;

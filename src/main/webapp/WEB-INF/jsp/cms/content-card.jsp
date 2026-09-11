@@ -29,7 +29,7 @@
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa <c:out value="${icon}"/>"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
-<style>
+<style nonce="${cspNonce}">
 <c:if test="${!empty cardSize}">
   .card-container${widgetContext.uniqueId} { width: ${cardSize}; }
 .card${widgetContext.uniqueId} img { max-height: 200px; width: auto; }

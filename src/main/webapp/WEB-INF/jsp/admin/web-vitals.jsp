@@ -140,7 +140,7 @@
       </table>
     </div>
 
-    <style>
+    <style nonce="${cspNonce}">
       .badge-good {
         background-color: #28a745;
         color: white;

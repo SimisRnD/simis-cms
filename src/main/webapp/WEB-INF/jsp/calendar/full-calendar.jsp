@@ -36,7 +36,7 @@
 <script src="${ctx}/javascript/fullcalendar-6.1.10/moment-2.27.0.min.js"></script>
 <script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-<style>
+<style nonce="${cspNonce}">
   <%-- The wash marks the cell the cursor is over, and marks it as selectable: this
        whole block renders only for admins and content managers, who can drag a date
        range across these cells to create an event. It is a deliberately fixed light

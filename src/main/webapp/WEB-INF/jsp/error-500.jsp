@@ -39,7 +39,7 @@
   <meta http-equiv="Content-Language" content="en">
   <title>Page error</title>
   <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.tokens.min.css" />
-  <style>
+  <style nonce="${cspNonce}">
       body {
           background-color: white;
           color: #333333;

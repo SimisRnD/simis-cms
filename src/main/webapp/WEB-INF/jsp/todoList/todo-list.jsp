@@ -22,7 +22,7 @@
 <jsp:useBean id="todoList" class="java.util.LinkedHashMap" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <link rel="stylesheet" href="${ctx}/css/platform-todo-list.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
-<style>
+<style nonce="${cspNonce}">
     .todo-list-card ul li {
         background-color: <c:out value="${themePropertyMap['theme.callout.secondary.backgroundColor']}" />;
         margin: 10px 0;

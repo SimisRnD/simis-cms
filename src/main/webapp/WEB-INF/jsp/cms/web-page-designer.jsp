@@ -30,7 +30,7 @@
 <%-- Static, developer-authored file (not user input) -- safe to embed unescaped as a JSON script body.
      HTML-escaping it here would corrupt the JSON, since script content isn't entity-decoded. --%>
 <script type="application/json" id="widget-schema-json"><c:out value="${widgetSchemaJson}" escapeXml="false"/></script>
-<style>
+<style nonce="${cspNonce}">
   #designer-container {
     margin: auto;
     max-width: 1170px;

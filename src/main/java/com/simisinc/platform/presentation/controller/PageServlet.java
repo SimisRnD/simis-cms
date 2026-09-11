@@ -203,9 +203,13 @@ public class PageServlet extends HttpServlet {
     // be fetched from any origin. Measured against every published page before choosing these --
     // all 12 served stylesheets (including the site-specific one) reference zero external origins,
     // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
-    // 'unsafe-inline' is unavoidable: the theme's colour tokens are emitted as an inline <style>
-    // block by design, and several hundred inline style attributes exist across the JSPs. It still
-    // leaves style-src strictly stronger than absent, because a foreign stylesheet is now refused.
+    // 'unsafe-inline' stays for now (issue #1999). The templates render no style="" attributes and
+    // every <style> element carries this nonce, both held by tools/check-inline-styles.py -- but
+    // content saved before #2001 and script-built markup can still produce inline style, and only
+    // a browser finds those, which is what the report-only trial is for. Do not add the nonce to
+    // style-src on its own: in CSP3 a nonce in the directive makes browsers ignore 'unsafe-inline',
+    // so the nonce and the removal have to land together. Even so, style-src is strictly stronger
+    // than absent, because a foreign stylesheet is refused.
     //
     // img-src and default-src are deliberately NOT set yet (issue #1430). img-src is the directive
     // that would close the CSS-based exfiltration channel, but published content still references

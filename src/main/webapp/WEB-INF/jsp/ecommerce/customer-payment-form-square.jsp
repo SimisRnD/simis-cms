@@ -134,7 +134,7 @@
       });
     });
 </script>
-<style>
+<style nonce="${cspNonce}">
   .sq-card-iframe-container {
     margin-top: 16px;
   }

@@ -873,6 +873,19 @@
   </c:if>
   </c:forEach>
 
+  // The preview's rules for menu states that exist only on hover or open, in one element carrying
+  // the page's nonce: a <style> a script adds is refused like any other once style-src drops
+  // 'unsafe-inline' (issue #1999). Each rule is appended, so the latest pick still wins.
+  var previewStyle = null;
+  function addPreviewRule(css) {
+    if (!previewStyle) {
+      previewStyle = document.createElement('style');
+      previewStyle.nonce = '${cspNonce}';
+      document.head.appendChild(previewStyle);
+    }
+    previewStyle.appendChild(document.createTextNode(css));
+  }
+
   function changeColor(targetId, color) {
     var idx = colorIdList.indexOf(targetId);
     var colorSelector = colorSelectorList[idx];
@@ -881,13 +894,13 @@
     }
     // Handle dynamic elements
     if (targetId.indexOf('theme.topbar.menu.dropdown.text.color') > -1) {
-      $("head").append('<style>' + colorSelector + '{color: ' + color.toHexString() + '}</style>');
+      addPreviewRule(colorSelector + '{color: ' + color.toHexString() + '}');
       return;
     } else if (targetId.indexOf('theme.topbar.menu.hoverTextColor') > -1) {
-      $("head").append('<style>' + colorSelector + '{color: ' + color.toHexString() + '}</style>');
+      addPreviewRule(colorSelector + '{color: ' + color.toHexString() + '}');
       return;
     } else if (targetId.indexOf('theme.topbar.menu.text.hoverBackgroundColor') > -1) {
-      $("head").append('<style>' + colorSelector + '{background-color: ' + color.toHexString() + '}</style>');
+      addPreviewRule(colorSelector + '{background-color: ' + color.toHexString() + '}');
       return;
     }
     // Adjust static elements

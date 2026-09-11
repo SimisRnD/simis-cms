@@ -25,7 +25,7 @@
 <jsp:useBean id="linkText" class="java.lang.String" scope="request"/>
 <jsp:useBean id="expand" class="java.lang.String" scope="request"/>
 <c:if test="${expand eq 'true'}">
-<style>
+<style nonce="${cspNonce}">
     /* Collapsed state: only the trigger icon shows, inline in the header's normal flow -- plain
        icon, no button chrome (matches every other icon-only header control, e.g. colorSchemeToggle).
        .close-group (the wrapper, not just .search-close inside it) has to be display:none here --
