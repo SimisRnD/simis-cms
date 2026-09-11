@@ -24,7 +24,7 @@
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="tagList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',

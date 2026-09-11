@@ -14,10 +14,11 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="codeContent" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <script nonce="${cspNonce}">
 tinymce.init({
     license_key: 'gpl',

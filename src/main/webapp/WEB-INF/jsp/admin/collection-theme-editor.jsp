@@ -22,7 +22,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="collectionTabList" class="java.util.ArrayList" scope="request"/>
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
-<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
+<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <div class="callout primary radius">
   <p class="u-mb-0">
     These fields style this collection's header and menu on the public site. Each one accepts a

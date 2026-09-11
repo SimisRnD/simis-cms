@@ -81,7 +81,7 @@
       <small class="help-text"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
     </div>
   </div>
-  <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
+  <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
   <script nonce="${cspNonce}">
     $(function () {
       // An all-day event has no meaningful time, so the picker drops to a date-only view when
