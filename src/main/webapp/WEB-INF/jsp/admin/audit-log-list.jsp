@@ -30,7 +30,7 @@
 <%-- Prominent, hard-to-miss warning: the nightly tamper-evidence chain check (AuditLogIntegrityJob) found the
      chain broken. Deliberately rendered only on an actual failure -- see AuditLogListWidget#execute. --%>
 <c:if test="${integrityCheckFailed}">
-  <div class="callout alert radius" role="alert" tabindex="-1" style="border:3px solid #cc4b37">
+  <div class="callout alert radius u-border-3-alert" role="alert" tabindex="-1">
     <h5><i class="fa fa-triangle-exclamation"></i> Audit log tamper-evidence check FAILED</h5>
     <p>
       The automated check that verifies the audit log's tamper-evident hash chain detected a problem

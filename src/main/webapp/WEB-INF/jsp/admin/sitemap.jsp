@@ -35,13 +35,13 @@
 </p>
 <div class="callout radius page-help-figure">
   <p class="u-mb-8"><strong>Example: what a tab and its items look like to a visitor</strong></p>
-  <div style="border:1px solid #ccc;border-radius:4px;overflow:hidden;font-size:0.9rem;">
-    <div style="background:#2c2c2c;color:#fff;padding:8px 14px;display:flex;gap:20px;">
+  <div class="u-border-1-border u-radius-4 u-o-hidden u-fs-0_9rem">
+    <div class="u-bg-inverse u-color-inverse u-py-8 u-px-14 u-d-flex u-gap-20">
       <span>Home</span>
-      <span style="border-bottom:2px solid #fff;padding-bottom:2px;">Solutions &#9662;</span>
+      <span class="u-bb-2-inverse u-pb-2">Solutions &#9662;</span>
       <span>Contact Us</span>
     </div>
-    <div style="background:#fff;padding:8px 14px;">
+    <div class="u-bg-raised u-py-8 u-px-14">
       <div class="u-py-2 u-px-0">Government Services</div>
       <div class="u-py-2 u-px-0">Commercial Services</div>
     </div>

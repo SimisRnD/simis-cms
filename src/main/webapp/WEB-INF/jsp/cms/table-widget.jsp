@@ -51,7 +51,7 @@
       </c:if>
       <c:if test="${empty tableData.rows}">
         <tr>
-          <td colspan="100" style="text-align: center; padding: 20px; color: #999;">
+          <td colspan="100" class="u-ta-center u-p-20 u-color-muted">
             No data
           </td>
         </tr>

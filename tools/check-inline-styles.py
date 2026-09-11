@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when a JSP gains an inline ``style="..."`` attribute (issue #1999).
+"""Fail when a JSP has an inline ``style="..."`` attribute (issue #1999).
 
 The enforced Content-Security-Policy carries ``style-src 'self' 'unsafe-inline'``, which
 SecurityScorecard reports as "Content Security Policy Contains 'unsafe-*' Directive". It
@@ -8,24 +8,27 @@ around: a CSP nonce applies to a ``<style>`` element, never to a ``style=`` attr
 the only other way to permit attributes is ``'unsafe-hashes'`` -- itself an unsafe-* keyword.
 So clearing the finding means the page emits none.
 
-351 existed across 122 templates when this was added. Migrating them is slow, and without a gate new ones
-arrive faster than old ones leave. This records today's count per file as a BACKLOG that may
-only shrink: a file that gains an inline style fails; a file that loses one is reported so the
-number is lowered in the same PR. Same shape as ``check-icon-link-names.py``, whose JSP
+351 existed across 122 templates when this was added, recorded per file as a backlog that could
+only shrink. It reached zero on 2026-09-11, so the backlog is gone and the check is absolute: any
+inline style attribute in a template fails. Same shape as ``check-icon-link-names.py``, whose JSP
 neutraliser this reuses -- so commented-out markup is not counted, and line numbers stay true.
 
 When replacing an attribute, keep its precedence. An inline style outranks every selector, so a
 plain class carrying the same declaration can lose to an existing rule it used to beat -- e.g.
 ``style="margin-bottom:0"`` beats ``.callout p { margin-bottom: 1rem }``, and ``.u-mb-0`` does
-not. Utilities that replace inline styles therefore declare ``!important``.
+not. Utilities that replace inline styles therefore declare ``!important`` -- except for a property
+a script writes, which stays a normal declaration so the script still wins (see the u-* comment in
+platform.css). A value computed at render time goes through ``css:register``, which serves it from
+the page's one nonced ``<style>`` element (``PageStyleRules``).
 
 What this does not cover
 ------------------------
 Templates are one of three sources, and CSP is page-wide, so this reaching zero is necessary
 but not sufficient to drop ``'unsafe-inline'``:
 
-  * editor content -- the HTML sanitizer permits ``style`` on span and h1-h4
-    (``HtmlCommand``), and that content renders on the same page as the template;
+  * stored content -- the HTML sanitizer (``HtmlCommand``) has dropped ``style`` since #2001, but
+    content records and blog posts are cleaned when they are saved, so any saved before that
+    still carry it until they are re-saved (page-XML HTML is re-cleaned on every render);
   * script -- markup built as a string (``innerHTML``, ``$('<div style=...>')``) or
     ``setAttribute('style', ...)`` is refused the same way. ``<script>`` bodies are blanked
     before scanning, so none of it is counted here; a report-only trial of the stricter
@@ -34,8 +37,8 @@ but not sufficient to drop ``'unsafe-inline'``:
 Email templates (``WEB-INF/email-templates``) are out of scope on purpose: mail clients strip
 ``<style>`` and need inline styles, and no email is rendered under the page's CSP.
 
-Exit codes: 0 = within the backlog (or report-only), 1 = a file over its backlog under
---strict, 2 = the template tree is missing or too small to be the real one. See issue #1999.
+Exit codes: 0 = no inline style attributes (or report-only), 1 = any under --strict,
+2 = the template tree is missing or too small to be the real one. See issue #1999.
 
 @author elizabeth houser
 """
@@ -52,27 +55,6 @@ MIN_FILES = 50
 STYLE_ATTR_RE = re.compile(r"""\sstyle\s*=\s*["']""", re.I)
 _ICON_GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-icon-link-names.py")
 
-# May only go down. Recorded 2026-09-10 at 351 across 122 templates; lowered the same day to
-# 228 across 89 when the spacing-only attributes became u-* classes, then to 135 across 61 when
-# the sizing, position, overflow and text ones did, then to 98 across 54 when layout and category
-# styles moved to nonced head rules, then to 67 across 35 when the rest of the computed values did,
-# then to 30 across 18 when the display ones became classes and the hidden attribute, then to
-# 22 across 12 when the script- and plugin-driven ones got normal declarations.
-# Paths are relative to src/main/webapp/WEB-INF/jsp.
-BACKLOG = {
-    "admin/audit-log-list.jsp": 1,
-    "admin/image-browser.jsp": 7,
-    "admin/site-stats-recent-actions.jsp": 1,
-    "admin/sitemap.jsp": 4,
-    "calendar/calendar-search-results.jsp": 1,
-    "cms/image-browser.jsp": 2,
-    "cms/table-widget.jsp": 1,
-    "cms/web-page-search-results.jsp": 1,
-    "cms/wiki-search-results-list.jsp": 1,
-    "ecommerce/customer-payment-form.jsp": 1,
-    "items/items-integrated-search-results-list.jsp": 1,
-    "main.jsp": 1,
-}
 
 
 def _blank_out():
@@ -118,36 +100,21 @@ def main(argv=None):
         print("MISSING  scanned only %d templates under %s -- check the path" % (scanned, JSP_ROOT),
               file=sys.stderr)
         return 2
-    over = {rel: hits for rel, hits in found.items() if len(hits) > BACKLOG.get(rel, 0)}
-    under = [(rel, was, len(found.get(rel, [])))
-             for rel, was in sorted(BACKLOG.items()) if len(found.get(rel, [])) < was]
-
-    if over:
-        total = sum(len(h) - BACKLOG.get(r, 0) for r, h in over.items())
-        print("FAIL  %d new inline style attribute(s), in %d file(s)" % (total, len(over)))
-        for rel, hits in sorted(over.items()):
-            allowed = BACKLOG.get(rel, 0)
-            suffix = "  (backlog allows %d)" % allowed if allowed else ""
-            print("  jsp/%s: line%s %s%s" % (rel, "" if len(hits) == 1 else "s",
-                                         ", ".join(str(n) for n in hits), suffix))
+    if found:
+        total = sum(len(hits) for hits in found.values())
+        print("FAIL  %d inline style attribute(s), in %d file(s)" % (total, len(found)))
+        for rel, hits in sorted(found.items()):
+            print("  jsp/%s: line%s %s" % (rel, "" if len(hits) == 1 else "s",
+                                       ", ".join(str(n) for n in hits)))
         print()
         print("Move the declaration into a stylesheet. If it replaces an inline style, keep its")
-        print("precedence with !important -- a plain class can lose to a rule the attribute beat.")
-        print("A value computed at render time can move into a rule in a nonced <style> element,")
-        print("validated first as LogoWidget.cssLength() does for logo.jsp. See issue #1999.")
+        print("precedence with !important -- a plain class can lose to a rule the attribute beat --")
+        print("unless a script writes the same property. A value computed at render time goes through")
+        print("css:register, which serves it from the page's nonced <style>. See issue #1999.")
         return 1 if args.strict else 0
 
-    if under:
-        print("NOTE  the backlog is now ahead of the recorded counts -- lower BACKLOG in %s"
-              % os.path.basename(__file__))
-        for rel, was, now in under:
-            print("  jsp/%s: %d -> %d" % (rel, was, now))
-
-    remaining = sum(len(h) for h in found.values())
-    print("OK  no new inline style attributes (%d remain in the backlog, across %d files)"
-          % (remaining, len(found)))
+    print("OK  no inline style attributes in %d templates" % scanned)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
