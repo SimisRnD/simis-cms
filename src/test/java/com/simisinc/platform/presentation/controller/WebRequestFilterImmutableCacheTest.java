@@ -101,11 +101,11 @@ class WebRequestFilterImmutableCacheTest {
   @Test
   void stylesheetsScriptsAndBundledImagesRevalidateRatherThanCacheBlind() {
     // Still the right answer for everything this method is now reached for: the vendored libraries
-    // carry no ?v= at all. The platform's own assets still match here, deliberately -- they are
-    // claimed earlier by isStampedPlatformAsset only when the request actually carries a stamp, and
-    // this is the safe landing place when it does not. Sending no header is not neutral: with
-    // neither an expiry nor a validator, browsers apply heuristic freshness and a deployed CSS fix
-    // can go unseen for an unpredictable stretch.
+    // carry no stamp this filter can trust. The platform's own assets still match here,
+    // deliberately -- they are claimed earlier by isStampedPlatformAsset only when the request
+    // actually carries a stamp, and this is the safe landing place when it does not. Sending no
+    // header is not neutral: with neither an expiry nor a validator, browsers apply heuristic
+    // freshness and a deployed CSS fix can go unseen for an unpredictable stretch.
     assertTrue(WebRequestFilter.isRevalidatedAsset("/css/platform.css"));
     assertTrue(WebRequestFilter.isRevalidatedAsset("/javascript/copy-button.js"));
     assertTrue(WebRequestFilter.isRevalidatedAsset("/images/favicon.png"));
@@ -162,8 +162,29 @@ class WebRequestFilterImmutableCacheTest {
   }
 
   @Test
+  void theLibrariesStampedToEscapeHeuristicCachingStillRevalidate() {
+    // Issue #1999. Until 2026-09-04 these responses had no Cache-Control, so browsers cached them
+    // by heuristic -- fresh for a tenth of their age since Last-Modified (January 2023), about
+    // four months without asking. The libraries patched for #1999 are referenced with
+    // ?v=assetVersion to move them to URLs no browser has cached. With this instance's own stamp,
+    // as in production, they must still revalidate: the token tracks the platform's files, not
+    // theirs.
+    String stamp = "1789143902000";
+    for (String library : new String[] {
+        "/javascript/spectrum-1.8.1/spectrum.js",
+        "/javascript/tinymce-7.9.3/tinymce.min.js",
+        "/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js",
+        "/javascript/foundation-datepicker-20180424/foundation-datepicker.js",
+        "/css/foundation-datepicker-20180424/foundation-datepicker.min.css"}) {
+      assertFalse(WebRequestFilter.isStampedPlatformAsset(library, "v=" + stamp, stamp),
+          library + " carries the stamp only to change its URL, so it must not become immutable");
+      assertTrue(WebRequestFilter.isRevalidatedAsset(library), library + " must keep revalidating");
+    }
+  }
+
+  @Test
   void aVendoredLibraryIsNeverImmutableEvenIfTheUrlCarriesAStamp() {
-    // The critical case. These are referenced from the JSPs with no ?v= at all, and the token is
+    // The critical case. Most are referenced from the JSPs with no ?v= at all, and the token is
     // computed only from the platform's own files, so nothing about their URL tracks their content.
     // A year-long cache here could pin a stale copy with no way to recall it.
     assertFalse(WebRequestFilter.isStampedPlatformAsset("/css/animate-3.7.2/animate.min.css", "v=1", "1"));

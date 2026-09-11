@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyList" class="java.util.ArrayList" scope="request"/>
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
-<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
+<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <%-- Handle image uploads --%>
 <script nonce="${cspNonce}">
 

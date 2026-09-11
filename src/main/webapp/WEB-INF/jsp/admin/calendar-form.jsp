@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="calendar" class="com.simisinc.platform.domain.model.cms.Calendar" scope="request"/>
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
-<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
+<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <c:choose>
   <c:when test="${calendar.id eq -1}"><h2 class="h4">New Calendar</h2></c:when>
   <c:otherwise>

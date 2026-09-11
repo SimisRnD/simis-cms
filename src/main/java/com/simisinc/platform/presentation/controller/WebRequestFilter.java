@@ -189,8 +189,10 @@ public class WebRequestFilter implements Filter {
       } else if (isRevalidatedAsset(resource)) {
         // Order matters: the webfonts under /css/<vendor>/webfonts/ are claimed above, and so are
         // the platform's own stamped assets. What is left under /css, /javascript and /images is
-        // everything with no trustworthy stamp -- the vendored libraries, which are referenced
-        // without any ?v= at all -- and that still has to revalidate.
+        // everything with no trustworthy stamp -- the vendored libraries -- and that still has to
+        // revalidate. Most are referenced with no ?v= at all. The few that carry assetVersion (the
+        // ones patched for #1999) carry it only to move off URLs browsers cached by heuristic
+        // before this header existed; the token comes from the platform's own files, not theirs.
         servletResponse = new ImmutableAssetResponse((HttpServletResponse) servletResponse,
             REVALIDATE_CACHE_CONTROL);
       }
