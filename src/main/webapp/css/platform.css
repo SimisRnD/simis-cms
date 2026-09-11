@@ -2258,9 +2258,12 @@ a.platform-blog-overview-thumbnail img {
      pos top right bottom left z  position             o ox oy                  overflow
      ta ti td ws wb va lh fs fw   text                 float clear flex border translate
      d vis                        display, visibility  flexwrap gap ai          flex layout
-     color cursor                 color, cursor
+     color bg cursor              color, cursor        border bb radius         borders
    Values are px unless a unit follows (p = %, vh, rem); "n" is negative, "_" a decimal point,
    "sp6" the --sc-space-6 token. ar is aspect-ratio, width then height: u-ar-16-9 is 16 / 9.
+   A color is always a token role, never a literal: u-color-muted is var(--sc-text-muted),
+   u-bg-inverse var(--sc-text), u-border-1-border 1px solid var(--sc-border) -- so these follow
+   the theme, dark mode included.
    Every declaration is !important on purpose: an inline style outranks every normal selector,
    so a plain class could lose to an existing rule the attribute used to beat. Two differences
    from an attribute remain, and neither applies where these are used: an existing !important
@@ -2313,17 +2316,21 @@ a.platform-blog-overview-thumbnail img {
 .u-p-2 { padding: 2px !important; }
 .u-p-0_2rem { padding: 0.2rem !important; }
 .u-p-1rem { padding: 1rem !important; }
+.u-p-20 { padding: 20px !important; }
 .u-px-0 { padding-left: 0 !important; padding-right: 0 !important; }
 .u-px-12 { padding-left: 12px !important; padding-right: 12px !important; }
+.u-px-14 { padding-left: 14px !important; padding-right: 14px !important; }
 .u-px-15 { padding-left: 15px !important; padding-right: 15px !important; }
 .u-px-30 { padding-left: 30px !important; padding-right: 30px !important; }
 .u-py-2 { padding-top: 2px !important; padding-bottom: 2px !important; }
+.u-py-4 { padding-top: 4px !important; padding-bottom: 4px !important; }
 .u-py-8 { padding-top: 8px !important; padding-bottom: 8px !important; }
 .u-py-10 { padding-top: 10px !important; padding-bottom: 10px !important; }
 .u-py-30 { padding-top: 30px !important; padding-bottom: 30px !important; }
 .u-pr-0 { padding-right: 0 !important; }
 .u-pr-15 { padding-right: 15px !important; }
 .u-pr-20 { padding-right: 20px !important; }
+.u-pb-2 { padding-bottom: 2px !important; }
 .u-pb-50 { padding-bottom: 50px !important; }
 .u-pl-8 { padding-left: 8px !important; }
 .u-pl-16 { padding-left: 16px !important; }
@@ -2380,6 +2387,7 @@ a.platform-blog-overview-thumbnail img {
 .u-z-1001 { z-index: 1001 !important; }
 .u-z-1005 { z-index: 1005 !important; }
 .u-translate-center { transform: translateY(-50%) translateX(-50%) !important; }
+.u-o-hidden { overflow: hidden !important; }
 .u-o-scroll { overflow: scroll !important; }
 .u-ox-auto { overflow-x: auto !important; }
 .u-oy-auto { overflow-y: auto !important; }
@@ -2389,9 +2397,16 @@ a.platform-blog-overview-thumbnail img {
 .u-flex-1 { flex: 1 !important; }
 .u-flexwrap-wrap { flex-wrap: wrap !important; }
 .u-gap-1rem { gap: 1rem !important; }
+.u-gap-20 { gap: 20px !important; }
 .u-ai-flex-end { align-items: flex-end !important; }
 .u-border-0 { border: 0 !important; }
+.u-border-1-border { border: 1px solid var(--sc-border, #ddd8cf) !important; }
+.u-border-3-alert { border: 3px solid var(--sc-fnd-alert-ink, #ba403e) !important; }
+.u-bb-1-border { border-bottom: 1px solid var(--sc-border, #ddd8cf) !important; }
+.u-bb-2-inverse { border-bottom: 2px solid var(--sc-text-inverse, #ffffff) !important; }
+.u-radius-4 { border-radius: 4px !important; }
 .u-ta-left { text-align: left !important; }
+.u-ta-center { text-align: center !important; }
 .u-ta-right { text-align: right !important; }
 .u-ti-n11 { text-indent: -11px !important; }
 .u-td-none { text-decoration: none !important; }
@@ -2406,9 +2421,14 @@ a.platform-blog-overview-thumbnail img {
 .u-lh-2_4375rem { line-height: 2.4375rem !important; }
 .u-fs-0_75rem { font-size: 0.75rem !important; }
 .u-fs-0_875rem { font-size: 0.875rem !important; }
+.u-fs-0_9rem { font-size: 0.9rem !important; }
 .u-fs-32 { font-size: 32px !important; }
 .u-fw-bold { font-weight: bold !important; }
 .u-color-inherit { color: inherit !important; }
+.u-color-muted { color: var(--sc-text-muted, #6c6861) !important; }
+.u-color-inverse { color: var(--sc-text-inverse, #ffffff) !important; }
+.u-bg-inverse { background-color: var(--sc-text, #2c2925) !important; }
+.u-bg-raised { background-color: var(--sc-surface-raised, #ffffff) !important; }
 .u-cursor-crosshair { cursor: crosshair !important; }
 
 /* Starting heights for the resizable textareas (issue #1999). Normal declarations on purpose, not
@@ -2418,6 +2438,40 @@ a.platform-blog-overview-thumbnail img {
 textarea.textarea-h-120 { height: 120px; }
 textarea.textarea-h-180 { height: 180px; }
 textarea.textarea-h-300 { height: 300px; }
+
+/* The analytics consent banner (issue #1999). The theme's ink as the bar and its inverse as the
+   text -- 14.5:1 in light mode -- so it stays a strong band in either mode. Normal declarations
+   on an id, not u-* classes: the Decline button hides it by setting style.display. */
+#analytics-consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--sc-text, #2c2925);
+  color: var(--sc-text-inverse, #ffffff);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* The image library's focal-point marker (issue #1999). White and black on purpose, not theme
+   tokens: it sits on an arbitrary photo, so it has to read on light and dark images alike.
+   Normal declarations: the picker script moves it by writing left and top. */
+#focalPointMarker.focal-point-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px black, 0 0 4px rgba(0, 0, 0, .6);
+  pointer-events: none;
+  left: 50%;
+  top: 50%;
+}
 
 @media screen and (max-width: 39.9375em) {
   .small-margin-0 { margin-top: 0; margin-bottom: 0; }

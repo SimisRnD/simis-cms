@@ -97,9 +97,9 @@
         <div class="card-section">
           <div>
             <small><c:out value="${image.filename}"/></small><br />
-            <small style="color: #999999">${image.width}x${image.height}</small>
-            <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
-            <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
+            <small class="u-color-muted">${image.width}x${image.height}</small>
+            <small class="u-color-muted"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
+            <small class="u-color-muted"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
             <small><a target="_blank" href="${ctx}/assets/img/${fn:escapeXml(image.url)}">Image Link</a></small><br />
             <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
             <c:if test="${!empty imageTagsByImageId[image.id]}">
@@ -173,9 +173,9 @@
               <div class="card-section">
                 <div>
                   <small><c:out value="${image.filename}"/></small><br />
-                  <small style="color: #999999">${image.width}x${image.height}</small>
-                  <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
-                  <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
+                  <small class="u-color-muted">${image.width}x${image.height}</small>
+                  <small class="u-color-muted"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
+                  <small class="u-color-muted"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
                   <small><a target="_blank" href="${ctx}/assets/img/${fn:escapeXml(image.url)}">Image Link</a></small><br />
                   <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
                   <c:if test="${!empty imageTagsByImageId[image.id]}">
@@ -239,9 +239,7 @@
   <p>Click the image where the subject is, so a future square crop keeps it in frame.</p>
   <div id="focalPointImageWrap" class="u-pos-rel u-d-inline-block u-maxw-100p">
     <img id="focalPointImage" src="" alt="" class="u-d-block u-maxw-100p u-h-auto u-cursor-crosshair">
-    <div id="focalPointMarker" style="position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px;
-         border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #000, 0 0 4px rgba(0,0,0,.6);
-         pointer-events:none; left:50%; top:50%;"></div>
+    <div id="focalPointMarker" class="focal-point-marker"></div>
   </div>
   <div class="grid-x grid-margin-x margin-top-10">
     <div class="cell small-6">

@@ -260,8 +260,8 @@
         <div class="card-section">
           <div>
             <small><c:out value="${image.filename}"/></small><br />
-            <small style="color: #999999">${image.width}x${image.height}</small>
-            <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small>
+            <small class="u-color-muted">${image.width}x${image.height}</small>
+            <small class="u-color-muted"><c:out value="${number:suffix(image.fileLength)}"/></small>
           </div>
         </div>
       </div>

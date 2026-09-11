@@ -33,7 +33,7 @@
       <span class="label secondary u-mr-5">
         <c:out value="${activeFilter.facetLabel}"/>: <c:out value="${activeFilter.valueLabel}"/>
         <%-- clearUrl is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
-        <a href="${activeFilter.clearUrl}" style="color:inherit" title="Remove this filter"><i class="fa fa-times"></i></a>
+        <a href="${activeFilter.clearUrl}" class="u-color-inherit" title="Remove this filter"><i class="fa fa-times"></i></a>
       </span>
     </c:forEach>
   </div>

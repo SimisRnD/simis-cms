@@ -28,7 +28,7 @@
     <c:otherwise>
       <ul class="no-bullet no-gap">
         <c:forEach items="${recentActionsList}" var="record">
-          <li style="padding: 4px 0; border-bottom: 1px solid #eee;">
+          <li class="u-py-4 u-px-0 u-bb-1-border">
             <span title="<fmt:formatDate pattern='yyyy-MM-dd HH:mm:ss z' value='${record.occurred}' />"><c:out value="${date:relative(record.occurred)}" /></span>
             &mdash;
             <c:choose>
