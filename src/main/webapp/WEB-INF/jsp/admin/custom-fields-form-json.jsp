@@ -38,7 +38,7 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-9 cell">
       <p>
-        <textarea name="json" data-gutter="1" rows="24" data-editor="json"><c:out value="${json}"/></textarea>
+        <textarea aria-label="Custom fields JSON" name="json" data-gutter="1" rows="24" data-editor="json"><c:out value="${json}"/></textarea>
       </p>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
