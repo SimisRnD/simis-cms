@@ -448,6 +448,31 @@ ALLOWLIST: dict[str, str] = {
         "PageServlet.java generates this per-request as SECURE_RANDOM.nextBytes(16) run through "
         "Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet is exactly [A-Za-z0-9_-], "
         "which cannot contain a quote, angle bracket, or any other markup-breaking character.",
+
+    # Dynamic styles served from a nonced <style> in the head instead of style="" (issue #1999).
+    "${css:hook(section.cssStyle)}":
+        "PageStyleRules.hook() -> StyleRuleCommand.hook() returns either the empty string or 'sc-' "
+        "followed by exactly twelve lowercase hex digits (six bytes of a SHA-256 of the validated "
+        "declarations, each formatted %02x) -- only [a-z0-9-], so it cannot hold a quote, angle bracket "
+        "or anything else markup-breaking in any context. The style value itself never reaches the page "
+        "through this expression; only its hash does.",
+    "${css:hook(column.cssStyle)}":
+        "Same as ${css:hook(section.cssStyle)} -- 'sc-' plus twelve hex digits, or empty.",
+    "${css:hook(widget.cssStyle)}":
+        "Same as ${css:hook(section.cssStyle)} -- 'sc-' plus twelve hex digits, or empty.",
+    "${scHook}":
+        "Set one line earlier from css:register(), which returns the same 'sc-' plus twelve hex digits "
+        "(or empty) as css:hook() -- PageStyleRules.register() -> StyleRuleCommand.hook().",
+    "${scHookTall}":
+        "Same as ${scHook}: set one line earlier from css:register().",
+    "${scHeadRules}":
+        "Set one line earlier from css:headRules() and rendered only inside <style nonce>. It is a "
+        "newline-joined list of StyleRuleCommand.rule() outputs, [data-sc-style=\"sc-<12 hex>\"]{...}, "
+        "where every declaration passed StyleRuleCommand's grammar: property [-a-z0-9]+, and a value "
+        "with no < > { } \\ @ or control characters, no comment markers, balanced quotes and "
+        "parentheses, and url() only to this site or http(s). It therefore contains no '<' and cannot "
+        "close the style element or open markup. HTML-escaping it would corrupt the CSS -- a style "
+        "element is raw text -- and add nothing.",
 }
 
 CONTEXT_HTML = "HTML"

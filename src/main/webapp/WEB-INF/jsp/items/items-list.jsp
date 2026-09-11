@@ -20,6 +20,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -86,7 +87,7 @@
           <c:if test="${!empty item.city}"><small class="subheader"><c:out value="${item.city}" /></small></c:if>
           <c:if test="${empty item.approved}"><span class="label warning">Needs approval</span></c:if>
           <c:if test="${showCategory eq 'true' && item.categoryId gt 0}">
-            <span class="label tiny margin-0" style="${category:headerColorCSS(item.categoryId)}; padding:0.15rem .2rem"><c:out value="${category:name(item.categoryId)}" /></span>
+            <c:set var="scHook" value="${css:register(pageContext.request, (category:headerColorCSS(item.categoryId) += '; padding:0.15rem .2rem'))}"/><span class="label tiny margin-0"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>><c:out value="${category:name(item.categoryId)}" /></span>
           </c:if>
           <c:if test="${showLaunchLink eq 'true' && !empty item.url}">
             <c:if test="${fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://')}">

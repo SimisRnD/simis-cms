@@ -20,6 +20,7 @@
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="css" uri="/WEB-INF/tlds/style-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -137,7 +138,7 @@
               </c:choose>
               <c:if test="${!empty item.city}"><small class="subheader"><c:out value="${item.city}" /></small></c:if>
               <c:if test="${item.categoryId gt 0}">
-                <span class="label" style="${category:headerColorCSS(item.categoryId)}"><c:out value="${category:name(item.categoryId)}" /></span>
+                <c:set var="scHook" value="${css:register(pageContext.request, category:headerColorCSS(item.categoryId))}"/><span class="label"<c:if test="${!empty scHook}"> data-sc-style="${scHook}"</c:if>><c:out value="${category:name(item.categoryId)}" /></span>
               </c:if>
             </h5>
             <c:choose>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<taglib xmlns="https://jakarta.ee/xml/ns/jakartaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-jsptaglibrary_3_0.xsd"
+        version="3.0">
+    <tlib-version>1.0</tlib-version>
+    <short-name>css</short-name>
+    <function>
+        <description>
+            The data-sc-style hook for a style value ("sc-" and twelve hex digits), or an empty string when
+            nothing in it passes validation. Layout section, column and widget styles use this; their rules
+            are served in the head by headRules.
+        </description>
+        <name>hook</name>
+        <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
+        <function-signature>java.lang.String hook(java.lang.String)</function-signature>
+    </function>
+    <function>
+        <description>
+            Adds a style value a widget computed to this request's head rules and returns its hook, or an
+            empty string when nothing in it passes validation.
+        </description>
+        <name>register</name>
+        <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
+        <function-signature>java.lang.String register(jakarta.servlet.ServletRequest, java.lang.String)</function-signature>
+    </function>
+    <function>
+        <description>
+            Every validated rule the page needs, for a nonced style element in the head. Contains no
+            character that can end a style element.
+        </description>
+        <name>headRules</name>
+        <function-class>com.simisinc.platform.presentation.controller.PageStyleRules</function-class>
+        <function-signature>java.lang.String headRules(jakarta.servlet.ServletRequest)</function-signature>
+    </function>
+</taglib>
