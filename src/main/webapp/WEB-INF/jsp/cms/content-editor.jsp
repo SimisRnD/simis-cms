@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -21,7 +22,7 @@
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <jsp:useBean id="reusabilityWarning" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <script nonce="${cspNonce}">
   $(window).on('resize', function () {
     setTimeout(function () {
@@ -49,7 +50,7 @@
     menubar: false,
     relative_urls : false,
     convert_urls : true,
-    content_css: ['${ctx}/css/${font:fontawesome()}/css/all.min.css', '${ctx}/css/platform-editor-content.css'],
+    content_css: ['${ctx}/css/${font:fontawesome()}/css/all.min.css', '${ctx}/css/platform-editor-content.css?v=${js:escape(applicationScope.assetVersion)}'],
     noneditable_class: 'tinymce-noedit',
     browser_spellcheck: true,
     plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code media table wordcount fontawesome',

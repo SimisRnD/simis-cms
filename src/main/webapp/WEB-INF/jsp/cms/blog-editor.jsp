@@ -22,7 +22,7 @@
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPost" class="com.simisinc.platform.domain.model.cms.BlogPost" scope="request"/>
 <jsp:useBean id="tagList" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',

@@ -20,7 +20,7 @@
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
-<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
+<script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}" />

@@ -249,7 +249,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.tokens.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/motion-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/animate-3.7.2/animate.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
     <%-- ?v= is a cache-busting token (#1333), set at startup from the files' modification time.
@@ -556,7 +556,7 @@
     </c:if>
   </c:if>
     <script src="${ctx}/javascript/jquery-3.7.1/jquery.min.js"></script>
-    <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
+    <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
     <script src="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.js"></script>
