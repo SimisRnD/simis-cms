@@ -31,7 +31,7 @@
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="columns" class="java.lang.String" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .admin-item-list .item-image, .admin-item-list .item-icon {
       float: left;
   }

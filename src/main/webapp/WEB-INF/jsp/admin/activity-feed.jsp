@@ -43,7 +43,7 @@
      color reinforces, text is what actually disambiguates. Dark-mode values follow this codebase's existing
      [data-theme] convention (see css/platform-tokens.css) rather than plain prefers-color-scheme alone, so
      a viewer's explicit theme choice always wins over the OS default. --%>
-<style>
+<style nonce="${cspNonce}">
   .activity-cat-chip {
     display: inline-flex;
     align-items: center;

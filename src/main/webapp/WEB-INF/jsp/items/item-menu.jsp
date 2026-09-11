@@ -26,7 +26,7 @@
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="itemTabList" class="java.util.ArrayList" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   <%-- Small menu is title-bar --%>
   <%-- Medium and up is menu-bar --%>
   .item-menu.menu-bar {

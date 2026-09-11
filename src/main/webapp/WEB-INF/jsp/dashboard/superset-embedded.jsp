@@ -23,7 +23,7 @@
 <jsp:useBean id="dashboardValue" class="java.lang.String" scope="request"/>
 <jsp:useBean id="hideChartControls" class="java.lang.String" scope="request"/>
 <jsp:useBean id="hideChartTitle" class="java.lang.String" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
     #superset-container${widgetContext.uniqueId},
     #superset-container${widgetContext.uniqueId} iframe {
         min-height: <c:out value="${height}" />;

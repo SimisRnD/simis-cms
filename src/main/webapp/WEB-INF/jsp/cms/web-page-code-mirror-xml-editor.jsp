@@ -26,7 +26,7 @@
   <script src="${ctx}/javascript/codemirror-5.65.14/closetag.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/matchtags.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/xml.js"></script>
-<style>
+<style nonce="${cspNonce}">
   .CodeMirror {
     border: 1px solid #4d4d4d;
     /*font-size: 12px !important;*/

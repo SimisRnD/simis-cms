@@ -29,7 +29,7 @@
 <jsp:useBean id="smallGridCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mediumGridCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeGridCount" class="java.lang.String" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .card-catalog a {
     font-weight: bold;
     display: -webkit-box;

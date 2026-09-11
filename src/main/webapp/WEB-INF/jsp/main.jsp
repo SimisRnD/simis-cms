@@ -260,7 +260,7 @@
          before the theme's inline <style> block so a site's own colors still win. --%>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css?v=${fn:escapeXml(applicationScope.assetVersion)}" />
   <c:if test="${!empty themePropertyMap}">
-      <style><%-- Prevent top-bar flicker --%>
+      <style nonce="${cspNonce}"><%-- Prevent top-bar flicker --%>
         :root {
           <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">--sc-body-background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;</c:if>
@@ -523,7 +523,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
-    <style>
+    <style nonce="${cspNonce}">
         <c:choose>
           <c:when test="${!empty pageCollectionCategory && !empty pageCollectionCategory.headerBgColor && !empty pageCollectionCategory.headerTextColor}">
             .item-menu.menu-bar,.item-menu.title-bar{background-color:<c:out value="${pageCollectionCategory.headerBgColor}" />}
@@ -566,7 +566,7 @@
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
-  <style>
+  <style nonce="${cspNonce}">
     .platform-skip-link { position: absolute; left: -9999px; top: -9999px; z-index: 9999; }
     .platform-skip-link:focus { left: 0; top: 0; background: #fff; color: #000; padding: 0.5rem 1rem; text-decoration: none; border: 2px solid #000; }
     .platform-preview-draft-banner { background: #fef6e0; color: #7a5c00; border-bottom: 1px solid #f0d98c; padding: 0.5rem 1rem; text-align: center; font-size: 0.9rem; }
@@ -875,7 +875,7 @@
         </c:when>
       </c:choose>
       <c:if test="${!empty footerStickyLinks && !fn:startsWith(pageRenderInfo.name, '/admin') && !fn:startsWith(pageRenderInfo.name, '/content-editor')}">
-        <style>
+        <style nonce="${cspNonce}">
           #site-sticky-footer {
             position: fixed;
             bottom: 0;

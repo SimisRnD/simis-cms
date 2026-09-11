@@ -28,7 +28,7 @@
 <jsp:useBean id="loop" class="java.lang.String" scope="request"/>
 <jsp:useBean id="autoplayDelay" class="java.lang.String" scope="request"/>
 <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
-<style>
+<style nonce="${cspNonce}">
   #swiper${widgetContext.uniqueId} { width: calc(100% - 80px); }
 </style>
 </c:if>

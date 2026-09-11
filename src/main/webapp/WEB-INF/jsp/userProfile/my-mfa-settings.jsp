@@ -16,7 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .mfa-recovery-codes { columns: 2; column-gap: 1.5rem; margin: .6rem 0 1rem; }
   .mfa-recovery-codes li { break-inside: avoid; margin-bottom: .35rem; }
   .mfa-recovery-codes li code { display: inline-block; }

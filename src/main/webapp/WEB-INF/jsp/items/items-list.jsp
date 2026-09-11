@@ -139,7 +139,7 @@
 </c:choose>
 
 <c:if test="${isEditMode eq 'true'}">
-<style>
+<style nonce="${cspNonce}">
   .item-row {
     position: relative;
     padding-left: 2.5rem;

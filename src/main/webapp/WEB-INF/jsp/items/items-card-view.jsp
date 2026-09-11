@@ -47,7 +47,7 @@
 <jsp:useBean id="isSearchResults" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchLocation" class="java.lang.String" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .card-catalog .item-name {
     display: -webkit-box;
     -webkit-box-orient: vertical;

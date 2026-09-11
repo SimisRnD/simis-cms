@@ -40,7 +40,7 @@
   });
 </script>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .form-field-error {
     border-left: 4px solid var(--sc-danger, #ba403e) !important;
     background-color: rgba(204, 76, 40, 0.02);

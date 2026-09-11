@@ -27,7 +27,7 @@
 <jsp:useBean id="cardClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="buttonLabel" class="java.lang.String" scope="request"/>
 <c:if test="${showControls eq 'true' && fn:length(productList) gt 1}">
-<style>
+<style nonce="${cspNonce}">
   #swiper${widgetContext.uniqueId} { width: calc(100% - 80px); }
 </style>
 </c:if>

@@ -141,3 +141,60 @@ def test_missing_jsp_tree_exits_two(repo):
     result = check(repo)
     assert result.returncode == 2
     assert "MISSING" in result.stderr
+
+
+# <style> elements: a nonce can authorize one, so once style-src drops 'unsafe-inline' every one
+# has to carry the page's nonce. Today 'unsafe-inline' still admits a bare one, so only this notices.
+
+def test_style_element_without_the_nonce_fails(repo):
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp", '<p>a</p>\n<style>\n  .x { color: red; }\n</style>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert '1 <style> element(s) without nonce="${cspNonce}", in 1 file(s)' in result.stdout
+    assert "jsp/cms/new.jsp: line 2" in result.stdout
+
+
+def test_style_element_with_the_nonce_passes(repo):
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp", '<style nonce="${cspNonce}">\n  .x { color: red; }\n</style>\n')
+    assert check(repo, "--strict").returncode == 0
+
+
+def test_style_element_with_some_other_nonce_fails(repo):
+    # Only the page's per-request nonce matches the header; a fixed value never will.
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp", '<style nonce="abc123">.x{}</style>\n')
+    assert check(repo, "--strict").returncode == 1
+
+
+def test_style_elements_in_comments_and_scripts_are_ignored(repo):
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp",
+          '<%-- <style>.old{}</style> --%>\n<!-- <style>.old{}</style> -->\n'
+          '<script nonce="x">\n  $("head").append(\'<style>.x{}</style>\');\n</script>\n')
+    assert check(repo, "--strict").returncode == 0
+
+
+def test_css_inside_a_style_element_is_not_markup(repo):
+    # A comment in the CSS can mention "<style>" or style="" without being either.
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp",
+          '<style nonce="${cspNonce}">\n  /* rule order across the many <style> blocks; not style="x" */\n'
+          '  .x { color: red; }\n</style>\n')
+    assert check(repo, "--strict").returncode == 0
+
+
+def test_a_custom_element_named_like_style_is_not_one(repo):
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp", '<style-guide>x</style-guide>\n')
+    assert check(repo, "--strict").returncode == 0
+
+
+def test_both_kinds_are_reported_together(repo):
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/cms/new.jsp", '<p style="color:red">a</p>\n<style>.x{}</style>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "1 inline style attribute(s)" in result.stdout
+    assert "<style> element(s) without nonce" in result.stdout

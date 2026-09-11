@@ -40,7 +40,7 @@
 <c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
 </c:if>
-<style>
+<style nonce="${cspNonce}">
   .form-field-error {
     border-left: 4px solid var(--sc-danger, #ba403e) !important;
     background-color: rgba(204, 76, 40, 0.02);

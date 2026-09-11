@@ -28,7 +28,7 @@
 <jsp:useBean id="showCaption" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isSticky" class="java.lang.String" scope="request"/>
 <jsp:useBean id="marginTop" class="java.lang.String" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
   .swiper {
     border: 1px solid #cccccc;
     min-height: 450px;

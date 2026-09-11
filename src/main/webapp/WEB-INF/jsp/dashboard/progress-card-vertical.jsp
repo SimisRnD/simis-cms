@@ -29,7 +29,7 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <script src="${ctx}/javascript/chartjs-4.4.1/chart.umd.min.js"></script>
-<style>
+<style nonce="${cspNonce}">
   .chart-overlay-text {
       position: absolute;
       top: 53%;

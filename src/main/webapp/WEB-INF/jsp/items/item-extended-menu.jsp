@@ -25,7 +25,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="itemTabList" class="java.util.ArrayList" scope="request"/>
-<style>
+<style nonce="${cspNonce}">
     .item-menu.extended-bar {
         background-color: #ff9f2a;
         color: #ffffff;
