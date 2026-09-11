@@ -50,11 +50,11 @@
         <tbody>
         <tr>
           <td>Header Background Color</td>
-          <td nowrap><input id="headerBgColor" type="text" name="headerBgColor" value="<c:out value="${collection.headerBgColor}"/>"></td>
+          <td nowrap><input aria-label="Header Background Color" id="headerBgColor" type="text" name="headerBgColor" value="<c:out value="${collection.headerBgColor}"/>"></td>
         </tr>
         <tr>
           <td>Header Text Color</td>
-          <td nowrap><input id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${collection.headerTextColor}"/>"></td>
+          <td nowrap><input aria-label="Header Text Color" id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${collection.headerTextColor}"/>"></td>
         </tr>
         </tbody>
       </table>
@@ -70,15 +70,15 @@
         <tbody>
         <tr>
           <td>Menu Text Color</td>
-          <td nowrap><input id="menuTextColor" type="text" name="menuTextColor" value="<c:out value="${collection.menuTextColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Text Color" id="menuTextColor" type="text" name="menuTextColor" value="<c:out value="${collection.menuTextColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Background Color</td>
-          <td nowrap><input id="menuBgColor" type="text" name="menuBgColor" value="<c:out value="${collection.menuBgColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Background Color" id="menuBgColor" type="text" name="menuBgColor" value="<c:out value="${collection.menuBgColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Border Color</td>
-          <td nowrap><input id="menuBorderColor" type="text" name="menuBorderColor" value="<c:out value="${collection.menuBorderColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Border Color" id="menuBorderColor" type="text" name="menuBorderColor" value="<c:out value="${collection.menuBorderColor}"/>"></td>
         </tr>
         </tbody>
       </table>
@@ -94,15 +94,15 @@
         <tbody>
         <tr>
           <td>Menu Active Text Color</td>
-          <td nowrap><input id="menuActiveTextColor" type="text" name="menuActiveTextColor" value="<c:out value="${collection.menuActiveTextColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Active Text Color" id="menuActiveTextColor" type="text" name="menuActiveTextColor" value="<c:out value="${collection.menuActiveTextColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Active Background Color</td>
-          <td nowrap><input id="menuActiveBgColor" type="text" name="menuActiveBgColor" value="<c:out value="${collection.menuActiveBgColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Active Background Color" id="menuActiveBgColor" type="text" name="menuActiveBgColor" value="<c:out value="${collection.menuActiveBgColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Active Border Color</td>
-          <td nowrap><input id="menuActiveBorderColor" type="text" name="menuActiveBorderColor" value="<c:out value="${collection.menuActiveBorderColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Active Border Color" id="menuActiveBorderColor" type="text" name="menuActiveBorderColor" value="<c:out value="${collection.menuActiveBorderColor}"/>"></td>
         </tr>
         </tbody>
       </table>
@@ -118,15 +118,15 @@
         <tbody>
         <tr>
           <td>Menu Hover Text Color</td>
-          <td nowrap><input id="menuHoverTextColor" type="text" name="menuHoverTextColor" value="<c:out value="${collection.menuHoverTextColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Hover Text Color" id="menuHoverTextColor" type="text" name="menuHoverTextColor" value="<c:out value="${collection.menuHoverTextColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Hover Background Color</td>
-          <td nowrap><input id="menuHoverBgColor" type="text" name="menuHoverBgColor" value="<c:out value="${collection.menuHoverBgColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Hover Background Color" id="menuHoverBgColor" type="text" name="menuHoverBgColor" value="<c:out value="${collection.menuHoverBgColor}"/>"></td>
         </tr>
         <tr>
           <td>Menu Hover Border Color</td>
-          <td nowrap><input id="menuHoverBorderColor" type="text" name="menuHoverBorderColor" value="<c:out value="${collection.menuHoverBorderColor}"/>"></td>
+          <td nowrap><input aria-label="Menu Hover Border Color" id="menuHoverBorderColor" type="text" name="menuHoverBorderColor" value="<c:out value="${collection.menuHoverBorderColor}"/>"></td>
         </tr>
         </tbody>
       </table>

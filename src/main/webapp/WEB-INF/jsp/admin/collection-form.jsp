@@ -112,7 +112,7 @@
             All Guests (Non-Users and Users)
           </td>
           <td>
-            <select name="guestPrivacyType" class="no-gap">
+            <select aria-label="Privacy for All Guests (Non-Users and Users)" name="guestPrivacyType" class="no-gap">
               <option value="-1"></option>
               <option value="2000"<c:if test='${collection.guestPrivacyType == 2000}'> selected</c:if>>All Records (Login to Collaborate)</option>
               <option value="3000"<c:if test='${collection.guestPrivacyType == 3000}'> selected</c:if>>All Records (Read-Only)</option>
@@ -128,7 +128,7 @@
               <c:out value="${group.name}" />
             </td>
             <td>
-              <select name="groupId${group.id}privacyType" class="no-gap">
+              <select aria-label="Privacy for ${fn:escapeXml(group.name)}" name="groupId${group.id}privacyType" class="no-gap">
                 <option value=""></option>
                 <option value="public"<c:if test='${!empty collectionGroup && collectionGroup.privacyType == 2000}'> selected</c:if>>All Records</option>
                 <option value="public-read-only"<c:if test='${!empty collectionGroup && collectionGroup.privacyType == 3000}'> selected</c:if>>All Records (Read-Only)</option>

@@ -251,24 +251,24 @@
             <td>
               <div class="input-group">
                 <input type="hidden" name="products[${status.index}].id" value="<c:out value="${thisProduct.id}" />"/>
-                <input class="input-group-field" type="text" name="products[${status.index}].sku" value="<c:out value="${thisProduct.sku}" />" maxlength="20" />
+                <input class="input-group-field" type="text" aria-label="SKU, product ${status.index + 1}" name="products[${status.index}].sku" value="<c:out value="${thisProduct.sku}" />" maxlength="20" />
               </div>
             </td>
             <td>
               <div class="input-group">
-                <input class="input-group-field" type="text" name="products[${status.index}].barcode" value="<c:out value="${thisProduct.barcode}" />" />
-              </div>
-            </td>
-            <td>
-              <div class="input-group">
-                <span class="input-group-label"><i class="fa fa-dollar"></i></span>
-                <input class="input-group-field" type="text" name="products[${status.index}].strikePrice" value="<c:if test="${thisProduct.strikePrice ne 0}"><fmt:formatNumber type="currency" currencySymbol="" value="${thisProduct.strikePrice}" /></c:if>" />
+                <input class="input-group-field" type="text" aria-label="UPC, product ${status.index + 1}" name="products[${status.index}].barcode" value="<c:out value="${thisProduct.barcode}" />" />
               </div>
             </td>
             <td>
               <div class="input-group">
                 <span class="input-group-label"><i class="fa fa-dollar"></i></span>
-                <input class="input-group-field" type="text" name="products[${status.index}].price" value="<c:if test="${thisProduct.price ne 0}"><fmt:formatNumber type="currency" currencySymbol="" value="${thisProduct.price}" /></c:if>" />
+                <input class="input-group-field" type="text" aria-label="Strike price, product ${status.index + 1}" name="products[${status.index}].strikePrice" value="<c:if test="${thisProduct.strikePrice ne 0}"><fmt:formatNumber type="currency" currencySymbol="" value="${thisProduct.strikePrice}" /></c:if>" />
+              </div>
+            </td>
+            <td>
+              <div class="input-group">
+                <span class="input-group-label"><i class="fa fa-dollar"></i></span>
+                <input class="input-group-field" type="text" aria-label="Price, product ${status.index + 1}" name="products[${status.index}].price" value="<c:if test="${thisProduct.price ne 0}"><fmt:formatNumber type="currency" currencySymbol="" value="${thisProduct.price}" /></c:if>" />
               </div>
             </td>
             <%-- These are WrapDynaBean objects --%>
@@ -314,24 +314,24 @@
       <tr>
         <td>
           <div class="input-group">
-            <input class="input-group-field" type="text" name="products[${i}].sku" value="" maxlength="20" />
+            <input class="input-group-field" type="text" aria-label="SKU, new product ${i + 1}" name="products[${i}].sku" value="" maxlength="20" />
           </div>
         </td>
         <td>
           <div class="input-group">
-            <input class="input-group-field" type="text" name="products[${i}].barcode" value="" />
-          </div>
-        </td>
-        <td>
-          <div class="input-group">
-            <span class="input-group-label"><i class="fa fa-dollar"></i></span>
-            <input class="input-group-field" type="text" name="products[${i}].strikePrice" value="" />
+            <input class="input-group-field" type="text" aria-label="UPC, new product ${i + 1}" name="products[${i}].barcode" value="" />
           </div>
         </td>
         <td>
           <div class="input-group">
             <span class="input-group-label"><i class="fa fa-dollar"></i></span>
-            <input class="input-group-field" type="text" name="products[${i}].price" value="" />
+            <input class="input-group-field" type="text" aria-label="Strike price, new product ${i + 1}" name="products[${i}].strikePrice" value="" />
+          </div>
+        </td>
+        <td>
+          <div class="input-group">
+            <span class="input-group-label"><i class="fa fa-dollar"></i></span>
+            <input class="input-group-field" type="text" aria-label="Price, new product ${i + 1}" name="products[${i}].price" value="" />
           </div>
         </td>
         <%-- Determine the number of attribute columns to show --%>
@@ -376,7 +376,7 @@
   </table>
   <p>
     <small>Describe it...</small>
-    <textarea name="description"><c:out value="${product.description}"/></textarea>
+    <textarea aria-label="Product description" name="description"><c:out value="${product.description}"/></textarea>
   </p>
   <fieldset class="fieldset">
     <legend>Tax Information</legend>
@@ -389,7 +389,7 @@
           <label>Tax Code
             <a aria-label="Avalara tax code reference (opens in a new tab)" target="_blank" href="https://taxcode.avatax.avalara.com"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
             <a aria-label="TaxJar tax category reference (opens in a new tab)" target="_blank" href="https://developers.taxjar.com/api/reference/#get-list-tax-categories"><i aria-hidden="true" class="fa fa-info-circle"></i></a>
-            <input type="text" name="taxCode" value="<c:out value="${product.taxCode}"/>" />
+            <input aria-label="Tax code" type="text" name="taxCode" value="<c:out value="${product.taxCode}"/>" />
           </label>
         </div>
       </div>

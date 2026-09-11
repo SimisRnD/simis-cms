@@ -66,7 +66,7 @@
   <input type="hidden" name="addToImageLibrary" id="add-to-image-library-value" value="false"/>
   <%-- Fallback --%>
   <div class="fallback">
-    <input name="file" type="file" multiple />
+    <input aria-label="Choose files to upload" name="file" type="file" multiple />
   </div>
 </form>
 <%-- Kept in the DOM (empty) so aria-live announces into it; the callout/alert styling is added by
