@@ -37,7 +37,8 @@
     convert_urls: true,
     browser_spellcheck: true,
     plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code insertdatetime media table wordcount',
-    toolbar: 'link image media table | undo redo | blocks | bold italic backcolor | bullist numlist outdent indent hr | removeformat | visualblocks code',
+    // No backcolor: it can only write an inline style, and content may not keep one (issue #1999).
+    toolbar: 'link image media table | undo redo | blocks | bold italic | bullist numlist outdent indent hr | removeformat | visualblocks code',
     image_class_list: [
       {title: 'None', value: ''},
       {title: 'Image Left/Wrap Text Right', value: 'image-left'},
