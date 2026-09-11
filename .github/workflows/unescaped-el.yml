@@ -110,6 +110,18 @@ jobs:
       # nameless control cannot merge but a PR that fixes one is never blocked (issue 1962).
       - name: Fail on an icon-only control with no accessible name
         run: python3 tools/check-icon-link-names.py . --strict
+      # A class a JSP emits with no rule behind it is invisible to everything else here:
+      # the JSP compiles, the CSS parses, the token/contrast gates pass, the WAR is
+      # complete, and the page renders wrong. That is not hypothetical -- it happened
+      # twice on 2026-09-10, hours apart, both times when a "Merge branch 'main' into
+      # <branch>" commit resolved platform.css by taking main's side and discarded what
+      # the branch had added (.platform-external-indicator, then
+      # a.platform-blog-overview-thumbnail). Both shipped; both were caught by eye after
+      # deployment. 34 classes are legitimately unstyled here -- site-stylesheet and JS
+      # hooks -- and are recorded in ALLOWED, which is checked in both directions so it
+      # shrinks as things are fixed rather than accumulating (issue #1991).
+      - name: Fail on a platform-* class with no rule
+        run: python3 tools/check-platform-class-rules.py . --strict
       # Who sees an admin menu row (main.jsp) and who may open the page it links to
       # (the layout XML) are decided in two files, usually in two different PRs, with
       # nothing connecting them. A row wider than its page is a link the user is denied
