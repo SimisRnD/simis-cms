@@ -90,7 +90,9 @@ never rendered as "safe".
 > corresponding statements no longer hold and the VEX should be re-evaluated.
 
 Regenerate after any rebuild changes the finding set (this keeps the document from going
-stale, and it only ever emits statements for findings with **no** available fix):
+stale, and it only ever emits statements for findings with **no** available fix) -- but read
+"Triaged alerts are dismissed" below first: once a finding is triaged and its alert dismissed,
+regeneration can no longer see it, and statements are added by hand instead:
 
 ```sh
 python3 tools/generate-db-vex.py
@@ -101,6 +103,25 @@ the target before the script starts, so a refusal to write could not protect a f
 shell had already emptied. It refuses to write an empty document, and refuses to reduce the
 statement count without `--allow-shrink` -- losing suppressions un-suppresses findings the
 image scan gate currently clears.
+
+### Triaged alerts are dismissed, so an open one means work
+
+The triage scan (`image-simis-cms-db-triage` in `publish-images.yml`) reports the unfixable
+findings deliberately, and re-reports them on every build. Writing a statement here does not
+close a code-scanning alert, so the list grew to 141 open alerts that no one could act on --
+exactly where a genuinely new CVE would have been lost.
+
+Since 2026-09-12, a finding whose CVE has a settled `not_affected` statement is **dismissed** in
+code scanning as *won't fix*, with that statement's justification and CVE id in the dismissal
+comment. What stays open is then the real queue: a CVE with no statement yet, which today means
+the `under_investigation` entries carrying expiries in `.trivyignore`. The first pass dismissed
+99 alerts (46 CVEs) and left 42 alerts (6 CVEs) open.
+
+This changes nothing about the scan gate, which reads this document and `.trivyignore` rather
+than alert states. It does change regeneration: `generate-db-vex.py` builds from **open** alerts,
+so with the triaged ones dismissed it can only produce the untriaged remainder, and its shrink
+guard then refuses the write. That guard is doing its job; the answer is to add statements by
+hand (bump `version` and `last_updated`), which is what recent commits already do.
 
 Statements identify the image and its packages by **bare** PURL — `pkg:oci/simis-cms-db` and
 `pkg:deb/debian/<pkg>`, with no version and no `distro=` qualifier. Trivy matches VEX
