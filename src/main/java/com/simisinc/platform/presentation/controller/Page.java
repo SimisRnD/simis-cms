@@ -36,6 +36,10 @@ public class Page {
   private String collectionUniqueId;
   private String itemUniqueId;
   private String cssClass = null;
+  // Keeps this page out of search indexes (issue #2021). Set from noindex="true" in the page
+  // layout XML, and read by PageServlet, which turns it into an X-Robots-Tag response header.
+  // Defaults false: a page is indexable unless its layout says otherwise.
+  private boolean noindex = false;
 
   private List<Section> sections = new ArrayList<Section>();
   private List<String> roles = new ArrayList<String>();
@@ -147,5 +151,13 @@ public class Page {
 
   public void setCssClass(String cssClass) {
     this.cssClass = cssClass;
+  }
+
+  public boolean isNoindex() {
+    return noindex;
+  }
+
+  public void setNoindex(boolean noindex) {
+    this.noindex = noindex;
   }
 }
