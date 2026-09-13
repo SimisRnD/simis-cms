@@ -62,6 +62,18 @@ import com.simisinc.platform.presentation.controller.Page;
  * onward. Reusing that rule rather than inventing a second one is the point -- two resolvers that
  * disagree would make this list contradict the page list it sits next to.
  *
+ * <p><b>Resolving the path, not just matching it.</b> Neither resolver stops at an exact match, so
+ * neither does this. {@code WebPageXmlLayoutCommand.locatePage()} walks a request path down its
+ * slash boundaries looking for a shorter standard page -- which is how a parameterized entry such
+ * as {@code <page name="/calendar-event{/event-unique-id}">} serves {@code /calendar-event/<id>},
+ * since {@code XMLPageLoader} truncates a name at the first <code>{</code> and keys it as
+ * {@code /calendar-event}. {@code LoadWebPageCommand.loadByLink()} falls back from an exact link to
+ * {@code /a/b/*}, then {@code /a/*}, then a parent page whose {@code page_xml} carries
+ * {@code name="/*"} -- which is how blog posts and wiki pages are served, none of which have a
+ * {@code web_pages} row of their own. Matching exactly against either map reported every one of
+ * those as {@link TargetStatus#MISSING_PAGE} while the redirect served a correct 301 to a live
+ * page, which is the false-positive failure this class was written to avoid.
+ *
  * @author SimIS Inc.
  */
 public class CheckWebRedirectTargetCommand {
@@ -128,11 +140,11 @@ public class CheckWebRedirectTargetCommand {
     if (path.startsWith("/directory/")) {
       return TargetStatus.OK;
     }
-    if (standardPages != null && standardPages.containsKey(path)) {
+    if (locateStandardPage(path, standardPages) != null) {
       return TargetStatus.OK;
     }
 
-    WebPage webPage = webPageMap == null ? null : webPageMap.get(path);
+    WebPage webPage = locateWebPage(path, webPageMap);
     if (webPage == null) {
       return TargetStatus.MISSING_PAGE;
     }
@@ -196,5 +208,83 @@ public class CheckWebRedirectTargetCommand {
       return null;
     }
     return lower;
+  }
+
+  /**
+   * The standard page serving this path, or null. Mirrors {@code
+   * WebPageXmlLayoutCommand.locatePage()}: try the path as-is, then progressively shorter prefixes
+   * at slash boundaries, so a parameterized page entry matches the real URLs it serves. The
+   * {@code /show/*} carve-out is that method's, kept so the two agree; the null guards are not --
+   * that method reaches its one-segment branch only for a path it has already matched, whereas
+   * anything at all can arrive here as a redirect destination.
+   */
+  private static Page locateStandardPage(String path, Map<String, Page> standardPages) {
+    if (standardPages == null) {
+      return null;
+    }
+    Page page = standardPages.get(path);
+    if (page != null) {
+      return page;
+    }
+    int slashIndex = path.indexOf('/', 1);
+    if (slashIndex <= 1) {
+      return null;
+    }
+    int doubleSlashIndex = path.indexOf('/', slashIndex + 1);
+    int tripleSlashIndex = doubleSlashIndex < 0 ? -1 : path.indexOf('/', doubleSlashIndex + 1);
+    int quadrupleSlashIndex = tripleSlashIndex < 0 ? -1 : path.indexOf('/', tripleSlashIndex + 1);
+
+    if (quadrupleSlashIndex > 1) {
+      page = standardPages.get(path.substring(0, quadrupleSlashIndex));
+    }
+    if (page == null && tripleSlashIndex > 1) {
+      page = standardPages.get(path.substring(0, tripleSlashIndex));
+    }
+    if (!path.startsWith("/show/*")) {
+      if (page == null && doubleSlashIndex > 1) {
+        page = standardPages.get(path.substring(0, doubleSlashIndex));
+      }
+      if (page == null) {
+        page = standardPages.get(path.substring(0, slashIndex));
+      }
+    }
+    return page;
+  }
+
+  /**
+   * The {@code web_pages} row serving this path, or null. Mirrors {@code
+   * LoadWebPageCommand.loadByLink()}'s fallback: the exact link, then {@code /a/b/*}, then
+   * {@code /a/*}, then a parent route page carrying {@code name="/*"}. A path served by one of
+   * those wildcards has no row of its own, so an exact lookup alone calls a working destination
+   * missing. Whatever row is found then governs the draft/empty verdict, which is correct: it is
+   * the route page that decides whether anything beneath it is served at all.
+   */
+  private static WebPage locateWebPage(String path, Map<String, WebPage> webPageMap) {
+    if (webPageMap == null) {
+      return null;
+    }
+    WebPage webPage = webPageMap.get(path);
+    if (webPage != null) {
+      return webPage;
+    }
+    int slashIndex = path.indexOf('/', 1);
+    if (slashIndex <= 1) {
+      return null;
+    }
+    int doubleSlashIndex = path.indexOf('/', slashIndex + 1);
+    if (doubleSlashIndex > 1) {
+      webPage = webPageMap.get(path.substring(0, doubleSlashIndex) + "/*");
+    }
+    if (webPage == null) {
+      webPage = webPageMap.get(path.substring(0, slashIndex) + "/*");
+    }
+    if (webPage == null) {
+      WebPage routePage = webPageMap.get(path.substring(0, slashIndex));
+      if (routePage != null && routePage.getPageXml() != null
+          && routePage.getPageXml().contains("name=\"/*\"")) {
+        webPage = routePage;
+      }
+    }
+    return webPage;
   }
 }
