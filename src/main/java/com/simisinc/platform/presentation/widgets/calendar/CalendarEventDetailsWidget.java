@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadCalendarCommand;
-import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
@@ -96,7 +95,6 @@ public class CalendarEventDetailsWidget extends GenericWidget {
         LoadSitePropertyCommand.loadByName("site.calendar.actionLabel"));
 
     // Determine the view
-    context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     context.setPageTitle(calendarEvent.getTitle());
     // Bridge the event for Event JSON-LD (issue #1181). This is set only after the calendar-enabled
     // check above, so PageServlet never sees an event the visitor could not already read. PageServlet

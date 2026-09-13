@@ -57,7 +57,7 @@
         <h3><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h3>
       </c:when>
       <c:otherwise>
-        <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h3>
+        <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}"><c:out value="${calendarEvent.title}" /></a></h3>
       </c:otherwise>
     </c:choose>
     <c:set var="startDateTime" scope="request"><fmt:formatDate pattern="MMMM d, yyyy" value="${calendarEvent.startDate}" /></c:set>

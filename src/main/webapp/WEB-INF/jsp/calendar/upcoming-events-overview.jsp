@@ -33,7 +33,7 @@
     <c:forEach items="${calendarEventList}" var="calendarEvent" varStatus="status">
       <c:choose>
         <c:when test="${showEventLink eq 'true'}">
-          <h5><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h5>
+          <h5><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}"><c:out value="${calendarEvent.title}" /></a></h5>
         </c:when>
         <c:otherwise>
           <h5><c:out value="${calendarEvent.title}" /></h5>
@@ -43,7 +43,7 @@
         <c:out value="${date:formatMonthDayYear(calendarEvent.startDate)}"/>
       </small>
       <c:if test="${showEventLink eq 'true'}">
-        <p><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}" class="read-more">See details</a></p>
+        <p><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}" class="read-more">See details</a></p>
       </c:if>
       <c:if test="${!status.last}">
         <hr/>
