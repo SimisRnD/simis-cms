@@ -145,7 +145,7 @@ jobs:
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py,lib/**
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '21'
@@ -197,7 +197,7 @@ jobs:
       # subject it presented -- compare that against the credential rather than guessing.
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
-        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -242,7 +242,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the application scan results
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
@@ -356,7 +356,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database scan results
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
@@ -407,7 +407,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database triage feed
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           sarif_file: trivy-simis-cms-db-triage.sarif
           category: image-simis-cms-db-triage

@@ -23,7 +23,7 @@
 #
 # This uses the same pinned base as the runtime stage, so it pulls no additional image and
 # unpacks with the JDK's own `jar`.
-FROM tomcat:11.0-jdk21@sha256:133546e3740f0e17d2307d9b324de082062b009226a602111a422016f1e84173 AS warstage
+FROM tomcat:11.0-jdk21@sha256:02c00744324bbe66a0d287f7f4664de728e628297a6916387d4cc1a6adcafb10 AS warstage
 COPY ./target/simis-cms.war /tmp/ROOT.war
 RUN mkdir -p /warstage/ROOT \
     && (cd /warstage/ROOT && jar xf /tmp/ROOT.war)
@@ -32,7 +32,7 @@ RUN mkdir -p /warstage/ROOT \
 #
 # Tomcat 11 (Jakarta EE / jakarta.servlet). The application targets Servlet 6.1; it will not
 # run on the Tomcat 9 base this image used previously, which serves the javax.* namespace.
-FROM tomcat:11.0-jdk21@sha256:133546e3740f0e17d2307d9b324de082062b009226a602111a422016f1e84173
+FROM tomcat:11.0-jdk21@sha256:02c00744324bbe66a0d287f7f4664de728e628297a6916387d4cc1a6adcafb10
 
 # STIG hardening. Overlay the hardened server.xml (shutdown port disabled, HTTP TRACE off,
 # server banner suppressed, no error-page disclosure, autoDeploy off, access logging), add
