@@ -233,7 +233,7 @@
             $.getJSON("${ctx}/json/calendarEvent?id=" + info.event.id, function(data) {
               document.getElementById('formTitle').innerHTML = "Update an Event";
               document.getElementById('id').value = data.id;
-              document.getElementById('eventLinkInput').value = '${ctx}/calendar-event/' + info.event.uniqueId + '?returnPage=${widgetContext.uri}';
+              document.getElementById('eventLinkInput').value = '${ctx}/calendar-event/' + info.event.uniqueId;
               if ($('#calendarId').is('input, select')) {
                 $("#calendarId").val(data.calendarId);
               } else {
@@ -294,9 +294,9 @@
             if (detailsUrl && (detailsUrl.indexOf('http://') === 0 || detailsUrl.indexOf('https://') === 0)) {
               window.open(detailsUrl, '_blank');
             } else if (detailsUrl && detailsUrl.indexOf('/') === 0) {
-              window.location.href='${ctx}' + detailsUrl + '?returnPage=${widgetContext.uri}';
+              window.location.href='${ctx}' + detailsUrl;
             } else {
-              window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=${widgetContext.uri}';
+              window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId;
             }
           },
         </c:otherwise>

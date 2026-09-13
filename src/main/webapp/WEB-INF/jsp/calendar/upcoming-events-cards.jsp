@@ -48,7 +48,7 @@
                   <h3><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>
                 </c:when>
                 <c:otherwise>
-                  <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>
+                  <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>
                 </c:otherwise>
               </c:choose>
             </div>
