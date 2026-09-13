@@ -30,6 +30,15 @@ import java.sql.Timestamp;
  */
 public class WebPage extends Entity implements Reviewable {
 
+  /**
+   * Cache-only sentinel for "there is no web page at this link" (issue #2034). Caffeine's
+   * LoadingCache never caches a null loader result, so without this the overwhelmingly common
+   * case -- a menu link checked on every render -- would hit the database every time, which is
+   * the entire defect. Never persisted, never returned by a repository method;
+   * {@code LoadWebPageCommand} translates it back to {@code null} before any caller sees it.
+   */
+  public static final WebPage NONE = new WebPage();
+
   private long id = -1;
   private String link = null;
   private String redirectUrl = null;
