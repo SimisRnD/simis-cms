@@ -70,6 +70,7 @@ public class DatabaseProperties {
       LOG.info("Found variable DB_SSL=" + env.get("DB_SSL"));
       databaseProperties.setProperty("dataSource.ssl", "true");
     }
+    applyMaxPoolSizeOverride(databaseProperties, env);
 
     String authMethod = env.get("DB_AUTH_METHOD");
     if (AZURE_SQL_SPN.equals(authMethod)) {
@@ -109,6 +110,42 @@ public class DatabaseProperties {
    * local-dev default "postgres").
    * </p>
    */
+  /**
+   * Applies {@code DB_MAX_POOL_SIZE} over the value shipped in database.properties (issue #2029).
+   *
+   * <p>The pool is not the web tier's alone: JobRunr is constructed over this same DataSource
+   * ({@code SchedulerManager} passes {@code DataSource.getDataSource()} to
+   * {@code SqlStorageProviderFactory}), so its workers and its poller draw from it alongside every
+   * Tomcat request thread. A value chosen for one of those populations is wrong for the sum, and
+   * until this override existed the value was fixed in the WAR -- no deployment could tune it
+   * without a rebuild, whatever the size of its database or its plan.
+   *
+   * <p>A non-numeric or non-positive value is refused rather than silently coerced: an operator who
+   * typed something wrong should get the shipped default and a warning naming what they set, not a
+   * pool of zero.
+   */
+  static void applyMaxPoolSizeOverride(Properties databaseProperties, Map<String, String> env) {
+    String value = StringUtils.trimToNull(env.get("DB_MAX_POOL_SIZE"));
+    if (value == null) {
+      return;
+    }
+    int maxPoolSize;
+    try {
+      maxPoolSize = Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      LOG.warn("Found variable DB_MAX_POOL_SIZE=" + value + ", which is not a number -- ignoring it and using "
+          + databaseProperties.getProperty("maximumPoolSize"));
+      return;
+    }
+    if (maxPoolSize < 1) {
+      LOG.warn("Found variable DB_MAX_POOL_SIZE=" + value + ", which is not a usable pool size -- ignoring it and "
+          + "using " + databaseProperties.getProperty("maximumPoolSize"));
+      return;
+    }
+    LOG.info("Found variable DB_MAX_POOL_SIZE=" + maxPoolSize);
+    databaseProperties.setProperty("maximumPoolSize", String.valueOf(maxPoolSize));
+  }
+
   private static void applyAzureSpnAuthentication(Properties databaseProperties, Map<String, String> env) {
     String serverName = env.get("DB_SERVER_NAME");
     String databaseName = env.get("DB_NAME");
