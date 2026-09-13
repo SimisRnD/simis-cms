@@ -123,6 +123,14 @@
         <div class="grid-x grid-padding-x">
           <div class="small-12 cell text-right">
             <small>Render time: <c:out value="${totalRenderTime}" />ms</small>
+            <%-- Which widgets that total went to (issue #2027). Same admin-only condition as the
+                 total above, so this adds no markup to a visitor's page. Slowest first, because
+                 the reason to read it is to find what to fix; the container is named because the
+                 page, header and footer all contribute to one list. --%>
+            <c:if test="${!empty widgetRenderTimes}">
+              <br />
+              <small><c:forEach items="${widgetRenderTimes}" var="widgetTime" varStatus="widgetTimeStatus"><c:if test="${!widgetTimeStatus.first}"> &middot; </c:if><c:out value="${widgetTime.widgetName}" /> <c:if test="${!empty widgetTime.containerName}">[<c:out value="${widgetTime.containerName}" />] </c:if><c:out value="${widgetTime.millis}" />ms</c:forEach></small>
+            </c:if>
           </div>
         </div>
       </div>

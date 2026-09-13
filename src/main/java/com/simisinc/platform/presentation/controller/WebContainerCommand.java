@@ -38,6 +38,8 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -81,7 +83,12 @@ public class WebContainerCommand implements Serializable {
       // every widget in the page, header and footer, and main.jsp writes them into the head after
       // the walk -- wiped per widget, every widget's rule is lost and its element keeps a hook
       // that nothing styles
-      PageStyleRules.RULES_ATTRIBUTE);
+      PageStyleRules.RULES_ATTRIBUTE,
+      // The per-widget render timings (issue #2027), for exactly the reason above them: they
+      // accumulate across every widget in the page, header and footer, and the body renderer
+      // prints them after the walk. Wiped per widget, the list keeps only whichever widget
+      // rendered last -- which is what it did before this line existed.
+      RequestConstants.WIDGET_RENDER_TIMES);
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
@@ -309,6 +316,7 @@ public class WebContainerCommand implements Serializable {
           }
 
           // Execute the widget
+          long widgetStartNanos = System.nanoTime();
           WidgetContext result = null;
           try {
             LOG.debug("-----------------------------------------------------------------------");
@@ -546,6 +554,12 @@ public class WebContainerCommand implements Serializable {
             }
           }
 
+          // What this widget cost: its execute() above plus the JSP include, which is where the
+          // markup is actually produced (issue #2027). Recorded even when the widget produced no
+          // content -- one that spends time and renders nothing is exactly what this is for.
+          recordWidgetRenderTime(request, widget.getWidgetName(), containerRenderInfo.getName(),
+              (System.nanoTime() - widgetStartNanos) / 1_000_000L);
+
           // If there's content, then turn on the output
           if (widgetContent != null && widgetContent.length() > 0) {
             // The widget asked to be included without the main css/scripts/footer
@@ -698,6 +712,29 @@ public class WebContainerCommand implements Serializable {
       replacementValue = StringUtils.replace(replacementValue, "'", "''");
     }
     return StringUtils.replace(content, searchString, replacementValue);
+  }
+
+  /**
+   * Accumulates the per-widget breakdown of {@code totalRenderTime} on the request (issue #2027).
+   *
+   * <p>Collected for every visitor rather than only for admins, so the numbers an admin reads are
+   * the same work an anonymous visitor pays for -- gating collection on the role would measure a
+   * render carrying the editor chrome and call it the public cost. Two {@code nanoTime} reads and
+   * one small object per widget is nothing against the milliseconds being measured.
+   *
+   * <p>The list spans every container on the request -- page, header and footer each call
+   * {@code processWidgets} -- which is why an entry carries the container it rendered in.
+   */
+  @SuppressWarnings("unchecked")
+  static void recordWidgetRenderTime(HttpServletRequest request, String widgetName, String containerName,
+      long millis) {
+    List<WidgetRenderTime> timings = (List<WidgetRenderTime>) request.getAttribute(WIDGET_RENDER_TIMES);
+    if (timings == null) {
+      timings = new ArrayList<>();
+      request.setAttribute(WIDGET_RENDER_TIMES, timings);
+    }
+    timings.add(new WidgetRenderTime(widgetName, containerName, millis));
+    Collections.sort(timings);
   }
 
   /**
