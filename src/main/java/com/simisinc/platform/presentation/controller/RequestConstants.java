@@ -29,6 +29,8 @@ public class RequestConstants {
   }
 
   public static final String RENDER_TIME = "totalRenderTime";
+  /** Per-widget breakdown of RENDER_TIME, slowest first (issue #2027). */
+  public static final String WIDGET_RENDER_TIMES = "widgetRenderTimes";
 
   public static final String SHOW_MAIN_MENU = "controllerShowMainMenu";
   public static final String MASTER_MENU_TAB_LIST = "masterMenuTabList";
