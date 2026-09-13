@@ -265,6 +265,15 @@
     $("#mycanvas").gridmanager({
         debug: 1,
 
+        // Suppress gridmanager's own stylesheet include. Left at its default it appends
+        //   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css">
+        // to the head on every init, fetching Font Awesome 4 from a retired third-party CDN each
+        // time an admin opens this page. It buys nothing: main.jsp already loads Font Awesome
+        // locally along with v4-shims.min.css, which is exactly what maps gridmanager's FA4-era
+        // class names onto it -- and every icon configured below already names the local face
+        // through the font: EL functions rather than relying on the include at all.
+        cssInclude: "",
+
         remoteURL: "${ctx}/admin/web-page-designer?widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPage=${js:escape(webPage.link)}",
         redirectURL: "${ctx}${js:escape(webPage.link)}",
         controlButtons: [[12], [7, 5], [8, 4], [9, 3], [3, 3, 3, 3], [4, 4, 4], [6, 6], [2, 8, 2], [3, 6, 3], [3, 9], [4, 8]],
