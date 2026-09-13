@@ -243,6 +243,12 @@ public class XMLPageLoader implements Serializable {
         page.setCapabilities(capabilities);
       }
     }
+    // Only the literal "true" turns indexing off (issue #2021). Anything else -- including a
+    // misspelling, or noindex="false" -- leaves the page indexable, so a typo in a layout fails
+    // toward the status quo rather than silently dropping a page out of search.
+    if (e.hasAttribute("noindex")) {
+      page.setNoindex("true".equalsIgnoreCase(e.getAttribute("noindex").trim()));
+    }
     if (e.hasAttribute("class")) {
       if (e.hasAttribute("endpoint")) {
         /* @deprecated */

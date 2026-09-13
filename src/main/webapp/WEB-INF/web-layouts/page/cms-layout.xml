@@ -45,7 +45,7 @@
   </page>
 
   <!-- Login -->
-  <page name="/login" role="guest,admin,content-manager" title="Login" class="platform-dialog">
+  <page name="/login" role="guest,admin,content-manager" title="Login" class="platform-dialog" noindex="true">
     <section id="platform-login" class="align-center">
       <column class="small-12 medium-6 large-5 cell">
         <widget name="content" class="show-for-medium">
@@ -74,7 +74,7 @@
     </section>
   </page>
 
-  <page name="/logout" title="Logout">
+  <page name="/logout" title="Logout" noindex="true">
     <section>
       <column>
         <widget name="logout">
@@ -115,7 +115,7 @@
     </section>
   </page>
 
-  <page name="/validation-sent" role="guest,admin,content-manager" title="Validate Account">
+  <page name="/validation-sent" role="guest,admin,content-manager" title="Validate Account" noindex="true">
     <section class="align-center">
       <column class="small-12 medium-8 large-6 text-center cell">
         <widget name="content" class="show-for-medium">
@@ -171,7 +171,7 @@
     </section>
   </page>
 
-  <page name="/unsubscribe" title="Unsubscribe">
+  <page name="/unsubscribe" title="Unsubscribe" noindex="true">
     <section class="align-center">
       <column class="small-12 medium-6 cell">
         <widget name="newsletterUnsubscribe" class="callout box radius" />
@@ -179,7 +179,7 @@
     </section>
   </page>
 
-  <page name="/confirm-subscription" title="Confirm Subscription">
+  <page name="/confirm-subscription" title="Confirm Subscription" noindex="true">
     <section class="align-center">
       <column class="small-12 medium-6 cell">
         <widget name="mailingListConfirmSubscription" class="callout box radius" />
@@ -187,7 +187,7 @@
     </section>
   </page>
 
-  <page name="/forgot-password" role="guest,admin,content-manager" title="Forgot Password" class="platform-dialog">
+  <page name="/forgot-password" role="guest,admin,content-manager" title="Forgot Password" class="platform-dialog" noindex="true">
     <section id="platform-forgot-password" class="align-center">
       <column class="small-12 medium-7 large-5 cell">
         <widget name="content" class="show-for-medium">

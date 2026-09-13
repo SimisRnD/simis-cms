@@ -887,6 +887,12 @@ public class PageServlet extends HttpServlet {
 
       // Determine the Page XML Layout for this request
       Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, pagePath);
+      // Forms, actions and one-time transactional states are never a useful search result
+      // (issue #2021). Sent as a header rather than a meta tag so it also covers a non-HTML
+      // response from one of these paths, matching how the draft-preview noindex above is sent.
+      if (pageRef != null && pageRef.isNoindex()) {
+        response.setHeader("X-Robots-Tag", "noindex");
+      }
       Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.getWidgetLibrary();
       if (pageLayoutMode) {
         StringBuilder wl = new StringBuilder("[");

@@ -68,6 +68,14 @@ jobs:
         # passed a green pipeline. This step reads the actual bytes.
         run: .github/scripts/check-response-integrity.sh http://localhost
 
+      - name: Check the search-index policy
+        # AccountPageNoindexTest proves cms-layout.xml marks the right pages and that XMLPageLoader
+        # parses the attribute; neither proves PageServlet turns that into a response header
+        # (#2021). That needs a real request against a real deployment, which this job already has.
+        # The controls matter as much as the assertions: a bug that sent noindex on every response
+        # would satisfy the positive checks while delisting the whole site.
+        run: .github/scripts/check-noindex-pages.sh http://localhost
+
       - name: Check the admin save path
         # Everything above this line is anonymous, so nothing verified that an admin can still SAVE
         # after a deploy (#1894). A CSP, form-token, session or migration regression on the write
