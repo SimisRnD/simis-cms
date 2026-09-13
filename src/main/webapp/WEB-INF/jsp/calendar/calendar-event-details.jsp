@@ -248,17 +248,44 @@
          has a way back to the listing, and when it is not, no link is emitted rather than a
          guessed one.
 
-         returnPage is unaffected: it comes from the request and walks browser history, so it is
-         always valid when present. --%>
-    <c:if test="${!empty returnPage}">
-      <p class="platform-calendar-event-return">
-        <i class="fa fa-fw"></i> <a href="#" data-js-call="goBack" data-js-arg1="<c:out value="${returnPage}"/>"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
-      </p>
-    </c:if>
+         The return link below is unaffected: it walks browser history rather than navigating to a
+         stored path, so it is always valid when it renders. --%>
+    <%-- Rendered hidden, and revealed only when the visitor arrived from somewhere on this site
+         (issue #2019). This used to be gated server-side on a ?returnPage= parameter that every
+         listing appended to its event links. That parameter's VALUE was never read -- goBack()
+         takes no argument and calls history.back() -- so its only effect was this gate, bought at
+         the price of pointing every internal link at a non-canonical URL and leaving the canonical
+         one with no inlinks at all. document.referrer is the signal the gate was approximating,
+         and it costs no URL.
+
+         hidden rather than an inline style: style-src carries no 'unsafe-inline' (issue #1999), so
+         a style attribute here would be refused outright. --%>
+    <p class="platform-calendar-event-return" hidden>
+      <i class="fa fa-fw"></i> <a href="#" data-js-call="goBack"><i class="${font:fal()} fa-arrow-left"></i> Return to previous page</a>
+    </p>
   </div>
 </div>
 <script nonce="${cspNonce}">
   function goBack() {
     window.history.back();
   }
+  <%-- A same-origin referrer means there is a previous page on this site to go back to. A direct
+       arrival sends no referrer, and one from another site is not ours to walk back into: both
+       leave the link hidden, which is what the old ?returnPage= gate did for those visitors too. --%>
+  (function () {
+    if (!document.referrer) {
+      return;
+    }
+    try {
+      if (new URL(document.referrer).origin !== window.location.origin) {
+        return;
+      }
+    } catch (e) {
+      return; // Unparseable referrer; leave the link hidden
+    }
+    var returnLinks = document.querySelectorAll('.platform-calendar-event-return');
+    for (var i = 0; i < returnLinks.length; i++) {
+      returnLinks[i].hidden = false;
+    }
+  })();
 </script>

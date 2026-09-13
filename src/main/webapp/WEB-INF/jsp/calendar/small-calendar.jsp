@@ -119,9 +119,9 @@
         if (detailsUrl && (detailsUrl.indexOf('http://') === 0 || detailsUrl.indexOf('https://') === 0)) {
           window.open(detailsUrl, '_blank');
         } else if (detailsUrl && detailsUrl.indexOf('/') === 0) {
-          window.location.href='${ctx}' + detailsUrl + '?returnPage=${widgetContext.uri}';
+          window.location.href='${ctx}' + detailsUrl;
         } else {
-          window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=${widgetContext.uri}';
+          window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId;
         }
       },
       eventMouseEnter: function(info) {
