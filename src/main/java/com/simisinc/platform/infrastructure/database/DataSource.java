@@ -52,6 +52,14 @@ public class DataSource {
   public static void init(Properties properties) {
     HikariConfig config = new HikariConfig(properties);
     config.setMaxLifetime(600000);
+    // Log a stack trace for any connection held longer than this (issue #2029). The 2026-09-12
+    // pool exhaustion left no evidence of WHICH code held the ten connections -- every borrow in
+    // the application uses try-with-resources, so nothing leaked, yet they were all in use while
+    // the database itself stayed at a 1.3ms median. Sixty seconds is deliberately generous: it is
+    // well past any page render and past the background jobs that legitimately run long, so a
+    // warning here means something genuinely pathological rather than routine noise. This only
+    // logs; it never closes a connection out from under its borrower.
+    config.setLeakDetectionThreshold(60000);
     ds = new HikariDataSource(config);
     LOG.info("Max pool size: " + ds.getMaximumPoolSize());
   }
