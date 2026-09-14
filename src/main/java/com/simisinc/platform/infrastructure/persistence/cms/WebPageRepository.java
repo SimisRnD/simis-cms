@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
+import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageVersion;
 import com.simisinc.platform.infrastructure.database.AutoRollback;
@@ -248,6 +249,10 @@ public class WebPageRepository {
       LOG.error("An id was not set!");
       return null;
     }
+    // A brand-new page normally has nothing stale to evict -- except a NEGATIVE one: anything that
+    // looked this link up while it 404'd cached WebPage.NONE against it (issue #2034), and without
+    // this the page stays missing until that entry expires.
+    invalidateCachedPage(link);
     return record;
   }
 
@@ -294,9 +299,9 @@ public class WebPageRepository {
     if (DB.update(TABLE_NAME, updateValues, where)) {
       // Force the page(s) to re-cache
       if (previousRecord != null) {
-        WebPageXmlLayoutCommand.removeCustomPage(previousRecord.getLink());
+        invalidateCachedPage(previousRecord.getLink());
       }
-      WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+      invalidateCachedPage(record.getLink());
       return record;
     }
     LOG.error("The update failed!");
@@ -380,7 +385,7 @@ public class WebPageRepository {
         WebPagePreviewTokenRepository.removeAllForPage(connection, record.getId());
         transaction.commit();
         // Force the page to re-cache
-        WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+        invalidateCachedPage(record.getLink());
       }
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
@@ -435,14 +440,14 @@ public class WebPageRepository {
       // different draft staged on this page before it expires.
       WebPagePreviewTokenRepository.removeAllForPage(record.getId());
       // Force the page to re-cache
-      WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+      invalidateCachedPage(record.getLink());
     }
   }
 
   public static void remove(WebPage record) {
     DB.deleteFrom(TABLE_NAME, new SqlUtils().add("web_page_id = ?", record.getId()));
     // Force the page to re-cache
-    WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+    invalidateCachedPage(record.getLink());
   }
 
   public static List<WebPage> search(String searchTerm, DataConstraints constraints) {
@@ -514,4 +519,30 @@ public class WebPageRepository {
       return null;
     }
   }
+
+  /**
+   * Drops every cached view of one page's link: the XML layout cache this repository has always
+   * cleared, and the {@code CacheManager.WEB_PAGE_CACHE} link lookup added for issue #2034.
+   *
+   * <p>They are deliberately paired in one method rather than left as two calls side by side. Five
+   * call sites already existed for the first of them, and a sixth (insert) had to be added for the
+   * second; a future mutation path that remembers one and forgets the other would serve a stale
+   * page for up to the cache's expiry, with nothing failing to indicate why.
+   *
+   * <p>Both the link as given and its lower-cased form are evicted. Stored links are lower-cased on
+   * write, but {@code WEB_PAGE_CACHE} keys on exactly what a caller passed -- so a request for a
+   * mixed-case path can leave a negative entry under that spelling too.
+   */
+  private static void invalidateCachedPage(String link) {
+    WebPageXmlLayoutCommand.removeCustomPage(link);
+    if (link == null) {
+      return;
+    }
+    CacheManager.invalidateKey(CacheManager.WEB_PAGE_CACHE, link);
+    String lowerCased = link.toLowerCase();
+    if (!lowerCased.equals(link)) {
+      CacheManager.invalidateKey(CacheManager.WEB_PAGE_CACHE, lowerCased);
+    }
+  }
+
 }

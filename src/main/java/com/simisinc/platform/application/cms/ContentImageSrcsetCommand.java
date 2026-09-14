@@ -16,7 +16,9 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -96,6 +98,11 @@ public class ContentImageSrcsetCommand {
   }
 
   private static String processTags(String html) {
+    // One memo per invocation (issue #2033). Content repeats images -- a logo, a divider, a
+    // card graphic -- and every repeat previously cost another findById plus another
+    // findByImageId. Scoped to this call rather than shared, so there is no staleness to
+    // invalidate: an editor replacing an image sees the new one on the very next render.
+    ImageLookups lookups = new ImageLookups();
     StringBuilder output = null;
     int copiedUpTo = 0;
     int searchFrom = 0;
@@ -110,7 +117,7 @@ public class ContentImageSrcsetCommand {
         break;
       }
       String originalTag = html.substring(tagStart, tagEnd + 1);
-      String newTag = tryBuildReplacement(originalTag);
+      String newTag = tryBuildReplacement(originalTag, lookups);
       if (newTag != null) {
         if (output == null) {
           output = new StringBuilder();
@@ -134,7 +141,7 @@ public class ContentImageSrcsetCommand {
    *         if this tag should be left exactly as-is (no src, external/non-internal src, nothing
    *         the library can add, or the tag didn't confidently parse)
    */
-  private static String tryBuildReplacement(String originalTag) {
+  private static String tryBuildReplacement(String originalTag, ImageLookups lookups) {
     String src = extractQuotedAttribute(originalTag, "src");
     if (src == null) {
       return null;
@@ -145,19 +152,27 @@ public class ContentImageSrcsetCommand {
     }
     // One record load serves both halves: the original's width, so it can be offered as a srcset
     // candidate (issue #1370), and the author's alt text (issue #1373).
-    Image image = lookupImage(imageId);
-    String result = applySrcset(applyStoredAltText(originalTag, image), src, imageId, image);
+    Image image = lookupImage(imageId, lookups);
+    String result = applySrcset(applyStoredAltText(originalTag, image), src, imageId, image, lookups);
     return result.equals(originalTag) ? null : result;
   }
 
   /** Defensive: a missing record must cost this tag its enhancement, never the whole page. */
-  private static Image lookupImage(Long imageId) {
+  private static Image lookupImage(Long imageId, ImageLookups lookups) {
+    if (lookups.images.containsKey(imageId)) {
+      return lookups.images.get(imageId);
+    }
+    Image image;
     try {
-      return ImageRepository.findById(imageId);
+      image = ImageRepository.findById(imageId);
     } catch (Exception e) {
       LOG.debug("Could not load the image record for a content <img>: " + imageId, e);
-      return null;
+      image = null;
     }
+    // A miss is memoized too. An <img> pointing at a deleted record would otherwise re-query for
+    // every occurrence -- the same defect with a null on the end of it.
+    lookups.images.put(imageId, image);
+    return image;
   }
 
   /**
@@ -213,13 +228,17 @@ public class ContentImageSrcsetCommand {
    * @return originalTag when srcset is already declared, when the variants can't be read, or when
    *         there is no candidate to offer
    */
-  private static String applySrcset(String originalTag, String src, Long imageId, Image image) {
+  private static String applySrcset(String originalTag, String src, Long imageId, Image image,
+      ImageLookups lookups) {
     if (StringUtils.containsIgnoreCase(originalTag, "srcset=")) {
       return originalTag; // idempotency guard
     }
     List<ImageVariant> variants;
     try {
-      variants = ImageVariantRepository.findByImageId(imageId);
+      variants = lookups.variants.containsKey(imageId)
+          ? lookups.variants.get(imageId)
+          : ImageVariantRepository.findByImageId(imageId);
+      lookups.variants.put(imageId, variants);
     } catch (Exception e) {
       // Defensive for the same reason as lookupImage, and specifically so a variants failure can
       // no longer cost this tag its alt text, which has already been applied by this point.
@@ -362,4 +381,24 @@ public class ContentImageSrcsetCommand {
       return false;
     }
   }
+
+  /**
+   * Per-invocation memo of the two record lookups this class makes for each {@code <img>} tag
+   * (issue #2033).
+   *
+   * <p>Neither {@code ImageRepository} nor {@code ImageVariantRepository} caches, so before this
+   * an image used five times in one content block cost ten queries instead of two. Measured over
+   * 30 days, {@code image_variants} and {@code images} together accounted for over 1.6 million
+   * calls.
+   *
+   * <p>Deliberately request-scoped rather than a shared cache: it needs no invalidation story, so
+   * replacing an image or regenerating its variants takes effect on the very next render. The
+   * trade is that it collapses repeats within one call and nothing across calls -- which is where
+   * the measured cost actually was.
+   */
+  private static final class ImageLookups {
+    private final Map<Long, Image> images = new HashMap<>();
+    private final Map<Long, List<ImageVariant>> variants = new HashMap<>();
+  }
+
 }

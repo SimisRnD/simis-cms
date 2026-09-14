@@ -48,9 +48,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 class CacheManagerTest {
 
   @Test
-  void getCacheNamesReturnsAllSixteenRegisteredCaches() {
+  void getCacheNamesReturnsAllSeventeenRegisteredCaches() {
     Set<String> names = CacheManager.getCacheNames();
-    assertEquals(16, names.size());
+    assertEquals(17, names.size());
     assertTrue(names.contains(CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE));
     assertTrue(names.contains(CacheManager.APP_CACHE));
     assertTrue(names.contains(CacheManager.USER_CREDENTIALS_CACHE));
@@ -61,6 +61,7 @@ class CacheManagerTest {
     assertTrue(names.contains(CacheManager.COLLECTION_UNIQUE_ID_CACHE));
     assertTrue(names.contains(CacheManager.TABLE_OF_CONTENTS_UNIQUE_ID_CACHE));
     assertTrue(names.contains(CacheManager.WEB_REDIRECT_CACHE));
+    assertTrue(names.contains(CacheManager.WEB_PAGE_CACHE));
     assertTrue(names.contains(CacheManager.RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE));
     assertTrue(names.contains(CacheManager.RATE_LIMIT_ATTEMPT_BY_IP_CACHE));
     assertTrue(names.contains(CacheManager.RATE_LIMIT_ATTEMPT_BY_IP_API_CACHE));
