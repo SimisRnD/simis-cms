@@ -36,6 +36,8 @@ import com.simisinc.platform.presentation.controller.Page;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
+import jakarta.servlet.ServletContext;
+
 import java.io.File;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -118,11 +120,19 @@ public class WebPageListWidget extends GenericWidget {
     // Load the built in pages (just the ones which the pages use) -- needed before filtering the
     // "All Web Pages" list below, since a standard/built-in page is always "live" regardless of
     // whether it has stored page_xml.
+    // Loaded from the same layout directories WebPageXmlLayoutCommand.init() feeds the running
+    // site from, so this list classifies pages the way the site actually serves them. The earlier
+    // "/WEB-INF/web-layouts/page/page-layout.xml" named a file that does not exist -- XMLPageLoader
+    // logs "resource not found" and carries on, so standardPages was silently always empty, every
+    // containsKey below was always false, and a built-in page with no stored page_xml was counted
+    // and filtered as broken rather than live.
+    ServletContext servletContext = context.getRequest().getServletContext();
     Map<String, Page> standardPages = new HashMap<String, Page>();
     XMLPageLoader xmlPageConfig = new XMLPageLoader(standardPages);
-    xmlPageConfig.loadWidgetLibrary(context.getRequest().getServletContext(), "/WEB-INF/widgets/widget-library.xml");
-    xmlPageConfig.addFile("/WEB-INF/web-layouts/page/page-layout.xml");
-    xmlPageConfig.load(context.getRequest().getServletContext());
+    xmlPageConfig.loadWidgetLibrary(servletContext, "/WEB-INF/widgets/widget-library.xml");
+    xmlPageConfig.addDirectory(servletContext, "web-layouts/page");
+    xmlPageConfig.addDirectory(servletContext, "web-layouts/collection");
+    xmlPageConfig.load(servletContext);
     context.getRequest().setAttribute("standardPages", standardPages);
 
     LOG.debug("Widgets: " + xmlPageConfig.getWidgetLibrary().size());

@@ -23,10 +23,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
 
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -350,5 +357,115 @@ class WebPageListWidgetTest extends WidgetBase {
       repository.verifyNoInteractions();
       assertEquals(widgetContext, result);
     }
+  }
+
+  // --- the built-in pages the list classifies against (#2039) ---
+
+  /**
+   * Points the mocked ServletContext at the real layout XML under src/main/webapp, so the widget
+   * loads the same built-in pages the running site serves. Without this the mock resolves no
+   * resources and standardPages is empty -- which is exactly the defect being fixed here, and why
+   * asserting on a populated map is the only way to prove the fix.
+   */
+  private void stubRealPageLayouts() throws java.net.MalformedURLException {
+    File webapp = new File("src/main/webapp");
+    assertTrue(webapp.isDirectory(), "expected to run from the module root; not found: " + webapp.getAbsolutePath());
+    when(servletContext.getResourcePaths(any())).thenAnswer(invocation -> {
+      String dir = invocation.getArgument(0, String.class);
+      File folder = new File(webapp, dir);
+      Set<String> paths = new LinkedHashSet<>();
+      File[] files = folder.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          if (file.isFile() && file.getName().endsWith(".xml")) {
+            paths.add(dir + "/" + file.getName());
+          }
+        }
+      }
+      return paths;
+    });
+    when(servletContext.getResource(any())).thenAnswer(
+        invocation -> new File(webapp, invocation.getArgument(0, String.class)).toURI().toURL());
+    when(servletContext.getResourceAsStream(any())).thenAnswer(invocation -> {
+      File file = new File(webapp, invocation.getArgument(0, String.class));
+      return file.isFile() ? (InputStream) new FileInputStream(file) : null;
+    });
+  }
+
+  private WebPage builtInPageWithNoStoredXml() {
+    // "/login" is a real <page name="/login"> in web-layouts/page/cms-layout.xml. It is served by
+    // the built-in layout, so it is live whether or not a web_pages row carries page_xml.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/login");
+    webPage.setDraft(false);
+    return webPage;
+  }
+
+  @Test
+  void aBuiltInPageWithNoStoredPageXmlCountsAsLiveNotBroken() throws Exception {
+    stubRealPageLayouts();
+    List<WebPage> webPageList = new ArrayList<>();
+    webPageList.add(builtInPageWithNoStoredXml());
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    assertEquals(1, request.getAttribute("webPageLiveCount"));
+    assertEquals(0, request.getAttribute("webPageBrokenCount"));
+  }
+
+  @Test
+  void theBuiltInPagesActuallyLoad() throws Exception {
+    /* Anti-vacuous: the assertion above only means something if standardPages is populated. The
+       previous code named a layout file that does not exist, XMLPageLoader logged "resource not
+       found" and carried on, and the map was silently empty. */
+    stubRealPageLayouts();
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any()))
+          .thenReturn(new ArrayList<>());
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> standardPages = (Map<String, Object>) request.getAttribute("standardPages");
+    assertFalse(standardPages.isEmpty(), "standardPages must be loaded, or every check against it is dead");
+    assertTrue(standardPages.containsKey("/login"), "expected the built-in /login page to be loaded");
+  }
+
+  @Test
+  void aPageWithNoStoredPageXmlThatIsNotBuiltInIsStillBroken() throws Exception {
+    /* Control. The cheap way to make the 404 badge disappear is to call everything live; this
+       fails if the fix does that. Same stubbing as above, so standardPages IS populated here. */
+    stubRealPageLayouts();
+    List<WebPage> webPageList = new ArrayList<>();
+    webPageList.add(brokenPage());
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    assertEquals(0, request.getAttribute("webPageLiveCount"));
+    assertEquals(1, request.getAttribute("webPageBrokenCount"));
   }
 }
