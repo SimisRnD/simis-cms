@@ -64,6 +64,49 @@ class DatabasePropertiesTest {
     assertEquals("true", databaseProperties.getProperty("dataSource.ssl"));
   }
 
+  /**
+   * DB_MAX_POOL_SIZE exists because the pool is shared (issue #2029): JobRunr is built over the same
+   * DataSource as the web tier, so its workers and poller draw from it alongside every Tomcat
+   * request thread. Before this override the size was fixed in the WAR and no deployment could tune
+   * it without a rebuild.
+   */
+  @Test
+  void applyEnvironmentOverridesAppliesMaxPoolSize() {
+    Properties databaseProperties = new Properties();
+
+    DatabaseProperties.applyEnvironmentOverrides(databaseProperties, Map.of("DB_MAX_POOL_SIZE", "40"));
+
+    assertEquals("40", databaseProperties.getProperty("maximumPoolSize"));
+  }
+
+  @Test
+  void applyEnvironmentOverridesKeepsTheShippedPoolSizeWhenTheVarIsAbsent() {
+    Properties databaseProperties = new Properties();
+    databaseProperties.setProperty("maximumPoolSize", "25");
+
+    DatabaseProperties.applyEnvironmentOverrides(databaseProperties, Map.of());
+
+    assertEquals("25", databaseProperties.getProperty("maximumPoolSize"));
+  }
+
+  /**
+   * A typo must fall back to the shipped value rather than be coerced. Silently becoming a pool of
+   * zero -- or of whatever Integer.parseInt salvages -- would reproduce the outage this override
+   * exists to prevent, from a setting meant to prevent it.
+   */
+  @Test
+  void applyEnvironmentOverridesRefusesAMaxPoolSizeThatIsNotAUsableNumber() {
+    for (String bad : new String[] { "twenty", "", "  ", "0", "-5", "12.5" }) {
+      Properties databaseProperties = new Properties();
+      databaseProperties.setProperty("maximumPoolSize", "25");
+
+      DatabaseProperties.applyEnvironmentOverrides(databaseProperties, Map.of("DB_MAX_POOL_SIZE", bad));
+
+      assertEquals("25", databaseProperties.getProperty("maximumPoolSize"),
+          "DB_MAX_POOL_SIZE=\"" + bad + "\" must leave the shipped value in place");
+    }
+  }
+
   @Test
   void applyEnvironmentOverridesIgnoresDbSslWhenNotLiterallyTrue() {
     Properties databaseProperties = new Properties();
