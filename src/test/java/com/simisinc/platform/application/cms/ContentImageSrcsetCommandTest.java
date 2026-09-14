@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 import java.util.List;
 
@@ -46,6 +47,64 @@ class ContentImageSrcsetCommandTest {
     mocked.when(() -> ImageVariantRepository.findByImageId(anyLong()))
         .thenReturn(List.of(variant("medium", 800)));
     return mocked;
+  }
+
+  /**
+   * The point of issue #2033: neither repository caches, so before the per-invocation memo an image
+   * used five times in one content block cost five findById calls and five findByImageId calls.
+   * Content repeats images constantly -- a logo, a divider, a card graphic.
+   */
+  @Test
+  void aRepeatedImageIsLookedUpOnlyOnce() {
+    String oneImage = "<img src=\"/assets/img/1-1/x.jpg\" />";
+    String html = "<p>" + oneImage.repeat(5) + "</p>";
+
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStatic(ImageRepository.class)) {
+      images.when(() -> ImageRepository.findById(anyLong())).thenReturn(null);
+
+      ContentImageSrcsetCommand.enhanceImageTags(html);
+
+      variants.verify(() -> ImageVariantRepository.findByImageId(anyLong()), times(1));
+      images.verify(() -> ImageRepository.findById(anyLong()), times(1));
+    }
+  }
+
+  /**
+   * The control for the test above: the memo must collapse repeats, not collapse distinct images.
+   * Without this, a memo keyed on the wrong thing would look like a win and silently give every
+   * image the first one's variants.
+   */
+  @Test
+  void distinctImagesAreStillLookedUpSeparately() {
+    String html = "<p><img src=\"/assets/img/1-1/a.jpg\" /><img src=\"/assets/img/2-2/b.jpg\" /></p>";
+
+    try (MockedStatic<ImageVariantRepository> variants = mockOneVariant();
+        MockedStatic<ImageRepository> images = mockStatic(ImageRepository.class)) {
+      images.when(() -> ImageRepository.findById(anyLong())).thenReturn(null);
+
+      ContentImageSrcsetCommand.enhanceImageTags(html);
+
+      variants.verify(() -> ImageVariantRepository.findByImageId(anyLong()), times(2));
+      images.verify(() -> ImageRepository.findById(anyLong()), times(2));
+    }
+  }
+
+  /** A missing record memoizes too, or a broken image re-queries for every occurrence. */
+  @Test
+  void aMissingImageRecordIsAlsoOnlyLookedUpOnce() {
+    String oneImage = "<img src=\"/assets/img/9-9/gone.jpg\" />";
+    String html = oneImage.repeat(4);
+
+    try (MockedStatic<ImageVariantRepository> variants = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageRepository> images = mockStatic(ImageRepository.class)) {
+      variants.when(() -> ImageVariantRepository.findByImageId(anyLong())).thenReturn(List.of());
+      images.when(() -> ImageRepository.findById(anyLong())).thenReturn(null);
+
+      ContentImageSrcsetCommand.enhanceImageTags(html);
+
+      images.verify(() -> ImageRepository.findById(anyLong()), times(1));
+    }
   }
 
   @Test

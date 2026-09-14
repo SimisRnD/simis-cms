@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.ServletContext;
+
 import com.simisinc.platform.application.cms.CheckWebRedirectTargetCommand;
 import com.simisinc.platform.application.cms.CheckWebRedirectTargetCommand.TargetStatus;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -79,14 +81,19 @@ public class WebRedirectListWidget extends GenericWidget {
       return new HashMap<>();
     }
 
-    // The built-in pages, which are live without any web_pages row -- loaded the same way
-    // WebPageListWidget loads them so both lists answer "does this resolve" identically
+    // The built-in pages, which are live without any web_pages row. Loaded from the same two
+    // directories WebPageXmlLayoutCommand.init() feeds the running site from, so this list answers
+    // "does this resolve" with the pages the site actually serves. The earlier
+    // "/WEB-INF/web-layouts/page/page-layout.xml" named a file that does not exist -- XMLPageLoader
+    // logs "resource not found" and carries on, so standardPages was silently always empty and
+    // every built-in destination was reported as missing.
+    ServletContext servletContext = context.getRequest().getServletContext();
     Map<String, Page> standardPages = new HashMap<>();
     XMLPageLoader xmlPageConfig = new XMLPageLoader(standardPages);
-    xmlPageConfig.loadWidgetLibrary(context.getRequest().getServletContext(),
-        "/WEB-INF/widgets/widget-library.xml");
-    xmlPageConfig.addFile("/WEB-INF/web-layouts/page/page-layout.xml");
-    xmlPageConfig.load(context.getRequest().getServletContext());
+    xmlPageConfig.loadWidgetLibrary(servletContext, "/WEB-INF/widgets/widget-library.xml");
+    xmlPageConfig.addDirectory(servletContext, "web-layouts/page");
+    xmlPageConfig.addDirectory(servletContext, "web-layouts/collection");
+    xmlPageConfig.load(servletContext);
 
     // Keyed lower-cased to match WebPageRepository.findByLink, which compares on LOWER(link)
     Map<String, WebPage> webPageMap = new HashMap<>();
