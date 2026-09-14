@@ -79,14 +79,14 @@
     <tr>
       <td></td>
       <c:choose>
-        <c:when test="${fn:contains(standardPages, menuTab.link)}">
+        <c:when test="${standardPages.containsKey(menuTab.link)}">
           <td>
             <%--<a href="${ctx}${menuTab.link}"><i class="fa fa-check-circle"></i></a>--%>
             <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPage=${menuTab.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
           </td>
           <td><span class="success label">live</span></td>
         </c:when>
-        <c:when test="${fn:contains(webPageMap, menuTab.link)}">
+        <c:when test="${webPageMap.containsKey(menuTab.link)}">
           <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
             <a aria-label="Edit page settings for ${fn:escapeXml(menuTab.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuTab.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
@@ -122,7 +122,7 @@
       </td>
       <td><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}" /></a></td>
       <c:choose>
-        <c:when test="${fn:contains(webPageMap, menuTab.link)}">
+        <c:when test="${webPageMap.containsKey(menuTab.link)}">
           <td>
             <c:if test="${!empty webPageMap[menuTab.link].keywords}">
               <small class="subheader">{<c:out value="${webPageMap[menuTab.link].keywords}" />}</small>
@@ -154,7 +154,7 @@
         </c:otherwise>
       </c:choose>
       <td>
-        <c:if test="${fn:contains(webPageMap, menuTab.link)}">
+        <c:if test="${webPageMap.containsKey(menuTab.link)}">
           <fmt:formatNumber value="${empty webPageViewCountMap[webPageMap[menuTab.link].id] ? 0 : webPageViewCountMap[webPageMap[menuTab.link].id]}" />
         </c:if>
       </td>
@@ -163,13 +163,13 @@
       <tr>
         <td></td>
         <c:choose>
-          <c:when test="${fn:contains(standardPages, menuItem.link)}">
+          <c:when test="${standardPages.containsKey(menuItem.link)}">
             <td>
               <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPage=${menuItem.link}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
             </td>
             <td><span class="success label">live</span></td>
           </c:when>
-          <c:when test="${fn:contains(webPageMap, menuItem.link)}">
+          <c:when test="${webPageMap.containsKey(menuItem.link)}">
             <td>
               <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
               <a aria-label="Edit page settings for ${fn:escapeXml(menuItem.link)}" href="${ctx}/admin/web-page?webPageId=${webPageMap[menuItem.link].id}&returnPage=/admin/web-pages"><i aria-hidden="true" class="fa fa-edit"></i></a>
@@ -212,7 +212,7 @@
         </td>
         <td><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a></td>
         <c:choose>
-          <c:when test="${fn:contains(webPageMap, menuItem.link)}">
+          <c:when test="${webPageMap.containsKey(menuItem.link)}">
             <td>
               <c:if test="${!empty webPageMap[menuItem.link].keywords}">
                 <small class="subheader">{<c:out value="${webPageMap[menuItem.link].keywords}" />}</small>
@@ -241,7 +241,7 @@
           </c:otherwise>
         </c:choose>
         <td>
-          <c:if test="${fn:contains(webPageMap, menuItem.link)}">
+          <c:if test="${webPageMap.containsKey(menuItem.link)}">
             <fmt:formatNumber value="${empty webPageViewCountMap[webPageMap[menuItem.link].id] ? 0 : webPageViewCountMap[webPageMap[menuItem.link].id]}" />
           </c:if>
         </td>
@@ -363,7 +363,7 @@
           <c:when test="${!empty webPage.archived}"><span class="label secondary radius">archived</span></c:when>
           <c:when test="${webPage.draft}"><span class="warning label">draft</span></c:when>
           <c:when test="${!empty webPage.redirectUrl}"><span class="primary label">301</span></c:when>
-          <c:when test="${fn:contains(standardPages, webPage.link)}">
+          <c:when test="${standardPages.containsKey(webPage.link)}">
             <span class="success label">live</span>
           </c:when>
           <c:when test="${fn:startsWith(webPage.link, '/directory/')}"><span class="success label">live</span></c:when>
