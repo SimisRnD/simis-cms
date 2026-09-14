@@ -124,6 +124,73 @@ class CheckWebRedirectTargetCommandTest {
     assertEquals(TargetStatus.OK, check("/", standardPages(), pageMap()));
   }
 
+  // --- destinations served by a wildcard route, which own no page record of their own ---
+
+  @Test
+  void a_blog_post_served_by_a_wildcard_row_resolves() {
+    /* A blog post's URL is /{blogUniqueId}/{postUniqueId} and has no web_pages row; the "/news/*"
+       row is what serves it. Matching the full path exactly reported every one as missing while
+       the redirect served a correct 301 to a live page. */
+    assertEquals(TargetStatus.OK, check("/news/a-published-post", standardPages(),
+        pageMap(page("/news/*", false, "<page/>", null))));
+  }
+
+  @Test
+  void a_deeper_wildcard_row_resolves() {
+    assertEquals(TargetStatus.OK, check("/show/widgets/detail", standardPages(),
+        pageMap(page("/show/widgets/*", false, "<page/>", null))));
+  }
+
+  @Test
+  void a_wiki_page_served_by_a_parent_route_resolves() {
+    /* SitemapServlet#wikiPageEntries states it: "/a-wiki/a-page" resolves to the "/a-wiki" page
+       record whose XML carries name="/*". */
+    assertEquals(TargetStatus.OK, check("/a-wiki/a-page", standardPages(),
+        pageMap(page("/a-wiki", false, "<page name=\"/*\"><section/></page>", null))));
+  }
+
+  @Test
+  void a_parameterized_built_in_page_resolves_for_the_urls_it_serves() {
+    /* XMLPageLoader truncates a name at the first "{", so
+       <page name="/calendar-event{/event-unique-id}"> is keyed as "/calendar-event". An exact
+       match on the full event URL never hits it. */
+    assertEquals(TargetStatus.OK,
+        check("/calendar-event/a1b2c3", standardPages("/calendar-event"), pageMap()));
+  }
+
+  // --- controls: the fallback must not turn this into a check that never fails ---
+
+  @Test
+  void a_parent_page_without_a_wildcard_does_not_vouch_for_its_children() {
+    /* "/careers" existing says nothing about "/careers/openings" -- only a name="/*" route or an
+       explicit "/careers/*" row does. Without this the fallback would call almost anything live. */
+    TargetStatus status = check("/careers/openings", standardPages(),
+        pageMap(page("/careers", false, "<page/>", null)));
+    assertEquals(TargetStatus.MISSING_PAGE, status);
+    assertTrue(status.isBroken());
+  }
+
+  @Test
+  void an_absent_path_is_still_missing_when_unrelated_wildcards_exist() {
+    TargetStatus status = check("/nothing/here", standardPages("/login"),
+        pageMap(page("/news/*", false, "<page/>", null)));
+    assertEquals(TargetStatus.MISSING_PAGE, status);
+    assertTrue(status.isBroken());
+  }
+
+  @Test
+  void a_draft_wildcard_route_still_reports_draft_for_what_it_serves() {
+    /* The route page decides whether anything beneath it is served, so its draft state governs. */
+    assertEquals(TargetStatus.DRAFT_PAGE, check("/news/a-post", standardPages(),
+        pageMap(page("/news/*", true, "<page/>", null))));
+  }
+
+  @Test
+  void an_unrelated_built_in_page_does_not_vouch_for_a_different_path() {
+    assertEquals(TargetStatus.MISSING_PAGE,
+        check("/calendar-event/a1b2c3", standardPages("/login", "/careers"), pageMap()));
+  }
+
   // --- what must never be judged, so the report stays trustworthy ---
 
   @Test
