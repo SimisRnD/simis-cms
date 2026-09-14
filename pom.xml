@@ -50,7 +50,7 @@
     <bucket4j.version>8.10.1</bucket4j.version>
     <caffeine.version>3.2.4</caffeine.version>
     <apache-http.version>5.4.3</apache-http.version>
-    <classgraph.version>4.8.194</classgraph.version>
+    <classgraph.version>4.8.195</classgraph.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <commons-collections4.version>4.6.0</commons-collections4.version>
@@ -96,21 +96,21 @@
     <jstl-api.version>3.0.2</jstl-api.version>
     <jstl.version>3.0.1</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
-    <libphonenumber.version>9.0.38</libphonenumber.version>
+    <libphonenumber.version>9.0.39</libphonenumber.version>
     <lombok.version>1.18.48</lombok.version>
     <playwright.version>1.62.0</playwright.version>
     <postgresql.version>42.7.13</postgresql.version>
     <rabbitmq.version>5.35.0</rabbitmq.version>
     <restfb.version>2026.9.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
-    <slf4j.version>2.0.18</slf4j.version>
+    <slf4j.version>2.0.19</slf4j.version>
     <square.version>24.0.0.20220921</square.version>
     <!-- Held at 4.x: okhttp 5 publishes com.squareup.okhttp3:okhttp as a Kotlin
          Multiplatform metadata artifact containing NO classes (the JVM classes moved
          to okhttp-jvm), so the jar Maven resolves cannot be vendored into the WAR.
          Revisit: switch the dependency to okhttp-jvm, or Square shipping its own client. -->
     <okhttp.version>4.12.0</okhttp.version>
-    <stripe.version>33.4.1</stripe.version>
+    <stripe.version>33.4.2</stripe.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <thymeleaf.version>3.1.5</thymeleaf.version>
     <timeago.version>4.3.0</timeago.version>
