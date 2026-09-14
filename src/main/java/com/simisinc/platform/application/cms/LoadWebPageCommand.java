@@ -17,6 +17,9 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.WebPage;
+import org.apache.commons.lang3.StringUtils;
+
+import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,7 +36,7 @@ public class LoadWebPageCommand {
 
   public static WebPage loadByLink(String pagePath) {
     // Look for web pages as-is
-    WebPage webPage = WebPageRepository.findByLink(pagePath);
+    WebPage webPage = findByLinkCached(pagePath);
     if (webPage != null) {
       LOG.debug("Found web page: " + webPage.getLink());
       return webPage;
@@ -45,19 +48,19 @@ public class LoadWebPageCommand {
       if (doubleSlashIndex > 1) {
         // "/news/x/*"
         String alternatePage = pagePath.substring(0, doubleSlashIndex) + "/*";
-        webPage = WebPageRepository.findByLink(alternatePage);
+        webPage = findByLinkCached(alternatePage);
       }
       if (webPage == null) {
         // "/news/*"
         String alternatePage = pagePath.substring(0, slashIndex) + "/*";
-        webPage = WebPageRepository.findByLink(alternatePage);
+        webPage = findByLinkCached(alternatePage);
       }
       if (webPage == null) {
         // "/admin/documentation/wiki" ??
         // "/admin/documentation/wiki/Home" and name="/*"
         String alternatePage = pagePath.substring(0, slashIndex);
         LOG.debug("Checking for wildcard: " + alternatePage);
-        WebPage testPage = WebPageRepository.findByLink(alternatePage);
+        WebPage testPage = findByLinkCached(alternatePage);
         if (testPage != null && testPage.getPageXml().contains("name=\"/*\"")) {
           webPage = testPage;
         }
@@ -70,4 +73,25 @@ public class LoadWebPageCommand {
     }
     return webPage;
   }
+
+  /**
+   * The cached form of {@link WebPageRepository#findByLink(String)} (issue #2034).
+   *
+   * <p>This method is called up to four times per {@link #loadByLink(String)} -- the exact path,
+   * then two wildcard shapes, then the parent segment -- and {@code loadByLink} is itself called
+   * once per main-menu entry on every anonymous render, via
+   * {@code ValidateUserAccessToWebPageCommand.hasAccess}. Uncached that measured ~50 database
+   * queries per page render; cached it is ~50 in-memory lookups.
+   *
+   * <p>{@code WebPage.NONE} is the cache's stand-in for "no row", translated back to {@code null}
+   * here so no caller outside this method ever sees the sentinel.
+   */
+  private static WebPage findByLinkCached(String link) {
+    if (StringUtils.isBlank(link)) {
+      return null;
+    }
+    WebPage result = (WebPage) CacheManager.getLoadingCache(CacheManager.WEB_PAGE_CACHE).get(link);
+    return result == WebPage.NONE ? null : result;
+  }
+
 }

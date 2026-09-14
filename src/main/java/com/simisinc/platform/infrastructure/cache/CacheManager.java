@@ -24,6 +24,7 @@ import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.AppRepository;
@@ -31,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.StylesheetRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.TableOfContentsRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebRedirectRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 
@@ -60,6 +62,7 @@ public class CacheManager {
   public static String COLLECTION_UNIQUE_ID_CACHE = "CollectionUniqueIdCache";
   public static String TABLE_OF_CONTENTS_UNIQUE_ID_CACHE = "TableOfContentsUniqueIdCache";
   public static String WEB_REDIRECT_CACHE = "WebRedirectCache";
+  public static String WEB_PAGE_CACHE = "WebPageCache";
   public static String RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE = "RateLimitLoginAttemptByUsernameCache";
   public static String RATE_LIMIT_ATTEMPT_BY_IP_CACHE = "RateLimitAttemptByIpCache";
   public static String RATE_LIMIT_ATTEMPT_BY_IP_API_CACHE = "RateLimitAttemptByIpApiCache";
@@ -202,6 +205,32 @@ public class CacheManager {
           return record != null ? record : WebRedirect.NONE;
         });
     cacheManager.put(WEB_REDIRECT_CACHE, webRedirectCache);
+
+    // Web page lookups by link (issue #2034). Every anonymous page render access-checks each of the
+    // ~26 main-menu entries, and each check walks LoadWebPageCommand's fallback chain of up to four
+    // findByLink() calls -- ~50 uncached queries against web_pages per render, measured, with the
+    // median equal to the p90 because it is fixed work rather than a tail effect.
+    //
+    // A faithful memo of WebPageRepository.findByLink: the key is exactly the string the caller
+    // passed, so a mixed-case path still misses exactly as it does today. Normalizing the key would
+    // quietly make URLs case-insensitive -- a behavior change, and not this fix's job.
+    //
+    // Caching the individual link lookup rather than loadByLink's final answer keeps invalidation
+    // exact: saving a page invalidates that page's own link, and nothing has to reason about which
+    // other paths a newly added wildcard row might now resolve differently.
+    //
+    // Safe to share instances: every path that MUTATES a WebPage loads it by id or through findAll,
+    // never through findByLink, so nothing can scribble on a cached object. expireAfterWrite is the
+    // backstop for any invalidation point that is ever missed.
+    LoadingCache<String, WebPage> webPageCache = Caffeine.newBuilder()
+        .maximumSize(10_000)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .recordStats()
+        .build(link -> {
+          WebPage record = WebPageRepository.findByLink(link);
+          return record != null ? record : WebPage.NONE;
+        });
+    cacheManager.put(WEB_PAGE_CACHE, webPageCache);
 
     // Login attempt by username cache
     Cache<String, Object> loginAttemptByUsernameCache = Caffeine.newBuilder()
