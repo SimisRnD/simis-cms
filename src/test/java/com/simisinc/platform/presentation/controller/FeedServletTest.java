@@ -18,9 +18,11 @@ package com.simisinc.platform.presentation.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -136,6 +138,135 @@ class FeedServletTest {
   private String runSiteWideFeed(Map<String, String> properties, List<BlogPost> posts, Blog blog)
       throws Exception {
     return runDoGet(properties, null, posts, blog, blog, mock(HttpServletResponse.class), null);
+  }
+
+  /** doGet with a caller-supplied request, so conditional headers can be set on it. */
+  private String runDoGetWithRequest(HttpServletRequest request, HttpServletResponse response,
+      List<BlogPost> posts, Blog blog) throws Exception {
+    when(request.getPathInfo()).thenReturn(null);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      blogRepository.when(() -> BlogRepository.findByUniqueId(any())).thenReturn(blog);
+      blogRepository.when(() -> BlogRepository.findById(org.mockito.ArgumentMatchers.anyLong())).thenReturn(blog);
+      blogPostRepository.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(posts);
+      new FeedServlet().doGet(request, response);
+    }
+    return body.toString();
+  }
+
+  /** The ETag the servlet computes for this exact set of posts. */
+  private String etagFor(List<BlogPost> posts, Blog blog) throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    runDoGetWithRequest(mock(HttpServletRequest.class), response, posts, blog);
+    ArgumentCaptor<String> etag = ArgumentCaptor.forClass(String.class);
+    verify(response).setHeader(eq("ETag"), etag.capture());
+    return etag.getValue();
+  }
+
+  // --- conditional requests (#2042) ---
+
+  @Test
+  void doGetSetsAnETagAndLastModifiedSoAReaderCanRevalidate() throws Exception {
+    Blog blog = blog(1L, "news", true);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    runDoGetWithRequest(mock(HttpServletRequest.class), response,
+        List.of(post(1L, "a-post", "A Post")), blog);
+
+    ArgumentCaptor<String> etag = ArgumentCaptor.forClass(String.class);
+    verify(response).setHeader(eq("ETag"), etag.capture());
+    assertTrue(etag.getValue().startsWith("\"") && etag.getValue().endsWith("\""),
+        "ETag must be a quoted entity tag: " + etag.getValue());
+    verify(response).setDateHeader(eq("Last-Modified"),
+        eq(Timestamp.valueOf("2026-03-15 12:30:00").getTime()));
+  }
+
+  @Test
+  void lastModifiedMatchesTheFeedLevelUpdatedElement() throws Exception {
+    // The two are the same value by construction. If they ever diverge, a reader revalidating
+    // against Last-Modified would be answered about a date the document never advertised.
+    Blog blog = blog(1L, "news", true);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    String xml = runDoGetWithRequest(mock(HttpServletRequest.class), response,
+        List.of(post(1L, "a-post", "A Post")), blog);
+
+    ArgumentCaptor<Long> lastModified = ArgumentCaptor.forClass(Long.class);
+    verify(response).setDateHeader(eq("Last-Modified"), lastModified.capture());
+    assertTrue(xml.contains("<updated>"), "feed should carry a feed-level updated element");
+    assertEquals(Timestamp.valueOf("2026-03-15 12:30:00").getTime(), lastModified.getValue());
+  }
+
+  @Test
+  void doGetReturns304WhenIfNoneMatchMatchesTheCurrentETag() throws Exception {
+    Blog blog = blog(1L, "news", true);
+    List<BlogPost> posts = List.of(post(1L, "a-post", "A Post"));
+    String etag = etagFor(posts, blog);
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getHeader("If-None-Match")).thenReturn(etag);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    String body = runDoGetWithRequest(request, response, posts, blog);
+
+    verify(response).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+    assertEquals("", body, "a 304 must not carry a body");
+  }
+
+  @Test
+  void doGetReturns200WhenIfNoneMatchIsAStaleETag() throws Exception {
+    Blog blog = blog(1L, "news", true);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getHeader("If-None-Match")).thenReturn("\"a-tag-from-an-older-feed\"");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    String body = runDoGetWithRequest(request, response, List.of(post(1L, "a-post", "A Post")), blog);
+
+    verify(response, never()).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+    assertTrue(body.contains("<feed"), "a stale validator must be answered with the document");
+  }
+
+  @Test
+  void doGetReturns304WhenIfModifiedSinceIsAtOrAfterTheNewestEntry() throws Exception {
+    Blog blog = blog(1L, "news", true);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getDateHeader("If-Modified-Since"))
+        .thenReturn(Timestamp.valueOf("2026-03-15 12:30:00").getTime());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    runDoGetWithRequest(request, response, List.of(post(1L, "a-post", "A Post")), blog);
+
+    verify(response).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+  }
+
+  @Test
+  void doGetReturns200WhenIfModifiedSinceIsOlderThanTheNewestEntry() throws Exception {
+    Blog blog = blog(1L, "news", true);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getDateHeader("If-Modified-Since"))
+        .thenReturn(Timestamp.valueOf("2026-01-01 00:00:00").getTime());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    String body = runDoGetWithRequest(request, response, List.of(post(1L, "a-post", "A Post")), blog);
+
+    verify(response, never()).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+    assertTrue(body.contains("<feed"));
+  }
+
+  @Test
+  void theETagChangesWhenAPostLeavesTheFeedEvenThoughTheNewestTimestampDoesNot() throws Exception {
+    // The reason the tag hashes the body instead of the newest timestamp. Excluding an older post
+    // from syndication (#1419) shortens the feed without moving its newest entry, so a
+    // timestamp-derived validator would answer 304 and the reader would keep showing the post.
+    Blog blog = blog(1L, "news", true);
+    BlogPost newest = post(1L, "newest", "Newest");
+    BlogPost older = post(1L, "older", "Older");
+    older.setModified(Timestamp.valueOf("2026-02-01 08:00:00"));
+    older.setStartDate(Timestamp.valueOf("2026-02-01 08:00:00"));
+
+    String withBoth = etagFor(List.of(newest, older), blog);
+    String withoutOlder = etagFor(List.of(newest), blog);
+
+    assertNotEquals(withBoth, withoutOlder,
+        "dropping a post must change the validator even when the newest entry is untouched");
   }
 
   @Test
