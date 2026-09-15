@@ -327,7 +327,7 @@ public class FeedServlet extends HttpServlet {
     return new RenderedFeed(xml.toString(), newest == null ? 0L : newest.getTime());
   }
 
-  /** The rendered document and the timestamp that both its <updated> element and Last-Modified use. */
+  /** The rendered document and the timestamp used by both its {@code <updated>} element and Last-Modified. */
   private static class RenderedFeed {
     final String xml;
     final long mostRecentMillis;
