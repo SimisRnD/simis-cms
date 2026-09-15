@@ -113,7 +113,7 @@ public class FeedServlet extends HttpServlet {
         return;
       }
 
-      String feedXml = renderFeed(siteUrl, sitePropertyMap, blog);
+      RenderedFeed rendered = renderFeed(siteUrl, sitePropertyMap, blog);
 
       response.setContentType("application/atom+xml");
       response.setCharacterEncoding("UTF-8");
@@ -129,11 +129,29 @@ public class FeedServlet extends HttpServlet {
       // reader's own poll interval, which is typically 15-60 minutes on its own. Five minutes keeps
       // the part we control small without making every subscriber poll re-run the post query.
       //
-      // No ETag/304 here deliberately. SitemapServlet has that, but its isNotModified/gzip helpers
-      // are private to it, so conditional requests would mean duplicating them or extracting a
-      // shared helper -- worth doing, but a larger change than stating a TTL, and independent of it.
+      // Conditional requests (#2042). The helpers now live in ConditionalRequest, shared with
+      // SitemapServlet. A reader polls on a fixed schedule and almost always finds nothing new, so
+      // the validator is what turns those polls into empty 304s instead of resending the document.
+      //
+      // The tag hashes the rendered body rather than deriving from the newest entry's timestamp. A
+      // post edited in place, or newly excluded from syndication (#1419), changes the feed without
+      // moving that timestamp, and a timestamp-derived tag would call those unchanged. The cost is
+      // that renderFeed has already run by this point: a 304 saves the transfer, not the query.
+      // Gating on Last-Modified before rendering would save the query too, but it would answer 304
+      // for exactly the edits the body hash exists to catch, so the order here is deliberate.
+      String etag = ConditionalRequest.entityTag(rendered.xml);
+      response.setHeader("ETag", etag);
+      long mostRecentTimestamp = rendered.mostRecentMillis;
+      if (mostRecentTimestamp > 0) {
+        response.setDateHeader("Last-Modified", mostRecentTimestamp);
+      }
       response.setHeader("Cache-Control", "public, max-age=300");
-      response.getWriter().print(feedXml);
+
+      if (ConditionalRequest.isNotModified(request, mostRecentTimestamp, etag)) {
+        response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+        return;
+      }
+      response.getWriter().print(rendered.xml);
     } catch (Exception e) {
       LOG.error("Error generating feed: " + e.getMessage());
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -177,7 +195,7 @@ public class FeedServlet extends HttpServlet {
    * public -- a feed that syndicates a post the site will not show is a content leak, not a
    * convenience.
    */
-  private String renderFeed(String siteUrl, Map<String, String> sitePropertyMap, Blog blog) {
+  private RenderedFeed renderFeed(String siteUrl, Map<String, String> sitePropertyMap, Blog blog) {
     BlogPostSpecification spec = new BlogPostSpecification();
     spec.setPublishedOnly(true);
     spec.setArchivedOnly(false);
@@ -254,7 +272,11 @@ public class FeedServlet extends HttpServlet {
     xml.append("  <id>").append(escapeXml(selfUrl)).append("</id>\n");
     // Atom requires <updated>; derive it from the newest entry rather than "now" so a feed whose
     // content has not changed keeps a stable value that conditional-GET tooling can rely on
-    xml.append("  <updated>").append(formatDate(mostRecent(entries))).append("</updated>\n");
+    // Computed once and carried back to doGet: it is both the feed-level <updated> and the
+    // Last-Modified validator, and the two must agree or a conditional request answers against a
+    // date the feed never advertised.
+    Timestamp newest = mostRecent(entries);
+    xml.append("  <updated>").append(formatDate(newest)).append("</updated>\n");
     // Prefer the blog's own description. site.description is the company's elevator pitch --
     // "CMMI Level 3 certified, Veteran-Owned Small Business..." -- which is right on a home page and
     // wrong here: a reader prints the subtitle directly under the feed title, so every feed a site
@@ -302,7 +324,18 @@ public class FeedServlet extends HttpServlet {
     }
 
     xml.append("</feed>\n");
-    return xml.toString();
+    return new RenderedFeed(xml.toString(), newest == null ? 0L : newest.getTime());
+  }
+
+  /** The rendered document and the timestamp that both its <updated> element and Last-Modified use. */
+  private static class RenderedFeed {
+    final String xml;
+    final long mostRecentMillis;
+
+    RenderedFeed(String xml, long mostRecentMillis) {
+      this.xml = xml;
+      this.mostRecentMillis = mostRecentMillis;
+    }
   }
 
   /**

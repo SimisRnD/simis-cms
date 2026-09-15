@@ -37,7 +37,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.WikiPageSpecificatio
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,7 +46,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -58,7 +56,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPOutputStream;
 
 @WebServlet(name = "SitemapServlet", urlPatterns = "/sitemap.xml")
 public class SitemapServlet extends HttpServlet {
@@ -142,21 +139,21 @@ public class SitemapServlet extends HttpServlet {
       // If-Modified-Since, avoid even the DB queries above on a future request a reverse proxy
       // short-circuits) when nothing has changed since the client's last fetch. Per RFC 7232
       // section 3.3, If-None-Match takes precedence over If-Modified-Since when both are present.
-      String etag = "\"" + DigestUtils.md5Hex(content) + "\"";
+      String etag = ConditionalRequest.entityTag(content);
       response.setHeader("ETag", etag);
       if (mostRecentTimestamp > 0) {
         response.setDateHeader("Last-Modified", mostRecentTimestamp);
       }
       response.setHeader("Cache-Control", "public, max-age=3600");
 
-      if (isNotModified(request, mostRecentTimestamp, etag)) {
+      if (ConditionalRequest.isNotModified(request, mostRecentTimestamp, etag)) {
         response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
         return;
       }
 
       response.setStatus(HttpServletResponse.SC_OK);
-      if (gzipSupported(request)) {
-        byte[] gzipped = gzip(content);
+      if (ConditionalRequest.gzipSupported(request)) {
+        byte[] gzipped = ConditionalRequest.gzip(content);
         response.setHeader("Content-Encoding", "gzip");
         response.setContentLength(gzipped.length);
         try (OutputStream os = response.getOutputStream()) {
@@ -173,36 +170,8 @@ public class SitemapServlet extends HttpServlet {
     }
   }
 
-  /**
-   * True when the request's conditional headers show the client's cached copy is still current.
-   * If-None-Match is authoritative when present (RFC 7232 section 3.3); otherwise falls back to
-   * If-Modified-Since, rounded up a second since HTTP dates truncate sub-second precision.
-   */
-  private boolean isNotModified(HttpServletRequest request, long mostRecentTimestamp, String etag) {
-    String ifNoneMatch = request.getHeader("If-None-Match");
-    if (StringUtils.isNotBlank(ifNoneMatch)) {
-      return "*".equals(ifNoneMatch) || ifNoneMatch.contains(etag);
-    }
-    if (mostRecentTimestamp > 0) {
-      long ifModifiedSince = request.getDateHeader("If-Modified-Since");
-      return ifModifiedSince >= 0 && mostRecentTimestamp <= ifModifiedSince + 1000;
-    }
-    return false;
-  }
-
-  private boolean gzipSupported(HttpServletRequest request) {
-    String acceptEncoding = request.getHeader("Accept-Encoding");
-    return acceptEncoding != null && acceptEncoding.contains("gzip");
-  }
-
-  private byte[] gzip(String text) throws IOException {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    try (GZIPOutputStream gzipStream = new GZIPOutputStream(bos)) {
-      gzipStream.write(text.getBytes("UTF-8"));
-      gzipStream.flush();
-    }
-    return bos.toByteArray();
-  }
+  // isNotModified, gzipSupported and gzip moved to ConditionalRequest (#2042) so FeedServlet
+  // can use the same conditional-request handling. Behavior here is unchanged.
 
   private List<SitemapUrlEntry> buildAllEntries(String siteUrl) {
     List<SitemapUrlEntry> entries = new ArrayList<>();
