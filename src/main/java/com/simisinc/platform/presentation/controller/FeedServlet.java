@@ -50,7 +50,8 @@ import java.util.Map;
  *
  * <ul>
  * <li>{@code /feed.xml} -- every published post across every blog</li>
- * <li>{@code /feed/{blogUniqueId}.xml} -- one blog's posts</li>
+ * <li>{@code /feed/{blogUniqueId}} -- one blog's posts; the {@code .xml} suffix is accepted too,
+ * but the bare form is what the page advertises and what {@code rel="self"} names</li>
  * </ul>
  *
  * <p>The per-blog route deliberately lives under {@code /feed/} rather than at
@@ -259,8 +260,21 @@ public class FeedServlet extends HttpServlet {
     if (feedTitle == null) {
       feedTitle = blog != null ? siteName + " - " + blog.getName() : siteName;
     }
-    String selfUrl = blog != null
+    // <id> is the feed's permanent identity, so it keeps the ".xml" spelling every feed was first
+    // published with. A reader that keys on it would otherwise take a changed id for a different
+    // publication and re-notify subscribers about entries they have already read.
+    String feedId = blog != null
         ? siteUrl + "/feed/" + blog.getUniqueId() + ".xml"
+        : siteUrl + "/feed.xml";
+    // rel="self" is a different thing: it names where the document is actually served, and Atom
+    // asks it to match the location it was fetched from. The per-blog route answers both
+    // /feed/{blogUniqueId} and the ".xml" spelling, but main.jsp advertises the bare one in the
+    // page's <link rel="alternate">, so that is the URL a subscriber holds and the one to name
+    // here. Pointing self at a URL nobody fetched is what the W3C validator flags as "Self
+    // reference doesn't match document location", and a reader that re-resolves a feed from its
+    // own contents follows it to the spelling the site does not advertise.
+    String selfUrl = blog != null
+        ? siteUrl + "/feed/" + blog.getUniqueId()
         : siteUrl + "/feed.xml";
 
     StringBuilder xml = new StringBuilder();
@@ -269,7 +283,7 @@ public class FeedServlet extends HttpServlet {
     xml.append("  <title>").append(escapeXml(feedTitle)).append("</title>\n");
     xml.append("  <link href=\"").append(escapeXml(siteUrl)).append("/\"/>\n");
     xml.append("  <link rel=\"self\" href=\"").append(escapeXml(selfUrl)).append("\"/>\n");
-    xml.append("  <id>").append(escapeXml(selfUrl)).append("</id>\n");
+    xml.append("  <id>").append(escapeXml(feedId)).append("</id>\n");
     // Atom requires <updated>; derive it from the newest entry rather than "now" so a feed whose
     // content has not changed keeps a stable value that conditional-GET tooling can rely on
     // Computed once and carried back to doGet: it is both the feed-level <updated> and the
@@ -277,6 +291,17 @@ public class FeedServlet extends HttpServlet {
     // date the feed never advertised.
     Timestamp newest = mostRecent(entries);
     xml.append("  <updated>").append(formatDate(newest)).append("</updated>\n");
+    // Atom requires an author on every entry unless the feed carries one of its own (RFC 4287
+    // 4.1.2), and this document had neither: the W3C validator rejected it outright with "Missing
+    // entry element: author", once per entry. Forgiving readers filled the gap with the feed title;
+    // strict ones are entitled to refuse the document.
+    //
+    // The author is the site, not the staff member who wrote the post. A per-entry author would put
+    // individual employees' names on a public surface nothing else here exposes, and would re-query
+    // the user record for every entry. site.name is what the feed is listed under anyway.
+    xml.append("  <author>\n");
+    xml.append("    <name>").append(escapeXml(siteName)).append("</name>\n");
+    xml.append("  </author>\n");
     // Prefer the blog's own description. site.description is the company's elevator pitch --
     // "CMMI Level 3 certified, Veteran-Owned Small Business..." -- which is right on a home page and
     // wrong here: a reader prints the subtitle directly under the feed title, so every feed a site

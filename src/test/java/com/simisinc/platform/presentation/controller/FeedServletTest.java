@@ -360,12 +360,53 @@ class FeedServletTest {
 
   @Test
   void doGetPerBlogFeedPointsSelfAtThePerBlogUrl() throws Exception {
+    // The bare /feed/{blogUniqueId} spelling, which is what main.jsp advertises to readers and so
+    // what they actually fetch. Naming the ".xml" spelling here instead made the W3C validator
+    // report "Self reference doesn't match document location".
     Blog blog = blog(1L, "news", true);
     String xml = runDoGet(siteProperties(true, true), "/news.xml",
         List.of(post(1L, "first-post", "First Post")), blog, blog, mock(HttpServletResponse.class), null);
 
-    assertTrue(xml.contains("<link rel=\"self\" href=\"https://example.org/feed/news.xml\"/>"), xml);
+    assertTrue(xml.contains("<link rel=\"self\" href=\"https://example.org/feed/news\"/>"), xml);
     assertTrue(xml.contains("<title>Example - News</title>"), xml);
+  }
+
+  @Test
+  void doGetPerBlogFeedKeepsTheXmlSpellingAsItsPermanentId() throws Exception {
+    // <id> must not follow rel="self" to the bare URL: it is the feed's permanent identity, and a
+    // reader keying on it would treat a changed id as a new publication and re-notify subscribers
+    // about entries they have already read. Atom does not require the two to agree.
+    Blog blog = blog(1L, "news", true);
+    String xml = runDoGet(siteProperties(true, true), "/news.xml",
+        List.of(post(1L, "first-post", "First Post")), blog, blog, mock(HttpServletResponse.class), null);
+
+    assertTrue(xml.contains("<id>https://example.org/feed/news.xml</id>"), xml);
+  }
+
+  @Test
+  void doGetCarriesAFeedLevelAuthorSoEntriesDoNotNeedTheirOwn() throws Exception {
+    // Atom requires an author on every entry unless the feed carries one (RFC 4287 4.1.2). Without
+    // either the document does not validate -- the W3C validator reported "Missing entry element:
+    // author" once per entry -- and a strict reader may refuse it.
+    Blog blog = blog(1L, "news", true);
+    String xml = runSiteWideFeed(siteProperties(true, true), List.of(post(1L, "first-post", "First Post")), blog);
+
+    assertTrue(xml.contains("<author>"), xml);
+    assertTrue(xml.contains("<name>Example</name>"), xml);
+    assertTrue(xml.indexOf("<author>") < xml.indexOf("<entry>"),
+        "the author must sit at feed level, not inside an entry: " + xml);
+  }
+
+  @Test
+  void doGetFeedLevelAuthorIsNamedEvenWithoutASiteName() throws Exception {
+    // site.name is optional, and an empty <name> would fail validation just as its absence does
+    Map<String, String> properties = siteProperties(true, true);
+    properties.remove("site.name");
+    Blog blog = blog(1L, "news", true);
+
+    String xml = runSiteWideFeed(properties, List.of(post(1L, "first-post", "First Post")), blog);
+
+    assertTrue(xml.contains("<name>Site</name>"), xml);
   }
 
   @Test
