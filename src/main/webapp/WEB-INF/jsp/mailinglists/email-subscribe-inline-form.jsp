@@ -74,7 +74,14 @@
             return;
         }
         extraParams += selectedMailingListParams${widgetContext.uniqueId}();
-        $.getJSON("${ctx}/json/emailSubscribe?token=${userSession.formToken}&email=" + encodeURIComponent(email) + extraParams, function(data) {
+        // The query is passed as jQuery's data argument rather than concatenated into the URL
+        // literal. Built into the literal, every render published a crawlable, session-unique URL
+        // (the form token differs per render), Googlebot extracted it from this script, and those
+        // URLs accumulated in Search Console -- one was indexed. Same request on the wire; the only
+        // URL in the page source is now the bare endpoint path. A string keeps the exact parameter
+        // sequence, which matters: selectedMailingListParams above emits repeated mailingListId
+        // params, and an object would serialise those as mailingListId[].
+        $.getJSON("${ctx}/json/emailSubscribe", "token=${userSession.formToken}&email=" + encodeURIComponent(email) + extraParams, function(data) {
             if (data.status === undefined || data.status !== '0') {
                 document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML =
                     (data.message ? data.message : "Please re-enter your email address using a proper format.");

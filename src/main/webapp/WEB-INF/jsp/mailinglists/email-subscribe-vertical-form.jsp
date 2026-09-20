@@ -46,7 +46,9 @@
             document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
             return false;
         }
-        $.getJSON("${ctx}/json/emailSubscribe?token=${userSession.formToken}&email=" + encodeURIComponent(email) + "&name=" + encodeURIComponent(name), function(data) {
+        <%-- Query passed as jQuery's data argument, not concatenated into the URL literal: built in,
+             it published a crawlable, session-unique URL on every render (see the inline form). --%>
+        $.getJSON("${ctx}/json/emailSubscribe", "token=${userSession.formToken}&email=" + encodeURIComponent(email) + "&name=" + encodeURIComponent(name), function(data) {
             if (data.status === undefined || data.status !== '0') {
                 document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
                 return false;
