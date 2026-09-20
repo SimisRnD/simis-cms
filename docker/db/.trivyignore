@@ -130,6 +130,50 @@ CVE-2026-78410 exp:2026-10-03
 #   confirm the statement reads not_affected, and delete this entry.
 CVE-2026-86140 exp:2026-10-03
 
+# CVE-2026-86138, CVE-2026-86139, CVE-2026-86142, CVE-2026-86143, CVE-2026-86144
+# exp:2026-10-03
+#   libxml2 2.9.14+dfsg-1.3~deb12u6 again -- five more HIGH findings published together, all
+#   `affected` with no fixed version from Debian: heap-based buffer overflow (86138), integer
+#   overflow in xmlURIEscapeStr (86139), heap-based buffer overflow in xmlXPtrEval from
+#   xpointer length saturation (86142), data integrity issues from integer overflow in write
+#   callbacks (86143), and information disclosure / SSRF / denial of service (86144).
+#
+#   Entered 2026-09-20 to unblock the publish gate, which had stopped delivery since
+#   2026-09-18: PR #2045 merged at 16:05 that day, the publish run failed on these five at
+#   16:12, and production stayed on the 2026-09-15 build (12bdc3d4) with no slot swap since.
+#
+#   Same basis as CVE-2026-86140 directly above, and no new exploitability claim: the
+#   reviewed PACKAGE_POLICY entry for libxml2 in tools/generate-db-vex.py resolves any
+#   unfixed libxml2 CVE to not_affected (vulnerable_code_not_in_execute_path), because
+#   PostgreSQL enters libxml2 only through the `xml` data type and the xpath()/xmltable()
+#   family, and GDAL's XML drivers are unreachable on the existing PostGIS rationale. That
+#   policy's factual basis was re-checked against this tree on 2026-09-08 (no `xml` column in
+#   any Flyway migration; the only xpath() references are javax.xml.xpath in
+#   XMLContainerCommands.java, which runs in the JVM in the application container, not in the
+#   database) and nothing in this tree has changed it. Each of the five needs the parser to
+#   run on attacker-supplied input -- 86142 additionally needs an XPointer expression, 86144
+#   needs the resource loader to fetch a URI -- and this image never invokes it.
+#
+#   WHY NOT REGENERATE, which is what the entries above tell you to do: their blocker has
+#   cleared but a different one replaced it. Code scanning HAS now ingested these alerts --
+#   48 open Trivy alerts today, including all five of these and the older pending entries --
+#   so the stated "wait for the alert to land" path is finally available. But a dry run of
+#   generate-db-vex.py refuses to write: it would shrink the document from 60 statements to
+#   12, and it blocks that by design, because dropping suppressions un-suppresses findings
+#   the gate currently clears. The document and the alert feed have diverged far enough that
+#   reconciling them is its own piece of work -- a merge, not a regeneration -- and doing it
+#   under a stopped pipeline would be the wrong time to get it right.
+#
+#   To resolve: reconcile docker/db/vex/simis-cms-db.openvex.json with the alert feed without
+#   losing the statements the gate depends on, confirm these five read not_affected, and
+#   delete this entry. The 2026-10-03 expiry is deliberately the same as every entry above so
+#   the whole cluster -- and the reconciliation question itself -- comes up at once.
+CVE-2026-86138 exp:2026-10-03
+CVE-2026-86139 exp:2026-10-03
+CVE-2026-86142 exp:2026-10-03
+CVE-2026-86143 exp:2026-10-03
+CVE-2026-86144 exp:2026-10-03
+
 # Previously cleared:
 #   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
 #     (vulnerable_code_not_in_execute_path) with recorded evidence on 2026-07-24
