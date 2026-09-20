@@ -1003,7 +1003,10 @@
             document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
             return false;
           }
-          $.getJSON("${ctx}/json/emailSubscribe?token=" + mainToken + "&email=" + encodeURIComponent(email), function(data) {
+          <%-- Query passed as jQuery's data argument, not concatenated into the URL literal: built
+               in, it published a crawlable URL ending "?token=" that Googlebot extracted from this
+               script and kept fetching (see the inline subscribe form). --%>
+          $.getJSON("${ctx}/json/emailSubscribe", "token=" + encodeURIComponent(mainToken) + "&email=" + encodeURIComponent(email), function(data) {
             if (data.status === undefined || data.status !== '0') {
               document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
               return false;
