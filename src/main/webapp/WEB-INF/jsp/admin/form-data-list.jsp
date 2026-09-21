@@ -42,6 +42,22 @@
     }
     postAction('${widgetContext.uri}?action=archive&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId);
   }
+  // Apply the Status and Spam filters the moment they change. Until this, picking "Processed" did
+  // nothing until Filter was also clicked, and nothing on the page said the list below no longer
+  // matched the controls -- so the Awaiting list sat under a dropdown reading "Processed" and read
+  // as a broken filter. The date and form fields still wait for Filter on purpose: a date range
+  // needs both ends set before it means anything, and submitting after the first would reload the
+  // page mid-entry. Delegated from document because this script runs before the form exists, and
+  // guarded so a second instance of the widget on one page doesn't bind twice.
+  if (!window.formDataFilterAutosubmitBound) {
+    window.formDataFilterAutosubmitBound = true;
+    document.addEventListener('change', function (event) {
+      var el = event.target;
+      if (el && el.matches && el.matches('select[data-filter-autosubmit]') && el.form) {
+        el.form.submit();
+      }
+    });
+  }
 </script>
 <c:if test="${!empty title}">
   <h2 class="widget-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h2>
@@ -70,7 +86,7 @@
         </div>
         <div class="cell medium-3">
           <label>Status
-            <select name="status">
+            <select name="status" data-filter-autosubmit>
               <option value="awaiting"<c:if test="${status eq 'awaiting'}"> selected</c:if>>Awaiting review</option>
               <option value="claimed"<c:if test="${status eq 'claimed'}"> selected</c:if>>Claimed</option>
               <option value="processed"<c:if test="${status eq 'processed'}"> selected</c:if>>Processed</option>
@@ -80,7 +96,7 @@
         </div>
         <div class="cell medium-3">
           <label>Spam
-            <select name="spam">
+            <select name="spam" data-filter-autosubmit>
               <option value=""<c:if test="${empty spam}"> selected</c:if>>All</option>
               <option value="flagged"<c:if test="${spam eq 'flagged'}"> selected</c:if>>Spam-Flagged Only</option>
               <option value="excluded"<c:if test="${spam eq 'excluded'}"> selected</c:if>>Exclude Spam-Flagged</option>
@@ -156,6 +172,16 @@
               <fmt:formatDate pattern="hh:mm a" value="${formData.created}"/>
             </small>
             <c:if test="${formData.flaggedAsSpam}"><span class="alert label">spam likely</span></c:if>
+            <%-- Review state on the row itself. Without it the Processed and Dismissed views looked
+                 exactly like Awaiting review -- nothing on a row said what had happened to it -- and
+                 the single-submission view (reached from the notification email, "regardless of its
+                 current status") gave no hint of that status at all. Independent labels rather than
+                 one precedence-picked word, because the states are independent facts: a record can
+                 be processed and later dismissed, and both happened. --%>
+            <c:if test="${!empty formData.processed}"><span class="success label">Processed</span></c:if>
+            <c:if test="${!empty formData.dismissed}"><span class="secondary label">Dismissed</span></c:if>
+            <c:if test="${!empty formData.claimed && empty formData.processed && empty formData.dismissed}"><span class="primary label">Claimed</span></c:if>
+            <c:if test="${empty formData.claimed && empty formData.processed && empty formData.dismissed}"><span class="warning label">Awaiting review</span></c:if>
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -220,9 +246,21 @@
       <td nowrap valign="top"><c:out value="${formData.ipAddress}"/></td>
       <td nowrap valign="top"><c:out value="${formData.formUniqueId}"/></td>
       <td nowrap valign="top">
-        <a class="button radius small primary" href="#" data-js-call="claimForm" data-js-arg1="${formData.id}">Claim</a>
-        <a class="button radius small primary" href="#" data-js-call="markFormAsProcessed" data-js-arg1="${formData.id}">Mark as Processed</a>
-        <a class="button radius small alert" href="#" data-js-call="archiveForm" data-js-arg1="${formData.id}">Remove</a>
+        <%-- Each action shows only while it can still change the record, which is exactly the guard
+             FormDataRepository applies. Before, all three rendered on every row whatever its state:
+             Claim and Mark as Processed were then silent no-ops (tryToMarkAsClaimed and
+             markAsProcessed both require the column to be NULL) that each logged a FAILURE audit
+             event, and Remove was worse -- markAsArchived has no guard, so re-archiving a dismissed
+             record overwrote dismissed/dismissed_by and rewrote who had dismissed it and when. --%>
+        <c:if test="${empty formData.claimed}">
+          <a class="button radius small primary" href="#" data-js-call="claimForm" data-js-arg1="${formData.id}">Claim</a>
+        </c:if>
+        <c:if test="${empty formData.processed}">
+          <a class="button radius small primary" href="#" data-js-call="markFormAsProcessed" data-js-arg1="${formData.id}">Mark as Processed</a>
+        </c:if>
+        <c:if test="${empty formData.dismissed}">
+          <a class="button radius small alert" href="#" data-js-call="archiveForm" data-js-arg1="${formData.id}">Remove</a>
+        </c:if>
       </td>
     </tr>
   </c:forEach>
