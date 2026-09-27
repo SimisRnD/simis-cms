@@ -27,8 +27,21 @@ HONESTY RULES (the whole point -- a VEX that overclaims is worse than no VEX)
    are now held together by test_policy_reproduces_every_committed_statement, which
    regenerates from the document's own contents and demands the statements back exactly.
 
-Regenerate (keeps the document from rotting as the alert set changes):
+Update the committed document (adds what the alert feed shows, keeps everything else):
     python3 tools/generate-db-vex.py
+
+By default the run MERGES into the existing document rather than rebuilding it. The alert
+feed is not an inventory of the image: triaged alerts are dismissed in code scanning
+(docker/db/README.md, "Triaged alerts are dismissed"), so the open alerts are only the
+untriaged remainder, while the scan gate reads this document against the image itself.
+Rebuilding from the feed therefore always lost the triaged statements and ran into the
+shrink guard, and every pending .trivyignore entry had to be turned into a statement by
+hand. A merge keeps every existing statement exactly as written, adds one for each CVE the
+feed shows that the document lacks, and re-derives an existing statement only when the feed
+shows a package it does not cover yet -- so a newly affected, unanalysed package still
+downgrades the statement to under_investigation instead of inheriting a claim it was never
+assessed for. Statements are never dropped by a merge; retiring one is a deliberate edit.
+`--replace` keeps the old whole-document rebuild, still behind the shrink guard.
 
 The script writes the document itself rather than being redirected into it. That is
 deliberate. `> the-file` truncates the target before this process even starts, so a
@@ -36,8 +49,9 @@ refusal to write cannot protect a file the shell has already emptied -- and the 
 failure this tool must never have is quietly replacing 50-odd suppressions with none.
 Owning the write is what makes the guards in write_document() worth anything.
 
-Exit codes: 0 = a document was written, 1 = a write was refused by the guards in
-write_document(), 2 = the alert source could not be read. A generator that never
+Exit codes: 0 = a document was written or there was nothing to change, 1 = a write was
+refused by the guards in write_document() or the existing document could not be merged into,
+2 = the alert source could not be read. A generator that never
 reached its input has not decided anything, and must not be mistaken for one that
 looked at the alerts and refused.
 """
@@ -401,6 +415,11 @@ def parse_args(argv=None):
     ap = argparse.ArgumentParser(description="Generate the simis-cms-db OpenVEX document.")
     ap.add_argument("--output", default=DEFAULT_OUTPUT,
                     help="where to write the document (default: %(default)s)")
+    ap.add_argument("--replace", action="store_true",
+                    help="rebuild the whole document from the open alerts instead of merging "
+                         "into the existing one. The open alerts omit every triaged (dismissed) "
+                         "CVE, so this almost always shrinks the document; the shrink guard "
+                         "still applies.")
     ap.add_argument("--allow-shrink", action="store_true",
                     help="permit writing fewer statements than the existing document has. "
                          "Losing suppressions un-suppresses findings the scan gate clears, "
@@ -408,12 +427,12 @@ def parse_args(argv=None):
     return ap.parse_args(argv)
 
 
-def main():
-    args = parse_args()
-    alerts = fetch_alerts()
-    # vulnerability -> {affected package names}. Versions are deliberately not carried:
-    # statements identify packages by bare PURL, so a version here would be collected and
-    # then dropped. See package_purl().
+def group_alerts(alerts):
+    """vulnerability -> {affected package names}, for alerts that have no fix.
+
+    Versions are deliberately not carried: statements identify packages by bare PURL, so a
+    version here would be collected and then dropped. See package_purl().
+    """
     grouped = OrderedDict()
     for a in alerts:
         msg = a.get("most_recent_instance", {}).get("message", {}).get("text", "")
@@ -422,58 +441,150 @@ def main():
             continue  # a fix exists -> fix it, never VEX it
         cve = a["rule"]["id"]
         grouped.setdefault(cve, set()).add(pkg)
+    return grouped
 
-    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
-    statements = []
-    for cve, pkgs in sorted(grouped.items()):
-        # A statement's justification must hold for every affected package in it.
-        decisions = set()
-        reasons = []
-        # sorted(), not raw iteration order: `reasons` is joined into the impact_statement,
-        # and set iteration order varies between processes, which would make every
-        # regeneration produce a spurious diff.
-        for pkg in sorted(pkgs):
-            if cve in CVE_POLICY:
-                st, why = CVE_POLICY[cve]
-            elif pkg in PACKAGE_POLICY:
-                st, why = PACKAGE_POLICY[pkg]
-                if cve in CVE_ADDENDUM:
-                    why = "%s %s" % (why, CVE_ADDENDUM[cve])
-            else:
-                st, why = None, UNDER_INVESTIGATION_NOTE
-            decisions.add(st)
-            if why not in reasons:
-                reasons.append(why)
 
-        subcomponents = [{"@id": package_purl(p)} for p in sorted(pkgs)]
-        stmt = {
-            "vulnerability": {"name": cve},
-            "products": [{"@id": PRODUCT_PURL, "subcomponents": subcomponents}],
-        }
-        # Only claim not_affected when EVERY affected package in this CVE is justified.
-        if None in decisions or len(decisions) != 1:
-            stmt["status"] = "under_investigation"
-            stmt["impact_statement"] = UNDER_INVESTIGATION_NOTE
+def build_statement(cve, pkgs):
+    """One statement for `cve` covering every package in `pkgs`, decided by the policy tables."""
+    # A statement's justification must hold for every affected package in it.
+    decisions = set()
+    reasons = []
+    # sorted(), not raw iteration order: `reasons` is joined into the impact_statement,
+    # and set iteration order varies between processes, which would make every
+    # regeneration produce a spurious diff.
+    for pkg in sorted(pkgs):
+        if cve in CVE_POLICY:
+            st, why = CVE_POLICY[cve]
+        elif pkg in PACKAGE_POLICY:
+            st, why = PACKAGE_POLICY[pkg]
+            if cve in CVE_ADDENDUM:
+                why = "%s %s" % (why, CVE_ADDENDUM[cve])
         else:
-            stmt["status"] = "not_affected"
-            stmt["justification"] = decisions.pop()
-            stmt["impact_statement"] = " ".join(reasons)
-        statements.append(stmt)
+            st, why = None, UNDER_INVESTIGATION_NOTE
+        decisions.add(st)
+        if why not in reasons:
+            reasons.append(why)
 
-    doc = OrderedDict([
-        ("@context", "https://openvex.dev/ns/v0.2.0"),
-        ("@id", VEX_ID),
-        ("author", AUTHOR),
-        ("timestamp", now),
-        ("version", 1),
-        ("tooling", "tools/generate-db-vex.py"),
-        ("statements", statements),
-    ])
-    written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
+    subcomponents = [{"@id": package_purl(p)} for p in sorted(pkgs)]
+    stmt = {
+        "vulnerability": {"name": cve},
+        "products": [{"@id": PRODUCT_PURL, "subcomponents": subcomponents}],
+    }
+    # Only claim not_affected when EVERY affected package in this CVE is justified.
+    if None in decisions or len(decisions) != 1:
+        stmt["status"] = "under_investigation"
+        stmt["impact_statement"] = UNDER_INVESTIGATION_NOTE
+    else:
+        stmt["status"] = "not_affected"
+        stmt["justification"] = decisions.pop()
+        stmt["impact_statement"] = " ".join(reasons)
+    return stmt
 
+
+def statement_packages(stmt):
+    """Package names a statement already covers, read back from its bare subcomponent PURLs."""
+    return {
+        sc["@id"].rsplit("/", 1)[-1]
+        for product in stmt.get("products", [])
+        for sc in product.get("subcomponents", [])
+    }
+
+
+def merge_statements(existing, grouped):
+    """Fold the alert feed into the existing statements without losing any of them.
+
+    Returns (statements, added, updated): the merged list, and the CVEs that were added and
+    re-derived. Existing statements keep their position and, unless the feed shows a package
+    they do not cover, their exact content -- including any whose alert has since been
+    dismissed or closed, because a closed alert is not evidence that the CVE left the image.
+    New CVEs are appended in CVE order, after everything already recorded.
+    """
+    statements, added, updated = [], [], []
+    seen = set()
+    for stmt in existing:
+        cve = stmt["vulnerability"]["name"]
+        seen.add(cve)
+        covered = statement_packages(stmt)
+        if grouped.get(cve, set()) - covered:
+            statements.append(build_statement(cve, covered | grouped[cve]))
+            updated.append(cve)
+        else:
+            statements.append(stmt)
+    for cve in sorted(c for c in grouped if c not in seen):
+        statements.append(build_statement(cve, grouped[cve]))
+        added.append(cve)
+    return statements, added, updated
+
+
+def load_existing(path):
+    """The document already at `path` (key order kept), or None if there is none.
+
+    A document that exists but cannot be parsed is a refusal, not a fresh start: merging
+    means keeping what is there, and the likeliest cause is a shell redirect (`> path`)
+    that emptied the file before this process started.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh, object_pairs_hook=OrderedDict)
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as exc:
+        raise SystemExit(
+            "cannot merge into %s: %s.\n"
+            "If it was emptied by a shell redirect, restore it (git checkout -- %s) and run\n"
+            "the tool without '>' -- it writes the document itself. --replace rebuilds from\n"
+            "the alerts alone instead." % (path, exc, path)
+        )
+
+
+def summarize(statements):
     n_na = sum(1 for s in statements if s["status"] == "not_affected")
-    print("wrote %d statements to %s: %d not_affected, %d under_investigation"
-          % (written, args.output, n_na, written - n_na), file=sys.stderr)
+    return "%d not_affected, %d under_investigation" % (n_na, len(statements) - n_na)
+
+
+def main():
+    args = parse_args()
+    alerts = fetch_alerts()
+    grouped = group_alerts(alerts)
+    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+
+    existing = None if args.replace else load_existing(args.output)
+    if existing is None:
+        statements = [build_statement(cve, pkgs) for cve, pkgs in sorted(grouped.items())]
+        doc = OrderedDict([
+            ("@context", "https://openvex.dev/ns/v0.2.0"),
+            ("@id", VEX_ID),
+            ("author", AUTHOR),
+            ("timestamp", now),
+            ("version", 1),
+            ("tooling", "tools/generate-db-vex.py"),
+            ("statements", statements),
+        ])
+        written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
+        print("wrote %d statements to %s: %s" % (written, args.output, summarize(statements)),
+              file=sys.stderr)
+        return
+
+    statements, added, updated = merge_statements(existing.get("statements", []), grouped)
+    if not added and not updated:
+        print("no change: every CVE in the %d open alert(s) already has a statement in %s"
+              % (len(alerts), args.output), file=sys.stderr)
+        return
+
+    doc = OrderedDict(existing)
+    doc["statements"] = statements
+    doc["version"] = int(existing.get("version", 0)) + 1
+    doc["last_updated"] = now
+    written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
+    new = [s for s in statements if s["vulnerability"]["name"] in added]
+    print("merged into %s: %d statements (was %d), version %d" % (
+        args.output, written, len(existing.get("statements", [])), doc["version"]), file=sys.stderr)
+    if added:
+        print("  added %d: %s -- %s" % (len(added), ", ".join(added), summarize(new)),
+              file=sys.stderr)
+    if updated:
+        print("  re-derived %d for newly affected packages: %s" % (len(updated), ", ".join(updated)),
+              file=sys.stderr)
 
 
 if __name__ == "__main__":
