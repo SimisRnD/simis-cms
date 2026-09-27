@@ -470,3 +470,29 @@ def test_merging_the_committed_document_with_its_own_alerts_changes_nothing(monk
     run_main(monkeypatch, alerts_describing(committed_statements()), out)
 
     assert out.read_bytes() == COMMITTED_VEX.read_bytes()
+
+
+def test_merge_resolves_a_pending_statement_once_its_triage_is_in_the_policy(monkeypatch, tmp_path):
+    """The pending queue draining: under_investigation, then CVE_POLICY, then not_affected."""
+    out = tmp_path / "vex.json"
+    pending = gen.build_statement("CVE-2099-0300", {"some-unanalysed-package"})
+    assert pending["status"] == "under_investigation"
+    existing_document(out, [hand_statement(), pending])
+
+    monkeypatch.setitem(gen.CVE_POLICY, "CVE-2099-0300", (gen.NOT_IN_PATH, "Assessed: unreachable."))
+    run_main(monkeypatch, [], out)     # its alert may be dismissed by now; the policy is enough
+
+    statements = json.loads(out.read_text())["statements"]
+    assert statements[0] == hand_statement()
+    assert statements[1]["status"] == "not_affected"
+    assert statements[1]["impact_statement"] == "Assessed: unreachable."
+
+
+def test_merge_leaves_a_pending_statement_alone_while_its_policy_is_unchanged(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    existing_document(out, [gen.build_statement("CVE-2099-0300", {"some-unanalysed-package"})])
+    before = out.read_bytes()
+
+    run_main(monkeypatch, [alert("CVE-2099-0300", "some-unanalysed-package")], out)
+
+    assert out.read_bytes() == before

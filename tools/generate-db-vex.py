@@ -40,7 +40,9 @@ hand. A merge keeps every existing statement exactly as written, adds one for ea
 feed shows that the document lacks, and re-derives an existing statement only when the feed
 shows a package it does not cover yet -- so a newly affected, unanalysed package still
 downgrades the statement to under_investigation instead of inheriting a claim it was never
-assessed for. Statements are never dropped by a merge; retiring one is a deliberate edit.
+assessed for -- or when it is still under_investigation, so a pending CVE picks up its triage
+once that is written into CVE_POLICY. Statements are never dropped by a merge; retiring one
+is a deliberate edit.
 `--replace` keeps the old whole-document rebuild, still behind the shrink guard.
 
 The script writes the document itself rather than being redirected into it. That is
@@ -494,9 +496,17 @@ def merge_statements(existing, grouped):
     """Fold the alert feed into the existing statements without losing any of them.
 
     Returns (statements, added, updated): the merged list, and the CVEs that were added and
-    re-derived. Existing statements keep their position and, unless the feed shows a package
-    they do not cover, their exact content -- including any whose alert has since been
-    dismissed or closed, because a closed alert is not evidence that the CVE left the image.
+    re-derived. Existing statements keep their position and their exact content -- including
+    any whose alert has since been dismissed or closed, because a closed alert is not evidence
+    that the CVE left the image -- with two exceptions, both re-derived from the policy tables:
+
+    - the feed shows a package the statement does not cover yet, so the claim has to be
+      re-checked for it rather than extended to it;
+    - the statement is still under_investigation. It records no triage decision to protect,
+      so re-deriving it can only pick up a policy entry added since (the pending queue
+      draining) or leave it as it is. Without this, a CVE merged in as under_investigation
+      would stay that way after its triage was written into CVE_POLICY.
+
     New CVEs are appended in CVE order, after everything already recorded.
     """
     statements, added, updated = [], [], []
@@ -505,11 +515,14 @@ def merge_statements(existing, grouped):
         cve = stmt["vulnerability"]["name"]
         seen.add(cve)
         covered = statement_packages(stmt)
-        if grouped.get(cve, set()) - covered:
-            statements.append(build_statement(cve, covered | grouped[cve]))
-            updated.append(cve)
-        else:
-            statements.append(stmt)
+        new_pkgs = grouped.get(cve, set()) - covered
+        if new_pkgs or stmt.get("status") == "under_investigation":
+            rebuilt = build_statement(cve, covered | new_pkgs)
+            if rebuilt != stmt:
+                statements.append(rebuilt)
+                updated.append(cve)
+                continue
+        statements.append(stmt)
     for cve in sorted(c for c in grouped if c not in seen):
         statements.append(build_statement(cve, grouped[cve]))
         added.append(cve)
@@ -583,8 +596,8 @@ def main():
         print("  added %d: %s -- %s" % (len(added), ", ".join(added), summarize(new)),
               file=sys.stderr)
     if updated:
-        print("  re-derived %d for newly affected packages: %s" % (len(updated), ", ".join(updated)),
-              file=sys.stderr)
+        print("  re-derived %d (newly affected package, or pending triage now in the policy): %s"
+              % (len(updated), ", ".join(updated)), file=sys.stderr)
 
 
 if __name__ == "__main__":

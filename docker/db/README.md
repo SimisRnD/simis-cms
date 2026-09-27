@@ -103,8 +103,9 @@ lacks gets a statement from the policy tables (`not_affected` where they cover i
 `under_investigation` otherwise), and `version` and `last_updated` are bumped. An existing
 statement is re-derived only when the feed shows a package it does not cover yet, so a newly
 affected, unanalysed package still downgrades it to `under_investigation` rather than
-inheriting a claim made for other packages. A merge never drops a statement, and a run with
-nothing new writes nothing.
+inheriting a claim made for other packages -- and a statement still `under_investigation` is
+re-derived on every run, so it picks up its triage as soon as that is added to `CVE_POLICY`.
+A merge never drops a statement, and a run with nothing new writes nothing.
 
 The script writes the document itself rather than being redirected into it. `>` truncates
 the target before the script starts, so a refusal to write could not protect a file the
@@ -133,7 +134,9 @@ open ones are only the untriaged remainder, so a rebuild from them (`--replace`)
 fraction of the document and its shrink guard refuses the write. Until the merge existed, that
 meant every pending entry was turned into a statement by hand. Now the pending queue drains
 the intended way: once a pending CVE's alert is open, run the generator, check the new
-statement, and delete its `.trivyignore` entry if it came out `not_affected`.
+statement, and delete its `.trivyignore` entry if it came out `not_affected`. A CVE that comes
+out `under_investigation` keeps its entry until it is assessed; write the outcome into
+`CVE_POLICY`, run the generator again, and delete the entry then.
 
 Statements identify the image and its packages by **bare** PURL — `pkg:oci/simis-cms-db` and
 `pkg:deb/debian/<pkg>`, with no version and no `distro=` qualifier. Trivy matches VEX
