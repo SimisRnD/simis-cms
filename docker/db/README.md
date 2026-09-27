@@ -70,11 +70,12 @@ what was verified:
 - **General-purpose OS utilities** (ncurses, gzip, util-linux, libldap, sysstat, libacl1) —
   triaged one CVE at a time, because the reasoning is per-flaw rather than per-package: the
   ncurses overflow is in the `infocmp` binary nothing here invokes; `gzip` runs only over the
-  image's own plain-text `init.sql`; sysstat's collectors need a cron daemon the image does not
-  have; the libldap path needs LDAP authentication, which is not configured. Two carry their own
-  justification rather than `vulnerable_code_not_in_execute_path` — **CVE-2026-14456** (libssl3,
-  openssl) is `vulnerable_code_not_present`, since the flaw is in OpenSSL's QUIC listener,
-  introduced in 3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-53613** (util-linux) is
+  image's own plain-text `init.sql`; sysstat's collectors start only from cron or systemd
+  timers, and neither runs here; the libldap path needs LDAP authentication, which is not
+  configured. Two carry their own justification rather than
+  `vulnerable_code_not_in_execute_path` — **CVE-2026-14456** (libssl3, openssl) is
+  `vulnerable_code_not_present`, since the flaw is in OpenSSL's QUIC listener, introduced in
+  3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-53613** (util-linux) is
   `inline_mitigations_already_exist`, since the Dockerfile's `chmod u-s` on `mount`/`umount`
   removes the setuid transition the TOCTOU needs.
 
