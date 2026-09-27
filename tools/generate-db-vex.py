@@ -27,8 +27,23 @@ HONESTY RULES (the whole point -- a VEX that overclaims is worse than no VEX)
    are now held together by test_policy_reproduces_every_committed_statement, which
    regenerates from the document's own contents and demands the statements back exactly.
 
-Regenerate (keeps the document from rotting as the alert set changes):
+Update the committed document (adds what the alert feed shows, keeps everything else):
     python3 tools/generate-db-vex.py
+
+By default the run MERGES into the existing document rather than rebuilding it. The alert
+feed is not an inventory of the image: triaged alerts are dismissed in code scanning
+(docker/db/README.md, "Triaged alerts are dismissed"), so the open alerts are only the
+untriaged remainder, while the scan gate reads this document against the image itself.
+Rebuilding from the feed therefore always lost the triaged statements and ran into the
+shrink guard, and every pending .trivyignore entry had to be turned into a statement by
+hand. A merge keeps every existing statement exactly as written, adds one for each CVE the
+feed shows that the document lacks, and re-derives an existing statement only when the feed
+shows a package it does not cover yet -- so a newly affected, unanalysed package still
+downgrades the statement to under_investigation instead of inheriting a claim it was never
+assessed for -- or when it is still under_investigation, so a pending CVE picks up its triage
+once that is written into CVE_POLICY. Statements are never dropped by a merge; retiring one
+is a deliberate edit.
+`--replace` keeps the old whole-document rebuild, still behind the shrink guard.
 
 The script writes the document itself rather than being redirected into it. That is
 deliberate. `> the-file` truncates the target before this process even starts, so a
@@ -36,8 +51,9 @@ refusal to write cannot protect a file the shell has already emptied -- and the 
 failure this tool must never have is quietly replacing 50-odd suppressions with none.
 Owning the write is what makes the guards in write_document() worth anything.
 
-Exit codes: 0 = a document was written, 1 = a write was refused by the guards in
-write_document(), 2 = the alert source could not be read. A generator that never
+Exit codes: 0 = a document was written or there was nothing to change, 1 = a write was
+refused by the guards in write_document() or the existing document could not be merged into,
+2 = the alert source could not be read. A generator that never
 reached its input has not decided anything, and must not be mistaken for one that
 looked at the alerts and refused.
 """
@@ -229,6 +245,61 @@ CVE_POLICY = {
         "in the codebase serializes or parses FlatGeobuf, so the vulnerable code path is never "
         "reached by anything this application does.",
     ),
+    # util-linux 2.38.1-5+deb12u3 (Debian bookworm, no fixed version). Each CVE below covers the
+    # same nine binary packages built from the one util-linux source. Verified 2026-09-27 on the
+    # published image (sha256:39d6544d) and against the upstream v2.38.1 source tree.
+    "CVE-2026-76642": (
+        NOT_PRESENT,
+        "The flaw is in util-linux's post-mount hook framework: when an external mount helper "
+        "fails, its X-mount.idmap or X-mount.owner hooks still run with privilege. util-linux "
+        "2.38.1, the version in this image, has neither the hook framework nor those options. "
+        "The upstream v2.38.1 source contains no X-mount.idmap, X-mount.owner or hookset "
+        "reference, and the shipped binaries agree: libmount.so.1 and /usr/bin/mount recognize "
+        "only X-mount.mkdir and X-mount.subdir. Independently, the escalation needs an "
+        "unprivileged caller to cross mount's setuid-root transition, which docker/db/Dockerfile "
+        "removes with `chmod u-s` on mount and umount.",
+    ),
+    "CVE-2026-78408": (
+        NOT_PRESENT,
+        "The flaw is in nsenter's --join-cgroup option, which opens the target's cgroup.procs as "
+        "root and keeps that descriptor across later credential changes. The nsenter in this "
+        "image (util-linux 2.38.1) has no such option: its --help lists only -C/--cgroup, which "
+        "opens /proc/<pid>/ns/cgroup to enter a cgroup namespace and never opens cgroup.procs, "
+        "and neither the binary nor the upstream v2.38.1 source contains 'join-cgroup'. "
+        "Independently, the CVE needs a privileged operator to run nsenter against an "
+        "attacker-controlled target; nothing in the image invokes nsenter, and the container's "
+        "/sys/fs/cgroup is mounted read-only.",
+    ),
+    "CVE-2026-78409": (
+        INLINE_MITIGATIONS,
+        "The flaw is in X-mount.subdir's detached-tree fast path, which passes the subdirectory "
+        "to open_tree() on Linux 6.15 and later. util-linux 2.38.1 has no such path -- neither "
+        "libmount.so.1 nor the upstream v2.38.1 source references open_tree -- and implements "
+        "X-mount.subdir by mounting on a temporary target and bind-mounting <tmp>/<subdir> by "
+        "path. That older path also resolves the subdirectory by path, so this statement does "
+        "not rest on the fast path being absent. It rests on the precondition: exploitation "
+        "needs a local unprivileged user with an fstab-authorized X-mount.subdir entry to run "
+        "mount across its setuid-root transition. The image's /etc/fstab has no entries "
+        "(\"# UNCONFIGURED FSTAB FOR BASE SYSTEM\"), and docker/db/Dockerfile runs `chmod u-s` "
+        "on mount and umount, so invoking mount confers no privilege. Root in the container "
+        "cannot mount either: under the db service's docker-compose.yaml settings it holds "
+        "Docker's default capability set, which lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), "
+        "and `mount -t tmpfs` fails with permission denied.",
+    ),
+    "CVE-2026-78410": (
+        INLINE_MITIGATIONS,
+        "Restricted (non-root) bind mounts take their source from fstab without pinning it, so a "
+        "user who can replace that source can redirect setuid mount(8) to bind another host "
+        "directory; if the entry also sets X-mount.owner, X-mount.group or X-mount.mode, root "
+        "then changes that inode's ownership or mode. The second half is not present in "
+        "util-linux 2.38.1: none of those three options appears in the upstream v2.38.1 source "
+        "or in the shipped libmount.so.1 and /usr/bin/mount. The first half needs an fstab entry "
+        "authorizing a user mount and a setuid-root mount, and the image has neither: /etc/fstab "
+        "has no entries, and docker/db/Dockerfile runs `chmod u-s` on mount and umount, so a "
+        "restricted mount never runs with privilege. Root in the container holds Docker's "
+        "default capability set, which lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), and "
+        "cannot mount at all.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
@@ -401,6 +472,11 @@ def parse_args(argv=None):
     ap = argparse.ArgumentParser(description="Generate the simis-cms-db OpenVEX document.")
     ap.add_argument("--output", default=DEFAULT_OUTPUT,
                     help="where to write the document (default: %(default)s)")
+    ap.add_argument("--replace", action="store_true",
+                    help="rebuild the whole document from the open alerts instead of merging "
+                         "into the existing one. The open alerts omit every triaged (dismissed) "
+                         "CVE, so this almost always shrinks the document; the shrink guard "
+                         "still applies.")
     ap.add_argument("--allow-shrink", action="store_true",
                     help="permit writing fewer statements than the existing document has. "
                          "Losing suppressions un-suppresses findings the scan gate clears, "
@@ -408,12 +484,12 @@ def parse_args(argv=None):
     return ap.parse_args(argv)
 
 
-def main():
-    args = parse_args()
-    alerts = fetch_alerts()
-    # vulnerability -> {affected package names}. Versions are deliberately not carried:
-    # statements identify packages by bare PURL, so a version here would be collected and
-    # then dropped. See package_purl().
+def group_alerts(alerts):
+    """vulnerability -> {affected package names}, for alerts that have no fix.
+
+    Versions are deliberately not carried: statements identify packages by bare PURL, so a
+    version here would be collected and then dropped. See package_purl().
+    """
     grouped = OrderedDict()
     for a in alerts:
         msg = a.get("most_recent_instance", {}).get("message", {}).get("text", "")
@@ -422,58 +498,161 @@ def main():
             continue  # a fix exists -> fix it, never VEX it
         cve = a["rule"]["id"]
         grouped.setdefault(cve, set()).add(pkg)
+    return grouped
 
-    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
-    statements = []
-    for cve, pkgs in sorted(grouped.items()):
-        # A statement's justification must hold for every affected package in it.
-        decisions = set()
-        reasons = []
-        # sorted(), not raw iteration order: `reasons` is joined into the impact_statement,
-        # and set iteration order varies between processes, which would make every
-        # regeneration produce a spurious diff.
-        for pkg in sorted(pkgs):
-            if cve in CVE_POLICY:
-                st, why = CVE_POLICY[cve]
-            elif pkg in PACKAGE_POLICY:
-                st, why = PACKAGE_POLICY[pkg]
-                if cve in CVE_ADDENDUM:
-                    why = "%s %s" % (why, CVE_ADDENDUM[cve])
-            else:
-                st, why = None, UNDER_INVESTIGATION_NOTE
-            decisions.add(st)
-            if why not in reasons:
-                reasons.append(why)
 
-        subcomponents = [{"@id": package_purl(p)} for p in sorted(pkgs)]
-        stmt = {
-            "vulnerability": {"name": cve},
-            "products": [{"@id": PRODUCT_PURL, "subcomponents": subcomponents}],
-        }
-        # Only claim not_affected when EVERY affected package in this CVE is justified.
-        if None in decisions or len(decisions) != 1:
-            stmt["status"] = "under_investigation"
-            stmt["impact_statement"] = UNDER_INVESTIGATION_NOTE
+def build_statement(cve, pkgs):
+    """One statement for `cve` covering every package in `pkgs`, decided by the policy tables."""
+    # A statement's justification must hold for every affected package in it.
+    decisions = set()
+    reasons = []
+    # sorted(), not raw iteration order: `reasons` is joined into the impact_statement,
+    # and set iteration order varies between processes, which would make every
+    # regeneration produce a spurious diff.
+    for pkg in sorted(pkgs):
+        if cve in CVE_POLICY:
+            st, why = CVE_POLICY[cve]
+        elif pkg in PACKAGE_POLICY:
+            st, why = PACKAGE_POLICY[pkg]
+            if cve in CVE_ADDENDUM:
+                why = "%s %s" % (why, CVE_ADDENDUM[cve])
         else:
-            stmt["status"] = "not_affected"
-            stmt["justification"] = decisions.pop()
-            stmt["impact_statement"] = " ".join(reasons)
+            st, why = None, UNDER_INVESTIGATION_NOTE
+        decisions.add(st)
+        if why not in reasons:
+            reasons.append(why)
+
+    subcomponents = [{"@id": package_purl(p)} for p in sorted(pkgs)]
+    stmt = {
+        "vulnerability": {"name": cve},
+        "products": [{"@id": PRODUCT_PURL, "subcomponents": subcomponents}],
+    }
+    # Only claim not_affected when EVERY affected package in this CVE is justified.
+    if None in decisions or len(decisions) != 1:
+        stmt["status"] = "under_investigation"
+        stmt["impact_statement"] = UNDER_INVESTIGATION_NOTE
+    else:
+        stmt["status"] = "not_affected"
+        stmt["justification"] = decisions.pop()
+        stmt["impact_statement"] = " ".join(reasons)
+    return stmt
+
+
+def statement_packages(stmt):
+    """Package names a statement already covers, read back from its bare subcomponent PURLs."""
+    return {
+        sc["@id"].rsplit("/", 1)[-1]
+        for product in stmt.get("products", [])
+        for sc in product.get("subcomponents", [])
+    }
+
+
+def merge_statements(existing, grouped):
+    """Fold the alert feed into the existing statements without losing any of them.
+
+    Returns (statements, added, updated): the merged list, and the CVEs that were added and
+    re-derived. Existing statements keep their position and their exact content -- including
+    any whose alert has since been dismissed or closed, because a closed alert is not evidence
+    that the CVE left the image -- with two exceptions, both re-derived from the policy tables:
+
+    - the feed shows a package the statement does not cover yet, so the claim has to be
+      re-checked for it rather than extended to it;
+    - the statement is still under_investigation. It records no triage decision to protect,
+      so re-deriving it can only pick up a policy entry added since (the pending queue
+      draining) or leave it as it is. Without this, a CVE merged in as under_investigation
+      would stay that way after its triage was written into CVE_POLICY.
+
+    New CVEs are appended in CVE order, after everything already recorded.
+    """
+    statements, added, updated = [], [], []
+    seen = set()
+    for stmt in existing:
+        cve = stmt["vulnerability"]["name"]
+        seen.add(cve)
+        covered = statement_packages(stmt)
+        new_pkgs = grouped.get(cve, set()) - covered
+        if new_pkgs or stmt.get("status") == "under_investigation":
+            rebuilt = build_statement(cve, covered | new_pkgs)
+            if rebuilt != stmt:
+                statements.append(rebuilt)
+                updated.append(cve)
+                continue
         statements.append(stmt)
+    for cve in sorted(c for c in grouped if c not in seen):
+        statements.append(build_statement(cve, grouped[cve]))
+        added.append(cve)
+    return statements, added, updated
 
-    doc = OrderedDict([
-        ("@context", "https://openvex.dev/ns/v0.2.0"),
-        ("@id", VEX_ID),
-        ("author", AUTHOR),
-        ("timestamp", now),
-        ("version", 1),
-        ("tooling", "tools/generate-db-vex.py"),
-        ("statements", statements),
-    ])
-    written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
 
+def load_existing(path):
+    """The document already at `path` (key order kept), or None if there is none.
+
+    A document that exists but cannot be parsed is a refusal, not a fresh start: merging
+    means keeping what is there, and the likeliest cause is a shell redirect (`> path`)
+    that emptied the file before this process started.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh, object_pairs_hook=OrderedDict)
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as exc:
+        raise SystemExit(
+            "cannot merge into %s: %s.\n"
+            "If it was emptied by a shell redirect, restore it (git checkout -- %s) and run\n"
+            "the tool without '>' -- it writes the document itself. --replace rebuilds from\n"
+            "the alerts alone instead." % (path, exc, path)
+        )
+
+
+def summarize(statements):
     n_na = sum(1 for s in statements if s["status"] == "not_affected")
-    print("wrote %d statements to %s: %d not_affected, %d under_investigation"
-          % (written, args.output, n_na, written - n_na), file=sys.stderr)
+    return "%d not_affected, %d under_investigation" % (n_na, len(statements) - n_na)
+
+
+def main():
+    args = parse_args()
+    alerts = fetch_alerts()
+    grouped = group_alerts(alerts)
+    now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+
+    existing = None if args.replace else load_existing(args.output)
+    if existing is None:
+        statements = [build_statement(cve, pkgs) for cve, pkgs in sorted(grouped.items())]
+        doc = OrderedDict([
+            ("@context", "https://openvex.dev/ns/v0.2.0"),
+            ("@id", VEX_ID),
+            ("author", AUTHOR),
+            ("timestamp", now),
+            ("version", 1),
+            ("tooling", "tools/generate-db-vex.py"),
+            ("statements", statements),
+        ])
+        written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
+        print("wrote %d statements to %s: %s" % (written, args.output, summarize(statements)),
+              file=sys.stderr)
+        return
+
+    statements, added, updated = merge_statements(existing.get("statements", []), grouped)
+    if not added and not updated:
+        print("no change: every CVE in the %d open alert(s) already has a statement in %s"
+              % (len(alerts), args.output), file=sys.stderr)
+        return
+
+    doc = OrderedDict(existing)
+    doc["statements"] = statements
+    doc["version"] = int(existing.get("version", 0)) + 1
+    doc["last_updated"] = now
+    written = write_document(doc, args.output, allow_shrink=args.allow_shrink)
+    new = [s for s in statements if s["vulnerability"]["name"] in added]
+    print("merged into %s: %d statements (was %d), version %d" % (
+        args.output, written, len(existing.get("statements", [])), doc["version"]), file=sys.stderr)
+    if added:
+        print("  added %d: %s -- %s" % (len(added), ", ".join(added), summarize(new)),
+              file=sys.stderr)
+    if updated:
+        print("  re-derived %d (newly affected package, or pending triage now in the policy): %s"
+              % (len(updated), ", ".join(updated)), file=sys.stderr)
 
 
 if __name__ == "__main__":

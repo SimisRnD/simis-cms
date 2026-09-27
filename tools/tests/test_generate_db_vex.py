@@ -264,8 +264,13 @@ def test_no_committed_statement_regenerates_as_under_investigation(monkeypatch, 
     """
     want = committed_statements()
     got = regenerate(monkeypatch, tmp_path, alerts_describing(want))
+    # Only a statement committed as not_affected can be downgraded. A pending CVE that the
+    # merge recorded as under_investigation -- the status its .trivyignore entry stands in
+    # for -- regenerating as under_investigation is the document agreeing with itself.
+    triaged = {s["vulnerability"]["name"] for s in want if s["status"] == "not_affected"}
     downgraded = sorted(
-        s["vulnerability"]["name"] for s in got if s["status"] == "under_investigation"
+        s["vulnerability"]["name"] for s in got
+        if s["status"] == "under_investigation" and s["vulnerability"]["name"] in triaged
     )
     assert not downgraded, (
         "%d triaged CVEs would regenerate as under_investigation: %s"
@@ -317,3 +322,177 @@ def test_a_refused_write_does_not_use_the_unreachable_input_code(tmp_path):
         gen.write_document(doc(0), str(p))
     assert isinstance(excinfo.value.code, str), "a refusal should carry its explanation"
     assert excinfo.value.code != 2
+
+
+# --- Merge (the default) -----------------------------------------------------------------
+# Triaged alerts are dismissed in code scanning, so the open-alert feed is only the untriaged
+# remainder while the scan gate reads the document against the image itself. A rebuild from
+# the feed therefore always lost the triaged statements and hit the shrink guard, and every
+# pending .trivyignore entry had to become a statement by hand. Merging keeps what is there
+# and adds what the feed shows.
+
+LIBXML2_CVE = "CVE-2099-0001"          # covered by PACKAGE_POLICY["libxml2"]
+LIBXML2_CVE_2 = "CVE-2099-0002"
+HAND_CVE = "CVE-2099-0100"             # a recorded statement whose alert is long gone
+
+
+def run_main(monkeypatch, alerts, out, *extra):
+    import sys
+    monkeypatch.setattr(gen, "fetch_alerts", lambda: alerts)
+    monkeypatch.setattr(sys, "argv", ["generate-db-vex.py", "--output", str(out), *extra])
+    gen.main()
+
+
+def existing_document(path, statements, version=7):
+    d = {
+        "@context": "https://openvex.dev/ns/v0.2.0",
+        "@id": gen.VEX_ID,
+        "author": gen.AUTHOR,
+        "timestamp": "2026-01-01T00:00:00+00:00",
+        "version": version,
+        "tooling": "tools/generate-db-vex.py",
+        "statements": statements,
+        "last_updated": "2026-02-02T00:00:00+00:00",
+    }
+    path.write_text(json.dumps(d, indent=2) + "\n")
+    return d
+
+
+def hand_statement():
+    return {
+        "vulnerability": {"name": HAND_CVE},
+        "products": [{"@id": gen.PRODUCT_PURL,
+                      "subcomponents": [{"@id": gen.package_purl("zlib1g")}]}],
+        "status": "not_affected",
+        "justification": gen.NOT_PRESENT,
+        "impact_statement": "Recorded by hand; its alert was dismissed long ago.",
+    }
+
+
+def test_merge_adds_new_cves_and_keeps_every_existing_statement(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    first = gen.build_statement(LIBXML2_CVE, {"libxml2"})
+    before = existing_document(out, [hand_statement(), first])
+
+    run_main(monkeypatch, [alert(LIBXML2_CVE, "libxml2"), alert(LIBXML2_CVE_2, "libxml2")], out)
+
+    after = json.loads(out.read_text())
+    assert after["statements"][:2] == before["statements"], "existing statements must be untouched"
+    assert [s["vulnerability"]["name"] for s in after["statements"]] == [HAND_CVE, LIBXML2_CVE,
+                                                                       LIBXML2_CVE_2]
+    added = after["statements"][2]
+    assert added["status"] == "not_affected"
+    assert added["impact_statement"] == gen.LIBXML2_REASON
+    assert after["version"] == before["version"] + 1
+    assert after["timestamp"] == before["timestamp"], "the creation timestamp is not an update time"
+    assert after["last_updated"] != before["last_updated"]
+    assert list(after) == list(before), "top-level keys and their order are preserved"
+
+
+def test_merge_never_drops_a_statement_whose_alert_is_gone(monkeypatch, tmp_path):
+    """The exact case that used to hit the shrink guard: the feed holds only new CVEs."""
+    out = tmp_path / "vex.json"
+    existing_document(out, [hand_statement(), gen.build_statement(LIBXML2_CVE, {"libxml2"})])
+
+    run_main(monkeypatch, [alert(LIBXML2_CVE_2, "libxml2")], out)
+
+    names = [s["vulnerability"]["name"] for s in json.loads(out.read_text())["statements"]]
+    assert names == [HAND_CVE, LIBXML2_CVE, LIBXML2_CVE_2]
+
+
+def test_merge_with_nothing_new_leaves_the_file_untouched(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    existing_document(out, [hand_statement(), gen.build_statement(LIBXML2_CVE, {"libxml2"})])
+    before = out.read_bytes()
+
+    run_main(monkeypatch, [alert(LIBXML2_CVE, "libxml2")], out)   # already recorded
+    run_main(monkeypatch, [], out)                                 # empty feed
+
+    assert out.read_bytes() == before, "no change must mean no write -- not even a version bump"
+
+
+def test_merge_rederives_a_statement_when_an_unanalysed_package_appears(monkeypatch, tmp_path):
+    """A new package must not inherit a claim that was only ever made for the old ones."""
+    out = tmp_path / "vex.json"
+    existing_document(out, [gen.build_statement(LIBXML2_CVE, {"libxml2"})])
+
+    run_main(monkeypatch, [alert(LIBXML2_CVE, "libxml2"),
+                           alert(LIBXML2_CVE, "some-unanalysed-package")], out)
+
+    (stmt,) = json.loads(out.read_text())["statements"]
+    assert stmt["status"] == "under_investigation"
+    assert gen.statement_packages(stmt) == {"libxml2", "some-unanalysed-package"}
+
+
+def test_merge_records_an_uncovered_new_cve_as_under_investigation(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    existing_document(out, [hand_statement()])
+
+    run_main(monkeypatch, [alert("CVE-2099-0200", "some-unanalysed-package")], out)
+
+    statements = json.loads(out.read_text())["statements"]
+    assert [s["vulnerability"]["name"] for s in statements] == [HAND_CVE, "CVE-2099-0200"]
+    assert statements[-1]["status"] == "under_investigation"
+    assert "justification" not in statements[-1]
+
+
+def test_merge_refuses_an_unreadable_document_instead_of_starting_over(monkeypatch, tmp_path):
+    """`> file` empties the target before the tool starts; a merge must not paper over that."""
+    out = tmp_path / "vex.json"
+    out.write_text("")
+
+    with pytest.raises(SystemExit) as exc:
+        run_main(monkeypatch, [alert(LIBXML2_CVE, "libxml2")], out)
+    assert "cannot merge" in str(exc.value.code)
+    assert out.read_text() == "", "the file is left for the operator to restore"
+
+
+def test_replace_rebuilds_from_the_feed_and_keeps_the_shrink_guard(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    existing_document(out, [hand_statement(), gen.build_statement(LIBXML2_CVE, {"libxml2"})])
+    before = out.read_bytes()
+
+    with pytest.raises(SystemExit):
+        run_main(monkeypatch, [alert(LIBXML2_CVE_2, "libxml2")], out, "--replace")
+    assert out.read_bytes() == before
+
+    run_main(monkeypatch, [alert(LIBXML2_CVE_2, "libxml2")], out, "--replace", "--allow-shrink")
+    d = json.loads(out.read_text())
+    assert [s["vulnerability"]["name"] for s in d["statements"]] == [LIBXML2_CVE_2]
+    assert d["version"] == 1
+
+
+def test_merging_the_committed_document_with_its_own_alerts_changes_nothing(monkeypatch, tmp_path):
+    """Idempotence on the real document: order, content and version all survive a merge."""
+    out = tmp_path / "vex.json"
+    out.write_bytes(COMMITTED_VEX.read_bytes())
+
+    run_main(monkeypatch, alerts_describing(committed_statements()), out)
+
+    assert out.read_bytes() == COMMITTED_VEX.read_bytes()
+
+
+def test_merge_resolves_a_pending_statement_once_its_triage_is_in_the_policy(monkeypatch, tmp_path):
+    """The pending queue draining: under_investigation, then CVE_POLICY, then not_affected."""
+    out = tmp_path / "vex.json"
+    pending = gen.build_statement("CVE-2099-0300", {"some-unanalysed-package"})
+    assert pending["status"] == "under_investigation"
+    existing_document(out, [hand_statement(), pending])
+
+    monkeypatch.setitem(gen.CVE_POLICY, "CVE-2099-0300", (gen.NOT_IN_PATH, "Assessed: unreachable."))
+    run_main(monkeypatch, [], out)     # its alert may be dismissed by now; the policy is enough
+
+    statements = json.loads(out.read_text())["statements"]
+    assert statements[0] == hand_statement()
+    assert statements[1]["status"] == "not_affected"
+    assert statements[1]["impact_statement"] == "Assessed: unreachable."
+
+
+def test_merge_leaves_a_pending_statement_alone_while_its_policy_is_unchanged(monkeypatch, tmp_path):
+    out = tmp_path / "vex.json"
+    existing_document(out, [gen.build_statement("CVE-2099-0300", {"some-unanalysed-package"})])
+    before = out.read_bytes()
+
+    run_main(monkeypatch, [alert("CVE-2099-0300", "some-unanalysed-package")], out)
+
+    assert out.read_bytes() == before

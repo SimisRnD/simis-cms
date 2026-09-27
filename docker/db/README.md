@@ -89,20 +89,31 @@ never rendered as "safe".
 > authentication, or adds compressed `*.sql.gz` init scripts from an untrusted source, the
 > corresponding statements no longer hold and the VEX should be re-evaluated.
 
-Regenerate after any rebuild changes the finding set (this keeps the document from going
-stale, and it only ever emits statements for findings with **no** available fix) -- but read
-"Triaged alerts are dismissed" below first: once a finding is triaged and its alert dismissed,
-regeneration can no longer see it, and statements are added by hand instead:
+Update the document after any rebuild changes the finding set (it only ever emits statements
+for findings with **no** available fix):
 
 ```sh
 python3 tools/generate-db-vex.py
 ```
 
+This **merges** the open code-scanning alerts into the existing document. Every statement
+already there is kept exactly as written -- including ones whose alert has been dismissed, since
+a dismissed or closed alert is not evidence that the CVE left the image. A CVE the document
+lacks gets a statement from the policy tables (`not_affected` where they cover it,
+`under_investigation` otherwise), and `version` and `last_updated` are bumped. An existing
+statement is re-derived only when the feed shows a package it does not cover yet, so a newly
+affected, unanalysed package still downgrades it to `under_investigation` rather than
+inheriting a claim made for other packages -- and a statement still `under_investigation` is
+re-derived on every run, so it picks up its triage as soon as that is added to `CVE_POLICY`.
+A merge never drops a statement, and a run with nothing new writes nothing.
+
 The script writes the document itself rather than being redirected into it. `>` truncates
 the target before the script starts, so a refusal to write could not protect a file the
-shell had already emptied. It refuses to write an empty document, and refuses to reduce the
-statement count without `--allow-shrink` -- losing suppressions un-suppresses findings the
-image scan gate currently clears.
+shell had already emptied -- a merge that finds the document unreadable refuses rather than
+starting over. `--replace` rebuilds the whole document from the open alerts alone (the old
+behaviour); it still refuses an empty document, and refuses to reduce the statement count
+without `--allow-shrink` -- losing suppressions un-suppresses findings the image scan gate
+currently clears.
 
 ### Triaged alerts are dismissed, so an open one means work
 
@@ -118,10 +129,14 @@ the `under_investigation` entries carrying expiries in `.trivyignore`. The first
 99 alerts (46 CVEs) and left 42 alerts (6 CVEs) open.
 
 This changes nothing about the scan gate, which reads this document and `.trivyignore` rather
-than alert states. It does change regeneration: `generate-db-vex.py` builds from **open** alerts,
-so with the triaged ones dismissed it can only produce the untriaged remainder, and its shrink
-guard then refuses the write. That guard is doing its job; the answer is to add statements by
-hand (bump `version` and `last_updated`), which is what recent commits already do.
+than alert states. It is also why the generator merges: with the triaged alerts dismissed, the
+open ones are only the untriaged remainder, so a rebuild from them (`--replace`) produces a
+fraction of the document and its shrink guard refuses the write. Until the merge existed, that
+meant every pending entry was turned into a statement by hand. Now the pending queue drains
+the intended way: once a pending CVE's alert is open, run the generator, check the new
+statement, and delete its `.trivyignore` entry if it came out `not_affected`. A CVE that comes
+out `under_investigation` keeps its entry until it is assessed; write the outcome into
+`CVE_POLICY`, run the generator again, and delete the entry then.
 
 Statements identify the image and its packages by **bare** PURL — `pkg:oci/simis-cms-db` and
 `pkg:deb/debian/<pkg>`, with no version and no `distro=` qualifier. Trivy matches VEX
@@ -153,9 +168,9 @@ fails in CI rather than in somebody's scan. **If you add a statement by hand, ad
 reasoning to the tables in the same commit.**
 
 That test fixes the *decisions*, not the statement count, and the two are not the same thing.
-A scan of the current build reports 54 of the document's 60 CVEs, so a regeneration driven from
-one produces 54 statements and `--allow-shrink` will refuse the write until you say the
-reduction is intended. Usually it is not. Checked on 2026-08-26, only two of the six
+A scan of the current build reports 54 of the document's 60 CVEs, so a `--replace` rebuild driven
+from one produces 54 statements and the shrink guard refuses the write until you pass
+`--allow-shrink` to say the reduction is intended. Usually it is not. Checked on 2026-08-26, only two of the six
 (`CVE-2026-55199`, `CVE-2026-55200`, libssh2) had actually gone away; the other four —
 `CVE-2026-8932` (libcurl), `CVE-2026-26197` (libhdf5), `CVE-2026-56131` and `CVE-2026-56407`
 (libexpat) — are **still present and still unfixed**, and merely re-rated LOW or MEDIUM, which
