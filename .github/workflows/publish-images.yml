@@ -136,7 +136,7 @@ jobs:
       #     the whole tree rather than the specific jars hit so far, since any future
       #     dependency bump could introduce the same false positive in a different jar.
       - name: Scan for secrets in code and history
-        uses: trufflesecurity/trufflehog@f714bf454f350590f4a24c3ddb1aef02c35bf5b6 # v3.97.5
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
