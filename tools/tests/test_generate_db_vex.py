@@ -264,8 +264,13 @@ def test_no_committed_statement_regenerates_as_under_investigation(monkeypatch, 
     """
     want = committed_statements()
     got = regenerate(monkeypatch, tmp_path, alerts_describing(want))
+    # Only a statement committed as not_affected can be downgraded. A pending CVE that the
+    # merge recorded as under_investigation -- the status its .trivyignore entry stands in
+    # for -- regenerating as under_investigation is the document agreeing with itself.
+    triaged = {s["vulnerability"]["name"] for s in want if s["status"] == "not_affected"}
     downgraded = sorted(
-        s["vulnerability"]["name"] for s in got if s["status"] == "under_investigation"
+        s["vulnerability"]["name"] for s in got
+        if s["status"] == "under_investigation" and s["vulnerability"]["name"] in triaged
     )
     assert not downgraded, (
         "%d triaged CVEs would regenerate as under_investigation: %s"
