@@ -245,6 +245,61 @@ CVE_POLICY = {
         "in the codebase serializes or parses FlatGeobuf, so the vulnerable code path is never "
         "reached by anything this application does.",
     ),
+    # util-linux 2.38.1-5+deb12u3 (Debian bookworm, no fixed version). Each CVE below covers the
+    # same nine binary packages built from the one util-linux source. Verified 2026-09-27 on the
+    # published image (sha256:39d6544d) and against the upstream v2.38.1 source tree.
+    "CVE-2026-76642": (
+        NOT_PRESENT,
+        "The flaw is in util-linux's post-mount hook framework: when an external mount helper "
+        "fails, its X-mount.idmap or X-mount.owner hooks still run with privilege. util-linux "
+        "2.38.1, the version in this image, has neither the hook framework nor those options. "
+        "The upstream v2.38.1 source contains no X-mount.idmap, X-mount.owner or hookset "
+        "reference, and the shipped binaries agree: libmount.so.1 and /usr/bin/mount recognize "
+        "only X-mount.mkdir and X-mount.subdir. Independently, the escalation needs an "
+        "unprivileged caller to cross mount's setuid-root transition, which docker/db/Dockerfile "
+        "removes with `chmod u-s` on mount and umount.",
+    ),
+    "CVE-2026-78408": (
+        NOT_PRESENT,
+        "The flaw is in nsenter's --join-cgroup option, which opens the target's cgroup.procs as "
+        "root and keeps that descriptor across later credential changes. The nsenter in this "
+        "image (util-linux 2.38.1) has no such option: its --help lists only -C/--cgroup, which "
+        "opens /proc/<pid>/ns/cgroup to enter a cgroup namespace and never opens cgroup.procs, "
+        "and neither the binary nor the upstream v2.38.1 source contains 'join-cgroup'. "
+        "Independently, the CVE needs a privileged operator to run nsenter against an "
+        "attacker-controlled target; nothing in the image invokes nsenter, and the container's "
+        "/sys/fs/cgroup is mounted read-only.",
+    ),
+    "CVE-2026-78409": (
+        INLINE_MITIGATIONS,
+        "The flaw is in X-mount.subdir's detached-tree fast path, which passes the subdirectory "
+        "to open_tree() on Linux 6.15 and later. util-linux 2.38.1 has no such path -- neither "
+        "libmount.so.1 nor the upstream v2.38.1 source references open_tree -- and implements "
+        "X-mount.subdir by mounting on a temporary target and bind-mounting <tmp>/<subdir> by "
+        "path. That older path also resolves the subdirectory by path, so this statement does "
+        "not rest on the fast path being absent. It rests on the precondition: exploitation "
+        "needs a local unprivileged user with an fstab-authorized X-mount.subdir entry to run "
+        "mount across its setuid-root transition. The image's /etc/fstab has no entries "
+        "(\"# UNCONFIGURED FSTAB FOR BASE SYSTEM\"), and docker/db/Dockerfile runs `chmod u-s` "
+        "on mount and umount, so invoking mount confers no privilege. Root in the container "
+        "cannot mount either: under the db service's docker-compose.yaml settings it holds "
+        "Docker's default capability set, which lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), "
+        "and `mount -t tmpfs` fails with permission denied.",
+    ),
+    "CVE-2026-78410": (
+        INLINE_MITIGATIONS,
+        "Restricted (non-root) bind mounts take their source from fstab without pinning it, so a "
+        "user who can replace that source can redirect setuid mount(8) to bind another host "
+        "directory; if the entry also sets X-mount.owner, X-mount.group or X-mount.mode, root "
+        "then changes that inode's ownership or mode. The second half is not present in "
+        "util-linux 2.38.1: none of those three options appears in the upstream v2.38.1 source "
+        "or in the shipped libmount.so.1 and /usr/bin/mount. The first half needs an fstab entry "
+        "authorizing a user mount and a setuid-root mount, and the image has neither: /etc/fstab "
+        "has no entries, and docker/db/Dockerfile runs `chmod u-s` on mount and umount, so a "
+        "restricted mount never runs with privilege. Root in the container holds Docker's "
+        "default capability set, which lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), and "
+        "cannot mount at all.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
