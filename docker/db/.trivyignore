@@ -8,56 +8,22 @@
 # its line here. A lapsed expiry re-fails the publish gate on the next run --
 # deliberately, so triage cannot be forgotten silently.
 #
-# CVE-2026-66046 exp:2026-10-03
-#   libexpat1 (Expat DoS, no fixed version published by Debian). Entered 2026-08-27 to
-#   unblock the publish gate, which had stopped all delivery.
+# CVE-2026-16742 exp:2026-12-31
+#   systemd-homed (not installed in this image). NOT pending triage: the VEX document carries a
+#   not_affected statement for it (vulnerable_code_not_present, CVE_POLICY), added 2026-09-27.
+#   This line exists because Trivy cannot apply that statement to one of the five packages.
+#   Verified against the published image (simis-cms-db@sha256:39d6544d..., Trivy 0.73.0): the
+#   statement suppresses libsystemd-shared, libsystemd0, systemd and systemd-timesyncd but never
+#   libudev1 -- not when libudev1 is listed alone, and not even with a product-level statement
+#   carrying no subcomponents at all, which suppresses the other four. Listing libsystemd0 alone
+#   suppresses exactly libsystemd0, so the statement form is right; Trivy's VEX matching simply
+#   never reaches libudev1 here (its dependency-graph path to the image root, most likely).
 #
-#   Not a new exploitability claim: libexpat1 is already in GDAL_CHAIN in
-#   tools/generate-db-vex.py, so the existing, reviewed policy resolves it to
-#   not_affected (vulnerable_code_not_in_execute_path) on the same basis as the rest of
-#   the GDAL stack -- vector PostGIS only, postgis_raster never created, so GDAL's XML
-#   readers are never loaded. The VEX document cannot say so yet only because
-#   generate-db-vex.py reads open Trivy alerts from code scanning, and this CVE has not
-#   been ingested there; the live scan in the publish workflow found it first. This line
-#   is the bridge until the alert lands and the document can be regenerated.
-#
-#   EXPIRY EXTENDED 2026-09-08, from 2026-09-10 to 2026-10-03. This is a deliberate
-#   extension, not a silent one, and the reason is that the stated resolution path is
-#   currently unreachable: it waits for the alert to appear in code scanning, and code
-#   scanning has ZERO open CVE alerts today, so generate-db-vex.py has nothing to ingest
-#   and regenerating the document would not produce a statement. Twelve days on, the
-#   alert has not landed. The same is now true of CVE-2026-16742 and of CVE-2026-86140
-#   below -- three consecutive CVEs first found by the live publish scan, none ingested.
-#   That pattern suggests the ingestion path itself needs looking at rather than another
-#   short extension; the new date aligns this entry with the rest of the cluster so all
-#   of them come up for triage together instead of re-blocking delivery one at a time.
-#
-#   To resolve: once the alert appears in code scanning, regenerate
-#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json),
-#   confirm the statement reads not_affected, and delete this entry.
-CVE-2026-66046 exp:2026-10-03
-
-# CVE-2026-16742 exp:2026-10-03
-#   systemd (systemd-homed local privilege escalation, no fixed version published by
-#   Debian). Entered 2026-09-03 to unblock the publish gate, which had stopped delivery of
-#   two already-merged PRs.
-#
-#   Not a judgement call: the vulnerable component is not in the image. systemd-homed ships
-#   as its own binary package and is not installed. Verified against an image built from the
-#   pinned base digest plus the PostGIS install -- /usr/lib/systemd/systemd-homed absent,
-#   homectl absent, package systemd-homed not installed, PID 1 is the postgres entrypoint
-#   shell. Trivy flags it because PostGIS pulls in the systemd source package as a transitive
-#   dependency and the CVE is recorded against that source package.
-#
-#   The CVE_POLICY entry in tools/generate-db-vex.py already resolves this to
-#   not_affected (vulnerable_code_not_present). The VEX document cannot carry the statement
-#   yet only because generate-db-vex.py reads open Trivy alerts from code scanning, and
-#   there are currently zero -- the live scan in the publish workflow found this first.
-#
-#   To resolve: once the alert appears in code scanning, regenerate
-#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json),
-#   confirm the statement reads not_affected, and delete this entry.
-CVE-2026-16742 exp:2026-10-03
+#   To resolve: after a Trivy upgrade, scan with the VEX and without this line
+#   (trivy image --scanners vuln --severity CRITICAL,HIGH --vex docker/db/vex/simis-cms-db.openvex.json
+#   <image>); if CVE-2026-16742 no longer appears, delete this entry. The expiry is a re-check
+#   date for that, not a triage deadline.
+CVE-2026-16742 exp:2026-12-31
 
 # CVE-2026-76642, CVE-2026-78408, CVE-2026-78409, CVE-2026-78410 exp:2026-10-03
 #   util-linux (no fixed version published by Debian bookworm). Entered 2026-09-03 to unblock
@@ -90,89 +56,18 @@ CVE-2026-16742 exp:2026-10-03
 #   inheriting a previous CVE's reasoning, and these four have not been assessed individually.
 #   This entry holds the gate open for that assessment; it does not pre-empt its outcome.
 #
+#   Recorded in the VEX document as under_investigation on 2026-09-27 (PR #2056's merge), which
+#   is the status these entries stand in for: Trivy does not suppress under_investigation, so
+#   the entries still hold the gate open.
+#
 #   To resolve: assess each CVE against the mitigations above, add the outcome to CVE_POLICY
-#   in tools/generate-db-vex.py, regenerate
-#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json), confirm the
-#   statements read as intended, and delete these entries.
+#   in tools/generate-db-vex.py, run `python3 tools/generate-db-vex.py` (no `>` -- the tool
+#   writes the document itself, and a merge re-derives under_investigation statements from the
+#   updated policy), confirm the statements read as intended, and delete these entries.
 CVE-2026-76642 exp:2026-10-03
 CVE-2026-78408 exp:2026-10-03
 CVE-2026-78409 exp:2026-10-03
 CVE-2026-78410 exp:2026-10-03
-
-# CVE-2026-86140 exp:2026-10-03
-#   libxml2 2.9.14+dfsg-1.3~deb12u6 (arbitrary code execution via a stack-based buffer
-#   overflow in xmlSnprintfElements; HIGH, no fixed version published by Debian). Entered
-#   2026-09-08 to unblock the publish gate, which had stopped delivery of six already-merged
-#   PRs (#1927-#1932). The CVE was published overnight: the run for #1926 passed at 21:54 on
-#   2026-09-07 and every run from 10:42 on 2026-09-08 failed on this one finding.
-#
-#   Not a new exploitability claim. tools/generate-db-vex.py already carries a dedicated,
-#   reviewed PACKAGE_POLICY entry for libxml2 resolving it to not_affected
-#   (vulnerable_code_not_in_execute_path): PostgreSQL enters libxml2 only through the `xml`
-#   data type and the xpath()/xmltable() family, and GDAL's XML drivers are unreachable on
-#   the existing PostGIS rationale. Any unfixed libxml2 CVE resolves on that basis.
-#
-#   That policy's factual basis was re-checked against this tree on 2026-09-08 rather than
-#   inherited:
-#     - no `xml` column type is declared in any Flyway migration;
-#     - the application issues no PostgreSQL XML functions -- the only xpath() references
-#       are javax.xml.xpath in XMLContainerCommands.java, which runs in the JVM in the
-#       application container, not in the database.
-#   So the parser is never invoked, and the specific vulnerable routine (xmlSnprintfElements,
-#   reached during DTD validation error reporting) is not on any path this image executes.
-#
-#   As with the entries above, the VEX document cannot carry the statement yet only because
-#   generate-db-vex.py reads open Trivy alerts from code scanning and there are currently
-#   zero; the live scan in the publish workflow found this first.
-#
-#   To resolve: once the alert appears in code scanning, regenerate
-#   (python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json),
-#   confirm the statement reads not_affected, and delete this entry.
-CVE-2026-86140 exp:2026-10-03
-
-# CVE-2026-86138, CVE-2026-86139, CVE-2026-86142, CVE-2026-86143, CVE-2026-86144
-# exp:2026-10-03
-#   libxml2 2.9.14+dfsg-1.3~deb12u6 again -- five more HIGH findings published together, all
-#   `affected` with no fixed version from Debian: heap-based buffer overflow (86138), integer
-#   overflow in xmlURIEscapeStr (86139), heap-based buffer overflow in xmlXPtrEval from
-#   xpointer length saturation (86142), data integrity issues from integer overflow in write
-#   callbacks (86143), and information disclosure / SSRF / denial of service (86144).
-#
-#   Entered 2026-09-20 to unblock the publish gate, which had stopped delivery since
-#   2026-09-18: PR #2045 merged at 16:05 that day, the publish run failed on these five at
-#   16:12, and production stayed on the 2026-09-15 build (12bdc3d4) with no slot swap since.
-#
-#   Same basis as CVE-2026-86140 directly above, and no new exploitability claim: the
-#   reviewed PACKAGE_POLICY entry for libxml2 in tools/generate-db-vex.py resolves any
-#   unfixed libxml2 CVE to not_affected (vulnerable_code_not_in_execute_path), because
-#   PostgreSQL enters libxml2 only through the `xml` data type and the xpath()/xmltable()
-#   family, and GDAL's XML drivers are unreachable on the existing PostGIS rationale. That
-#   policy's factual basis was re-checked against this tree on 2026-09-08 (no `xml` column in
-#   any Flyway migration; the only xpath() references are javax.xml.xpath in
-#   XMLContainerCommands.java, which runs in the JVM in the application container, not in the
-#   database) and nothing in this tree has changed it. Each of the five needs the parser to
-#   run on attacker-supplied input -- 86142 additionally needs an XPointer expression, 86144
-#   needs the resource loader to fetch a URI -- and this image never invokes it.
-#
-#   WHY NOT REGENERATE, which is what the entries above tell you to do: their blocker has
-#   cleared but a different one replaced it. Code scanning HAS now ingested these alerts --
-#   48 open Trivy alerts today, including all five of these and the older pending entries --
-#   so the stated "wait for the alert to land" path is finally available. But a dry run of
-#   generate-db-vex.py refuses to write: it would shrink the document from 60 statements to
-#   12, and it blocks that by design, because dropping suppressions un-suppresses findings
-#   the gate currently clears. The document and the alert feed have diverged far enough that
-#   reconciling them is its own piece of work -- a merge, not a regeneration -- and doing it
-#   under a stopped pipeline would be the wrong time to get it right.
-#
-#   To resolve: reconcile docker/db/vex/simis-cms-db.openvex.json with the alert feed without
-#   losing the statements the gate depends on, confirm these five read not_affected, and
-#   delete this entry. The 2026-10-03 expiry is deliberately the same as every entry above so
-#   the whole cluster -- and the reconciliation question itself -- comes up at once.
-CVE-2026-86138 exp:2026-10-03
-CVE-2026-86139 exp:2026-10-03
-CVE-2026-86142 exp:2026-10-03
-CVE-2026-86143 exp:2026-10-03
-CVE-2026-86144 exp:2026-10-03
 
 # Previously cleared:
 #   - the 7 CVEs pending as of 2026-07-23 were triaged not_affected
@@ -180,4 +75,11 @@ CVE-2026-86144 exp:2026-10-03
 #   - CVE-2026-11822, CVE-2026-11824 and CVE-2026-52490, entered on 2026-08-26 to
 #     unblock the gate, were triaged not_affected on the same GDAL-stack basis and
 #     removed from here the same day
+#   - CVE-2026-66046 (libexpat1), CVE-2026-86140 and
+#     CVE-2026-86138, -86139, -86142, -86143, -86144 (libxml2), entered 2026-08-27 to
+#     2026-09-20 to unblock the gate, resolved not_affected on 2026-09-27 on their existing
+#     reviewed policy basis (GDAL_CHAIN, CVE_POLICY, PACKAGE_POLICY["libxml2"]) once the
+#     generator could merge the alert feed instead of rebuilding from it (PR #2056), and
+#     removed from here. CVE-2026-16742 (systemd-homed) got its not_affected statement the same
+#     day but keeps a line above, because Trivy cannot apply it to libudev1
 # See the VEX statements' impact_statement fields for the evidence in each case.

@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 12,
+  "version": 13,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1295,7 +1295,345 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The CVE is attributed to process_command_opts(), an option-handling routine belonging to libtiff's command-line utilities; this image installs the libtiff6 shared library as a GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is likewise reachable only through postgis_raster. Consistent with the existing CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-16742"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsystemd-shared"
+            },
+            {
+              "@id": "pkg:deb/debian/libsystemd0"
+            },
+            {
+              "@id": "pkg:deb/debian/libudev1"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd"
+            },
+            {
+              "@id": "pkg:deb/debian/systemd-timesyncd"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in systemd-homed's handling of home-record signatures. PostGIS pulls in the systemd binary package as a transitive dependency, so Trivy flags the whole source package, but systemd-homed ships in its own binary package (systemd-homed) which this image does not install: neither /usr/lib/systemd/systemd-homed nor homectl exists in the built image, and PID 1 is the postgres entrypoint shell, not systemd. Verified by inspecting an image built from the pinned base digest plus the PostGIS install - the five packages Trivy reports (libsystemd-shared, libsystemd0, libudev1, systemd, systemd-timesyncd) are all present, and the vulnerable component is not among them."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-66046"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-76642"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            },
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            },
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            },
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            },
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            },
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            },
+            {
+              "@id": "pkg:deb/debian/mount"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78408"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            },
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            },
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            },
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            },
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            },
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            },
+            {
+              "@id": "pkg:deb/debian/mount"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78409"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            },
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            },
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            },
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            },
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            },
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            },
+            {
+              "@id": "pkg:deb/debian/mount"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-78410"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/bsdutils"
+            },
+            {
+              "@id": "pkg:deb/debian/libblkid1"
+            },
+            {
+              "@id": "pkg:deb/debian/libfdisk1"
+            },
+            {
+              "@id": "pkg:deb/debian/libmount1"
+            },
+            {
+              "@id": "pkg:deb/debian/libsmartcols1"
+            },
+            {
+              "@id": "pkg:deb/debian/libuuid1"
+            },
+            {
+              "@id": "pkg:deb/debian/mount"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            },
+            {
+              "@id": "pkg:deb/debian/util-linux-extra"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86138"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86139"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86140"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86142"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86143"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86144"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libxml2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "PostgreSQL only enters libxml2 through the `xml` data type and the xpath()/xmltable() family. The shipped schema declares no xml columns and the application issues no XML functions, so the parser is never invoked. (GDAL's XML drivers are likewise unreachable - see the PostGIS/GDAL rationale.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-93990"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
     }
   ],
-  "last_updated": "2026-08-26T21:00:00Z"
+  "last_updated": "2026-09-27T22:18:27+00:00"
 }
