@@ -25,7 +25,7 @@
 # Rebuild gosu with a current Go toolchain. The base image's gosu is built
 # against an older Go and carries that Go's stdlib CVEs; a fresh static build
 # clears them without changing gosu's behavior.
-FROM golang:1.27-bookworm@sha256:648f440f42a0958804efb24df176f806f9d353b41f1c0627f666428e40310f6b AS gosu
+FROM golang:1.27-bookworm@sha256:69a7b9788769bec032d238959b61854e9ae87f57be9029ec04e9885fabf99195 AS gosu
 ENV CGO_ENABLED=0
 RUN go install github.com/tianon/gosu@1.17
 
@@ -35,7 +35,7 @@ RUN go install github.com/tianon/gosu@1.17
 # Debian bookworm is proven, maintainable, and has well-packaged PostGIS.
 # Alpine can be revisited when either (a) we have more time to resolve PostGIS
 # packaging, or (b) a dedicated hardened Alpine postgres+postgis image is available.
-FROM postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+FROM postgres:17-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
 
 # Replace the base image's gosu with the freshly built, patched-stdlib binary.
 COPY --from=gosu /go/bin/gosu /usr/local/bin/gosu

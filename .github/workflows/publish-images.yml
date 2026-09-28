@@ -136,7 +136,7 @@ jobs:
       #     the whole tree rather than the specific jars hit so far, since any future
       #     dependency bump could introduce the same false positive in a different jar.
       - name: Scan for secrets in code and history
-        uses: trufflesecurity/trufflehog@f714bf454f350590f4a24c3ddb1aef02c35bf5b6 # v3.97.5
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
@@ -242,7 +242,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the application scan results
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
@@ -356,7 +356,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database scan results
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
@@ -407,7 +407,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database triage feed
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: trivy-simis-cms-db-triage.sarif
           category: image-simis-cms-db-triage
