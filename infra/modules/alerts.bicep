@@ -61,6 +61,10 @@ type logRule = {
   window: string
   threshold: int
   dimensions: dimension[]?
+  @description('Numeric column to aggregate. Omit to count result rows.')
+  measureColumn: string?
+  @description('Query time range when the query must look back further than the window.')
+  queryTimeRange: string?
   query: string
   description: string
 }
@@ -141,20 +145,37 @@ AppServiceConsoleLogs | where ResultDescription has "CaptchaCommand" and ResultD
     description: 'Burst of failed logins. Baseline is 7 in 30 days, so 5 in an hour is well outside normal and suggests credential guessing.'
   }
   {
+    // Keyed on WHO is blocked, not on the path. The previous version matched
+    // admin-looking paths, so it could only ever see scanners (every window
+    // over threshold in 30 days was a bot probing /admin or admin.php), while
+    // the real lockout on 2026-09-03 was editors blocked on /content-editor.
+    // It also counted result rows instead of the count column, so it never
+    // fired at all.
     name: 'simiscms-waf-blocking-admins'
     severity: 2
-    frequency: 'PT5M'
-    window: 'PT5M'
-    threshold: 5
+    frequency: 'PT15M'
+    window: 'PT1H'
+    // Azure's ceiling for a log alert's query range is 2 days.
+    queryTimeRange: 'P2D'
+    measureColumn: 'blocks'
+    threshold: 1
+    dimensions: [
+      { name: 'ClientIp', operator: 'Include', values: ['*'] }
+    ]
     query: '''
+let signedInIps = AppServiceConsoleLogs
+    | where ResultDescription has "simis.audit.v1"
+    | extend audit = parse_json(substring(ResultDescription, indexof(ResultDescription, "{")))
+    | extend actor = tostring(audit.actorUserId), ip = tostring(audit.sourceIp)
+    | where isnotempty(ip) and isnotempty(actor) and actor !in ("0", "-1")
+    | distinct ip;
 AzureDiagnostics
-| where Category == "FrontDoorWebApplicationFirewallLog"
-| where action_s == "Block"
-| where requestUri_s contains "/admin" or requestUri_s contains "/login"
-     or requestUri_s contains "validate-account" or requestUri_s contains "reset-password"
-| summarize AggregatedValue = count() by bin(TimeGenerated, 5m)
+| where TimeGenerated > ago(1h)
+| where Category == "FrontDoorWebApplicationFirewallLog" and action_s == "Block"
+| where clientIP_s in (signedInIps)
+| summarize blocks = count() by ClientIp = clientIP_s
 '''
-    description: 'The WAF is blocking requests to admin or authentication paths. A rule change that is slightly wrong locks every administrator out of the site at once, and the only visible symptom is a 403 page with a tracking reference. Five in five minutes is well above the background of scanners probing fake admin URLs.'
+    description: 'The WAF blocked more than one request in an hour from an IP address that a signed-in user has used in the last 2 days (Azure\'s maximum query range for a log alert). A WAF rule that is slightly wrong locks administrators out, and the only visible symptom is a 403 page with a tracking reference. Scanners never sign in, so they cannot trip this. Backtested over 30 days to 2026-09-28 with that 2-day lookback (identical result to a 14-day one): fires on the real lockout of 2026-09-03 (office IP, 5 blocks on /content-editor in 8 minutes, and 2 more that evening) and otherwise only on the ISSM\'s own WAF verification tests of 09-02..09-06; zero fires since. A single block (e.g. Outlook probing /autodiscover/autodiscover.xml from a user\'s home IP) does not fire. Grouped by ClientIp so the alert names the address; look it up in simis.audit.v1 events to see who.'
   }
   {
     name: 'alert-waf-block-surge'
@@ -204,12 +225,14 @@ resource logAlerts 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' =
     ]
     evaluationFrequency: rule.frequency
     windowSize: rule.window
+    overrideQueryTimeRange: rule.?queryTimeRange
     autoMitigate: true
     criteria: {
       allOf: [
         {
           query: trim(rule.query)
-          timeAggregation: 'Count'
+          timeAggregation: rule.?measureColumn == null ? 'Count' : 'Total'
+          metricMeasureColumn: rule.?measureColumn
           dimensions: rule.?dimensions ?? []
           operator: 'GreaterThan'
           threshold: rule.threshold
