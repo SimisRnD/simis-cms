@@ -73,6 +73,37 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
           ruleSetType: 'Microsoft_DefaultRuleSet'
           ruleSetVersion: '2.1'
           ruleSetAction: 'Block'
+          // Free-text form messages are prose, and prose trips SQL- and
+          // PHP-injection signatures: in the 30 days to 2026-09-28 three
+          // genuine contact-form inquiries were blocked by 942210, 942400 and
+          // 933210 alone, and the senders never retried. Only those two groups
+          // are excluded, and only for body fields ending in "message", so the
+          // XSS and remote-file-inclusion rules that stop almost all contact
+          // spam still inspect the field. EndsWith rather than Equals because
+          // the field name is the widget's position on the page plus the field
+          // name (form3message today), which changes if the page is rearranged.
+          ruleGroupOverrides: [
+            {
+              ruleGroupName: 'SQLI'
+              exclusions: [
+                {
+                  matchVariable: 'RequestBodyPostArgNames'
+                  selectorMatchOperator: 'EndsWith'
+                  selector: 'message'
+                }
+              ]
+            }
+            {
+              ruleGroupName: 'PHP'
+              exclusions: [
+                {
+                  matchVariable: 'RequestBodyPostArgNames'
+                  selectorMatchOperator: 'EndsWith'
+                  selector: 'message'
+                }
+              ]
+            }
+          ]
         }
         {
           ruleSetType: 'Microsoft_BotManagerRuleSet'
