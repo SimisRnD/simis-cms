@@ -147,9 +147,13 @@ CVE_POLICY = {
     ),
     "CVE-2023-33204": (
         NOT_IN_PATH,
-        "sysstat's collectors (sar/sadc) are launched only by cron, and the image contains no "
-        "cron daemon, so they never execute; the read-only root filesystem additionally prevents "
-        "staging the crafted data files the flaw requires.",
+        "The overflow is in check_overflow(), reached when sar or sadf processes a crafted sa "
+        "data file, and nothing in the image runs either. sysstat is present only as a "
+        "Recommends of postgresql-17, and its collectors start only from its cron job "
+        "(/etc/cron.d/sysstat) or its systemd timers (sysstat-collect.timer, "
+        "sysstat-summary.timer). The image has no cron daemon, systemd is not running (PID 1 is "
+        "postgres, uid 999), and /etc/default/sysstat sets ENABLED=\"false\", which the "
+        "debian-sa1 collector script checks before doing anything.",
     ),
     "CVE-2026-16742": (
         NOT_PRESENT,
@@ -216,15 +220,27 @@ CVE_POLICY = {
     ),
     "CVE-2026-53615": (
         NOT_IN_PATH,
-        "The flaw is in libblkid's DOS partition-table prober; nothing in the container probes or "
-        "mounts block devices, and with all Linux capabilities dropped (CapEff 0000000000000000, "
-        "PR #230) the container cannot perform mount or device-probe operations at all.",
+        "The flaw is an integer overflow in libblkid's DOS partition-table prober "
+        "(libblkid/src/partitions/dos.c), reached only when a program probes a crafted device or "
+        "disk image. Nothing in this container does. PostgreSQL and the PostGIS modules do not "
+        "link libblkid, and the programs that do (util-linux's mount, blkid and fsck, e2fsprogs, "
+        "systemd's tools) are never run: the entrypoint's root phase runs only mkdir, chmod, find "
+        "and chown before gosu drops to postgres, and PID 1 is postgres, not systemd. There is "
+        "also nothing to probe: /dev holds no block devices, and a block-device node created "
+        "with mknod cannot be opened (Operation not permitted, under Docker's default device "
+        "cgroup). Root in the container lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), so it "
+        "cannot mount a device either.",
     ),
     "CVE-2026-54369": (
         NOT_IN_PATH,
-        "Exploitation requires a privileged process performing pathname-based ACL operations on "
-        "attacker-influenced paths; no process in this single-user container manipulates POSIX "
-        "ACLs, and the root filesystem is read-only.",
+        "Exploitation requires a privileged process to call libacl's pathname-based functions "
+        "(acl_get_file(), acl_set_file(), acl_extended_file(), acl_delete_def_file()) on a path "
+        "an attacker controls. No privileged process in this image does. The only code that "
+        "runs as root is the entrypoint's setup step, which runs mkdir, chmod, find and chown -- "
+        "none of which link libacl1 -- before gosu drops to postgres (uid 999), the user PID 1 "
+        "runs as. PostgreSQL does not link libacl1, and the programs that do (cp, mv, install, "
+        "sed, tar, systemd's tools) run, if at all, as that unprivileged user. No setuid or "
+        "setgid program in the image links libacl1, and setfacl and getfacl are not installed.",
     ),
     "CVE-2026-57433": (
         NOT_IN_PATH,
