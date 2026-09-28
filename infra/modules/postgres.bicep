@@ -164,6 +164,7 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
+output serverId string = postgresServer.id
 output serverName string = postgresServer.name
 output serverFqdn string = postgresServer.properties.fullyQualifiedDomainName
 output databaseName string = database.name
