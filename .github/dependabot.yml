@@ -8,7 +8,10 @@
 # NOTE: the shipped WAR is built by Ant from the vendored jars in lib/build/, while this
 # pom.xml drives the IDE, Dependabot and the SBOM. A merged Dependabot PR therefore updates
 # the pom only -- the jar must also be re-vendored for the change to reach the artifact.
-# tools/check-dependency-drift.py enforces that the two stay in agreement.
+# tools/check-dependency-drift.py enforces that the two stay in agreement. To complete one of
+# these PRs, check out its branch and run `python3 tools/vendor-sync.py`: it downloads the
+# jars the pom now declares from Maven Central, verifies their published checksums, replaces
+# the vendored copies and updates lib/PROVENANCE.sha256. Then run ci-test and commit.
 version: 2
 updates:
   - package-ecosystem: "maven"

@@ -77,7 +77,7 @@ def _resolve(value: str, props: dict[str, str]) -> str:
 
 
 def parse_pom(pom_path: str):
-    """Return {artifactId: {'version', 'scope', 'system'}} for declared deps."""
+    """Return {artifactId: {'group', 'version', 'scope', 'system'}} for declared deps."""
     root = ET.parse(pom_path).getroot()
     props = {}
     pe = root.find(POM_NS + "properties")
@@ -92,7 +92,9 @@ def parse_pom(pom_path: str):
         version = _text(dep, "version")
         if not artifact or not version:
             continue
+        group = _text(dep, "groupId")
         deps[artifact] = {
+            "group": _resolve(group, props) if group else None,
             "version": _resolve(version, props),
             "scope": _text(dep, "scope") or "compile",
             "system": _text(dep, "systemPath") is not None,
@@ -100,15 +102,42 @@ def parse_pom(pom_path: str):
     return deps
 
 
-def parse_vendored(lib_dir: str):
-    """Return {artifactId: (version, filename)} for every jar under lib/build."""
+def vendored_jars(lib_dir: str):
+    """Return {artifactId: (version, path)} for every jar under lib/build.
+
+    The path is as found under ``lib_dir``. tools/vendor-sync.py uses it to replace a jar in
+    place; parse_vendored() below is the same scan reduced to file names.
+    """
     out = {}
     for path in sorted(glob.glob(os.path.join(lib_dir, "**", "*.jar"), recursive=True)):
         base = os.path.basename(path)[:-4]
         m = _JAR_RE.match(base)
         if m:
-            out[m.group(1)] = (m.group(2), os.path.basename(path))
+            out[m.group(1)] = (m.group(2), path)
     return out
+
+
+def parse_vendored(lib_dir: str):
+    """Return {artifactId: (version, filename)} for every jar under lib/build."""
+    return {a: (v, os.path.basename(p)) for a, (v, p) in vendored_jars(lib_dir).items()}
+
+
+def find_drift(pom, vendored):
+    """Split the vendored jars into (drift, vendored_only, ok) against the pom.
+
+    drift and ok hold (artifactId, pom_version, jar_version, filename); vendored_only holds
+    (artifactId, jar_version, filename). ALLOWLIST is not applied here -- callers decide what an
+    allowlisted drift means for them. tools/vendor-sync.py calls this too, so the tool that
+    re-vendors and the gate that checks it agree on what "drifted" means.
+    """
+    drift, vendored_only, ok = [], [], []
+    for artifact, (jar_ver, fname) in sorted(vendored.items()):
+        if artifact in pom:
+            pom_ver = pom[artifact]["version"]
+            (ok if pom_ver == jar_ver else drift).append((artifact, pom_ver, jar_ver, fname))
+        else:
+            vendored_only.append((artifact, jar_ver, fname))
+    return drift, vendored_only, ok
 
 
 def main() -> int:
@@ -118,13 +147,7 @@ def main() -> int:
     pom = parse_pom(os.path.join(repo, "pom.xml"))
     vendored = parse_vendored(os.path.join(repo, "lib", "build"))
 
-    drift, vendored_only, ok = [], [], []
-    for artifact, (jar_ver, fname) in sorted(vendored.items()):
-        if artifact in pom:
-            pom_ver = pom[artifact]["version"]
-            (ok if pom_ver == jar_ver else drift).append((artifact, pom_ver, jar_ver, fname))
-        else:
-            vendored_only.append((artifact, jar_ver, fname))
+    drift, vendored_only, ok = find_drift(pom, vendored)
 
     # pom deps that ought to ship (not test, not provided) but have no vendored jar
     pom_only = [
@@ -176,7 +199,8 @@ def main() -> int:
                     fh.write(f"| `{a}` | {pv} | **{jv}** |\n")
 
     if strict and blocking:
-        print(f"\nFAIL (--strict): {len(blocking)} un-allowlisted drift(s).", file=sys.stderr)
+        print(f"\nFAIL (--strict): {len(blocking)} un-allowlisted drift(s). To re-vendor them from "
+              "Maven Central, run: python3 tools/vendor-sync.py", file=sys.stderr)
         return 1
     return 0
 
