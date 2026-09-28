@@ -104,6 +104,14 @@ param enableVpnGateway bool = false
 @description('Entra ID tenant id that authenticates VPN clients. Required only when enableVpnGateway is true.')
 param vpnTenantId string = ''
 
+@description('''
+Resource id of the action group that audit-logging alerts notify. Empty skips the
+alert rules entirely. The action group itself is not created here: it holds the
+people who get paged, which is operational configuration rather than
+infrastructure, and does not belong in a public template.
+''')
+param alertActionGroupId string = ''
+
 var namePrefix = '${workloadName}-${environmentName}'
 
 // environment carries environmentLabel, NOT environmentName. The two were one parameter, which
@@ -137,6 +145,16 @@ module logAnalytics 'modules/loganalytics.bicep' = {
     namePrefix: namePrefix
     tags: tags
     retentionInDays: logRetentionInDays
+  }
+}
+
+module alerts 'modules/alerts.bicep' = if (!empty(alertActionGroupId)) {
+  name: 'alerts'
+  params: {
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    actionGroupId: alertActionGroupId
   }
 }
 

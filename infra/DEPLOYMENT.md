@@ -63,6 +63,7 @@ Create a `deploy-params.json` file (keep secret, do not commit):
 - `containerImage`: Must exist in the registry (push via CI or manual `docker push` to ACR)
 - `customDomainName`, `customUrl`: Empty for now; set at DNS cutover (§5)
 - `wafMode`: Start in `Prevention`; drop to `Detection` only if tuning false positives
+- `alertActionGroupId`: Resource id of an existing action group. Set it to deploy the audit-logging failure alerts (§9.3); leave it out to skip them
 
 ### 1.2 Validate Bicep
 
@@ -504,7 +505,13 @@ Sampling is fixed at 100% for the pilot (`docker/app/applicationinsights.json`) 
 
 ### 9.3 Alerts
 
-Create alerts for:
+`infra/modules/alerts.bicep` deploys the two audit-logging failure alerts (NIST SP 800-171 3.3.4) when `alertActionGroupId` is set:
+- `alert-audit-logging-stopped` (Sev1): no console log lines at all for 30 minutes, so the pipeline carrying the audit trail has failed
+- `alert-audit-events-quiet-24h` (Sev3): no `simis.audit.v1` events for 24 hours. Audit events depend on user activity, so check for logins before escalating
+
+The action group is not in the template, because it lists the people who get notified. Create it once in the portal and pass its id.
+
+Create the remaining alerts by hand for:
 - App Service down (HTTP 5xx errors)
 - Database unavailable (query latency spike)
 - WAF blocks (if expected volume is zero)
