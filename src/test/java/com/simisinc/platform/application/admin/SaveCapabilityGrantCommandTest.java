@@ -21,9 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -34,6 +36,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.CapabilityGrant;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -175,17 +178,22 @@ class SaveCapabilityGrantCommandTest {
     // through with no check at all, unlike the role-capabilities path.
     User targetUser = user("jsmith", 10L);
     CapabilityGrant adminManageGrant = grant(7L, 10L, 5L, "admin:manage");
+    Connection connection = mock(Connection.class);
 
     try (MockedStatic<CapabilityGrantRepository> repo = mockStatic(CapabilityGrantRepository.class);
         MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<DB> db = mockStatic(DB.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, -1L, 7L))
+      db.when(DB::getConnection).thenReturn(connection);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(connection, 5L, -1L, 7L))
           .thenReturn(0L);
 
       DataException e = assertThrows(DataException.class,
           () -> SaveCapabilityGrantCommand.revoke(null, adminManageGrant, targetUser, "No longer needed"));
 
       assertEquals(true, e.getMessage().contains("no one would be left holding it"));
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.acquireAdminManageGuardLock(connection));
+      repo.verify(() -> CapabilityGrantRepository.revoke(any(Connection.class), anyLong()), never());
       repo.verify(() -> CapabilityGrantRepository.revoke(anyLong()), never());
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
           eq("capability_grant.revoke"), eq(AuditEventCommand.FAILURE), eq("capability_grant"),
@@ -200,17 +208,21 @@ class SaveCapabilityGrantCommandTest {
     // and must not be blocked.
     User targetUser = user("jsmith", 10L);
     CapabilityGrant adminManageGrant = grant(7L, 10L, 5L, "admin:manage");
+    Connection connection = mock(Connection.class);
 
     try (MockedStatic<CapabilityGrantRepository> repo = mockStatic(CapabilityGrantRepository.class);
         MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<DB> db = mockStatic(DB.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, -1L, 7L))
+      db.when(DB::getConnection).thenReturn(connection);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(connection, 5L, -1L, 7L))
           .thenReturn(1L);
-      repo.when(() -> CapabilityGrantRepository.revoke(7L)).thenReturn(true);
+      repo.when(() -> CapabilityGrantRepository.revoke(connection, 7L)).thenReturn(true);
 
       SaveCapabilityGrantCommand.revoke(null, adminManageGrant, targetUser, "No longer needed");
 
-      repo.verify(() -> CapabilityGrantRepository.revoke(7L));
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.acquireAdminManageGuardLock(connection));
+      repo.verify(() -> CapabilityGrantRepository.revoke(connection, 7L));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
           eq("capability_grant.revoke"), eq(AuditEventCommand.SUCCESS), eq("capability_grant"),
           eq("admin:manage"), eq("jsmith"), eq("No longer needed")));
