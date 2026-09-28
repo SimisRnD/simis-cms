@@ -22,7 +22,9 @@ What it does
      tool's --write, which regenerates the whole manifest from whatever is on disk.
   2. Computes the drift set with check-dependency-drift.py's own find_drift(), and skips its
      ALLOWLIST entries unconditionally: each one is there because a straight version swap
-     breaks the build.
+     breaks the build. Where two groups share an artifactId (jackson 2.x and 3.x), the jar is
+     matched by the groupId it records, and a jar that cannot be matched is refused rather
+     than guessed at -- replacing the wrong one would be silent.
   3. Downloads ``<artifactId>-<version>.jar`` for each drifted artifact from Maven Central
      (https://repo1.maven.org/maven2 only), and verifies it against the published .sha1, plus
      the .sha256 and .sha512 wherever Central publishes them. A .sha1 is required.
@@ -112,18 +114,22 @@ def plan_sync(root: Path):
     if not lib_build.is_dir():
         usage_error(f"{lib_build} not found -- wrong root?")
 
-    pom = drift_tool.parse_pom(str(pom_path))
-    jars = drift_tool.vendored_jars(str(lib_build))
-    vendored = {a: (v, os.path.basename(p)) for a, (v, p) in jars.items()}
-    drift, _, _ = drift_tool.find_drift(pom, vendored)
+    found = drift_tool.find_drift(drift_tool.pom_dependencies(str(pom_path)),
+                                  drift_tool.vendored_jars(str(lib_build)))
+    if found["ambiguous"]:
+        raise Refusal("some vendored jars cannot be matched to a single pom declaration, so "
+                      "which file to replace is unknown -- see check-dependency-drift.py's "
+                      "AMBIGUOUS section:\n  " + "\n  ".join(
+                          f"{os.path.basename(j['path'])}: {why}" for j, why in found["ambiguous"]))
 
     items, skipped = [], []
     lib_build_resolved = lib_build.resolve()
-    for artifact, pom_version, jar_version, _ in drift:
+    for dep, jar in found["drift"]:
+        artifact, group = dep["artifact"], dep["group"]
+        pom_version, jar_version = dep["version"], jar["version"]
         if artifact in drift_tool.ALLOWLIST:
             skipped.append((artifact, pom_version, jar_version))
             continue
-        group = pom[artifact]["group"]
         for label, value in (("groupId", group), ("artifactId", artifact),
                              ("version", pom_version)):
             if not value or not SAFE_COORDINATE.match(value):
@@ -132,10 +138,15 @@ def plan_sync(root: Path):
         if pom_version.endswith("-SNAPSHOT"):
             raise Refusal(f"{artifact}: {pom_version} is a SNAPSHOT; Maven Central does not "
                           "serve those and the WAR must not ship one")
-        old_path = Path(jars[artifact][1])
+        old_path = Path(jar["path"])
         new_path = old_path.with_name(f"{artifact}-{pom_version}.jar")
         if lib_build_resolved not in new_path.resolve().parents:
             raise Refusal(f"{artifact}: {new_path} would land outside lib/build")
+        if new_path.exists() and new_path != old_path:
+            raise Refusal(f"{artifact}: {new_path.name} already exists and is a different jar; "
+                          "replacing it would lose it")
+        if any(item["new_path"] == new_path for item in items):
+            raise Refusal(f"{artifact}: two drifted jars would both become {new_path.name}")
         items.append({
             "artifact": artifact, "group": group,
             "old_version": jar_version, "new_version": pom_version,

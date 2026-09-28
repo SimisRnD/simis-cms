@@ -189,3 +189,46 @@ def test_a_missing_manifest_is_a_usage_error_not_a_finding(repo):
     put(repo, "lib/build/widget/widget-1.0.jar", b"old")
     r = run_tool(TOOL, repo, "--dry-run")
     assert r.returncode == 2
+
+
+def jar_bytes(group: str, artifact: str, version: str) -> bytes:
+    """A jar with the META-INF/maven pom.properties Maven builds embed (see jar_group())."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(f"META-INF/maven/{group}/{artifact}/pom.properties",
+                   f"groupId={group}\nartifactId={artifact}\nversion={version}\n")
+    return buf.getvalue()
+
+
+def test_a_shared_artifact_id_replaces_only_the_line_that_moved(repo):
+    # jackson-core ships as both com.fasterxml (2.x) and tools.jackson (3.x). Bumping only 2.x
+    # must replace the 2.x jar, fetched from the 2.x group's path, and leave 3.x alone.
+    v2_old = jar_bytes("com.fasterxml.jackson.core", "jackson-core", "2.22.2")
+    v3 = jar_bytes("tools.jackson.core", "jackson-core", "3.2.2")
+    vendored_repo(repo, [("com.fasterxml.jackson.core", "jackson-core", "2.22.3"),
+                         ("tools.jackson.core", "jackson-core", "3.2.2")],
+                  {"lib/build/jackson/jackson-core-2.22.2.jar": v2_old,
+                   "lib/build/jackson/jackson-core-3.2.2.jar": v3})
+    v2_new = jar_bytes("com.fasterxml.jackson.core", "jackson-core", "2.22.3")
+    publish(repo / "m2", "com.fasterxml.jackson.core", "jackson-core", "2.22.3", v2_new)
+    r = run_tool(TOOL, repo, "--mirror", str(repo / "m2"))
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "com/fasterxml/jackson/core/jackson-core/2.22.3/" in r.stdout
+    assert (repo / "lib/build/jackson/jackson-core-2.22.3.jar").read_bytes() == v2_new
+    assert not (repo / "lib/build/jackson/jackson-core-2.22.2.jar").exists()
+    assert (repo / "lib/build/jackson/jackson-core-3.2.2.jar").read_bytes() == v3
+
+
+def test_an_ambiguous_jar_is_refused(repo):
+    vendored_repo(repo, [("com.fasterxml.jackson.core", "jackson-core", "2.22.3"),
+                         ("tools.jackson.core", "jackson-core", "3.2.2")],
+                  {"lib/build/jackson/jackson-core-2.22.2.jar": b"no metadata",
+                   "lib/build/jackson/jackson-core-3.2.2.jar":
+                       jar_bytes("tools.jackson.core", "jackson-core", "3.2.2")})
+    before = snapshot(repo)
+    r = run_tool(TOOL, repo, "--mirror", empty_mirror(repo))
+    assert r.returncode == 1
+    assert "cannot be matched to a single pom declaration" in r.stderr
+    assert snapshot(repo) == before
