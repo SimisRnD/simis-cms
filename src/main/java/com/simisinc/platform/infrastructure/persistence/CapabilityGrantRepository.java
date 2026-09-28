@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -140,6 +141,16 @@ public class CapabilityGrantRepository {
   public static boolean revoke(long id) {
     SqlUtils updateValues = new SqlUtils().add("revoked_at", new Timestamp(System.currentTimeMillis()));
     return DB.update(TABLE_NAME, updateValues, new SqlUtils().add("capability_grant_id = ?", id));
+  }
+
+  /**
+   * Same as {@link #revoke(long)}, but runs on a caller-supplied connection so it can share a
+   * transaction (and the admin:manage guard's advisory lock, held on that same connection) with the
+   * count that decided it was safe - see RoleCapabilityRepository#acquireAdminManageGuardLock.
+   */
+  public static boolean revoke(Connection connection, long id) throws SQLException {
+    SqlUtils updateValues = new SqlUtils().add("revoked_at", new Timestamp(System.currentTimeMillis()));
+    return DB.update(connection, TABLE_NAME, updateValues, new SqlUtils().add("capability_grant_id = ?", id));
   }
 
   public static boolean markExpirationNotified(long id) {
