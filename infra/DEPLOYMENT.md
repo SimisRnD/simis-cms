@@ -63,7 +63,8 @@ Create a `deploy-params.json` file (keep secret, do not commit):
 - `containerImage`: Must exist in the registry (push via CI or manual `docker push` to ACR)
 - `customDomainName`, `customUrl`: Empty for now; set at DNS cutover (§5)
 - `wafMode`: Start in `Prevention`; drop to `Detection` only if tuning false positives
-- `alertActionGroupId`: Resource id of an existing action group. Set it to deploy the audit-logging failure alerts (§9.3); leave it out to skip them
+- `alertActionGroupId`: Resource id of an existing action group. Set it to deploy the alert rules (§9.3); leave it out to skip them
+- `backupVaultId`: Resource id of the Recovery Services vault, so its built-in backup alerts notify the same action group. Optional
 
 ### 1.2 Validate Bicep
 
@@ -505,17 +506,16 @@ Sampling is fixed at 100% for the pilot (`docker/app/applicationinsights.json`) 
 
 ### 9.3 Alerts
 
-`infra/modules/alerts.bicep` deploys the two audit-logging failure alerts (NIST SP 800-171 3.3.4) when `alertActionGroupId` is set:
-- `alert-audit-logging-stopped` (Sev1): no console log lines at all for 30 minutes, so the pipeline carrying the audit trail has failed
-- `alert-audit-events-quiet-24h` (Sev3): no `simis.audit.v1` events for 24 hours. Audit events depend on user activity, so check for logins before escalating
+`infra/modules/alerts.bicep` deploys every alert rule when `alertActionGroupId` is set:
 
-The action group is not in the template, because it lists the people who get notified. Create it once in the portal and pass its id.
+- **Log queries (10):** audit pipeline stopped and audit events quiet (NIST SP 800-171 3.3.4), app startup failure, HTTP 503, reCAPTCHA verification failure, Postgres FATAL, login-failure spike, WAF blocking admin paths, WAF block surge, 404 loop from one client
+- **Metrics (11):** Front Door origin health, 5xx count, traffic stopped and latency; App Service 5xx and memory; Postgres CPU, CPU credits (Burstable SKUs only), active connections, failed connections and storage
+- **Activity Log (3, subscription-wide):** diagnostic-setting or log-destination changes, RBAC changes, and Key Vault or WAF changes
+- **Backup routing:** sends the Recovery Services vault's built-in alerts to the action group when `backupVaultId` is set
 
-Create the remaining alerts by hand for:
-- App Service down (HTTP 5xx errors)
-- Database unavailable (query latency spike)
-- WAF blocks (if expected volume is zero)
-- Application Insights failure rate or server response time (Smart Detection is on by default for anomaly alerts; add explicit alert rules for specific thresholds if needed)
+Each rule's description records the reasoning behind its threshold. Read it before changing a number.
+
+The action group is not in the template, because it lists the people who get notified. Create it once in the portal and pass its id. Application Insights also creates its own "Failure Anomalies" smart-detection rule, which is not managed here.
 
 ### 9.4 Backup & restore test
 

@@ -105,12 +105,15 @@ param enableVpnGateway bool = false
 param vpnTenantId string = ''
 
 @description('''
-Resource id of the action group that audit-logging alerts notify. Empty skips the
+Resource id of the action group that every alert rule notifies. Empty skips the
 alert rules entirely. The action group itself is not created here: it holds the
 people who get paged, which is operational configuration rather than
 infrastructure, and does not belong in a public template.
 ''')
 param alertActionGroupId string = ''
+
+@description('Recovery Services vault resource id whose built-in backup alerts are routed to alertActionGroupId. The vault is not created by this template. Empty skips the routing rule.')
+param backupVaultId string = ''
 
 var namePrefix = '${workloadName}-${environmentName}'
 
@@ -145,16 +148,6 @@ module logAnalytics 'modules/loganalytics.bicep' = {
     namePrefix: namePrefix
     tags: tags
     retentionInDays: logRetentionInDays
-  }
-}
-
-module alerts 'modules/alerts.bicep' = if (!empty(alertActionGroupId)) {
-  name: 'alerts'
-  params: {
-    location: location
-    tags: tags
-    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
-    actionGroupId: alertActionGroupId
   }
 }
 
@@ -290,6 +283,22 @@ module vpnGateway 'modules/vpngateway.bicep' = if (enableVpnGateway) {
     tags: tags
     gatewaySubnetId: network.outputs.gatewaySubnetId
     tenantId: vpnTenantId
+  }
+}
+
+// Alert rules watch everything above, so they come last.
+module alerts 'modules/alerts.bicep' = if (!empty(alertActionGroupId)) {
+  name: 'alerts'
+  params: {
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    actionGroupId: alertActionGroupId
+    frontDoorProfileId: frontDoor.outputs.profileId
+    appServiceId: appService.outputs.appServiceId
+    postgresServerId: postgres.outputs.serverId
+    postgresIsBurstable: postgresSkuTier == 'Burstable'
+    backupVaultId: backupVaultId
   }
 }
 

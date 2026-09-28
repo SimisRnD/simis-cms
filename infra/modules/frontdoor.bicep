@@ -308,3 +308,6 @@ output endpointHostName string = endpoint.properties.hostName
 // origin-side check against it is a later hardening option.
 output frontDoorId string = profile.properties.frontDoorId
 output wafPolicyId string = wafPolicy.id
+// The profile's ARM resource id -- not the same thing as frontDoorId above,
+// which is a GUID. Metric alerts scope to this.
+output profileId string = profile.id
