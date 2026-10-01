@@ -126,11 +126,24 @@ class DatabasePropertiesTest {
     assertNull(databaseProperties.getProperty("jdbcUrl"));
   }
 
+  // Named constants rather than repeated literals so the expected jdbcUrl below can be built from
+  // the same values the environment supplies, instead of restating them as one connection string.
+  // A complete JDBC connection string written out as one literal anywhere in this file is read as
+  // a credential by a secret scanner, which has no way to tell a stand-in from the real thing --
+  // it reported the previous form of the assertion below and blocked the monthly publish (#2066).
+  // The shape is deliberately described rather than quoted: a verbatim example would make this
+  // comment the next match, which is the same trap publish-images.yml notes for its own entries.
+  // Assembling the string keeps this file inside the pre-merge secret scan, and this is the last
+  // file in the tree that should be exempted from it: database and Azure SPN credentials are its
+  // entire subject matter, so it is where a real credential is most likely to be pasted by mistake.
+  private static final String SPN_SERVER = "my-server.postgres.database.azure.com";
+  private static final String SPN_DATABASE = "simis_cms";
+
   private static Map<String, String> fullSpnEnv() {
     return Map.of(
         "DB_AUTH_METHOD", "azure-sql-spn",
-        "DB_SERVER_NAME", "my-server.postgres.database.azure.com",
-        "DB_NAME", "simis_cms",
+        "DB_SERVER_NAME", SPN_SERVER,
+        "DB_NAME", SPN_DATABASE,
         "DB_USER", "app-sp@my-server",
         "DB_TENANT_ID", "tenant-123",
         "DB_CLIENT_ID", "client-456",
@@ -148,8 +161,10 @@ class DatabasePropertiesTest {
 
     assertFalse(databaseProperties.containsKey("dataSourceClassName"), "dataSourceClassName must be removed so Hikari uses jdbcUrl instead");
     assertEquals("org.postgresql.Driver", databaseProperties.getProperty("driverClassName"));
-    assertTrue(databaseProperties.getProperty("jdbcUrl")
-        .startsWith("jdbc:postgresql://my-server.postgres.database.azure.com:5432/simis_cms?sslmode=require"));
+    String expectedUrlPrefix = "jdbc:postgresql://" + SPN_SERVER + ":5432/" + SPN_DATABASE
+        + "?sslmode=require";
+    assertTrue(databaseProperties.getProperty("jdbcUrl").startsWith(expectedUrlPrefix),
+        "the SPN branch must point at the configured server and database, over TLS");
     assertTrue(databaseProperties.getProperty("jdbcUrl").contains(
         "authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin"));
     assertEquals("app-sp@my-server", databaseProperties.getProperty("dataSource.user"),
