@@ -151,6 +151,12 @@ jobs:
           version: "3.97.9"
           # The action already runs with --fail internally; adding it again in
           # extra_args trips its "flag 'fail' cannot be repeated" error.
+          #
+          # This exclude list is intentionally LONGER than secret-scan-pr.yml's, and the two are
+          # not meant to match. This scan ranges across history, which cannot be edited, so a
+          # finding in an old commit can only be excluded by path. That one scans a pull request's
+          # own diff, where the same content can be fixed at the source instead -- see that file
+          # for why neither of the two entries this list carries belongs there.
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py,lib/**
 
       - name: Set up JDK 21
