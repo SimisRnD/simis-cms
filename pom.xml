@@ -110,7 +110,7 @@
          to okhttp-jvm), so the jar Maven resolves cannot be vendored into the WAR.
          Revisit: switch the dependency to okhttp-jvm, or Square shipping its own client. -->
     <okhttp.version>4.12.0</okhttp.version>
-    <stripe.version>33.4.2</stripe.version>
+    <stripe.version>34.0.0</stripe.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <thymeleaf.version>3.1.5</thymeleaf.version>
     <timeago.version>4.3.0</timeago.version>
