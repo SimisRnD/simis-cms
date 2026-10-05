@@ -11,6 +11,12 @@
 # version, so it goes stale unnoticed -- it had fallen two and a half years behind by
 # v20260719.10000. See tools/check-version-consistency.py.
 #
+# Also enforces that each TruffleHog step runs the scanner version its action pin claims.
+# Pinning that action by SHA pins only the wrapper: it shells out to a container image whose
+# tag comes from a `version` input defaulting to "latest", and Dependabot updates the `uses:`
+# ref without touching a `with:` input. An unpinned scanner changed this repository's secret-scan
+# verdict with no commit behind it (#2066). See tools/check-trufflehog-pin.py.
+#
 # Also verifies every vendored jar byte-for-byte against lib/PROVENANCE.sha256 --
 # the version checks above compare names, not bytes, so a tampered or swapped jar
 # would pass them and ship in the WAR. See tools/check-vendored-provenance.py.
@@ -53,6 +59,12 @@ jobs:
         run: python3 tools/check-version-consistency.py . --strict
       - name: Fail on vendored-jar bytes not matching lib/PROVENANCE.sha256
         run: python3 tools/check-vendored-provenance.py .
+      # Starts ENFORCING rather than report-only, unlike the drift checks above: this one has no
+      # backlog to reconcile. Both TruffleHog steps are pinned in the same change that adds it, so
+      # the finding count is zero on arrival and the first failure will be a real regression --
+      # most likely a Dependabot bump that moved the action SHA and left the input behind.
+      - name: Fail on a TruffleHog step not pinning the scanner version it claims
+        run: python3 tools/check-trufflehog-pin.py . --strict
       # docker/db/.trivyignore holds CVEs awaiting triage, each with an expiry. The file's
       # header says a lapsed expiry "re-fails the publish gate ... so triage cannot be
       # forgotten silently" -- but the gate it fails is the publish workflow, whose last
