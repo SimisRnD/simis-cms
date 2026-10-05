@@ -157,6 +157,15 @@ jobs:
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
+          # Pins the SCANNER, which the action SHA above does not: the action shells out to
+          # `docker run ghcr.io/trufflesecurity/trufflehog:${version}` and this input defaults
+          # to "latest". Unpinned, this gate changed verdict on an unchanged repository -- the
+          # 2026-09-01 scheduled run scanned base 8f1d8003 on 3.97.1 and found nothing, and
+          # 2026-10-01 scanned the same base on 3.97.9 and failed the publish (issue #2066).
+          # Dependabot updates the `uses:` ref above and cannot update a `with:` input, so the
+          # two move together by hand; tools/check-trufflehog-pin.py fails the build if they
+          # drift. Keep this equal to the version in the SHA comment above, with no "v".
+          version: "3.97.9"
           # The action already runs with --fail internally; adding it again in
           # extra_args trips its "flag 'fail' cannot be repeated" error.
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py,src/test/java/com/simisinc/platform/infrastructure/database/DatabasePropertiesTest.java,lib/**
