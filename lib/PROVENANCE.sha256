@@ -51,7 +51,7 @@ ec7052ee48c9d873bb8148338a643f02cf89c01d035dd219411473030d6d2b22  lib/build/jack
 45b515e7104944c09e45b9c7bb1ce5dff640486374852dd2b2e80cc3752dfa11  lib/build/javamail/javax.mail-1.6.2.jar
 7497a8510c6ea93db2f0b022d5c8779738bdf579c6a6daf2a21f1873bffd8e59  lib/build/jmail/jmail-2.2.2.jar
 ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb  lib/build/jobrunr/asm-9.10.1.jar
-c7b32b4f8a240d9d8067ca6946a3e6fb850b13a64e35f358d1c445ebbea150b9  lib/build/jobrunr/jobrunr-8.8.2.jar
+a6cbe0e66733c4fe9587bcc8728abc5bf4846b260f518e8fd3e244b72d3a84d9  lib/build/jobrunr/jobrunr-9.0.0.jar
 8c0494ab337b467a95883efef7551c8ee6dbb55f38ddf9ecc5e7336610c93fc7  lib/build/johnzon/geronimo-json_1.1_spec-1.5.jar
 cd3be391f599d4bef59bfb155257ad6b91e4521d19b8e972b0dfb52dfb0c5fc1  lib/build/johnzon/javax.json.bind-api-1.0.jar
 8ef29ca64aefbd01802e74dd4c13222a26957499e8ca7ae71dbc940f6f7c7ce7  lib/build/johnzon/johnzon-core-1.3.0.jar
