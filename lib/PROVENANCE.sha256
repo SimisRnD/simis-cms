@@ -76,7 +76,7 @@ b1050081b14bb7a3a7e55a4d3ef01b5dcfabc453b4573a4fc019767191d5f4e0  lib/build/squa
 892898ff13b0cfda5f0bf689eb33b7c00c853b2531fcd4fe20fe5302d37981d8  lib/build/square/okio-3.17.0.jar
 3b13dcc3e1573047c2d507fc4f7fcb0bb0cbcd9d395da21d20e09406e2cd6a73  lib/build/square/okio-jvm-3.17.0.jar
 baa49c37698f9b1686beb00d0fc7fd324936ba393b9735be1b1eba225ebd418e  lib/build/square/square-24.0.0.20220921.jar
-bb5cfe6f5fa750150c4c73bfa750f577b1794c546645a2cdab0e15dd9a4791c6  lib/build/stripe/stripe-java-33.4.2.jar
+663e511747a4dd55341a5e4b1497d4d23057c9ac1ddb05f00b5309ad44c2a4ba  lib/build/stripe/stripe-java-34.0.0.jar
 75dd1c045492bff8e1963aabb28bfe903c2064e11e27fe2f0f0aff1ad3d84476  lib/build/thymeleaf/attoparser-2.0.7.RELEASE.jar
 a90ddb25135df9e57ea9bd4e224e219554929758f9bae9965f29f81d60a3293f  lib/build/thymeleaf/javassist-3.29.2-GA.jar
 47fdd450407ff09b57df02f466f9b4c7d32818962d65f9d98e445c8b4d047603  lib/build/thymeleaf/ognl-3.3.4.jar
