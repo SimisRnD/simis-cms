@@ -99,6 +99,10 @@ public class FormWidget extends GenericWidget {
       context.getRequest().setAttribute("successTitle",
           formDefinition != null ? formDefinition.getSuccessTitle() : context.getPreferences().get("successTitle"));
       context.getRequest().setAttribute("successMessage", resolveSuccessMessage(context, formDefinition));
+      // form-success.jsp reports the lead to Google Analytics under this id. Resolved the same way
+      // post() saves the submission, so a lead in GA and its stored form data carry the same id.
+      context.getRequest().setAttribute("formUniqueId",
+          formDefinition != null ? formDefinition.getUniqueId() : context.getPreferences().get("formUniqueId"));
       context.setJsp(SUCCESS_JSP);
       return context;
     }

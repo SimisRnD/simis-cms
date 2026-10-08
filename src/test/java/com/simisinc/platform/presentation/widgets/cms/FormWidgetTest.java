@@ -155,6 +155,49 @@ class FormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeSuccessExposesTheFormUniqueIdForTheLeadEvent() {
+    // form-success.jsp sends GA a generate_lead event tagged with this id; the success page is only
+    // reached after a submission is accepted, so it is where a real lead is counted
+    initCommonPreferences();
+    widgetContext.addSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess", "true");
+
+    try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+      Assertions.assertEquals("contact", widgetContext.getRequest().getAttribute("formUniqueId"));
+    }
+  }
+
+  @Test
+  void executeSuccessExposesADatabaseBackedFormsOwnUniqueId() {
+    // The database-backed definition is authoritative, matching the formUniqueId post() saves the
+    // submission under -- so a lead in GA and its stored submission carry the same id
+    preferences.put("formId", "5");
+    preferences.put("formUniqueId", "stale-xml-id");
+    FormDefinition formDefinition = new FormDefinition();
+    formDefinition.setId(5L);
+    formDefinition.setUniqueId("trade-shows");
+    formDefinition.setEnabled(true);
+    widgetContext.addSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess", "true");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(formDefinition);
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+      Assertions.assertEquals("trade-shows", widgetContext.getRequest().getAttribute("formUniqueId"));
+    }
+  }
+
+  @Test
   void executeExposesShowPrivacyNoticeFromADatabaseBackedForm() {
     // issue #1155 -- only a database-backed FormDefinition can turn this on; the XML-preference path
     // has no equivalent setting

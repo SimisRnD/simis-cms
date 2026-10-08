@@ -18,6 +18,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
@@ -25,3 +26,16 @@
   <h2 class="h4"><c:out value="${successTitle}" /></h2>
 </c:if>
 <p><c:out value="${successMessage}" /></p>
+<%-- Counts the lead in Google Analytics. This JSP is only reached after FormWidget.post() accepts a
+     submission (captcha, honeypot and validation passed, data saved), so a submit attempt, a failed
+     validation or caught spam never fires it. main.jsp defines gtag at the end of <body>, after widget
+     output, so the event waits for DOMContentLoaded; where main.jsp does not load analytics at all
+     (not configured, Do-Not-Track/GPC honored, consent not given, admin pages) gtag is never defined
+     and nothing is sent. --%>
+<script nonce="${cspNonce}">
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof gtag === 'function') {
+      gtag('event', 'generate_lead', {lead_source: '${js:escape(formUniqueId)}'});
+    }
+  });
+</script>
