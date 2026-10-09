@@ -42,10 +42,24 @@ COPY --from=gosu /go/bin/gosu /usr/local/bin/gosu
 
 # Patch base OS packages and install PostGIS, in a single layer with the apt
 # cache removed to keep the image small.
+#
+# Only the version-specific postgresql-17-postgis-3 is installed (it depends on
+# its -scripts package, which CREATE EXTENSION reads). The unversioned `postgis`
+# package is deliberately left out: it holds only client-side loaders
+# (shp2pgsql, pgsql2shp, raster2pgsql, pgtopo_*, postgis_restore) that nothing
+# here runs, and it Recommends `postgresql-postgis`, a PGDG metapackage that
+# tracks PGDG's default major rather than ours. Once that became 18, installing
+# `postgis` pulled in a complete, never-started PostgreSQL 18 server
+# (postgresql-18, postgresql-18-jit with LLVM, postgresql-18-postgis-3) plus
+# systemd, dbus and sysstat -- 29 packages of size and CVE surface.
 RUN apt-get update \
     && apt-get -y upgrade \
-    && apt-get install -y postgresql-17-postgis-3 postgis \
+    && apt-get install -y postgresql-17-postgis-3 \
     && rm -rf /var/lib/apt/lists/* \
+    # Fail the build if any PostgreSQL major besides 17 is installed, so a
+    # dependency change upstream cannot bring a second server back silently.
+    && { [ "$(ls /usr/lib/postgresql)" = "17" ] \
+         || { echo "expected only PostgreSQL 17 in /usr/lib/postgresql, found: $(ls /usr/lib/postgresql)" >&2; exit 1; }; } \
     # Drop the setuid bit from mount/umount. PostgreSQL never mounts a
     # filesystem, so these do not need to escalate -- and while they are setuid
     # root, any vulnerability in them (e.g. CVE-2026-53613, a TOCTOU in mount
