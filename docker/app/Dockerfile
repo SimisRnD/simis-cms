@@ -109,7 +109,15 @@ COPY ./target/simis-cms-ssrf-pin-resolver.jar /usr/local/tomcat/lib/simis-cms-ss
 # (including `time`, which the package default leaves unset) so one convert invocation can't tie
 # up a background worker indefinitely. An uploaded file that merely claims a supported content
 # type but isn't well-formed is still handled by ImageMagick's normal decode-error path.
+#
+# `apt-get -y upgrade` applies every Ubuntu security fix published since the pinned base image
+# was built, as docker/db/Dockerfile already does. Without it, a fixed CVE in the base stays in
+# the image and fails the application scan gate (which counts fixed HIGH/CRITICAL findings) until
+# someone bumps the base digest -- CVE-2026-84782 in openssl/libssl3t64 did exactly that from
+# 2026-10-05, stopping every deploy (issue #2073). It upgrades within the pinned Ubuntu 24.04
+# release only; moving to a newer release still means changing the base digest deliberately.
 RUN apt-get update \
+    && apt-get -y upgrade \
     && apt-get install -y --no-install-recommends imagemagick \
     && rm -rf /var/lib/apt/lists/*
 COPY ./docker/app/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
