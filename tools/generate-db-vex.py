@@ -316,6 +316,42 @@ CVE_POLICY = {
         "default capability set, which lacks CAP_SYS_ADMIN (CapBnd 00000000a80425fb), and "
         "cannot mount at all.",
     ),
+    "CVE-2026-84782": (
+        NOT_IN_PATH,
+        "The flaw is in OpenSSL's DTLS handshake retransmission logic, which only a DTLS "
+        "(datagram TLS) connection reaches. Every binary in the image that links libssl.so.3 was "
+        "checked for DTLS imports: the postgres server, the PostgreSQL client tools and the "
+        "PostGIS loaders use libssl only for TLS over TCP and import no DTLS_* function. The one "
+        "binary that does is the openssl command-line tool (/usr/bin/openssl), which nothing in "
+        "the running container invokes -- the stock entrypoint does not call it and every "
+        "running process is postgres. Server-side TLS is also off in the shipped configuration "
+        "(SHOW ssl returns off).",
+    ),
+    "CVE-2026-88647": (
+        NOT_IN_PATH,
+        "The flaw is in GnuTLS's certificate hostname verification (its Common Name fallback), "
+        "which runs only when a GnuTLS client verifies a server's certificate. The image's "
+        "GnuTLS consumers are libldap (linked into the postgres server and used only for LDAP "
+        "authentication, which is not configured: the active pg_hba.conf rules are trust for "
+        "local connections and scram-sha-256 for remote ones, with no ldap method), "
+        "libcurl3-gnutls and librtmp1 (reachable only through GDAL's remote-dataset drivers, "
+        "never loaded), and apt and dirmngr (package-management and GnuPG network tools the "
+        "running container never executes -- every running process is postgres). Configuring "
+        "LDAP authentication over TLS would void this claim.",
+    ),
+    "CVE-2026-88648": (
+        NOT_IN_PATH,
+        "The flaw is in GnuTLS's X.509 chain validation (cross-domain restrictions on "
+        "certificates issued by a subordinate CA), which runs only when a GnuTLS client "
+        "validates a peer's certificate chain. The image's GnuTLS consumers are libldap (linked "
+        "into the postgres server and used only for LDAP authentication, which is not "
+        "configured: the active pg_hba.conf rules are trust for local connections and "
+        "scram-sha-256 for remote ones, with no ldap method), libcurl3-gnutls and librtmp1 "
+        "(reachable only through GDAL's remote-dataset drivers, never loaded), and apt and "
+        "dirmngr (package-management and GnuPG network tools the running container never "
+        "executes -- every running process is postgres). Configuring LDAP authentication over "
+        "TLS would void this claim.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
@@ -357,6 +393,25 @@ CVE_ADDENDUM = {
         "GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is "
         "likewise reachable only through postgis_raster. Consistent with the existing "
         "CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
+    ),
+    "CVE-2026-77214": (
+        "The over-read is in XML_ParseBuffer, reached only by a process that parses XML through "
+        "expat. libexpat1 is not in the postgres base image; it arrives with the PostGIS install, "
+        "whose other expat consumers (dbus, via libdbus-1-3, and fontconfig, via GDAL's poppler) "
+        "never run here either -- no dbus daemon is started and every running process is "
+        "postgres. Consistent with the existing CVE-2025-59375 and CVE-2026-66046 statements for "
+        "this same package."
+    ),
+    "CVE-2026-84450": (
+        "Upstream places the affected range at libheif 1.19.0 through 1.23.2; the installed "
+        "libheif1 is 1.15.1-1+deb12u1, which predates it. Independently, libheif is reached only "
+        "through GDAL's HEIF raster driver, which postgis_raster alone could load."
+    ),
+    "CVE-2026-84451": (
+        "Upstream places the affected range at libheif 1.19.0 through 1.23.2 (an incomplete fix "
+        "for CVE-2026-62292); the installed libheif1 is 1.15.1-1+deb12u1, which predates it. "
+        "Independently, libheif is reached only through GDAL's HEIF raster driver, which "
+        "postgis_raster alone could load."
     ),
 }
 
