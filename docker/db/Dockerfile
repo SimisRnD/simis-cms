@@ -20,12 +20,12 @@
 #
 # To refresh (do this as its own reviewed commit, not silently):
 #   docker buildx imagetools inspect postgres:17-bookworm --format '{{.Manifest.Digest}}'
-#   docker buildx imagetools inspect golang:1.26-bookworm --format '{{.Manifest.Digest}}'
+#   docker buildx imagetools inspect golang:1.27-bookworm --format '{{.Manifest.Digest}}'
 
 # Rebuild gosu with a current Go toolchain. The base image's gosu is built
 # against an older Go and carries that Go's stdlib CVEs; a fresh static build
 # clears them without changing gosu's behavior.
-FROM golang:1.27-bookworm@sha256:69a7b9788769bec032d238959b61854e9ae87f57be9029ec04e9885fabf99195 AS gosu
+FROM golang:1.27-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS gosu
 ENV CGO_ENABLED=0
 RUN go install github.com/tianon/gosu@1.17
 

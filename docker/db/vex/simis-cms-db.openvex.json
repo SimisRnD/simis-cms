@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 15,
+  "version": 16,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1637,7 +1637,118 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-77214"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The over-read is in XML_ParseBuffer, reached only by a process that parses XML through expat. libexpat1 is not in the postgres base image; it arrives with the PostGIS install, whose other expat consumers (dbus, via libdbus-1-3, and fontconfig, via GDAL's poppler) never run here either -- no dbus daemon is started and every running process is postgres. Consistent with the existing CVE-2025-59375 and CVE-2026-66046 statements for this same package."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84450"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Upstream places the affected range at libheif 1.19.0 through 1.23.2; the installed libheif1 is 1.15.1-1+deb12u1, which predates it. Independently, libheif is reached only through GDAL's HEIF raster driver, which postgis_raster alone could load."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84451"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Upstream places the affected range at libheif 1.19.0 through 1.23.2 (an incomplete fix for CVE-2026-62292); the installed libheif1 is 1.15.1-1+deb12u1, which predates it. Independently, libheif is reached only through GDAL's HEIF raster driver, which postgis_raster alone could load."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84782"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            },
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The flaw is in OpenSSL's DTLS handshake retransmission logic, which only a DTLS (datagram TLS) connection reaches. Every binary in the image that links libssl.so.3 was checked for DTLS imports: the postgres server, the PostgreSQL client tools and the PostGIS loaders use libssl only for TLS over TCP and import no DTLS_* function. The one binary that does is the openssl command-line tool (/usr/bin/openssl), which nothing in the running container invokes -- the stock entrypoint does not call it and every running process is postgres. Server-side TLS is also off in the shipped configuration (SHOW ssl returns off)."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88647"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The flaw is in GnuTLS's certificate hostname verification (its Common Name fallback), which runs only when a GnuTLS client verifies a server's certificate. The image's GnuTLS consumers are libldap (linked into the postgres server and used only for LDAP authentication, which is not configured: the active pg_hba.conf rules are trust for local connections and scram-sha-256 for remote ones, with no ldap method), libcurl3-gnutls and librtmp1 (reachable only through GDAL's remote-dataset drivers, never loaded), and apt and dirmngr (package-management and GnuPG network tools the running container never executes -- every running process is postgres). Configuring LDAP authentication over TLS would void this claim."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-88648"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgnutls30"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The flaw is in GnuTLS's X.509 chain validation (cross-domain restrictions on certificates issued by a subordinate CA), which runs only when a GnuTLS client validates a peer's certificate chain. The image's GnuTLS consumers are libldap (linked into the postgres server and used only for LDAP authentication, which is not configured: the active pg_hba.conf rules are trust for local connections and scram-sha-256 for remote ones, with no ldap method), libcurl3-gnutls and librtmp1 (reachable only through GDAL's remote-dataset drivers, never loaded), and apt and dirmngr (package-management and GnuPG network tools the running container never executes -- every running process is postgres). Configuring LDAP authentication over TLS would void this claim."
     }
   ],
-  "last_updated": "2026-09-27T22:57:12+00:00"
+  "last_updated": "2026-10-09T22:44:31+00:00"
 }
