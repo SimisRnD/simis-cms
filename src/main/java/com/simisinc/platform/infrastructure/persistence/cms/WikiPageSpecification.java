@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import java.util.Collection;
+
 /**
  * Properties for querying objects from the wiki page repository
  *
@@ -26,6 +28,9 @@ public class WikiPageSpecification {
 
   private long id = -1L;
   private long wikiId = -1L;
+  // Restricts the query to these wikis. null means no restriction; an empty collection matches
+  // nothing, so a caller that resolved "no wiki is visible" cannot fall back to "every wiki".
+  private Collection<Long> wikiIdList = null;
   private String uniqueId = null;
   private String searchTerm = null;
 
@@ -54,6 +59,14 @@ public class WikiPageSpecification {
 
   public void setWikiId(long wikiId) {
     this.wikiId = wikiId;
+  }
+
+  public Collection<Long> getWikiIdList() {
+    return wikiIdList;
+  }
+
+  public void setWikiIdList(Collection<Long> wikiIdList) {
+    this.wikiIdList = wikiIdList;
   }
 
   public String getUniqueId() {

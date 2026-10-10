@@ -49,6 +49,22 @@ public class WikiPageRepository {
           .addIfExists("wiki_page_id = ?", specification.getId(), -1)
           .addIfExists("wiki_id = ?", specification.getWikiId(), -1)
           .addIfExists("page_unique_id = ?", specification.getUniqueId());
+      if (specification.getWikiIdList() != null) {
+        if (specification.getWikiIdList().isEmpty()) {
+          where.add("1 = 0");
+        } else {
+          // One placeholder per id, bound as PreparedStatement parameters (same pattern as
+          // ImageVariantRepository.findByImageIds) -- never concatenated into the SQL text
+          StringBuilder placeholders = new StringBuilder();
+          for (int i = 0; i < specification.getWikiIdList().size(); i++) {
+            if (i > 0) {
+              placeholders.append(",");
+            }
+            placeholders.append("?");
+          }
+          where.add("wiki_id IN (" + placeholders + ")", specification.getWikiIdList().toArray(new Long[0]));
+        }
+      }
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
         where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchTerm().trim());
       }
