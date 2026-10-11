@@ -35,7 +35,7 @@ RUN go install github.com/tianon/gosu@1.17
 # Debian bookworm is proven, maintainable, and has well-packaged PostGIS.
 # Alpine can be revisited when either (a) we have more time to resolve PostGIS
 # packaging, or (b) a dedicated hardened Alpine postgres+postgis image is available.
-FROM postgres:17-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+FROM postgres:17-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
 
 # Replace the base image's gosu with the freshly built, patched-stdlib binary.
 COPY --from=gosu /go/bin/gosu /usr/local/bin/gosu
