@@ -20,10 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -31,6 +33,8 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
+import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
@@ -51,6 +55,7 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
     wiki.setId(id);
     wiki.setName(name);
     wiki.setUniqueId("wiki-" + id);
+    wiki.setEnabled(true);
     return wiki;
   }
 
@@ -74,7 +79,9 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
         MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
       repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(wikiPageList);
       wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(wiki(5, "Engineering"), wiki(6, "Support")));
       wikiRepository.when(() -> WikiRepository.findById(5L)).thenReturn(wiki(5, "Engineering"));
@@ -111,7 +118,9 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
         MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
       repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
       wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
 
@@ -139,7 +148,9 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
         MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
       repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
       wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
 
@@ -160,7 +171,9 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
         MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
       repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
       wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
 
@@ -180,7 +193,9 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
         MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
-        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
       repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(wikiPageList);
       wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(wiki(5, "Engineering")));
       wikiRepository.when(() -> WikiRepository.findById(5L)).thenReturn(wiki(5, "Engineering"));
@@ -189,6 +204,105 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
       WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
 
       assertEquals(WikiSearchResultsWidget.JSP, result.getJsp());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeOnlySearchesAndListsWikisTheVisitorCanReach() {
+    // A wiki whose route page the visitor cannot open (role, group or internal-page rules) must
+    // contribute nothing: no results, no excerpts, no facet entry with its name and count
+    addQueryParameter(widgetContext, "query", "steps");
+
+    List<WikiPage> wikiPageList = new ArrayList<>();
+    wikiPageList.add(wikiPage(1L, 5L));
+    // Even if a page from the hidden wiki came back, it must not be rendered
+    wikiPageList.add(wikiPage(2L, 6L));
+    AtomicReference<WikiPageSpecification> searched = new AtomicReference<>();
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/wiki-5"), any())).thenReturn(true);
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/wiki-6"), any())).thenReturn(false);
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any()))
+          .thenAnswer(invocation -> {
+            searched.set(invocation.getArgument(0));
+            return wikiPageList;
+          });
+      wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(wiki(5, "Engineering"), wiki(6, "Operations")));
+      repository.when(() -> WikiPageRepository.findCount(any(WikiPageSpecification.class))).thenReturn(1L);
+
+      WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(5L), new ArrayList<>(searched.get().getWikiIdList()),
+          "the query must be restricted to the reachable wiki");
+      List<SearchResult> searchResultList = (List<SearchResult>) result.getRequest().getAttribute("searchResultList");
+      assertEquals(1, searchResultList.size());
+      assertEquals("/wiki-5/page-1", searchResultList.get(0).getLink());
+      List<FacetUrlCommand.FacetOption> wikiFacets = (List<FacetUrlCommand.FacetOption>) result.getRequest().getAttribute("wikiFacets");
+      assertEquals(1, wikiFacets.size());
+      assertEquals("Engineering", wikiFacets.get(0).getLabel());
+    }
+  }
+
+  @Test
+  void executeHidesADisabledWikiFromVisitorsButNotFromAnAdmin() {
+    // Same rule WikiWidget applies to viewing a disabled wiki
+    addQueryParameter(widgetContext, "query", "steps");
+    Wiki disabled = wiki(5, "Engineering");
+    disabled.setEnabled(false);
+    AtomicReference<WikiPageSpecification> searched = new AtomicReference<>();
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any()))
+          .thenAnswer(invocation -> {
+            searched.set(invocation.getArgument(0));
+            return new ArrayList<>();
+          });
+      wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(disabled));
+
+      new WikiSearchResultsWidget().execute(widgetContext);
+      assertTrue(searched.get().getWikiIdList().isEmpty(), "a guest must not search a disabled wiki");
+
+      login(widgetContext);
+      setRoles(widgetContext, ADMIN);
+      new WikiSearchResultsWidget().execute(widgetContext);
+      assertEquals(List.of(5L), new ArrayList<>(searched.get().getWikiIdList()), "an admin can open it, so can search it");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeDoesNotNameAHiddenWikiInTheActiveFilter() {
+    // ?wikiId= for a wiki the visitor cannot open must not turn the filter chip into a way to read
+    // that wiki's name
+    addQueryParameter(widgetContext, "query", "steps");
+    addQueryParameter(widgetContext, "wikiId", "6");
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/wiki-5"), any())).thenReturn(true);
+      access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/wiki-6"), any())).thenReturn(false);
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(wiki(5, "Engineering"), wiki(6, "Operations")));
+      wikiRepository.when(() -> WikiRepository.findById(6L)).thenReturn(wiki(6, "Operations"));
+      repository.when(() -> WikiPageRepository.findCount(any(WikiPageSpecification.class))).thenReturn(0L);
+
+      WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
+
+      List<FacetUrlCommand.ActiveFacetFilter> activeFilters = (List<FacetUrlCommand.ActiveFacetFilter>) result.getRequest().getAttribute("activeFilters");
+      assertEquals(1, activeFilters.size());
+      assertEquals("Selected wiki", activeFilters.get(0).getValueLabel());
+      List<FacetUrlCommand.FacetOption> wikiFacets = (List<FacetUrlCommand.FacetOption>) result.getRequest().getAttribute("wikiFacets");
+      assertTrue(wikiFacets.stream().noneMatch(f -> "Operations".equals(f.getLabel())));
     }
   }
 }
