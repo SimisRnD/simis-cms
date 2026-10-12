@@ -137,6 +137,15 @@ LIBXML2_REASON = (
 # exists so a regeneration reproduces those decisions instead of silently downgrading them
 # to under_investigation. test_policy_reproduces_every_committed_statement() holds the two
 # in sync.
+# Shared by the MariaDB server CVEs below: what the two flagged packages are doing in a
+# PostgreSQL image at all.
+MARIADB_CLIENT_ONLY = (
+    "Both arrive only as dependencies of the PostGIS install's GDAL stack: libgdal32 is the sole "
+    "installed package depending on libmariadb3 (and libmariadb3 the sole one depending on "
+    "mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and "
+    "postgis_raster, which is never created."
+)
+
 CVE_POLICY = {
     "CVE-2023-2953": (
         NOT_IN_PATH,
@@ -351,6 +360,27 @@ CVE_POLICY = {
         "dirmngr (package-management and GnuPG network tools the running container never "
         "executes -- every running process is postgres). Configuring LDAP authentication over "
         "TLS would void this claim.",
+    ),
+    "CVE-2026-107815": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's CONNECT storage engine (its DOS table type). The "
+        "image ships no MariaDB server and no CONNECT engine: libmariadb3 is the client library "
+        "with its client authentication plugins, and mariadb-common is a single configuration "
+        "file. " + MARIADB_CLIENT_ONLY,
+    ),
+    "CVE-2026-107818": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's mariadb.service systemd unit, which reads "
+        "/run/mysqld/wsrep-new-cluster on restart. The image ships no MariaDB server and no "
+        "mariadb.service unit: libmariadb3 is the client library with its client authentication "
+        "plugins, and mariadb-common is a single configuration file. " + MARIADB_CLIENT_ONLY,
+    ),
+    "CVE-2026-107823": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's view (FRM) definition parser. The image ships no "
+        "MariaDB server and so no view parser: libmariadb3 is the client library with its client "
+        "authentication plugins, and mariadb-common is a single configuration file. "
+        + MARIADB_CLIENT_ONLY,
     ),
 }
 
