@@ -48,7 +48,7 @@ jobs:
           subject-path: target/simis-cms.war
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       # Scan the built WAR (its WEB-INF/lib/*.jar) and emit CycloneDX json + xml
       - name: Generate the CycloneDX SBOM from the built WAR
