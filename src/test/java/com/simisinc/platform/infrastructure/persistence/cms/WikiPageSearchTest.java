@@ -66,6 +66,7 @@ class WikiPageSearchTest {
 
   private static GenericContainer<?> postgres;
   private static long wikiId;
+  private static long privateWikiId;
 
   @BeforeAll
   static void startDatabase() {
@@ -158,6 +159,45 @@ class WikiPageSearchTest {
     assertEquals(3, WikiPageRepository.findCount(spec));
   }
 
+  @Test
+  void aWikiIdListRestrictsTheSearchToThoseWikis() {
+    WikiPageSpecification unrestricted = new WikiPageSpecification();
+    unrestricted.setSearchTerm("troubleshooting");
+    Set<String> allTitles = WikiPageRepository.findAll(unrestricted, null).stream()
+        .map(WikiPage::getTitle).collect(Collectors.toSet());
+    assertTrue(allTitles.contains("Internal Troubleshooting Notes"), "precondition: both wikis match: " + allTitles);
+
+    WikiPageSpecification spec = new WikiPageSpecification();
+    spec.setSearchTerm("troubleshooting");
+    spec.setWikiIdList(List.of(wikiId));
+
+    Set<String> titles = WikiPageRepository.findAll(spec, null).stream()
+        .map(WikiPage::getTitle).collect(Collectors.toSet());
+    assertEquals(Set.of("Troubleshooting Guide"), titles);
+    assertEquals(1, WikiPageRepository.findCount(spec));
+  }
+
+  @Test
+  void anEmptyWikiIdListMatchesNothingRatherThanEverything() {
+    WikiPageSpecification spec = new WikiPageSpecification();
+    spec.setSearchTerm("troubleshooting");
+    spec.setWikiIdList(List.of());
+
+    assertTrue(WikiPageRepository.findAll(spec, null).isEmpty());
+    assertEquals(0, WikiPageRepository.findCount(spec));
+  }
+
+  @Test
+  void aWikiIdOutsideTheWikiIdListReturnsNothing() {
+    WikiPageSpecification spec = new WikiPageSpecification();
+    spec.setSearchTerm("troubleshooting");
+    spec.setWikiId(privateWikiId);
+    spec.setWikiIdList(List.of(wikiId));
+
+    assertTrue(WikiPageRepository.findAll(spec, null).isEmpty());
+    assertEquals(0, WikiPageRepository.findCount(spec));
+  }
+
   private static void createSchemaAndSeedPages() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -197,6 +237,17 @@ class WikiPageSearchTest {
           + "'This page explains how to configure Kerberos for single sign-on.', 1, 1)");
       statement.execute("INSERT INTO wiki_pages (wiki_id, page_unique_id, title, body, created_by, modified_by) VALUES "
           + "(" + wikiId + ", 'faq', 'Frequently Asked Questions', 'General questions about the platform.', 1, 1)");
+
+      // A second wiki sharing a search term with the first, for the wikiIdList restriction
+      statement.execute("INSERT INTO wikis (wiki_unique_id, name, created_by, modified_by) "
+          + "VALUES ('private-docs', 'Private Documentation', 1, 1)");
+      try (var rs = statement.executeQuery("SELECT wiki_id FROM wikis WHERE wiki_unique_id = 'private-docs'")) {
+        rs.next();
+        privateWikiId = rs.getLong(1);
+      }
+      statement.execute("INSERT INTO wiki_pages (wiki_id, page_unique_id, title, body, created_by, modified_by) VALUES "
+          + "(" + privateWikiId + ", 'internal-troubleshooting', 'Internal Troubleshooting Notes', "
+          + "'Steps the operations team follows.', 1, 1)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the wiki search test schema", se);
     }

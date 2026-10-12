@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.cms.WikiPage;
@@ -70,9 +71,23 @@ public class WikiSearchResultsWidget extends GenericWidget {
     // WikiPageRepository, single-select since a page belongs to exactly one wiki)
     long selectedWikiId = context.getParameterAsLong("wikiId", -1);
 
+    // Only the wikis this visitor could open. Results, facet counts, the facet panel's wiki names
+    // and the active-filter label all draw on this one set, so a wiki the visitor cannot reach
+    // contributes nothing to the page -- not its pages' titles or excerpts, not its name.
+    Map<Long, Wiki> visibleWikis = new LinkedHashMap<>();
+    List<Wiki> wikiList = WikiRepository.findAll();
+    if (wikiList != null) {
+      for (Wiki wiki : wikiList) {
+        if (canViewWiki(context, wiki)) {
+          visibleWikis.put(wiki.getId(), wiki);
+        }
+      }
+    }
+
     // Determine criteria
     WikiPageSpecification specification = new WikiPageSpecification();
     specification.setSearchTerm(query);
+    specification.setWikiIdList(visibleWikis.keySet());
     if (selectedWikiId != -1) {
       specification.setWikiId(selectedWikiId);
     }
@@ -87,9 +102,8 @@ public class WikiSearchResultsWidget extends GenericWidget {
     // counted standalone (ignoring the current wikiId selection) so switching wikis shows every
     // wiki's own count, not just the selected one's (issue #634)
     List<FacetUrlCommand.FacetOption> wikiFacets = new ArrayList<>();
-    List<Wiki> wikiList = WikiRepository.findAll();
-    if (wikiList != null) {
-      for (Wiki wiki : wikiList) {
+    if (!visibleWikis.isEmpty()) {
+      for (Wiki wiki : visibleWikis.values()) {
         boolean selected = selectedWikiId == wiki.getId();
         WikiPageSpecification countSpecification = new WikiPageSpecification();
         countSpecification.setSearchTerm(query);
@@ -107,7 +121,9 @@ public class WikiSearchResultsWidget extends GenericWidget {
     // Active filter chip, with a URL that clears just the wikiId filter (issue #634)
     List<FacetUrlCommand.ActiveFacetFilter> activeFilters = new ArrayList<>();
     if (selectedWikiId != -1) {
-      Wiki selectedWiki = WikiRepository.findById(selectedWikiId);
+      // Looked up in the visible set only: a ?wikiId= for a wiki the visitor cannot open must not
+      // turn the filter chip into a way to read that wiki's name
+      Wiki selectedWiki = visibleWikis.get(selectedWikiId);
       String valueLabel = selectedWiki != null ? selectedWiki.getName() : "Selected wiki";
       activeFilters.add(new FacetUrlCommand.ActiveFacetFilter(WIKI_FACET_LABEL, valueLabel,
           FacetUrlCommand.buildClearFilterUrl(context, "wikiId")));
@@ -122,13 +138,13 @@ public class WikiSearchResultsWidget extends GenericWidget {
     context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
-    // Resolve each result's wiki to build its link (/{wikiUniqueId}/{pageUniqueId}), memoized so a
-    // page of results with repeated wikis does not re-query the same wiki
+    // Resolve each result's wiki to build its link (/{wikiUniqueId}/{pageUniqueId}) from the visible
+    // set already loaded above; a page whose wiki is not in it is skipped (the query is already
+    // restricted to these wikis, so this only guards against the two drifting apart)
     List<SearchResult> searchResultList = new ArrayList<>();
     if (wikiPageList != null) {
-      Map<Long, Wiki> wikiById = new HashMap<>();
       for (WikiPage wikiPage : wikiPageList) {
-        Wiki wiki = wikiById.computeIfAbsent(wikiPage.getWikiId(), WikiRepository::findById);
+        Wiki wiki = visibleWikis.get(wikiPage.getWikiId());
         if (wiki == null) {
           continue;
         }
@@ -165,5 +181,24 @@ public class WikiSearchResultsWidget extends GenericWidget {
     // Show the JSP
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * Whether this visitor could open the wiki, by the same two rules that govern viewing it:
+   * WikiWidget hides a disabled wiki from everyone but its managers, and a wiki's pages are served
+   * by its route web page ("/" + uniqueId), whose role, group and internal-page restrictions
+   * apply to every page beneath it. SitemapServlet and LlmsTxtServlet apply the same route-page
+   * check for anonymous visitors (issue #1402); search runs it for the actual visitor, so an
+   * admin still finds what an admin can open.
+   */
+  static boolean canViewWiki(WidgetContext context, Wiki wiki) {
+    if (wiki == null || StringUtils.isBlank(wiki.getUniqueId())) {
+      return false;
+    }
+    if (!wiki.getEnabled() &&
+        !(context.hasRole("admin") || context.hasRole("content-manager") || context.hasRole("community-manager"))) {
+      return false;
+    }
+    return ValidateUserAccessToWebPageCommand.hasAccess("/" + wiki.getUniqueId(), context.getUserSession());
   }
 }
