@@ -23,7 +23,7 @@
 #
 # This uses the same pinned base as the runtime stage, so it pulls no additional image and
 # unpacks with the JDK's own `jar`.
-FROM tomcat:11.0-jdk21@sha256:85bca16d6dda8eec14ca205d424d9803ebee9174662dc7647fc8c07ffe560e0e AS warstage
+FROM tomcat:11.0-jdk21-temurin-noble@sha256:5a17f80e55b73d6df46a195183c92558d8661277e3bf25534db1f205fbeb6408 AS warstage
 COPY ./target/simis-cms.war /tmp/ROOT.war
 RUN mkdir -p /warstage/ROOT \
     && (cd /warstage/ROOT && jar xf /tmp/ROOT.war)
@@ -32,7 +32,12 @@ RUN mkdir -p /warstage/ROOT \
 #
 # Tomcat 11 (Jakarta EE / jakarta.servlet). The application targets Servlet 6.1; it will not
 # run on the Tomcat 9 base this image used previously, which serves the javax.* namespace.
-FROM tomcat:11.0-jdk21@sha256:85bca16d6dda8eec14ca205d424d9803ebee9174662dc7647fc8c07ffe560e0e
+#
+# The tag names the OS release (-temurin-noble, Ubuntu 24.04) rather than the floating
+# 11.0-jdk21, which moved to Ubuntu 26.04 "resolute" in October 2026. That release ships
+# /usr/bin/pebble, a Go binary whose stdlib CVEs fail the app image gate. Moving to a newer
+# Ubuntu release should be a deliberate base change, not a side effect of a digest bump.
+FROM tomcat:11.0-jdk21-temurin-noble@sha256:5a17f80e55b73d6df46a195183c92558d8661277e3bf25534db1f205fbeb6408
 
 # STIG hardening. Overlay the hardened server.xml (shutdown port disabled, HTTP TRACE off,
 # server banner suppressed, no error-page disclosure, autoDeploy off, access logging), add
