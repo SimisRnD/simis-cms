@@ -85,13 +85,32 @@ public class PageServlet extends HttpServlet {
   // JSON Services
   private Map<String, Object> serviceInstances = new HashMap<>();
 
+  // Set when init() ran before startup completed; the first request finishes it
+  private volatile ServletConfig deferredConfig = null;
+
   public void init(ServletConfig config) throws ServletException {
 
     LOG.info("PageServlet starting up...");
     String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
     if (!"true".equals(startupSuccessful)) {
-      throw new ServletException("Startup failed due to previous error");
+      // ContextListener is waiting for the database (throwing here would fail the whole context);
+      // WebRequestFilter answers 503 until startup completes, so no request reaches service()
+      // before then
+      LOG.info("PageServlet will finish starting up once the application has started");
+      deferredConfig = config;
+      return;
     }
+    initialize(config);
+  }
+
+  private synchronized void finishDeferredInit() {
+    if (deferredConfig != null) {
+      initialize(deferredConfig);
+      deferredConfig = null;
+    }
+  }
+
+  private void initialize(ServletConfig config) {
 
     // Load the web page designs
     LOG.info("Loading the web page designs...");
@@ -151,6 +170,10 @@ public class PageServlet extends HttpServlet {
 
   @Override
   public void service(HttpServletRequest request, HttpServletResponse response) {
+
+    if (deferredConfig != null) {
+      finishDeferredInit();
+    }
 
     if (LOG.isDebugEnabled()) {
       // Reload the configuration for any developer changes

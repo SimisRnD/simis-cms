@@ -20,6 +20,7 @@ import static com.simisinc.platform.infrastructure.cache.CacheManager.CONTENT_UN
 
 import java.io.File;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -65,6 +66,16 @@ public class ContextListener implements ServletContextListener {
 
   private static Log LOG = LogFactory.getLog(ContextListener.class);
 
+  /**
+   * Between attempts while waiting for the database. Each attempt also waits up to the pool's
+   * connectionTimeout itself, and the pool keeps trying to connect the whole time, so recovery
+   * follows the database within seconds; this only spaces out the log lines.
+   */
+  private static final Duration DEFERRED_STARTUP_RETRY_DELAY = Duration.ofSeconds(5);
+
+  // Set only when the database was unreachable at startup
+  private volatile DeferredStartup deferredStartup = null;
+
   @Override
   public void contextInitialized(ServletContextEvent servletContextEvent) {
 
@@ -103,9 +114,6 @@ public class ContextListener implements ServletContextListener {
           + "256-bit key) to enable those features.");
     }
 
-    // Monitor the success
-    boolean isSuccessful = true;
-
     // Determine the instance type
     InstanceManager.init();
 
@@ -117,61 +125,77 @@ public class ContextListener implements ServletContextListener {
 
     // Startup the database first
     // @todo create and use a separate Rest DataSource pool
+    ServletContext servletContext = servletContextEvent.getServletContext();
     Properties databaseProperties = new Properties();
-    try (InputStream is = servletContextEvent.getServletContext()
-        .getResourceAsStream("/WEB-INF/classes/database.properties")) {
+    try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/classes/database.properties")) {
       LOG.info("Starting up the web database connection pool...");
       // Use the default properties
       databaseProperties.load(is);
       // Check for environment variables, including optional Azure SPN authentication (#1129)
       DatabaseProperties.applyEnvironmentOverrides(databaseProperties);
       DataSource.init(databaseProperties);
-      // See if this is a new install or an upgrade
-      if (!DatabaseCommand.initialize(databaseProperties)) {
-        isSuccessful = false;
-        LOG.error("Could not initialize the database");
-        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "database");
-      }
     } catch (Exception e) {
-      isSuccessful = false;
       LOG.error("Could not find database properties", e);
-      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "database");
+      servletContext.setAttribute(ContextConstants.STARTUP_FAILED, "database");
+      return;
     }
 
     // Startup the CacheManager (Before any LoadSitePropertyCommand.loadByName() can be used)
     LOG.info("Startup the cache manager...");
     CacheManager.startup();
 
+    // Everything from here on needs the database. When it cannot be reached -- a restart during a
+    // database outage, such as Azure's planned maintenance -- finish starting up in the background
+    // once it can, and serve 503 meanwhile (WebRequestFilter), instead of failing the context.
+    DeferredStartup.Step startWithDatabase = () -> startWithDatabase(servletContext, databaseProperties);
+    DeferredStartup.Outcome outcome = DeferredStartup.attempt(DeferredStartup.POOLED_CONNECTION, startWithDatabase);
+    if (outcome == DeferredStartup.Outcome.WAITING_FOR_DATABASE) {
+      LOG.warn("The database is not reachable; answering 503 and retrying startup every "
+          + DEFERRED_STARTUP_RETRY_DELAY.toSeconds() + " seconds until it is");
+      deferredStartup = DeferredStartup.retry(DeferredStartup.POOLED_CONNECTION, startWithDatabase,
+          DEFERRED_STARTUP_RETRY_DELAY);
+    }
+  }
+
+  /**
+   * The half of startup that needs the database: migrations, the file store path, and everything
+   * that loads from them.
+   *
+   * @return true once the application is ready to serve; false when startup failed and has already
+   *     logged why
+   */
+  private static boolean startWithDatabase(ServletContext servletContext, Properties databaseProperties) {
+
+    // See if this is a new install or an upgrade
+    if (!DatabaseCommand.initialize(databaseProperties)) {
+      LOG.error("Could not initialize the database");
+      servletContext.setAttribute(ContextConstants.STARTUP_FAILED, "database");
+      return false;
+    }
+
     // Verify the filesystem entry
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
     if (StringUtils.isBlank(serverRootPath)) {
       LOG.error("Missing system.filepath");
-      isSuccessful = false;
-      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED,
-          "missing system.filepath in database");
-    } else {
-      LOG.info("Checking the file path: " + serverRootPath);
-      File directory = new File(serverRootPath);
-      if (!directory.exists()) {
-        LOG.info("Creating directory at: " + serverRootPath);
-        directory.mkdirs();
-      }
-      if (!directory.isDirectory()) {
-        isSuccessful = false;
-        LOG.error("Check system.filepath, directory was not found: " + serverRootPath);
-        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED,
-            "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
-      }
+      servletContext.setAttribute(ContextConstants.STARTUP_FAILED, "missing system.filepath in database");
+      return false;
     }
-
-    // The system is not properly setup
-    if (!isSuccessful) {
-      return;
+    LOG.info("Checking the file path: " + serverRootPath);
+    File directory = new File(serverRootPath);
+    if (!directory.exists()) {
+      LOG.info("Creating directory at: " + serverRootPath);
+      directory.mkdirs();
+    }
+    if (!directory.isDirectory()) {
+      LOG.error("Check system.filepath, directory was not found: " + serverRootPath);
+      servletContext.setAttribute(ContextConstants.STARTUP_FAILED,
+          "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
+      return false;
     }
 
     // Set a default time zone for JSPs
     String timezone = LoadSitePropertyCommand.loadByName("site.timezone", "America/New_York");
-    Config.set(servletContextEvent.getServletContext(), Config.FMT_TIME_ZONE, timezone);
+    Config.set(servletContext, Config.FMT_TIME_ZONE, timezone);
 
     // Show the timezone's date/time
     Instant timeStamp = Instant.now();
@@ -183,7 +207,7 @@ public class ContextListener implements ServletContextListener {
     LOG.info("Active feature flags: " + (activeFeatureFlags.isEmpty() ? "(none)" : String.join(", ", activeFeatureFlags)));
 
     // Start up the GeoIP
-    GeoIPCommand.setConfig(servletContextEvent.getServletContext());
+    GeoIPCommand.setConfig(servletContext);
 
     // Load the filesystem lists (these are also scheduled in SchedulerManager)
     LoadSystemFilesJob.execute();
@@ -206,19 +230,28 @@ public class ContextListener implements ServletContextListener {
 
     // Initialize the workflow engine
     LOG.info("Add the workflows...");
-    WorkflowManager.startup(servletContextEvent.getServletContext(), "/WEB-INF/workflows");
+    WorkflowManager.startup(servletContext, "/WEB-INF/workflows");
 
     // Startup the distributed job scheduler
     LOG.info("Startup the distributed job scheduler...");
-    SchedulerManager.startup(servletContextEvent.getServletContext());
+    SchedulerManager.startup(servletContext);
 
-    // Give the go ahead
-    servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_SUCCESSFUL, "true");
+    // Give the go ahead (clearing any failure left by an earlier attempt that lost the database)
+    servletContext.removeAttribute(ContextConstants.STARTUP_FAILED);
+    servletContext.setAttribute(ContextConstants.STARTUP_SUCCESSFUL, "true");
+    LOG.info("Startup complete");
+    return true;
   }
 
   @Override
   public void contextDestroyed(ServletContextEvent servletContextEvent) {
     LOG.info("Shutting down...");
+
+    // Before the scheduler and pool, so a startup still waiting on the database cannot start
+    // either of them again after they are shut down
+    if (deferredStartup != null) {
+      deferredStartup.stop();
+    }
 
     LOG.info("Shutting down the distributed job scheduler...");
     SchedulerManager.shutdown();
