@@ -20,6 +20,7 @@ import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOUR
 import static jakarta.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
 import static jakarta.servlet.http.HttpServletResponse.SC_MOVED_TEMPORARILY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.util.Map;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
@@ -99,11 +101,34 @@ public class WebRequestFilter implements Filter {
   // nothing else ever refreshes or invalidates it.
   private static volatile Map<String, String> redirectMap = null;
 
+  /** Seconds a client should wait before retrying while startup waits for the database. */
+  static final String STARTUP_RETRY_AFTER_SECONDS = "30";
+
+  private ServletContext servletContext = null;
+  private volatile boolean initialized = false;
+
   public void init(FilterConfig config) throws ServletException {
     LOG.info("WebRequestFilter starting up...");
-    String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
-    if (!"true".equals(startupSuccessful)) {
-      throw new ServletException("Startup failed due to previous error");
+    servletContext = config.getServletContext();
+    if (!isStartupComplete()) {
+      // Not an error: ContextListener is waiting for the database and finishes startup once it
+      // answers. Throwing here, as this used to, made Tomcat fail the whole context, and a failed
+      // context answers 404 on every path -- /healthz included -- until the process restarts.
+      // doFilter() answers 503 until startup completes, then finishes this.
+      LOG.info("WebRequestFilter will finish starting up once the application has started");
+      return;
+    }
+    initialize();
+  }
+
+  private boolean isStartupComplete() {
+    return servletContext != null
+        && "true".equals(servletContext.getAttribute(ContextConstants.STARTUP_SUCCESSFUL));
+  }
+
+  private synchronized void initialize() {
+    if (initialized) {
+      return;
     }
     String ssl = LoadSitePropertyCommand.loadByName("system.ssl");
     if ("true".equals(ssl)) {
@@ -116,6 +141,7 @@ public class WebRequestFilter implements Filter {
 
     // Preload the blocked IP list
     LoadBlockedIPListCommand.retrieveCachedIpAddressList();
+    initialized = true;
   }
 
   public void destroy() {
@@ -129,6 +155,24 @@ public class WebRequestFilter implements Filter {
     String contextPath = request.getServletContext().getContextPath();
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
+
+    // Until startup completes, answer 503 for every path -- before anything below, all of which
+    // can reach the database. This only happens after a start while the database was unreachable
+    // (ContextListener retries until it answers); a normal boot completes before Tomcat accepts a
+    // request. 503 rather than the 404 a failed context gave: it fails the health probe the same
+    // way, and it tells crawlers the pages are temporarily unavailable rather than gone. /healthz
+    // keeps its usual JSON answer, which reports DOWN from the startup flag without a query.
+    if (!initialized) {
+      if (!isStartupComplete()) {
+        if (resource.equals("/healthz")) {
+          doHealthCheck(request, servletResponse);
+        } else {
+          doStartupUnavailable(servletResponse);
+        }
+        return;
+      }
+      initialize();
+    }
 
     // Security headers for every response, set here for the same reason the caching wrapper below
     // is: PageServlet sets them for the pages it renders, but static files are served by the
@@ -1160,6 +1204,21 @@ public class WebRequestFilter implements Filter {
   private void do404(ServletResponse servletResponse) throws IOException {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     response.sendError(SC_NOT_FOUND);
+  }
+
+  // Written directly rather than with sendError(): the error page renders through the site's
+  // layout, which needs the database this is waiting for
+  private void doStartupUnavailable(ServletResponse servletResponse) throws IOException {
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    response.setStatus(SC_SERVICE_UNAVAILABLE);
+    response.setHeader("Retry-After", STARTUP_RETRY_AFTER_SECONDS);
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setContentType("text/plain");
+    response.setCharacterEncoding("UTF-8");
+    PrintWriter out = response.getWriter();
+    out.print("Service temporarily unavailable");
+    out.flush();
   }
 
 }

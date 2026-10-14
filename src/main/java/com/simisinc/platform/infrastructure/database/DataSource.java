@@ -60,6 +60,13 @@ public class DataSource {
     // warning here means something genuinely pathological rather than routine noise. This only
     // logs; it never closes a connection out from under its borrower.
     config.setLeakDetectionThreshold(60000);
+    // Start the pool even when the database cannot be reached right now, and let it connect once
+    // the database is back. Hikari's default (1) fails fast instead: the constructor throws, ds
+    // stays null, and every later DB.getConnection() is a NullPointerException rather than an
+    // SQLException. That is how a restart during a database outage left the site answering 404
+    // on every path until someone restarted it again -- see ContextListener, which now waits for
+    // the database instead of treating it as fatal.
+    config.setInitializationFailTimeout(-1);
     ds = new HikariDataSource(config);
     LOG.info("Max pool size: " + ds.getMaximumPoolSize());
   }
