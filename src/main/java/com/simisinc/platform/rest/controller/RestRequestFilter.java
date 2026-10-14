@@ -80,13 +80,32 @@ public class RestRequestFilter implements Filter {
 
   private boolean requireSSL = false;
 
+  // Set when init() ran before startup completed; the first request finishes it
+  private volatile boolean deferredInit = false;
+
   @Override
   public void init(FilterConfig config) throws ServletException {
     LOG.info("RestRequestFilter starting up...");
     String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
     if (!"true".equals(startupSuccessful)) {
-      throw new ServletException("Startup failed due to previous error");
+      // ContextListener is waiting for the database (throwing here would fail the whole context);
+      // WebRequestFilter answers 503 until startup completes, so the first request through here
+      // finishes this
+      LOG.info("RestRequestFilter will finish starting up once the application has started");
+      deferredInit = true;
+      return;
     }
+    initialize();
+  }
+
+  private synchronized void finishDeferredInit() {
+    if (deferredInit) {
+      initialize();
+      deferredInit = false;
+    }
+  }
+
+  private void initialize() {
     String ssl = LoadSitePropertyCommand.loadByName("system.ssl");
     if ("true".equals(ssl)) {
       LOG.info("SSL is required by system.ssl");
@@ -100,6 +119,9 @@ public class RestRequestFilter implements Filter {
 
   public void doFilter(ServletRequest request, ServletResponse servletResponse, FilterChain chain)
       throws ServletException, IOException {
+    if (deferredInit) {
+      finishDeferredInit();
+    }
     HttpServletRequest httpServletRequest = (HttpServletRequest) request;
     String requestMethod = ((HttpServletRequest) request).getMethod().toLowerCase();
     String scheme = request.getScheme();
