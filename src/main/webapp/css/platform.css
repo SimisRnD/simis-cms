@@ -2907,6 +2907,16 @@ div.item-image-large img {
   display: none;
 }
 
+/* The configurable action link sits directly in the row, but the event's own buttons (Join Meeting,
+   Learn More, Sign Up Page) are wrapped in this paragraph -- so the row's gap only fell between the
+   action link and the paragraph, while the buttons inside it were separated by the whitespace
+   between the inline anchors: 12px, then 5.6px, measured on simisinc.com. display: contents lets
+   every button be a flex item of the row, so the one gap spaces them all, and on a narrow screen
+   they wrap one by one rather than as a block. */
+.platform-calendar-details-container .platform-calendar-event-actions > .platform-calendar-event-buttons {
+  display: contents;
+}
+
 /* Every margin off the buttons in this row, not just the bottom one. Two libraries disagree about
    spacing here: Foundation gives .button a 1rem bottom margin, and the vendored Add-to-Calendar
    control sets "margin: 15px 50px 0 0" on its own button. Both are counted in the flex item's

@@ -171,7 +171,7 @@ jobs:
           extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py,src/test/java/com/simisinc/platform/infrastructure/database/DatabasePropertiesTest.java,lib/**
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
@@ -268,7 +268,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the application scan results
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
@@ -382,7 +382,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database scan results
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
@@ -433,7 +433,7 @@ jobs:
           exit-code: '0'
 
       - name: Publish the database triage feed
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           sarif_file: trivy-simis-cms-db-triage.sarif
           category: image-simis-cms-db-triage
