@@ -163,6 +163,14 @@
         </c:choose>
       </p>
     </c:if>
+    <%-- Ticket details: the lowest price ("From $1,295" or "Free") and, when it says more than "on
+         sale", the ticket status. The text is built by CalendarEventTicketCommand.describe() from the
+         same stored price the Event JSON-LD's offer carries -- Google requires structured data to
+         describe what the page visibly shows, so a price only the markup states would be misleading
+         markup. Shown only when set, like the lines above. --%>
+    <c:if test="${!empty ticketText}">
+      <p class="platform-calendar-event-tickets"><i class="fa fa-ticket fa-fw"></i> <c:out value="${ticketText}" /></p>
+    </c:if>
     <%-- Tags are not shown to visitors. They render as plain <span>s, not links, and no
          tag-filtered calendar view exists to link to -- so "tradeshow" and "2026" were editorial
          metadata on display with nothing to do, and "2026" repeated the date directly above it.

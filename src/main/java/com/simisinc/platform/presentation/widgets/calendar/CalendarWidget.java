@@ -128,6 +128,13 @@ public class CalendarWidget extends GenericWidget {
     calendarEventBean.setCreatedBy(context.getUserId());
     calendarEventBean.setModifiedBy(context.getUserId());
 
+    // This quick editor (full-calendar.jsp) shows only some of an event's fields, but
+    // SaveCalendarEventCommand writes every one of them, so a field this form never submitted was
+    // saved as blank: editing an event here erased the organizer and speaker set in the admin form.
+    // Done before the duplicate check below resets the id, so a duplicate copies them from the event
+    // it was made from.
+    carryOverFieldsTheFormDoesNotSubmit(context, calendarEventBean);
+
     // See if the user is duplicating an existing event
     if (context.getParameter("duplicate") != null) {
       calendarEventBean.setId(-1L);
@@ -200,5 +207,45 @@ public class CalendarWidget extends GenericWidget {
     }
     context.setRedirect(context.getUri());
     return context;
+  }
+
+  /**
+   * Copies onto the bean the stored values of the fields the admin event form edits but this
+   * calendar's quick editor does not show. Only a parameter absent from the request counts as "not
+   * submitted"; one present but empty is the editor clearing the field, and stays cleared. A new
+   * event (no id) has nothing stored to keep.
+   */
+  static void carryOverFieldsTheFormDoesNotSubmit(WidgetContext context, CalendarEvent calendarEventBean) {
+    if (calendarEventBean.getId() == null || calendarEventBean.getId() <= -1) {
+      return;
+    }
+    CalendarEvent stored = CalendarEventRepository.findById(calendarEventBean.getId());
+    if (stored == null) {
+      return;
+    }
+    if (context.getParameter("organizerName") == null) {
+      calendarEventBean.setOrganizerName(stored.getOrganizerName());
+    }
+    if (context.getParameter("organizerUrl") == null) {
+      calendarEventBean.setOrganizerUrl(stored.getOrganizerUrl());
+    }
+    if (context.getParameter("performerName") == null) {
+      calendarEventBean.setPerformerName(stored.getPerformerName());
+    }
+    if (context.getParameter("performerUrl") == null) {
+      calendarEventBean.setPerformerUrl(stored.getPerformerUrl());
+    }
+    if (context.getParameter("ticketPrice") == null) {
+      calendarEventBean.setTicketPrice(stored.getTicketPrice());
+    }
+    if (context.getParameter("ticketCurrency") == null) {
+      calendarEventBean.setTicketCurrency(stored.getTicketCurrency());
+    }
+    if (context.getParameter("ticketAvailability") == null) {
+      calendarEventBean.setTicketAvailability(stored.getTicketAvailability());
+    }
+    if (context.getParameter("ticketSalesStart") == null) {
+      calendarEventBean.setTicketSalesStart(stored.getTicketSalesStart());
+    }
   }
 }

@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.Map;
@@ -255,29 +256,81 @@ class StructuredDataCommandEventSchemaTest {
   }
 
   @Test
-  void computeEventOffersReturnsNullWithoutASignUpUrl() {
-    assertNull(StructuredDataCommand.computeEventOffers(event("I/ITSEC 2026", "i-itsec-2026"),
-        "https://example.org"));
+  void computeEventOffersReturnsNullUntilAPriceIsEntered() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    assertNull(StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org"));
+    // A sign-up URL alone used to become a URL-only offer, which Search Console reports as missing
+    // price, priceCurrency, availability and validFrom -- four warnings where no offer is one
+    calendarEvent.setSignUpUrl("https://www.iitsec.org/register");
+    calendarEvent.setTicketAvailability("InStock");
+    assertNull(StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org"));
   }
 
   @Test
-  void computeEventOffersCarriesOnlyTheUrlItCanSupport() {
+  void computeEventOffersStatesThePriceCurrencyAndRegistrationUrl() {
     CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
     calendarEvent.setSignUpUrl("https://www.iitsec.org/register");
+    calendarEvent.setTicketPrice(new BigDecimal("1295.00"));
+    calendarEvent.setTicketCurrency("USD");
     Map<String, Object> offer = StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org");
     assertEquals("Offer", offer.get("@type"));
     assertEquals("https://www.iitsec.org/register", offer.get("url"));
-    // price/availability would each be an assertion this record cannot support
-    assertFalse(offer.containsKey("price"));
+    assertEquals("1295", offer.get("price"));
+    assertEquals("USD", offer.get("priceCurrency"));
+    // Neither was entered, so neither is asserted
     assertFalse(offer.containsKey("availability"));
+    assertFalse(offer.containsKey("validFrom"));
   }
 
   @Test
-  void computeEventOffersMakesARelativeSignUpUrlAbsolute() {
+  void computeEventOffersKeepsCentsAndStatesAFreeEventAsZero() {
     CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setTicketPrice(new BigDecimal("49.50"));
+    assertEquals("49.5", StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("price"));
+    // Google asks for 0 on a free event rather than a missing price
+    calendarEvent.setTicketPrice(new BigDecimal("0.00"));
+    assertEquals("0", StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("price"));
+  }
+
+  @Test
+  void computeEventOffersDefaultsTheCurrencyToUsd() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setTicketPrice(new BigDecimal("300"));
+    assertEquals("USD", StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("priceCurrency"));
+    calendarEvent.setTicketCurrency("eur");
+    assertEquals("EUR", StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("priceCurrency"));
+  }
+
+  @Test
+  void computeEventOffersStatesAvailabilityAsASchemaOrgUrl() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setTicketPrice(new BigDecimal("1295"));
+    calendarEvent.setTicketAvailability("SoldOut");
+    assertEquals("https://schema.org/SoldOut",
+        StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("availability"));
+    // A value outside the three Google accepts is left out rather than passed through
+    calendarEvent.setTicketAvailability("LimitedAvailability");
+    assertFalse(StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").containsKey("availability"));
+  }
+
+  @Test
+  void computeEventOffersStatesWhenSalesOpenAsValidFrom() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setTicketPrice(new BigDecimal("1295"));
+    Timestamp salesStart = Timestamp.valueOf("2026-10-01 09:00:00");
+    calendarEvent.setTicketSalesStart(salesStart);
+    assertEquals(salesStart.toInstant().toString(),
+        StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("validFrom"));
+  }
+
+  @Test
+  void computeEventOffersMakesARelativeSignUpUrlAbsoluteAndOmitsAMissingOne() {
+    CalendarEvent calendarEvent = event("I/ITSEC 2026", "i-itsec-2026");
+    calendarEvent.setTicketPrice(new BigDecimal("1295"));
+    assertFalse(StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").containsKey("url"));
     calendarEvent.setSignUpUrl("/register");
-    Map<String, Object> offer = StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org");
-    assertEquals("https://example.org/register", offer.get("url"));
+    assertEquals("https://example.org/register",
+        StructuredDataCommand.computeEventOffers(calendarEvent, "https://example.org").get("url"));
   }
 
   @Test
@@ -295,6 +348,7 @@ class StructuredDataCommandEventSchemaTest {
     calendarEvent.setOrganizerName("NTSA");
     calendarEvent.setPerformerName("Dr. Johnny Garcia");
     calendarEvent.setSignUpUrl("https://www.iitsec.org/register");
+    calendarEvent.setTicketPrice(new BigDecimal("1295"));
     Map<String, Object> schema = StructuredDataCommand.computeEventSchema(
         renderInfoFor(calendarEvent), "https://example.org");
     assertEquals("NTSA", ((Map<?, ?>) schema.get("organizer")).get("name"));

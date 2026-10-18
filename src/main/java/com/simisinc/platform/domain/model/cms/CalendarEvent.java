@@ -18,6 +18,7 @@ package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 /**
@@ -44,6 +45,10 @@ public class CalendarEvent extends Entity {
   private String organizerUrl = null;
   private String performerName = null;
   private String performerUrl = null;
+  private BigDecimal ticketPrice = null;
+  private String ticketCurrency = null;
+  private String ticketAvailability = null;
+  private Timestamp ticketSalesStart = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -238,6 +243,38 @@ public class CalendarEvent extends Entity {
 
   public void setPerformerUrl(String performerUrl) {
     this.performerUrl = performerUrl;
+  }
+
+  public BigDecimal getTicketPrice() {
+    return ticketPrice;
+  }
+
+  public void setTicketPrice(BigDecimal ticketPrice) {
+    this.ticketPrice = ticketPrice;
+  }
+
+  public String getTicketCurrency() {
+    return ticketCurrency;
+  }
+
+  public void setTicketCurrency(String ticketCurrency) {
+    this.ticketCurrency = ticketCurrency;
+  }
+
+  public String getTicketAvailability() {
+    return ticketAvailability;
+  }
+
+  public void setTicketAvailability(String ticketAvailability) {
+    this.ticketAvailability = ticketAvailability;
+  }
+
+  public Timestamp getTicketSalesStart() {
+    return ticketSalesStart;
+  }
+
+  public void setTicketSalesStart(Timestamp ticketSalesStart) {
+    this.ticketSalesStart = ticketSalesStart;
   }
 
   public double getLatitude() {

@@ -27,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.Locale;
+
 import static com.simisinc.platform.application.cms.GenerateCalendarEventUniqueIdCommand.generateUniqueId;
 
 /**
@@ -86,6 +88,7 @@ public class SaveCalendarEventCommand {
       }
       errorMessages.append("The end date needs to come after the start date");
     }
+    CalendarEventTicketCommand.validate(calendarEventBean, errorMessages);
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
     }
@@ -135,6 +138,18 @@ public class SaveCalendarEventCommand {
     calendarEvent.setOrganizerUrl(calendarEventBean.getOrganizerUrl());
     calendarEvent.setPerformerName(calendarEventBean.getPerformerName());
     calendarEvent.setPerformerUrl(calendarEventBean.getPerformerUrl());
+    // Ticket details. A price entered without a currency is stored as USD, so the event page and its
+    // schema.org Offer read the same stored value rather than each applying a default of their own.
+    calendarEvent.setTicketPrice(calendarEventBean.getTicketPrice());
+    String ticketCurrency = StringUtils.trimToNull(calendarEventBean.getTicketCurrency());
+    if (ticketCurrency != null) {
+      ticketCurrency = ticketCurrency.toUpperCase(Locale.ROOT);
+    } else if (calendarEventBean.getTicketPrice() != null) {
+      ticketCurrency = CalendarEventTicketCommand.DEFAULT_CURRENCY;
+    }
+    calendarEvent.setTicketCurrency(ticketCurrency);
+    calendarEvent.setTicketAvailability(StringUtils.trimToNull(calendarEventBean.getTicketAvailability()));
+    calendarEvent.setTicketSalesStart(calendarEventBean.getTicketSalesStart());
     calendarEvent.setLocation(calendarEventBean.getLocation());
     // The structured address behind that free-text venue name. StructuredDataCommand turns these
     // into the schema.org PostalAddress an Event's location needs -- Search Console reports

@@ -20,12 +20,20 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
+import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.Converter;
+import org.apache.commons.beanutils.converters.BigDecimalConverter;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -34,6 +42,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
+import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -52,6 +61,29 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * load-existing-record pattern as WebPageFormWidget.execute() (webPageId -> findById -> null-check).
  */
 class CalendarEventFormWidgetTest extends WidgetBase {
+
+  // PageServlet.init() registers both of these, null-on-failure, in commons-beanutils' static
+  // registry; outside a running servlet the library defaults apply instead (an unreadable BigDecimal
+  // becomes 0, not null), so the ticket tests below register what production runs with and put the
+  // previous converters back afterwards.
+  private Converter previousBigDecimalConverter;
+  private Converter previousTimestampConverter;
+
+  @BeforeEach
+  void registerThePageServletConverters() {
+    previousBigDecimalConverter = ConvertUtils.lookup(BigDecimal.class);
+    previousTimestampConverter = ConvertUtils.lookup(Timestamp.class);
+    ConvertUtils.register(new BigDecimalConverter(null), BigDecimal.class);
+    SqlTimestampConverter timestampConverter = new SqlTimestampConverter(null);
+    timestampConverter.setPattern("MM-dd-yyyy HH:mm");
+    ConvertUtils.register(timestampConverter, Timestamp.class);
+  }
+
+  @AfterEach
+  void restoreTheConverters() {
+    ConvertUtils.register(previousBigDecimalConverter, BigDecimal.class);
+    ConvertUtils.register(previousTimestampConverter, Timestamp.class);
+  }
 
   @Test
   void executeWithCalendarEventIdLoadsTheExistingEventForEditing() {
@@ -389,5 +421,104 @@ class CalendarEventFormWidgetTest extends WidgetBase {
       assertArrayEquals(new String[] { "quarterly", "all-hands" }, bean.getTagsList());
       assertNotNull(bean.getPublished());
     }
+  }
+
+  // --- ticket details ---
+
+  private CalendarEvent postAndCaptureTheSavedBean() throws Exception {
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+      new CalendarEventFormWidget().post(widgetContext);
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      return captor.getValue();
+    }
+  }
+
+  @Test
+  void postPassesThePlainTicketFieldsThrough() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "I/ITSEC 2026");
+    addQueryParameter(widgetContext, "ticketPrice", "1295.50");
+    addQueryParameter(widgetContext, "ticketCurrency", "USD");
+    addQueryParameter(widgetContext, "ticketAvailability", "PreOrder");
+    addQueryParameter(widgetContext, "ticketSalesStart", "10-01-2026 09:00");
+
+    CalendarEvent bean = postAndCaptureTheSavedBean();
+
+    assertEquals(0, new BigDecimal("1295.50").compareTo(bean.getTicketPrice()));
+    assertEquals("USD", bean.getTicketCurrency());
+    assertEquals("PreOrder", bean.getTicketAvailability());
+    assertNotNull(bean.getTicketSalesStart());
+  }
+
+  /**
+   * The converter accepts only a bare number, so "$1,295" reached the bean as null -- which would
+   * have saved as "no price" without a word. The widget reads the raw value again.
+   */
+  @Test
+  void postAcceptsAPriceTypedWithADollarSignAndCommas() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "I/ITSEC 2026");
+    addQueryParameter(widgetContext, "ticketPrice", "$1,295");
+
+    CalendarEvent bean = postAndCaptureTheSavedBean();
+
+    assertEquals(0, new BigDecimal("1295").compareTo(bean.getTicketPrice()));
+  }
+
+  @Test
+  void postReportsAnUnreadableTicketPriceInsteadOfSavingNoPrice() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "I/ITSEC 2026");
+    addQueryParameter(widgetContext, "ticketPrice", "about a thousand");
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      WidgetContext result = new CalendarEventFormWidget().post(widgetContext);
+
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(any()), never());
+      assertTrue(result.getErrorMessage().startsWith("The ticket price could not be read"), result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void postReportsAnUnreadableTicketSaleDateInsteadOfDroppingIt() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "I/ITSEC 2026");
+    addQueryParameter(widgetContext, "ticketSalesStart", "next week");
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      WidgetContext result = new CalendarEventFormWidget().post(widgetContext);
+
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(any()), never());
+      assertTrue(result.getErrorMessage().startsWith("The ticket sale date could not be read"), result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void postWithTheTicketFieldsLeftBlankSavesNoTicketDetails() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "I/ITSEC 2026");
+    addQueryParameter(widgetContext, "ticketPrice", "");
+    addQueryParameter(widgetContext, "ticketCurrency", "");
+    addQueryParameter(widgetContext, "ticketAvailability", "");
+    addQueryParameter(widgetContext, "ticketSalesStart", "");
+
+    CalendarEvent bean = postAndCaptureTheSavedBean();
+
+    assertNull(bean.getTicketPrice());
+    assertNull(bean.getTicketSalesStart());
   }
 }

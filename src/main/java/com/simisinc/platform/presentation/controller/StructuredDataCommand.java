@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.application.cms.CalendarEventTicketCommand;
 import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
@@ -474,25 +475,43 @@ public class StructuredDataCommand {
   }
 
   /**
-   * Builds the Offer sub-object from the event's existing sign-up URL -- no new field is needed,
-   * since a registration link is exactly what Offer.url means. A site-relative link is made
-   * absolute the same way the event image is.
+   * Builds the Offer sub-object from the event's ticket details, or returns null until a price has
+   * been entered. The price is what makes an offer: Search Console reports "price", "priceCurrency",
+   * "availability" and "validFrom" as missing on an offer that carries only a sign-up URL -- four
+   * warnings for one event, where leaving the offer out entirely is one. None of these values can
+   * be inferred from the rest of the record, so they come only from what an editor entered; the
+   * event page shows the same price (CalendarEventTicketCommand.describe), since an offer must
+   * describe what a visitor can see.
    *
-   * Deliberately carries only the URL. Offer.price, priceCurrency and availability would each be
-   * an assertion this record cannot support: nothing here knows what registration costs or whether
-   * it is still open, and stating "InStock" for a closed registration is worse than omitting it.
+   * The sign-up URL, when there is one, is the offer's url, made absolute the same way the event
+   * image is. A price of 0 is a free event, which Google asks to be stated as 0 rather than left
+   * out. Availability is included only when chosen; for tickets not yet on sale Google asks for
+   * validFrom instead, which is the date sales open.
    */
   static Map<String, Object> computeEventOffers(CalendarEvent calendarEvent, String siteUrl) {
-    String signUpUrl = StringUtils.trimToNull(calendarEvent.getSignUpUrl());
-    if (signUpUrl == null) {
+    BigDecimal price = calendarEvent.getTicketPrice();
+    if (price == null) {
       return null;
-    }
-    if (signUpUrl.startsWith("/") && StringUtils.isNotBlank(siteUrl)) {
-      signUpUrl = siteUrl + signUpUrl;
     }
     Map<String, Object> offer = new LinkedHashMap<>();
     offer.put("@type", "Offer");
-    offer.put("url", signUpUrl);
+    String signUpUrl = StringUtils.trimToNull(calendarEvent.getSignUpUrl());
+    if (signUpUrl != null) {
+      if (signUpUrl.startsWith("/") && StringUtils.isNotBlank(siteUrl)) {
+        signUpUrl = siteUrl + signUpUrl;
+      }
+      offer.put("url", signUpUrl);
+    }
+    offer.put("price", price.stripTrailingZeros().toPlainString());
+    offer.put("priceCurrency", CalendarEventTicketCommand.currencyFor(calendarEvent));
+    String availability = StringUtils.trimToNull(calendarEvent.getTicketAvailability());
+    if (CalendarEventTicketCommand.isKnownAvailability(availability)) {
+      offer.put("availability", "https://schema.org/" + availability);
+    }
+    String validFrom = formatEventDate(calendarEvent.getTicketSalesStart(), false);
+    if (validFrom != null) {
+      offer.put("validFrom", validFrom);
+    }
     return offer;
   }
 

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -184,6 +185,10 @@ class CalendarEventRepositoryTest {
           + "organizer_url VARCHAR(255), "
           + "performer_name VARCHAR(255), "
           + "performer_url VARCHAR(255), "
+          + "ticket_price NUMERIC(10,2), "
+          + "ticket_currency VARCHAR(3), "
+          + "ticket_availability VARCHAR(20), "
+          + "ticket_sales_start TIMESTAMP(3), "
           + "latitude FLOAT DEFAULT 0, "
           + "longitude FLOAT DEFAULT 0, "
           + "location_name VARCHAR(255), "
@@ -455,6 +460,37 @@ class CalendarEventRepositoryTest {
     assertNotNull(result);
     CalendarEvent reloaded = CalendarEventRepository.findById(event.getId());
     assertEquals(archivedAt, reloaded.getArchived());
+  }
+
+  @Test
+  void ticketDetailsRoundTripThroughAddAndUpdate() {
+    // The four ticket columns are written by both add() and update() and read back by buildRecord();
+    // a column missed in any one of the three would lose the value silently.
+    Calendar calendar = addCalendar("cal-tickets");
+    CalendarEvent event = addEvent(calendar.getId(), "priced", null, null);
+    CalendarEvent reloaded = CalendarEventRepository.findById(event.getId());
+    assertNull(reloaded.getTicketPrice());
+    assertNull(reloaded.getTicketCurrency());
+    assertNull(reloaded.getTicketAvailability());
+    assertNull(reloaded.getTicketSalesStart());
+
+    Timestamp salesStart = Timestamp.valueOf("2026-10-01 09:00:00");
+    event.setTicketPrice(new BigDecimal("1295.50"));
+    event.setTicketCurrency("USD");
+    event.setTicketAvailability("PreOrder");
+    event.setTicketSalesStart(salesStart);
+    assertNotNull(CalendarEventRepository.update(event));
+
+    reloaded = CalendarEventRepository.findById(event.getId());
+    assertEquals(0, new BigDecimal("1295.50").compareTo(reloaded.getTicketPrice()));
+    assertEquals("USD", reloaded.getTicketCurrency());
+    assertEquals("PreOrder", reloaded.getTicketAvailability());
+    assertEquals(salesStart, reloaded.getTicketSalesStart());
+
+    // A free event stores 0, not null -- the difference between "free" and "price unknown"
+    event.setTicketPrice(BigDecimal.ZERO);
+    CalendarEventRepository.update(event);
+    assertEquals(0, BigDecimal.ZERO.compareTo(CalendarEventRepository.findById(event.getId()).getTicketPrice()));
   }
 
   @Test
