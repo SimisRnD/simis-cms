@@ -231,6 +231,10 @@ public class CalendarEventRepository {
         .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
         .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
         .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
+        .add("ticket_price", record.getTicketPrice())
+        .add("ticket_currency", StringUtils.trimToNull(record.getTicketCurrency()))
+        .add("ticket_availability", StringUtils.trimToNull(record.getTicketAvailability()))
+        .add("ticket_sales_start", record.getTicketSalesStart())
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
         .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
@@ -268,6 +272,10 @@ public class CalendarEventRepository {
         .add("organizer_url", StringUtils.trimToNull(record.getOrganizerUrl()))
         .add("performer_name", StringUtils.trimToNull(record.getPerformerName()))
         .add("performer_url", StringUtils.trimToNull(record.getPerformerUrl()))
+        .add("ticket_price", record.getTicketPrice())
+        .add("ticket_currency", StringUtils.trimToNull(record.getTicketCurrency()))
+        .add("ticket_availability", StringUtils.trimToNull(record.getTicketAvailability()))
+        .add("ticket_sales_start", record.getTicketSalesStart())
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("street", StringUtils.trimToNull(record.getStreet()), ADDRESS_MAX_LENGTH)
         .add("city", StringUtils.trimToNull(record.getCity()), ADDRESS_MAX_LENGTH)
@@ -336,6 +344,10 @@ public class CalendarEventRepository {
       record.setOrganizerUrl(rs.getString("organizer_url"));
       record.setPerformerName(rs.getString("performer_name"));
       record.setPerformerUrl(rs.getString("performer_url"));
+      record.setTicketPrice(rs.getBigDecimal("ticket_price"));
+      record.setTicketCurrency(rs.getString("ticket_currency"));
+      record.setTicketAvailability(rs.getString("ticket_availability"));
+      record.setTicketSalesStart(rs.getTimestamp("ticket_sales_start"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));

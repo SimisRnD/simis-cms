@@ -76,6 +76,7 @@ ALLOWED = {
     "platform-calendar-event-location": "site-styled hook",
     "platform-calendar-event-organizer": "site-styled hook",
     "platform-calendar-event-speaker": "site-styled hook",
+    "platform-calendar-event-tickets": "site-styled hook",
     "platform-calendar-list-container": "site-styled hook",
     "platform-calendar-title": "site-styled hook",
     "platform-content-review-form": "site-styled hook",

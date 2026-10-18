@@ -226,6 +226,47 @@
       </label>
     </div>
   </div>
+  <%-- Optional ticket details. Until a price is entered the event's structured data carries no
+       offer at all; once it is, the price, currency, status and sale date below become the offer,
+       and the event page shows the same price (Google requires the two to match). --%>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-4 cell">
+      <label>Lowest ticket price
+        <input type="text" inputmode="decimal" placeholder="0 for a free event" name="ticketPrice" value="<c:out value="${calendarEvent.ticketPrice}"/>">
+        <p class="help-text">The cheapest way to attend, including fees. Leave blank if you don't know it.</p>
+      </label>
+    </div>
+    <div class="small-12 medium-2 cell">
+      <label>Currency
+        <input type="text" maxlength="3" placeholder="USD" name="ticketCurrency" value="<c:out value="${calendarEvent.ticketCurrency}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-3 cell">
+      <label>Ticket status
+        <select name="ticketAvailability">
+          <option value="">Not stated</option>
+          <option value="InStock"<c:if test="${calendarEvent.ticketAvailability eq 'InStock'}"> selected</c:if>>On sale</option>
+          <option value="SoldOut"<c:if test="${calendarEvent.ticketAvailability eq 'SoldOut'}"> selected</c:if>>Sold out</option>
+          <option value="PreOrder"<c:if test="${calendarEvent.ticketAvailability eq 'PreOrder'}"> selected</c:if>>Pre-order</option>
+        </select>
+      </label>
+    </div>
+    <div class="small-12 medium-3 cell">
+      <label for="ticketSalesStart">Tickets on sale from
+        <input type="text" placeholder="mm-dd-yyyy hh:ii" id="ticketSalesStart" name="ticketSalesStart" value="<c:out value="${date:formatDateTimeInput(calendarEvent.ticketSalesStart)}"/>" aria-label="Select the date and time tickets go on sale" />
+      </label>
+      <p class="help-text">Only if tickets are not on sale yet.</p>
+    </div>
+  </div>
+  <script nonce="${cspNonce}">
+    $(function () {
+      $('#ticketSalesStart').fdatepicker({
+        format: 'mm-dd-yyyy hh:ii',
+        disableDblClickSelection: true,
+        pickTime: true
+      });
+    });
+  </script>
   <label>Video / Meeting Link
     <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
   </label>

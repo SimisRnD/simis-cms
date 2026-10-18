@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
@@ -201,6 +202,69 @@ class SaveCalendarEventCommandTest {
           && "https://www.trainingsystems.org".equals(saved.getOrganizerUrl())
           && "Dr. Johnny Garcia".equals(saved.getPerformerName())
           && "https://www.simisinc.com/about-us".equals(saved.getPerformerUrl()))));
+    }
+  }
+
+  @Test
+  void theTicketDetailsReachTheSavedRecordWithTheCurrencyUpperCased() throws DataException {
+    // Same field-by-field copy as the credits above: a ticket field missing from it would save
+    // "successfully" and then never reach the event page or its offer
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L);
+    bean.setTicketPrice(new BigDecimal("1295.00"));
+    bean.setTicketCurrency(" usd ");
+    bean.setTicketAvailability("PreOrder");
+    Timestamp salesStart = Timestamp.valueOf("2026-10-01 09:00:00");
+    bean.setTicketSalesStart(salesStart);
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      repository.when(() -> CalendarEventRepository.findByUniqueId(any(), any())).thenReturn(null);
+      repository.when(() -> CalendarEventRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveCalendarEventCommand.saveCalendarEvent(bean);
+
+      repository.verify(() -> CalendarEventRepository.save(argThat(saved -> saved.getTicketPrice() != null
+          && new BigDecimal("1295").compareTo(saved.getTicketPrice()) == 0
+          && "USD".equals(saved.getTicketCurrency())
+          && "PreOrder".equals(saved.getTicketAvailability())
+          && salesStart.equals(saved.getTicketSalesStart()))));
+    }
+  }
+
+  @Test
+  void aPriceWithoutACurrencyIsStoredAsUsdAndNoPriceStoresNoCurrency() throws DataException {
+    CalendarEvent priced = newEventBean(1L);
+    priced.setCreatedBy(42L);
+    priced.setTicketPrice(new BigDecimal("300"));
+    CalendarEvent unpriced = newEventBean(1L);
+    unpriced.setCreatedBy(42L);
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      repository.when(() -> CalendarEventRepository.findByUniqueId(any(), any())).thenReturn(null);
+      repository.when(() -> CalendarEventRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      SaveCalendarEventCommand.saveCalendarEvent(priced);
+      repository.verify(() -> CalendarEventRepository.save(argThat(saved -> saved.getTicketPrice() != null
+          && "USD".equals(saved.getTicketCurrency()))));
+
+      SaveCalendarEventCommand.saveCalendarEvent(unpriced);
+      repository.verify(() -> CalendarEventRepository.save(argThat(saved -> saved.getTicketPrice() == null
+          && saved.getTicketCurrency() == null)));
+    }
+  }
+
+  @Test
+  void aNegativeTicketPriceIsRejectedBeforeItReachesTheDatabase() {
+    CalendarEvent bean = newEventBean(1L);
+    bean.setCreatedBy(42L);
+    bean.setTicketPrice(new BigDecimal("-10"));
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class)) {
+      DataException e = assertThrows(DataException.class, () -> SaveCalendarEventCommand.saveCalendarEvent(bean));
+      assertTrue(e.getMessage().contains("The ticket price can't be negative"), e.getMessage());
+      repository.verify(() -> CalendarEventRepository.save(any()), never());
     }
   }
 

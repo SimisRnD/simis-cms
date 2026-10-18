@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
@@ -234,5 +235,31 @@ class CalendarEventDetailsWidgetTest extends WidgetBase {
     logout(widgetContext);
 
     assertNull(execute(null, calendar(true)));
+  }
+
+  /**
+   * The event's JSON-LD offer states the ticket price, and Google requires markup to describe what
+   * the page visibly shows -- so the page gets the same price as a line of its own.
+   */
+  @Test
+  void aPricedEventGivesThePageItsTicketLine() {
+    logout(widgetContext);
+    CalendarEvent calendarEvent = event(new Timestamp(System.currentTimeMillis()), null);
+    calendarEvent.setTicketPrice(new BigDecimal("1295"));
+    calendarEvent.setTicketCurrency("USD");
+
+    execute(calendarEvent, calendar(true));
+
+    Assertions.assertEquals("From $1,295", request.getAttribute("ticketText"));
+  }
+
+  @Test
+  void anEventWithoutTicketDetailsGetsNoTicketLine() {
+    logout(widgetContext);
+    CalendarEvent calendarEvent = event(new Timestamp(System.currentTimeMillis()), null);
+
+    execute(calendarEvent, calendar(true));
+
+    assertNull(request.getAttribute("ticketText"));
   }
 }

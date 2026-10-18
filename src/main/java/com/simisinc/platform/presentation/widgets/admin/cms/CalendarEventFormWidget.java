@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.CalendarEventTicketCommand;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -28,6 +29,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -166,6 +168,31 @@ public class CalendarEventFormWidget extends GenericWidget {
     if (StringUtils.isNotBlank(endDateParam) && calendarEventBean.getEndDate() == null) {
       context.setErrorMessage(
           "The end date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
+      context.setRequestObject(calendarEventBean);
+      context.addSharedRequestValue("returnPage", returnPage);
+      return context;
+    }
+
+    // The ticket price goes through the same null-on-failure converter (BigDecimal), which accepts
+    // only a bare number: "$1,295" or "1,295" would arrive as null and save as "no price" without a
+    // word. Read the raw value again the way an editor types it, and report it only when there is
+    // still no number in it.
+    String ticketPriceParam = context.getParameter("ticketPrice");
+    if (StringUtils.isNotBlank(ticketPriceParam) && calendarEventBean.getTicketPrice() == null) {
+      BigDecimal ticketPrice = CalendarEventTicketCommand.parsePrice(ticketPriceParam);
+      if (ticketPrice == null) {
+        context.setErrorMessage(
+            "The ticket price could not be read. Enter a number, for example 1295, or 0 for a free event.");
+        context.setRequestObject(calendarEventBean);
+        context.addSharedRequestValue("returnPage", returnPage);
+        return context;
+      }
+      calendarEventBean.setTicketPrice(ticketPrice);
+    }
+    String ticketSalesStartParam = context.getParameter("ticketSalesStart");
+    if (StringUtils.isNotBlank(ticketSalesStartParam) && calendarEventBean.getTicketSalesStart() == null) {
+      context.setErrorMessage(
+          "The ticket sale date could not be read. Use MM-DD-YYYY HH:MM, for example 08-04-2011 16:00.");
       context.setRequestObject(calendarEventBean);
       context.addSharedRequestValue("returnPage", returnPage);
       return context;

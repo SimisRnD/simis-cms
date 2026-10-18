@@ -16,9 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.calendar;
 
+import java.time.Instant;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CalendarEventTicketCommand;
 import com.simisinc.platform.application.cms.LoadCalendarCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -82,6 +85,10 @@ public class CalendarEventDetailsWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("calendar", calendar);
     context.getRequest().setAttribute("calendarEvent", calendarEvent);
+    // The ticket line ("From $1,295", "Free", "Sold out"...), or null when the event has no ticket
+    // details. The Event JSON-LD states the same price, and Google requires markup to describe what
+    // the page visibly shows.
+    context.getRequest().setAttribute("ticketText", CalendarEventTicketCommand.describe(calendarEvent, Instant.now()));
 
     // An optional action link for the event page, replacing the Add-to-Calendar control that CSP
     // made inert (see the JSP). Site properties rather than widget preferences, because
