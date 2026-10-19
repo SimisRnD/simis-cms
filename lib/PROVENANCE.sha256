@@ -13,7 +13,7 @@ dfc41c817fbfa76057af6ffe4379dbca6a5e16b8e87df8bdda23f371756c2d09  lib/build/azur
 f75ca597789b3dac58f61857b9ac2e1034a68fa672db35055a8fb4509e325f28  lib/build/azure/reactive-streams-1.0.4.jar
 7d9b507c0d651de30a20dac634e7cb7ca908a7c23d57ce05e71bbb9bb79bf0c4  lib/build/azure/reactor-core-3.7.18.jar
 c274208e4961855e8e341bcb74434af8771ce98a494aec48997028efeb4909f2  lib/build/bucket4j/bucket4j-core-8.10.1.jar
-5d015adc655191c8f9a152c4cc871170a04d28040ed281d0e74ade87d6ae8aff  lib/build/caffeine/caffeine-3.3.0.jar
+1f916d052a3f8c0c10951f343f043f176ff2d3c2f9e380e15f0be673c5e67c48  lib/build/caffeine/caffeine-3.3.1.jar
 fe4910a0c02572d2374cac12464feaf9ccf17e97eef311c624c0438b98fc5ec5  lib/build/classgraph/classgraph-4.8.197.jar
 9e44ba68ec9a3f21286fa2a8bbb003b735c0f69101bb43144b79f4f8aaa74709  lib/build/commons/commons-beanutils-1.11.0.jar
 47504a3ce71d73a1b0af07675546b8d8c5af87f82ef12b6381f9eb3c17dd5a5b  lib/build/commons/commons-codec-1.23.0.jar
@@ -54,9 +54,9 @@ ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb  lib/build/jobr
 9867d469f891304a85599f4cf942db775e7c0f619069052c65b3d88190d06540  lib/build/jobrunr/jobrunr-9.0.1.jar
 8c0494ab337b467a95883efef7551c8ee6dbb55f38ddf9ecc5e7336610c93fc7  lib/build/johnzon/geronimo-json_1.1_spec-1.5.jar
 cd3be391f599d4bef59bfb155257ad6b91e4521d19b8e972b0dfb52dfb0c5fc1  lib/build/johnzon/javax.json.bind-api-1.0.jar
-8ef29ca64aefbd01802e74dd4c13222a26957499e8ca7ae71dbc940f6f7c7ce7  lib/build/johnzon/johnzon-core-1.3.0.jar
-cb46fa519fd4108a5bdde5f960c89dc5ed508e3dbf1edff89611d49817184c0d  lib/build/johnzon/johnzon-jsonb-1.3.0.jar
-0bc5e2b5cfd26761022c687535bce8e546acfcad33294931c172276ee85cb981  lib/build/johnzon/johnzon-mapper-1.3.0.jar
+8a218ecf8535d52966ecab4520962cff3f61dc0ccd639e17ef394adb4d3ed32e  lib/build/johnzon/johnzon-core-1.3.1.jar
+18fcc896eafad3b656f2f7822547cefc2ed94bdab34614280e7189530f340d90  lib/build/johnzon/johnzon-jsonb-1.3.1.jar
+1a22a365761c26f37dcbe2c355ce4ad86aef93deda00f8f0fec03b107099d2e2  lib/build/johnzon/johnzon-mapper-1.3.1.jar
 48f7b20dbaff92dcd46d3c8e7f67bba7bb784ef1226afa9a1087851e6b61766b  lib/build/json-schema-validator/json-schema-validator-1.0.73.jar
 e9d8c856856680427f096d156f02a414289985c930998fcb519ce5be39b42003  lib/build/jsoup/jsoup-1.23.2.jar
 5cc6e60b9e74d38c25fe4f2d22dfd40577f5b8396bc885f7061cd2c525a43b86  lib/build/jstl/jakarta.servlet.jsp.jstl-3.0.1.jar
