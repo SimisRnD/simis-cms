@@ -382,6 +382,23 @@ CVE_POLICY = {
         "authentication plugins, and mariadb-common is a single configuration file. "
         + MARIADB_CLIENT_ONLY,
     ),
+    "CVE-2026-86047": (
+        NOT_PRESENT,
+        "The flaw is in how the MariaDB server's SHOW CREATE SERVER and SHOW CREATE USER "
+        "statements, and the mariadb-dump client program, quote identifiers and values when they "
+        "serialize SQL. The image ships no MariaDB server and no mariadb-dump (nor any other "
+        "MariaDB client program): libmariadb3 is the client library with its client "
+        "authentication plugins, and mariadb-common is a single configuration file. "
+        + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as the fix.",
+    ),
+    "CVE-2026-97380": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's privilege check for GRANT PROXY, which treats an "
+        "IDENTIFIED clause with an empty password as if no authentication were given. The image "
+        "ships no MariaDB server and so no GRANT handling: libmariadb3 is the client library with "
+        "its client authentication plugins, and mariadb-common is a single configuration file. "
+        + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as the fix.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.

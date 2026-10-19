@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 17,
+  "version": 18,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1811,7 +1811,49 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "The flaw is in the MariaDB server's view (FRM) definition parser. The image ships no MariaDB server and so no view parser: libmariadb3 is the client library with its client authentication plugins, and mariadb-common is a single configuration file. Both arrive only as dependencies of the PostGIS install's GDAL stack: libgdal32 is the sole installed package depending on libmariadb3 (and libmariadb3 the sole one depending on mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and postgis_raster, which is never created."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-86047"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmariadb3"
+            },
+            {
+              "@id": "pkg:deb/debian/mariadb-common"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in how the MariaDB server's SHOW CREATE SERVER and SHOW CREATE USER statements, and the mariadb-dump client program, quote identifiers and values when they serialize SQL. The image ships no MariaDB server and no mariadb-dump (nor any other MariaDB client program): libmariadb3 is the client library with its client authentication plugins, and mariadb-common is a single configuration file. Both arrive only as dependencies of the PostGIS install's GDAL stack: libgdal32 is the sole installed package depending on libmariadb3 (and libmariadb3 the sole one depending on mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and postgis_raster, which is never created. MariaDB also names 10.11.19, the installed version, as the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-97380"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmariadb3"
+            },
+            {
+              "@id": "pkg:deb/debian/mariadb-common"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in the MariaDB server's privilege check for GRANT PROXY, which treats an IDENTIFIED clause with an empty password as if no authentication were given. The image ships no MariaDB server and so no GRANT handling: libmariadb3 is the client library with its client authentication plugins, and mariadb-common is a single configuration file. Both arrive only as dependencies of the PostGIS install's GDAL stack: libgdal32 is the sole installed package depending on libmariadb3 (and libmariadb3 the sole one depending on mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and postgis_raster, which is never created. MariaDB also names 10.11.19, the installed version, as the fix."
     }
   ],
-  "last_updated": "2026-10-12T15:24:47+00:00"
+  "last_updated": "2026-10-19T13:59:13+00:00"
 }
