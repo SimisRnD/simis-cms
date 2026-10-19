@@ -71,6 +71,15 @@ updates:
       # Revisit: change the dependency to com.squareup.okhttp3:okhttp-jvm.
       - dependency-name: "com.squareup.okhttp3:okhttp"
         update-types: ["version-update:semver-major"]
+      # Held at 4.x. ClassGraph 6 requires JDK 25, and ClassGraph 5 (the JDK 17-24 line) has the
+      # same new API, which is neither source- nor binary-compatible with 4.x. This app runs on
+      # JDK 21 (docker/app/Dockerfile, tomcat:11.0-jdk21-temurin-noble). Its only caller is
+      # WebhookEventTypeCommandTest, which scans the Event subclasses; no main code uses it. 4.x
+      # still gets backported fixes for serious bugs, and minor/patch bumps are NOT ignored.
+      # Revisit: on moving the runtime to JDK 25, port that test to the 6.x API (the porting
+      # guide is on the classgraph GitHub wiki). #2095 proposed 6.0.0 and was closed for this.
+      - dependency-name: "io.github.classgraph:classgraph"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
