@@ -90,7 +90,7 @@ jobs:
       # reproduction of what the production gates actually run under.
       - name: Pin the interpreter (next-version leg only)
         if: matrix.python-version != ''
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
       # Printed, not assumed. When the floating leg goes red, the first question is which
