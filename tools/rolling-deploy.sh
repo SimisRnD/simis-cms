@@ -8,13 +8,16 @@ set -euo pipefail
 #   - Staging (inactive, for next deployment)
 #
 # Process:
-#   1. Deploy new image to staging slot
-#   2. Wait for /healthz to return {"status":"UP"}
-#   3. Swap slots (traffic redirects to new instance)
-#   4. Drain old instance connections (wait window)
-#   5. Terminate old slot (cleanup)
+#   1. Ensure the staging slot exists, is on the VNet, and has its own identity
+#      with production's access
+#   2. Deploy the new image to the staging slot and start it
+#   3. Give the container time to pull and start
+#   4. Swap slots; App Service's warm-up ping to /healthz gates the swap
+#   5. Drain old instance connections (wait window)
+#   6. Stop the staging slot, which now holds the previous build (kept for rollback)
 #
-# Rollback on failure: if staging health check fails, delete staging and restore old instance
+# On a failed swap production is untouched; the staging slot is stopped, holding
+# the build that failed.
 #
 # ---------------------------------------------------------------------------
 # HEALTH SIGNAL DESIGN -- read this before changing step 3.
@@ -39,7 +42,7 @@ set -euo pipefail
 # Do NOT "fix" a swap failure by exposing the staging slot publicly. That would
 # put an unprotected copy of the app outside Front Door and the WAF.
 #
-# Two further requirements, both easy to miss:
+# Three further requirements, all easy to miss:
 #   - The CI service principal needs rights to create and swap slots on this
 #     one App Service (roughly Website Contributor, scoped to the resource).
 #     AcrPush alone is not enough; without it step 1 fails immediately.
@@ -47,13 +50,19 @@ set -euo pipefail
 #     (a slot created that way has virtualNetworkSubnetId = null), so the slot
 #     cannot reach PostgreSQL or Key Vault through their private endpoints and
 #     will never pass warm-up. Step 1b below adds it explicitly.
+#   - Nor does it give the slot a managed identity, and a slot does not share
+#     the app's. Production pulls its image and resolves its Key Vault
+#     references with its own system-assigned identity; a slot without one can
+#     do neither. Step 1c gives the slot an identity and refuses to deploy until
+#     that identity holds the same role grants as production's.
 #
 # The staging slot is created once and then reused; step 6 deliberately does not
 # delete it. Slot creation is the most failure-prone step in this script, and not
 # doing it on every run is what keeps this path reliable -- see the comment on
 # step 6 for the Azure CLI failure it avoids. A slot holding the previous build
 # is also a rollback artifact rather than litter, and step 2 overwrites it, so
-# reusing it costs nothing in cleanliness.
+# reusing it costs nothing in cleanliness. It is kept STOPPED between deploys,
+# though: step 2 starts it and step 6 stops it again.
 # ---------------------------------------------------------------------------
 #
 # Usage:
@@ -85,6 +94,22 @@ log_debug() {
 die() {
   echo "❌ ERROR: $*" >&2
   exit 1
+}
+
+# A GitHub Actions warning annotation (stdout is where the runner reads them),
+# for problems that should be seen but must not fail a deploy that succeeded.
+warn() {
+  echo "::warning::$*"
+  log "⚠️  $*"
+}
+
+# Stops the staging slot. Returns the CLI's status rather than exiting: whether
+# a failure here is fatal depends on what the caller has already done.
+stop_staging() {
+  az webapp stop \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_SERVICE_NAME" \
+    --slot staging
 }
 
 # Parse arguments
@@ -123,17 +148,21 @@ log "Step 1: Ensuring staging slot exists..."
 
 # "production" is the App Service's implicit default slot: it is never
 # listed by `deployment slot list` and can't be created or deleted, only
-# swapped into. "staging" is the only extra slot this workflow uses, and
-# it does not persist between deploys -- Step 6 deletes it after every
-# successful swap (cost control), so on a normal run it needs to be
-# (re)created here. This is intentionally unconditional and idempotent:
-# safe whether staging is missing (first run, or after cleanup) or already
-# present (a prior cleanup failed and left it behind).
+# swapped into. "staging" is the only extra slot this workflow uses. It
+# persists between deploys (step 6 keeps it), so on a normal run it already
+# exists and this step only confirms that; it is created here only on the
+# first run, or if someone has deleted it.
+#
+# A failed listing is fatal rather than read as "no slots". Treating it as an
+# empty list (as this step used to, with `|| echo ""`) sends the script down
+# the creation path for a slot that already exists, which is both the wrong
+# action and the most fragile step in this file (see step 6).
 SLOTS=$(az webapp deployment slot list \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
   --query "[].name" \
-  --output tsv || echo "")
+  --output tsv) \
+  || die "Could not list the App Service's deployment slots -- see the Azure error above"
 
 if echo "$SLOTS" | grep -qx "staging"; then
   log "  staging slot already exists"
@@ -183,6 +212,140 @@ else
   log "  ✓ staging slot attached to the VNet"
 fi
 
+# ============================================================================
+# Step 1c: Give the slot its own identity, with production's access
+# ============================================================================
+#
+# Production pulls its image (acrUseManagedIdentityCreds) and resolves its Key
+# Vault references (keyVaultReferenceIdentity: SystemAssigned) with its own
+# system-assigned identity, and the slot carries the same two settings. But a
+# slot does not share the app's identity, and `slot create
+# --configuration-source` does not give it one, so the staging slot in use since
+# 2026-09-07 ran for seven weeks with none.
+#
+# Deploys still succeeded, which is what hid it: during a swap App Service
+# pulls the image and resolves the references for the incoming build as
+# production. The registry's login log shows it -- the 2026-10-19 swap pulled
+# with production's identity. What breaks is everything the slot does on its
+# own. After each swap it holds the previous build and restarts it, so it
+# requested the image anonymously (401, 204 times in 32 hours) until on
+# 2026-10-21 it started from the worker's image cache, presented the
+# unresolved "@Microsoft.KeyVault(...)" text as its database password, and
+# failed to log in every seven seconds for days -- holding three Azure Monitor
+# alerts in the Fired state, so a real outage would not have notified anyone.
+# For the same reason a rollback (start staging, swap back) could not have
+# worked.
+#
+# So: ensure the slot has a system-assigned identity, then require that it
+# holds every role grant production's identity holds. This script cannot fix a
+# missing grant -- the CI principal is a Website Contributor and cannot create
+# role assignments, by design -- so it stops here, before deploying anything,
+# and prints the exact grants for an administrator to make. infra/main.bicep
+# makes the same grants, so an environment deployed from it passes on its
+# first run.
+#
+# Grants are read with a raw ARM call, not `az role assignment list
+# --assignee`: that resolves the principal through Microsoft Graph, which the
+# CI principal cannot read, and it returns an empty list rather than an error
+# when the lookup fails -- the silent result this step exists to prevent.
+
+log "Step 1c: Checking the staging slot's managed identity..."
+
+APP_ID=$(az webapp show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --query "id" \
+  --output tsv) \
+  || die "Could not read the App Service's resource id -- see the Azure error above"
+# /subscriptions/<sub>/resourceGroups/<rg> -- the scope the grants are listed at.
+RESOURCE_GROUP_ID="${APP_ID%%/providers/*}"
+
+PRODUCTION_PRINCIPAL=$(az webapp identity show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --query "principalId" \
+  --output tsv) \
+  || die "Could not read production's managed identity -- see the Azure error above"
+if [[ -z "$PRODUCTION_PRINCIPAL" || "$PRODUCTION_PRINCIPAL" == "None" ]]; then
+  die "Production has no system-assigned managed identity, so there is no access for the staging slot to match. infra/modules/appservice.bicep gives it one; this App Service does not match that template."
+fi
+
+STAGING_PRINCIPAL=$(az webapp identity show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging \
+  --query "principalId" \
+  --output tsv) \
+  || die "Could not read the staging slot's managed identity -- see the Azure error above"
+if [[ -z "$STAGING_PRINCIPAL" || "$STAGING_PRINCIPAL" == "None" ]]; then
+  log "  staging slot has no managed identity; assigning a system-assigned one..."
+  STAGING_PRINCIPAL=$(az webapp identity assign \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_SERVICE_NAME" \
+    --slot staging \
+    --query "principalId" \
+    --output tsv) \
+    || die "Failed to give the staging slot a managed identity -- see the Azure error above"
+  [[ -z "$STAGING_PRINCIPAL" || "$STAGING_PRINCIPAL" == "None" ]] \
+    && die "Azure accepted the identity assignment but returned no principal id for the staging slot"
+  log "  ✓ staging slot identity created (principal $STAGING_PRINCIPAL)"
+else
+  log "  staging slot identity: principal $STAGING_PRINCIPAL"
+fi
+
+# Prints "<roleDefinitionId> <scope>" for every role assignment held by the
+# given principal at, above, or below this resource group.
+role_grants() {
+  az rest --method get \
+    --url "${RESOURCE_GROUP_ID}/providers/Microsoft.Authorization/roleAssignments?api-version=2022-04-01&\$filter=assignedTo('$1')" \
+    --query "value[].join(' ', [properties.roleDefinitionId, properties.scope])" \
+    --output tsv
+}
+
+# Reduces a grant to "<role guid> <scope>" in lower case. ARM ids are
+# case-insensitive and Azure does not always return them in the same case.
+grant_key() {
+  echo "${1##*/} $2" | tr '[:upper:]' '[:lower:]'
+}
+
+PRODUCTION_GRANTS=$(role_grants "$PRODUCTION_PRINCIPAL") \
+  || die "Could not list production's role assignments -- see the Azure error above"
+STAGING_GRANTS=$(role_grants "$STAGING_PRINCIPAL") \
+  || die "Could not list the staging slot's role assignments -- see the Azure error above"
+
+STAGING_KEYS=""
+while read -r role_id scope; do
+  [[ -z "$role_id" ]] && continue
+  STAGING_KEYS+="$(grant_key "$role_id" "$scope")"$'\n'
+done <<< "$STAGING_GRANTS"
+
+MATCHED=0
+MISSING=""
+while read -r role_id scope; do
+  [[ -z "$role_id" ]] && continue
+  if grep -qxF "$(grant_key "$role_id" "$scope")" <<< "$STAGING_KEYS"; then
+    MATCHED=$((MATCHED + 1))
+  else
+    MISSING+="  az role assignment create --assignee-object-id $STAGING_PRINCIPAL --assignee-principal-type ServicePrincipal --role ${role_id##*/} --scope $scope"$'\n'
+  fi
+done <<< "$PRODUCTION_GRANTS"
+
+if [[ -n "$MISSING" ]]; then
+  log "❌ The staging slot's identity lacks role grants that production's identity holds."
+  log "  Without them the slot cannot pull its image or resolve its Key Vault references"
+  log "  on its own, so the build it holds after a swap cannot run and a rollback cannot work."
+  log "  The CI principal cannot create role assignments. An Owner or User Access"
+  log "  Administrator must run, once (redeploying infra/main.bicep makes the same grants):"
+  printf '%s' "$MISSING" >&2
+  die "Staging slot identity is missing role grants; nothing was deployed and production is untouched"
+fi
+
+if [[ $MATCHED -eq 0 ]]; then
+  log "  production's identity holds no role grants in this resource group; nothing to match"
+else
+  log "  ✓ staging slot identity holds all $MATCHED of production's role grants"
+fi
+
 NEXT_FQDN=$(az webapp show \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
@@ -213,6 +376,15 @@ az webapp config container set \
   --docker-custom-image-name "$IMAGE_URI" \
   --docker-registry-server-url "https://$(echo "$IMAGE_URI" | cut -d'/' -f1)" \
   || die "Failed to deploy image to staging slot -- see the Azure error above"
+
+# Step 6 leaves the slot stopped, and a stopped slot does not pull or start
+# anything when its image changes. Starting it after the image is set means the
+# first container it runs is the new build. A no-op if it is already running.
+az webapp start \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging \
+  || die "Failed to start the staging slot -- see the Azure error above"
 
 log "  Deployment queued. Container pulling..."
 
@@ -254,9 +426,17 @@ if ! az webapp deployment slot swap \
   # production untouched, so this fails safe -- the old build is still serving.
   log "❌ Swap FAILED -- the new build did not pass App Service warm-up"
   log "Production was not modified and is still serving the previous build."
-    log "  The staging slot is left in place, holding the build that failed warm-up."
-    log "  Inspect it before the next run overwrites it:"
-    log "    az webapp log tail -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --slot staging"
+  # Stopped, not left running: a build that cannot pass warm-up would otherwise
+  # keep running against the production database until the next deploy.
+  if stop_staging; then
+    log "  The staging slot is stopped, holding the build that failed warm-up."
+  else
+    warn "Could not stop the staging slot after the failed swap; it is still running the build that failed warm-up"
+  fi
+  log "  Inspect it before the next run overwrites it: start the slot, then read its"
+  log "  container log through ARM (the slot's own log endpoint is not publicly reachable):"
+  log "    az webapp start -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --slot staging"
+  log "    az rest --method post --url \"\$(az webapp show -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --slot staging --query id -o tsv)/containerlogs?api-version=2023-12-01\""
 
   die "Swap failed warm-up; production untouched"
 fi
@@ -274,7 +454,7 @@ sleep "$DRAIN_TIMEOUT"
 log "  ✓ Drain window complete"
 
 # ============================================================================
-# Step 6: Retain the old slot
+# Step 6: Retain the old slot, stopped
 # ============================================================================
 
 # After a successful swap, staging unconditionally holds the pre-swap
@@ -304,8 +484,22 @@ log "  ✓ Drain window complete"
 # The slot has therefore always survived, which is the only reason the creation
 # path above has not been re-entered and the storage-key crash has stayed
 # dormant.
-log "Step 6: Retaining the staging slot (it now holds the previous build)..."
-log "  ✓ Staging slot retained for rollback; the next run redeploys over it"
+#
+# Retained, but stopped. Once the drain window has passed, the previous build
+# serves no traffic, yet left running it is a second full copy of the app
+# against the production database: CMS_NODE_TYPE=standalone, so it runs the
+# scheduled jobs too, in their previous version. Stopping it keeps it as a
+# rollback artifact without running it. To roll back: start the slot, wait
+# for it to answer, then swap it in exactly as step 4 does.
+#
+# A failure to stop is a warning, not an error: the swap has already put the
+# new build in production, and failing the job would misreport that.
+log "Step 6: Stopping the staging slot (it now holds the previous build)..."
+if stop_staging; then
+  log "  ✓ Staging slot stopped and retained for rollback; the next run redeploys over it"
+else
+  warn "Could not stop the staging slot; it is still running the previous build against the production database. Stop it by hand: az webapp stop -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --slot staging"
+fi
 
 # ============================================================================
 # Success

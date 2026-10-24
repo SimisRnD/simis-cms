@@ -25,6 +25,11 @@
 # published reference points (black on white 21.00:1, #767676 on white 4.54:1,
 # #777777 on white 4.48:1) -- the last of those is what proves it resolves the
 # pass/fail boundary instead of rounding past it.
+#
+# tools/rolling-deploy.sh is covered too, though it is shell, not Python: the tests run
+# it against a fake `az` on PATH and assert on the calls it makes. It is the one tool
+# here whose mistakes change live infrastructure, and until 2026-10 nothing exercised it
+# outside a real deploy -- which is how a staging slot with no identity went unnoticed.
 name: Tools tests
 
 on:
