@@ -45,8 +45,8 @@ deploy-time steps they cannot perform themselves.
 | `modules/keyvault.bicep` | Key Vault (RBAC, private endpoint, purge protection) |
 | `modules/postgres.bicep` | PostgreSQL Flexible Server + database + PostGIS allow-list + private endpoint |
 | `modules/acr.bicep` | Container registry for the signed app image; admin account disabled |
-| `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics; public ingress disabled |
-| `modules/rbac.bicep` | The app identity's grants: Key Vault Secrets User + AcrPull |
+| `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics; public ingress disabled. Also the rolling deploy's `staging` slot, with the same configuration and its own managed identity |
+| `modules/rbac.bicep` | Key Vault Secrets User + AcrPull for the app's identity and the staging slot's |
 | `modules/frontdoor.bicep` | Front Door Premium + WAF (managed rulesets), Private Link origin, optional custom domain with managed TLS, edge logs to the workspace |
 | `modules/vpngateway.bicep` | **Optional, off by default.** Point-to-site VPN gateway giving administrators a private path to the database and Key Vault |
 

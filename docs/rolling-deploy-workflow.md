@@ -19,8 +19,8 @@ Time  Production (Active)    Staging (Inactive)      Status
 
 **Zero-downtime properties:**
 - Traffic swaps instantly at slot level (no in-flight request loss)
-- Old instance drains connections for 60 seconds before termination
-- New instance health-checked before swap (automatic rollback on failure)
+- Old instance drains connections for 60 seconds, then its slot is stopped (kept for rollback)
+- New instance must answer `/healthz` with 200 before the swap completes (App Service swap warm-up); otherwise production is untouched
 - Idempotent: re-running a partial deploy doesn't create orphans
 
 ## Trigger
@@ -52,6 +52,8 @@ To enable automatic rolling deploys, set these **repository variables** in GitHu
 
 The `AZURE_*` variables are already configured for ACR login. Reuse them for the rolling deploy.
 
+**Azure roles.** The CI principal needs Website Contributor on the App Service (or its resource group) to create, configure, start, stop, and swap the slot, plus AcrPush on the registry. Separately, the staging slot's own managed identity needs the same grants as production's — AcrPull on the registry and Key Vault Secrets User on the vault. `infra/main.bicep` makes those; for an environment where it has not been redeployed since the slot was added, see Step 1c below.
+
 ### How to Set Repository Variables
 
 1. Go to repository → **Settings** → **Variables and secrets** → **Actions**
@@ -66,61 +68,62 @@ The `AZURE_*` variables are already configured for ACR login. Reuse them for the
 
 ### Step 1: Ensure the staging slot exists
 
-`production` is the App Service's implicit default slot: it always exists, is never returned by `az webapp deployment slot list`, and can't be created or deleted — only swapped into. `staging` is the only extra slot this workflow uses, and new code always lands there first; production is only ever reached through the health-checked swap in Step 4. There is no path in the routine deploy flow that writes to production directly.
+`production` is the App Service's implicit default slot: it always exists, is never returned by `az webapp deployment slot list`, and can't be created or deleted — only swapped into. `staging` is the only extra slot this workflow uses, and new code always lands there first; production is only ever reached through the warm-up-gated swap in Step 4. There is no path in the routine deploy flow that writes to production directly.
 
-The staging slot does not persist between deploys — Step 6 deletes it after every successful swap — so this step (re)creates it unconditionally, cloning settings from production:
+The staging slot persists between deploys (Step 6 keeps it), so normally this step only confirms it exists. It is created — cloning settings from production — only on the first run or if someone has deleted it:
 ```bash
 az webapp deployment slot create \
   --slot staging \
   --configuration-source "$APP_SERVICE_NAME"
 ```
 
-**Idempotency:** this is safe to run every time regardless of current state — whether staging is missing (first-ever run, or after a normal cleanup) or already present (a prior cleanup failed and left it behind, in which case it's reused as-is and its content is about to be overwritten in Step 2 anyway).
+A failed slot listing stops the deploy. It is never read as "no slots", which would send the script down the creation path for a slot that already exists.
 
-### Step 2: Deploy image
+**Step 1b** attaches the slot to production's subnet: `--configuration-source` does not copy VNet integration, and without it the slot cannot reach PostgreSQL or Key Vault through their private endpoints.
 
-Deploy new image to the target slot:
-```bash
-az webapp config container set \
-  --slot staging \
-  --docker-custom-image-name "$IMAGE_URI"
-```
+### Step 1c: The slot's own identity, with production's access
 
-The App Service pulls the image and starts the container.
+Production pulls its image and resolves its Key Vault references (`DB_PASSWORD`, `CMS_SECRET_KEY`, `CMS_ADMIN_PASSWORD`) with its system-assigned managed identity. The slot carries the same settings, but **a slot does not share the app's identity, and `--configuration-source` does not give it one.** Without one it cannot pull an image or resolve a secret on its own.
 
-### Step 3: Health check
+That went unnoticed for seven weeks on the pilot, because a swap pulls the incoming build and resolves its references as production. It surfaced on 2026-10-21: after the previous swap, the slot holding the old build started from the worker's image cache, presented the unresolved `@Microsoft.KeyVault(...)` text as its database password, and failed to log in every seven seconds — keeping three Azure Monitor alerts in the Fired state, where they would not have notified anyone about a real outage.
 
-Poll `/healthz` every 5 seconds until it returns `{"status":"UP"}` with HTTP 200:
-- **Success:** Proceed to swap
-- **Timeout (300s):** Automatic rollback; delete staging, report failure
-- **Failed:** Automatic rollback (same as timeout)
+So this step:
+1. gives the slot a system-assigned identity if it has none (`az webapp identity assign --slot staging`), and
+2. compares the role grants held by the slot's identity with those held by production's, and **stops the deploy — before deploying anything — if any are missing**, printing the exact `az role assignment create` commands.
+
+The CI principal cannot make those grants itself; it is a Website Contributor, which cannot create role assignments, by design. An Owner or User Access Administrator makes them once. `infra/main.bicep` declares the slot with its identity and makes the same grants (`modules/rbac.bicep`), so an environment deployed from the template passes this check on its first run. If you grant by hand, use the names the template would use (`guid(scope, principalId, roleDefinitionId)`), or the next deployment of the template fails with `RoleAssignmentExists`.
+
+### Step 2: Deploy image and start the slot
 
 ```bash
-# Typical sequence:
-# Attempt 1: connection refused (container still starting)
-# Attempt 2-20: HTTP 503 DOWN (migrations running, starting up)
-# Attempt 21: HTTP 200 UP ✓ (ready to serve)
+az webapp config container set --slot staging --docker-custom-image-name "$IMAGE_URI"
+az webapp start --slot staging
 ```
+
+The slot is kept stopped between deploys (Step 6), and a stopped slot does not pull anything when its image changes, so it is started only once it holds the new image. With its own identity it pulls the image and resolves its secrets itself.
+
+### Step 3: Settle window
+
+The script waits `--health-check-timeout` seconds for the container to pull and start. This is not the health gate: the slot's hostname is not reachable from a GitHub Actions runner (`publicNetworkAccess` is Disabled and a slot inherits it), so the gate runs inside Azure, in Step 4.
 
 ### Step 4: Swap slots
 
-Instantly redirect traffic from old instance to new:
 ```bash
 az webapp deployment slot swap --slot staging
 ```
 
-All new requests go to the new instance. Old instance enters drain window.
+`WEBSITE_SWAP_WARMUP_PING_PATH=/healthz` and `WEBSITE_SWAP_WARMUP_PING_STATUSES=200` (set in `infra/modules/appservice.bicep`) make App Service request `/healthz` on the slot and abort the swap unless it answers 200. If the swap fails, production is untouched and the script stops the staging slot, which now holds the build that failed.
 
 ### Step 5: Connection drain
 
-Wait 60 seconds for old instance to finish in-flight requests:
+Wait 60 seconds for the old instance to finish in-flight requests:
 - In-flight HTTP connections are given time to complete
 - New requests are not sent to the old instance
 - Sessions may be lost if using JVM-local memory (without session affinity)
 
-### Step 6: Cleanup
+### Step 6: Stop the old slot
 
-Delete the old slot to save costs and reduce noise.
+After the swap, the staging slot holds the previous build. It is **kept** as a rollback artifact (deleting it would mean recreating it, the most fragile step in the script) and **stopped**: left running, it would be a second full copy of the app against the production database, running the scheduled jobs (`CMS_NODE_TYPE=standalone`) in their previous version. A failure to stop it is reported as a warning annotation rather than failing a deploy that has already succeeded.
 
 ## Monitoring & Troubleshooting
 
@@ -133,41 +136,47 @@ View GitHub Actions run output:
 ```
 
 Look for:
-- ✓ `Acquired migration lock: «uuid»` — database migrations running
-- ✓ `Health check PASSED` — new instance ready
-- ✓ `Slot swap complete` — traffic redirected
+- ✓ `staging slot identity holds all N of production's role grants` — the slot can run on its own
+- ✓ `Slot swap complete` — warm-up passed and traffic is on the new build
+- ✓ `Staging slot stopped and retained for rollback`
 - ✓ `Rolling deploy complete` — success
 
 ### Rollback scenarios
 
-**Auto-rollback on health check failure:**
+**The staging slot's identity is missing grants:**
 ```
-Health check FAILED (timeout after 300s)
-Initiating rollback: deleting staging slot...
-ERROR: Health check failed; rolled back staging deployment
+❌ The staging slot's identity lacks role grants that production's identity holds.
+  ...
+  az role assignment create --assignee-object-id <slot principal> --assignee-principal-type ServicePrincipal --role <role id> --scope <scope>
+❌ ERROR: Staging slot identity is missing role grants; nothing was deployed and production is untouched
 ```
 
-Action: Investigate why `/healthz` isn't returning UP. Check logs:
+Action: have an Owner or User Access Administrator run the printed commands (or redeploy `infra/main.bicep`), then re-run the workflow.
+
+**Swap failed warm-up:**
+```
+❌ Swap FAILED -- the new build did not pass App Service warm-up
+Production was not modified and is still serving the previous build.
+```
+
+Action: find out why the new build does not answer `/healthz` with 200. Start the slot and read its container log through ARM — the slot's own log endpoint (SCM) is not publicly reachable, so `az webapp log tail` will not work from outside:
 ```bash
-az webapp log tail --name simis-cms-pilot --slot staging
+az webapp start -g my-rg -n simis-cms-pilot --slot staging
+az rest --method post --url "$(az webapp show -g my-rg -n simis-cms-pilot --slot staging --query id -o tsv)/containerlogs?api-version=2023-12-01"
+az webapp stop -g my-rg -n simis-cms-pilot --slot staging
 ```
 
 Common causes:
 - Database unreachable (connection pool timeout)
-- Key Vault secret missing or wrong value
+- Key Vault secret missing or wrong value, or the slot's identity lacks access to it
 - File store (Azure Files) mount failed
 - Startup migration hanging
 
-**Manual rollback:**
-If an automated rollback didn't complete (e.g., deploy script crashed), manually restore:
-
+**Manual rollback** (the new build is live and bad): the staging slot holds the previous build, stopped. Start it, give it time to start, and swap it back in — the same warm-up gate applies:
 ```bash
-# Check which slot is current
-az webapp show --resource-group my-rg --name simis-cms-pilot
-
-# If new (bad) deployment is active, swap back
-az webapp deployment slot swap --name simis-cms-pilot \
-  --resource-group my-rg --slot staging
+az webapp start --resource-group my-rg --name simis-cms-pilot --slot staging
+az webapp deployment slot swap --resource-group my-rg --name simis-cms-pilot --slot staging
+az webapp stop --resource-group my-rg --name simis-cms-pilot --slot staging   # now holds the bad build
 ```
 
 ### Monitoring in production
@@ -193,18 +202,21 @@ For combined app + infrastructure deploys, update Bicep first, then push code.
 
 ### Re-running a partial deploy is safe
 
-The workflow never tries to auto-detect "which slot is active" — that question doesn't need answering. `production` is always the stable slot bound to the public hostname; `staging` is always the deploy target, unconditionally (re)created in Step 1 if it isn't already there. This holds regardless of how the previous run ended:
+The workflow never tries to auto-detect "which slot is active" — that question doesn't need answering. `production` is always the stable slot bound to the public hostname; `staging` is always the deploy target. This holds regardless of how the previous run ended:
 
 **Scenario: previous run completed cleanly.**
-Staging was deleted in its Step 6. This run's Step 1 recreates it from production's current config, deploys the new image, health-checks it, swaps, and deletes it again.
+Staging holds the previous build, stopped. This run overwrites its image, starts it, and swaps.
 
-**Scenario: previous run's slot swap succeeded, but cleanup (Step 6) crashed or was killed.**
-Staging is still sitting there holding the pre-swap (old) build. This run's Step 1 finds it already exists and reuses it as-is — its stale content is irrelevant, since Step 2 immediately overwrites it with the new image before anything reads from it.
+**Scenario: previous run's swap succeeded, but Step 6 did not stop the slot.**
+Staging is running the previous build. Step 2 overwrites the image (restarting it on the new build); starting an already-running slot is a no-op.
 
-**Scenario: previous run's health check failed and rollback deleted staging, then the run exited.**
-Same as a clean completion — staging is absent, Step 1 recreates it.
+**Scenario: previous run's swap failed warm-up.**
+Staging holds the failed build, stopped. This run overwrites it with the new image.
 
-In every case, staging is the only slot ever written to before a swap, staging is always health-checked before the swap happens, and production is only ever changed by the swap itself — never by a direct write. There is no fallback path where a routine deploy pushes new code straight onto production; a swap-then-health-check failure is handled by the rollback block deleting/recreating staging, not by mutating production in place.
+**Scenario: the staging slot was deleted.**
+Step 1 recreates it and Step 1c gives it an identity; the deploy then stops until an administrator grants that new identity production's access.
+
+In every case, staging is the only slot ever written to before a swap, and production is only ever changed by the warm-up-gated swap itself — never by a direct write.
 
 ### Connection drain is sufficient
 
@@ -226,14 +238,14 @@ Without session affinity, users are re-authenticated automatically on any swap. 
 **Workflow logs:**
 - GitHub Actions run logs (`.github/workflows/publish-images.yml`, "Deploy to Azure App Service" step)
 
-**App logs (new instance during startup):**
+**App logs (new instance during startup):** the staging slot has no diagnostic setting, so its console output does not reach Log Analytics, and its log endpoint is not publicly reachable. Read its container log through ARM:
 ```bash
-az webapp log tail --name simis-cms-pilot --slot staging
+az rest --method post --url "$(az webapp show -g my-rg -n simis-cms-pilot --slot staging --query id -o tsv)/containerlogs?api-version=2023-12-01"
 ```
 
 **Deployment metrics (Azure Portal):**
 - App Service → Deployment slots → Activity log
-- Shows slot operations (create, swap, delete) with timestamps
+- Shows slot operations (create, swap, start, stop) with timestamps
 
 **AFD metrics:**
 - Front Door → Health probes (check why instance was marked unhealthy)
