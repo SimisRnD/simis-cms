@@ -248,12 +248,17 @@ module appService 'modules/appservice.bicep' = {
   }
 }
 
-// Grants come last: they need the app's principal id, which only exists once
-// the app does.
+// Grants come last: they need the app's principal ids, which only exist once
+// the app and its staging slot do. The slot needs production's access to run
+// the build it holds (rbac.bicep explains); the app stays first in the list so
+// its existing assignment names do not change.
 module rbac 'modules/rbac.bicep' = {
   name: 'rbac'
   params: {
-    principalId: appService.outputs.appServicePrincipalId
+    principalIds: [
+      appService.outputs.appServicePrincipalId
+      appService.outputs.stagingSlotPrincipalId
+    ]
     keyVaultName: keyVault.outputs.keyVaultName
     acrName: acr.outputs.registryName
   }
