@@ -10,7 +10,8 @@
 // Vault references resolved at startup by the system-assigned managed
 // identity, so no secret value ever appears in app configuration, template,
 // or output. The secrets themselves are created by the ISSM at deploy time --
-// never by IaC.
+// never by IaC. The rolling deploy's staging slot has an identity of its own
+// with the same grants; see stagingSlot below.
 //
 // CMS_PATH is an Azure Files mount: App Service containers are ephemeral, and
 // an in-container file library silently loses every upload on restart.
@@ -115,6 +116,76 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   }
 }
 
+// Shared by the app and its staging slot (below): the slot runs the same
+// container with the same configuration, so both are defined once.
+var siteConfig = {
+  linuxFxVersion: 'DOCKER|${acrLoginServer}/${containerImage}'
+  // Pull with the managed identity (AcrPull, rbac.bicep) -- the registry
+  // admin account is disabled, so there is no password to leak.
+  acrUseManagedIdentityCreds: true
+  alwaysOn: true
+  http20Enabled: true
+  minTlsVersion: '1.2'
+  ftpsState: 'Disabled'
+  healthCheckPath: '/healthz'
+  // Route all outbound through the VNet so the private endpoints for the
+  // database and Key Vault (and their private DNS zones) are what resolve.
+  vnetRouteAllEnabled: true
+  azureStorageAccounts: {
+    cmspath: {
+      type: 'AzureFiles'
+      accountName: storageAccountName
+      shareName: cmsPathShareName
+      mountPath: cmsPathMount
+      accessKey: storageAccount.listKeys().keys[0].value
+    }
+  }
+  appSettings: [
+    // The container listens on 8080 (non-root cannot bind below 1024).
+    { name: 'WEBSITES_PORT', value: '8080' }
+    // --- Slot swap warm-up (issue #1178) ---
+    // These make App Service itself probe a slot before completing a swap, and abort the swap
+    // if the probe never succeeds. That matters because the app runs with
+    // publicNetworkAccess Disabled and a slot inherits it: a staging slot answers HTTP 403 from
+    // outside Azure, so a health check run from a GitHub Actions runner can never pass. The
+    // probe has to originate inside Azure, and this is the supported way to arrange that.
+    // WEBSITE_SWAP_WARMUP_PING_PATH intentionally matches healthCheckPath above.
+    { name: 'WEBSITE_SWAP_WARMUP_PING_PATH', value: '/healthz' }
+    { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200' }
+    // --- Application contract (issue #244): plain env vars ---
+    { name: 'CMS_URL', value: cmsUrl }
+    { name: 'CMS_FORCE_SSL', value: 'true' }
+    // Single-node pilot runs everything; 'web' would skip the overhead
+    // tasks that only make sense to skip in a multi-node cluster.
+    { name: 'CMS_NODE_TYPE', value: 'standalone' }
+    { name: 'CMS_PATH', value: cmsPathMount }
+    { name: 'CMS_TRUSTED_PROXIES', value: trustedProxies }
+    { name: 'CMS_CLIENT_IP_HEADER', value: clientIpHeader }
+    { name: 'CMS_ADMIN_USERNAME', value: cmsAdminUsername }
+    { name: 'CMS_ADMIN_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsAdminPasswordSecretName})' }
+    { name: 'CMS_SECRET_KEY', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsSecretKeySecretName})' }
+    { name: 'DB_SERVER_NAME', value: postgresFqdn }
+    { name: 'DB_NAME', value: postgresDatabaseName }
+    { name: 'DB_USER', value: dbUser }
+    { name: 'DB_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${dbPasswordSecretName})' }
+    { name: 'DB_SSL', value: 'true' }
+    // Activates the APM/tracing Java agent already baked into the image (docker/app/Dockerfile);
+    // the agent self-disables cleanly if this is ever empty.
+    { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
+  ]
+}
+
+var siteProperties = {
+  serverFarmId: plan.id
+  httpsOnly: true
+  virtualNetworkSubnetId: appSubnetId
+  // Ingress only through the edge tier's Private Link origin.
+  publicNetworkAccess: publicNetworkAccess
+  // Key Vault references resolve with the system-assigned identity.
+  keyVaultReferenceIdentity: 'SystemAssigned'
+  siteConfig: siteConfig
+}
+
 resource app 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
   location: location
@@ -123,72 +194,40 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
   identity: {
     type: 'SystemAssigned'
   }
-  properties: {
-    serverFarmId: plan.id
-    httpsOnly: true
-    virtualNetworkSubnetId: appSubnetId
-    // Ingress only through the edge tier's Private Link origin.
-    publicNetworkAccess: publicNetworkAccess
-    // Key Vault references resolve with the system-assigned identity.
-    keyVaultReferenceIdentity: 'SystemAssigned'
-    siteConfig: {
-      linuxFxVersion: 'DOCKER|${acrLoginServer}/${containerImage}'
-      // Pull with the managed identity (AcrPull, rbac.bicep) -- the registry
-      // admin account is disabled, so there is no password to leak.
-      acrUseManagedIdentityCreds: true
-      alwaysOn: true
-      http20Enabled: true
-      minTlsVersion: '1.2'
-      ftpsState: 'Disabled'
-      healthCheckPath: '/healthz'
-      // Route all outbound through the VNet so the private endpoints for the
-      // database and Key Vault (and their private DNS zones) are what resolve.
-      vnetRouteAllEnabled: true
-      azureStorageAccounts: {
-        cmspath: {
-          type: 'AzureFiles'
-          accountName: storageAccountName
-          shareName: cmsPathShareName
-          mountPath: cmsPathMount
-          accessKey: storageAccount.listKeys().keys[0].value
-        }
-      }
-      appSettings: [
-        // The container listens on 8080 (non-root cannot bind below 1024).
-        { name: 'WEBSITES_PORT', value: '8080' }
-        // --- Slot swap warm-up (issue #1178) ---
-        // These make App Service itself probe a slot before completing a swap, and abort the swap
-        // if the probe never succeeds. That matters because the app runs with
-        // publicNetworkAccess Disabled and a slot inherits it: a staging slot answers HTTP 403 from
-        // outside Azure, so a health check run from a GitHub Actions runner can never pass. The
-        // probe has to originate inside Azure, and this is the supported way to arrange that.
-        // WEBSITE_SWAP_WARMUP_PING_PATH intentionally matches healthCheckPath below.
-        { name: 'WEBSITE_SWAP_WARMUP_PING_PATH', value: '/healthz' }
-        { name: 'WEBSITE_SWAP_WARMUP_PING_STATUSES', value: '200' }
-        // --- Application contract (issue #244): plain env vars ---
-        { name: 'CMS_URL', value: cmsUrl }
-        { name: 'CMS_FORCE_SSL', value: 'true' }
-        // Single-node pilot runs everything; 'web' would skip the overhead
-        // tasks that only make sense to skip in a multi-node cluster.
-        { name: 'CMS_NODE_TYPE', value: 'standalone' }
-        { name: 'CMS_PATH', value: cmsPathMount }
-        { name: 'CMS_TRUSTED_PROXIES', value: trustedProxies }
-        { name: 'CMS_CLIENT_IP_HEADER', value: clientIpHeader }
-        { name: 'CMS_ADMIN_USERNAME', value: cmsAdminUsername }
-        { name: 'CMS_ADMIN_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsAdminPasswordSecretName})' }
-        { name: 'CMS_SECRET_KEY', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${cmsSecretKeySecretName})' }
-        { name: 'DB_SERVER_NAME', value: postgresFqdn }
-        { name: 'DB_NAME', value: postgresDatabaseName }
-        { name: 'DB_USER', value: dbUser }
-        { name: 'DB_PASSWORD', value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${dbPasswordSecretName})' }
-        { name: 'DB_SSL', value: 'true' }
-        // Activates the APM/tracing Java agent already baked into the image (docker/app/Dockerfile);
-        // the agent self-disables cleanly if this is ever empty.
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
-      ]
-    }
-  }
+  properties: siteProperties
 }
+
+// The rolling deploy's staging slot (tools/rolling-deploy.sh deploys each new
+// build here and swaps it into production).
+//
+// Declared here for one reason: its managed identity. A slot does not share the
+// app's identity, yet it carries the same acrUseManagedIdentityCreds and
+// keyVaultReferenceIdentity settings, so without an identity of its own -- and
+// the AcrPull and Key Vault Secrets User grants rbac.bicep gives it -- it cannot
+// pull its image or resolve its secrets. A slot created by the deploy script
+// (`slot create --configuration-source`) gets no identity, and on the pilot that
+// went unnoticed for seven weeks because swaps pull and resolve as production;
+// it surfaced on 2026-10-21 as a database login failure every seven seconds.
+// The deploy script now refuses to deploy until the slot's identity holds
+// production's grants, and an environment deployed from this template passes
+// that check on its first run.
+//
+// Like the app, the slot is (re)deployed with containerImage; the next rolling
+// deploy overwrites that. The deploy keeps the slot stopped between deploys,
+// but a deployment of this template starts it -- stop it again afterwards if
+// no rolling deploy is about to run (az webapp stop --slot staging).
+resource stagingSlot 'Microsoft.Web/sites/slots@2023-12-01' = {
+  parent: app
+  name: 'staging'
+  location: location
+  tags: tags
+  kind: 'app,linux,container'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: siteProperties
+}
+
 
 // Container stdout to Log Analytics -- exactly the Sentinel "Path A" ingestion
 // the detection kit was written against. HTTP/audit/platform logs ride along
@@ -213,5 +252,6 @@ resource diagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' 
 output appServiceName string = app.name
 output appServiceId string = app.id
 output appServicePrincipalId string = app.identity.principalId
+output stagingSlotPrincipalId string = stagingSlot.identity.principalId
 output defaultHostName string = app.properties.defaultHostName
 output planId string = plan.id

@@ -112,8 +112,19 @@ AppServiceConsoleLogs
     frequency: 'PT5M'
     window: 'PT15M'
     threshold: 0
-    query: 'AppRequests | where ResultCode == \'503\''
-    description: 'Visitors are receiving HTTP 503. 33 were served on 2026-09-06 with no notification.'
+    // Two kinds of request are not visitors and are excluded. The staging slot
+    // reports to the same Application Insights resource, so its requests land in
+    // AppRequests too; its hostname is not public, and a new build that answers 503
+    // there already fails the deploy. And App Service probes a starting container
+    // at its link-local address (http://169.254.x.x:8080/robots933456.txt), which
+    // answers 503 until the app is up -- on either slot.
+    query: '''
+AppRequests
+| where ResultCode == '503'
+| extend Host = tostring(parse_url(Url).Host)
+| where Host !contains '-staging' and not(Host startswith '169.254.')
+'''
+    description: 'Visitors are receiving HTTP 503. 33 were served on 2026-09-06 with no notification. Excludes the staging slot, which no visitor reaches: from 2026-10-21 its 503s held this alert in the Fired state for days, and a Fired alert does not notify again, so a real outage would have gone unreported.'
   }
   {
     name: 'alert-recaptcha-verification-failure'
