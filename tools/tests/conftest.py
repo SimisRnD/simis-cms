@@ -29,7 +29,7 @@ DEP_TEMPLATE = """    <dependency>
       <groupId>{group}</groupId>
       <artifactId>{artifact}</artifactId>
       <version>{version}</version>
-    </dependency>
+{scope}    </dependency>
 """
 
 
@@ -55,8 +55,11 @@ def repo(tmp_path: Path) -> Path:
 
 
 def make_pom(root: Path, version: str = "1.0.0-SNAPSHOT", deps=None) -> None:
+    """deps are (group, artifact, version) tuples, with an optional fourth element for <scope>."""
     dep_xml = "".join(
-        DEP_TEMPLATE.format(group=g, artifact=a, version=v) for g, a, v in (deps or [])
+        DEP_TEMPLATE.format(group=d[0], artifact=d[1], version=d[2],
+                            scope=f"      <scope>{d[3]}</scope>\n" if len(d) > 3 else "")
+        for d in (deps or [])
     )
     write(root, "pom.xml", POM_TEMPLATE.format(version=version, dependencies=dep_xml))
 
