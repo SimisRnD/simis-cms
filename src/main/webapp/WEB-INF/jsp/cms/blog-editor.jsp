@@ -177,16 +177,16 @@
     <li>Editor</li>
   </ul>
   <label>Title
-    <input type="text" placeholder="Give it a title..." name="title" value="${html:toHtml(blogPost.title)}">
+    <input type="text" placeholder="Give it a title..." name="title" maxlength="255" value="${html:toHtml(blogPost.title)}">
   </label>
   <label>Keywords
-    <input type="text" placeholder="Provide optional keywords..." name="keywords" value="<c:out value="${blogPost.keywords}"/>">
+    <input type="text" placeholder="Provide optional keywords..." name="keywords" maxlength="255" value="<c:out value="${blogPost.keywords}"/>">
   </label>
   <label>Description
     <input type="text" placeholder="Provide an optional description..." name="summary" value="<c:out value="${blogPost.summary}"/>">
   </label>
   <label>Source article link
-    <input type="url" placeholder="https://... (leave blank for a normal post)" name="sourceUrl" value="<c:out value="${blogPost.sourceUrl}"/>">
+    <input type="url" placeholder="https://... (leave blank for a normal post)" name="sourceUrl" maxlength="512" value="<c:out value="${blogPost.sourceUrl}"/>">
     <small class="help-text">For a curated link post. When set, the headline and &ldquo;read the article&rdquo; go straight to the original, and feed subscribers get the same link. The post still keeps its own page.</small>
   </label>
   <p>
@@ -227,7 +227,7 @@
           link previews when no share image is set.</small>
       </div>
       <div class="small-6 cell">
-        <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${blogPost.imageUrl}"/>">
+        <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" maxlength="255" value="<c:out value="${blogPost.imageUrl}"/>">
         <label for="imageFile" class="button">Upload Image File...</label>
         <input type="file" id="imageFile" class="show-for-sr">
       </div>
@@ -252,7 +252,7 @@
           cropped to this shape, so a taller image loses its top and bottom.</small>
       </div>
       <div class="small-6 cell">
-        <input type="text" class="no-gap" placeholder="Local Image URL (optional)" id="shareImageUrl" name="shareImageUrl" value="<c:out value="${blogPost.shareImageUrl}"/>">
+        <input type="text" class="no-gap" placeholder="Local Image URL (optional)" id="shareImageUrl" name="shareImageUrl" maxlength="255" value="<c:out value="${blogPost.shareImageUrl}"/>">
       </div>
       <div class="small-2 cell">
         <img id="shareImageUrlPreview" src="<c:out value="${blogPost.shareImageUrl}"/>" class="u-maxh-50 u-maxw-150"/>
