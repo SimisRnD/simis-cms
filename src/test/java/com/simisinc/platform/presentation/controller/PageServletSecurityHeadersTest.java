@@ -171,6 +171,9 @@ class PageServletSecurityHeadersTest {
     // only a browser enforces CSP. curl fetches the icon happily. Issue #1805.
     assertTrue(actualCsp.contains("https://api.weather.gov"),
         "img-src must allow the NWS icon host or the weather widget loses every icon: " + actualCsp);
+    // No analytics configured in this test, so Google's image hosts stay out
+    assertTrue(!actualCsp.contains("google.com") && !actualCsp.contains("googletagmanager"),
+        "img-src admits Google's hosts only for a site that loads Google Analytics: " + actualCsp);
     // Deliberately still absent: img-src cannot be set until published content stops referencing
     // external images, and default-src must come after it or the video/careers iframes break.
     assertTrue(!actualCsp.contains("default-src"),
@@ -179,6 +182,40 @@ class PageServletSecurityHeadersTest {
     // and stop rendering. If a future change adds default-src, frame-src must come with it.
     assertTrue(!actualCsp.contains("default-src") || actualCsp.contains("frame-src"),
         "default-src must not be introduced without frame-src: " + actualCsp);
+  }
+
+  @Test
+  void serviceAddsTheGoogleAnalyticsImageHostsWhenTheSiteLoadsGoogleAnalytics() throws Exception {
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName("analytics.service")).thenReturn("google");
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName("analytics.google.key")).thenReturn("G-4PCLCXQE3N");
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    ArgumentCaptor<String> cspValues = ArgumentCaptor.forClass(String.class);
+    verify(response, times(1)).setHeader(eq("Content-Security-Policy"), cspValues.capture());
+    String imgSrc = directive(cspValues.getValue(), "img-src");
+    assertTrue(imgSrc.contains(" https://*.google.com") && imgSrc.contains(" https://*.googletagmanager.com"),
+        "gtag.js requests images from both hosts: " + imgSrc);
+    assertTrue(imgSrc.startsWith("img-src 'self' data: https://img.youtube.com"), "the existing sources stay: " + imgSrc);
   }
 
   @Test
