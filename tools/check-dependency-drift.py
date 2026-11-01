@@ -21,12 +21,21 @@ artifactId -- jackson 2.x and 3.x both ship jackson-core) and compares versions:
   * VENDORED_ONLY jar is vendored but has no top-level pom dependency (transitive/manual)
   * POM_ONLY      pom declares a shippable dependency with no vendored jar
 
+Test scope
+----------
+The suite runs from ``lib/tests`` (``ant -lib lib/tests ci-test``), which has the same gap: a
+Dependabot bump to a ``<scope>test</scope>`` dependency moves the pom while the tests keep running
+the old jar. A separate TEST SCOPE section pairs those declarations with ``lib/tests`` the same way.
+It is REPORT-ONLY even under ``--strict``: the tree carried several such drifts when it was added,
+and tools/vendor-sync.py re-vendors only ``lib/build``. Reconcile them, then make it enforcing.
+``lib/tests`` jars are never paired with compile declarations -- they are not the shipped copy.
+
 Modes
 -----
 Default is REPORT-ONLY: it prints the findings and always exits 0, so it can be
 wired into CI without failing any build. Pass ``--strict`` (or set STRICT=1) to
 exit 1 when any DRIFT is found that is not in ALLOWLIST, or any AMBIGUOUS jar -- flip to this once the
-one-time reconciliation has zeroed the drift.
+one-time reconciliation has zeroed the drift. The TEST SCOPE section never affects the exit code.
 
 This is a read-only reporter. It changes no files.
 """
@@ -236,6 +245,45 @@ def _label(d, shared) -> str:
     return f"{d['artifact']} ({d['group']})" if d["artifact"] in shared else d["artifact"]
 
 
+def report_test_scope(deps, tests_dir: str):
+    """Pair the pom's test-scope declarations with the jars under lib/tests.
+
+    Returns (found, lines): found is find_drift()'s result, or None when there is no lib/tests
+    directory; lines is the report section. Report-only -- the caller never fails on it.
+    """
+    lines = ["TEST SCOPE -- pom <scope>test</scope> vs the lib/tests jars the suite runs "
+             "(report-only; never fails --strict):"]
+    if not os.path.isdir(tests_dir):
+        lines.append("  (no lib/tests directory)")
+        return None, lines
+    test_deps = [d for d in deps if d["scope"] == "test"]
+    jars = vendored_jars(tests_dir)
+    found = find_drift(test_deps, jars)
+    dep_counts = Counter(d["artifact"] for d in test_deps)
+    jar_counts = Counter(j["artifact"] for j in jars)
+    shared = {a for a in dep_counts.keys() | jar_counts.keys()
+              if dep_counts[a] > 1 or jar_counts[a] > 1}
+
+    lines.append(f"  drift ({len(found['drift'])}):")
+    if found["drift"]:
+        w = max(len(_label(d, shared)) for d, _ in found["drift"])
+        lines.extend(f"    {_label(d, shared).ljust(w)}  pom {d['version']:<16} "
+                     f"tests run {j['version']}" for d, j in found["drift"])
+    else:
+        lines.append("    (none)")
+    if found["ambiguous"]:
+        lines.append(f"  ambiguous ({len(found['ambiguous'])}):")
+        lines.extend(f"    {os.path.basename(j['path'])}: {why}" for j, why in found["ambiguous"])
+    if found["pom_only"]:
+        unmatched = {j["artifact"] for j, _ in found["ambiguous"]}
+        lines.append(f"  declared, no lib/tests jar ({len(found['pom_only'])}):")
+        lines.extend(f"    {_label(d, shared)} {d['version']}"
+                     + ("  (a lib/tests jar shares this artifactId; see ambiguous)"
+                        if d["artifact"] in unmatched else "")
+                     for d in sorted(found["pom_only"], key=lambda d: (d["artifact"], d["group"] or "")))
+    return found, lines
+
+
 def main() -> int:
     repo = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else "."
     strict = "--strict" in sys.argv or os.environ.get("STRICT") == "1"
@@ -287,10 +335,17 @@ def main() -> int:
     else:
         lines.append("  (none)")
     lines.append("")
+    tests, test_lines = report_test_scope(deps, os.path.join(repo, "lib", "tests"))
+    lines.extend(test_lines)
+    lines.append("")
     blocking = [d for d, _ in drift if d["artifact"] not in ALLOWLIST]
     lines.append(f"Summary: {len(drift)} drifted, {len(blocking)} not allowlisted, "
                  f"{len(ambiguous)} ambiguous, {len(vendored_only)} vendored-only, "
                  f"{len(pom_only)} pom-only.")
+    if tests is not None:
+        lines.append(f"Test scope (report-only): {len(tests['drift'])} drifted, "
+                     f"{len(tests['ambiguous'])} ambiguous, "
+                     f"{len(tests['pom_only'])} declared without a lib/tests jar.")
     report = "\n".join(lines)
     print(report)
 
@@ -298,12 +353,21 @@ def main() -> int:
     if summary_path:
         with open(summary_path, "a") as fh:
             fh.write("## Dependency drift (pom vs vendored WAR jars)\n\n")
+            enforcement = ("Enforced — an un-allowlisted drift or an ambiguous jar fails the build."
+                           if strict else "Report-only — this check does not fail the build.")
             fh.write(f"**{len(drift)} of {len(drift) + len(ok)} matched libraries drift.** "
-                     "Report-only — this check does not fail the build.\n\n")
+                     f"{enforcement}\n\n")
             if drift:
                 fh.write("| Library | pom declares | WAR ships |\n|---|---|---|\n")
                 for d, j in drift:
                     fh.write(f"| `{_label(d, shared)}` | {d['version']} | **{j['version']}** |\n")
+            if tests is not None and tests["drift"]:
+                fh.write("\n### Test scope (lib/tests) — report-only, never fails the build\n\n")
+                fh.write("| Library | pom declares | tests run |\n|---|---|---|\n")
+                test_counts = Counter(d["artifact"] for d in deps if d["scope"] == "test")
+                test_shared = {a for a, n in test_counts.items() if n > 1}
+                for d, j in tests["drift"]:
+                    fh.write(f"| `{_label(d, test_shared)}` | {d['version']} | **{j['version']}** |\n")
 
     if strict and (blocking or ambiguous):
         if blocking:

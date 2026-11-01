@@ -29,10 +29,17 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
+
+import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,7 +64,8 @@ import com.simisinc.platform.infrastructure.scheduler.cms.ImageVariantJob;
  *
  * <p>{@link FileSystemCommand}, {@link LoadSitePropertyCommand}, {@link ValidateImageCommand},
  * {@link SaveImageCommand}, and {@link BackgroundJobRequest} are statically mocked, so the only real
- * file I/O is the copy under test.
+ * file I/O is the copy under test. The downscale tests run the real ValidateImageCommand instead, so
+ * the record's type and dimensions come from the file that was actually kept.
  *
  * @author SimIS Inc.
  */
@@ -117,6 +125,103 @@ class AddImageToLibraryCommandTest {
       // not a second-class one
       jobRequest.verify(() -> BackgroundJobRequest.enqueue(argThat((ImageVariantJob job) -> job.getImageId() == 42L)));
     }
+  }
+
+  /**
+   * Resolves each root-relative path under the temp root, the way the real file server does, so a
+   * PNG converted to JPEG lands at a different file than the PNG was copied to.
+   */
+  private void stubRealFileSystem(MockedStatic<FileSystemCommand> fsc, Path root) throws Exception {
+    Files.createDirectories(root.resolve(SUB_PATH));
+    fsc.when(FileSystemCommand::getFileServerRootPath).thenReturn(root.toString() + "/");
+    fsc.when(() -> FileSystemCommand.generateFileServerSubPath(anyString())).thenReturn(SUB_PATH);
+    fsc.when(() -> FileSystemCommand.generateUniqueFilename(anyLong())).thenReturn(UNIQUE_NAME);
+    fsc.when(() -> FileSystemCommand.cleanExtension(anyString())).thenAnswer(inv -> inv.getArgument(0));
+    fsc.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+        .thenAnswer(inv -> root.resolve((String) inv.getArgument(1)).toFile());
+  }
+
+  private File writeImage(Path dir, String name, int width, int height, boolean transparent) throws Exception {
+    BufferedImage image = new BufferedImage(width, height,
+        transparent ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
+    Graphics2D g = image.createGraphics();
+    Random random = new Random(1197);
+    for (int i = 0; i < 300; i++) {
+      g.setColor(new Color(random.nextInt(0xFFFFFF)));
+      g.fillRect(random.nextInt(width), random.nextInt(height), 200, 100);
+    }
+    if (transparent) {
+      g.setComposite(AlphaComposite.Clear);
+      g.fillRect(0, 0, width / 4, height);
+    }
+    g.dispose();
+    File file = dir.resolve(name).toFile();
+    ImageIO.write(image, "png", file);
+    return file;
+  }
+
+  /**
+   * Runs addFromFile with the real ValidateImageCommand, so the mime type and dimensions on the
+   * saved record are read from the file that was actually kept.
+   */
+  private Image addRealImage(Path tempDir, File sourceFile, String filename) throws Exception {
+    Path root = Files.createDirectories(tempDir.resolve("root"));
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveImageCommand> save = mockStatic(SaveImageCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      stubRealFileSystem(fsc, root);
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      save.when(() -> SaveImageCommand.saveImage(any(Image.class))).thenAnswer(inv -> inv.getArgument(0));
+      return AddImageToLibraryCommand.addFromFile(sourceFile, filename, 1L);
+    }
+  }
+
+  @Test
+  void aLargeOpaquePngIsStoredAsAJpegAt1600WideAndTheRecordSaysSo(@TempDir Path tempDir) throws Exception {
+    File sourceFile = writeImage(tempDir, "infographic.png", 3700, 2000, false);
+    byte[] sourceBytes = Files.readAllBytes(sourceFile.toPath());
+
+    Image image = addRealImage(tempDir, sourceFile, "HTT Infographic.png");
+
+    assertEquals("image/jpeg", image.getFileType());
+    assertEquals(1600, image.getWidth());
+    assertEquals(865, image.getHeight());
+    assertEquals("HTT Infographic.jpg", image.getFilename(), "the library name matches what the file now is");
+    assertEquals(SUB_PATH + UNIQUE_NAME + ".jpg", image.getFileServerPath());
+    File stored = tempDir.resolve("root").resolve(image.getFileServerPath()).toFile();
+    assertTrue(stored.isFile());
+    assertEquals(stored.length(), image.getFileLength(), "the recorded size is the kept file's, not the upload's");
+    assertTrue(image.getFileLength() < sourceBytes.length);
+    assertFalse(tempDir.resolve("root").resolve(SUB_PATH + UNIQUE_NAME + ".png").toFile().exists(),
+        "the full-size PNG copy is replaced, not left behind with nothing pointing at it");
+    assertArrayEquals(sourceBytes, Files.readAllBytes(sourceFile.toPath()), "the source file is never changed");
+  }
+
+  @Test
+  void aLargeTransparentPngIsResizedButStaysAPng(@TempDir Path tempDir) throws Exception {
+    File sourceFile = writeImage(tempDir, "logo.png", 3200, 800, true);
+
+    Image image = addRealImage(tempDir, sourceFile, "logo.png");
+
+    assertEquals("image/png", image.getFileType());
+    assertEquals(1600, image.getWidth());
+    assertEquals(400, image.getHeight());
+    assertEquals("logo.png", image.getFilename());
+    assertEquals(SUB_PATH + UNIQUE_NAME + ".png", image.getFileServerPath());
+  }
+
+  @Test
+  void aSmallImageIsStoredByteForByte(@TempDir Path tempDir) throws Exception {
+    File sourceFile = writeImage(tempDir, "chart.png", 1200, 700, false);
+
+    Image image = addRealImage(tempDir, sourceFile, "chart.png");
+
+    assertEquals("image/png", image.getFileType());
+    assertEquals(1200, image.getWidth());
+    assertEquals("chart.png", image.getFilename());
+    File stored = tempDir.resolve("root").resolve(image.getFileServerPath()).toFile();
+    assertArrayEquals(Files.readAllBytes(sourceFile.toPath()), Files.readAllBytes(stored.toPath()));
   }
 
   @Test
