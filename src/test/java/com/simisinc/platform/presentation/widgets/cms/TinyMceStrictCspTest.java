@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterAll;
@@ -206,7 +207,21 @@ class TinyMceStrictCspTest {
     });
     page.onPageError(pageErrors::add);
     page.navigate(origin + "/editor.html");
-    page.waitForFunction("window.editorReady === true");
+    waitUntil("window.editorReady === true");
+  }
+
+  /**
+   * Waits for {@code expression} to be true in the page. Playwright's waitForFunction would do
+   * this, but once its first check comes back false it polls by compiling the expression inside the
+   * page, which this page's script-src refuses as eval -- so it passes on a fast machine and fails on
+   * a slow one. page.evaluate is compiled by DevTools, which the page's policy does not govern.
+   */
+  private void waitUntil(String expression) {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+    while (!Boolean.TRUE.equals(page.evaluate(expression))) {
+      assertTrue(System.nanoTime() < deadline, "timed out waiting for " + expression);
+      page.waitForTimeout(50);
+    }
   }
 
   @AfterEach
