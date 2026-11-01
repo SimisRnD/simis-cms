@@ -344,8 +344,8 @@
              model.min.js, plugin.min.js and icons.min.js at runtime; the unminified twins
              beside them are never requested. Swept wholesale and the .min files re-added below,
              because there are 57 of them. -->
-        <exclude name="javascript/tinymce-7.9.3/**/*.js"/>
-        <exclude name="javascript/tinymce-7.9.3/**/*.css"/>
+        <exclude name="javascript/tinymce-8.10.1/**/*.js"/>
+        <exclude name="javascript/tinymce-8.10.1/**/*.css"/>
         <exclude name="javascript/tinymce-plugins/**/*.js"/>
         <!-- Only swiper-bundle.min.js and swiper-bundle.min.css are served. The rest of the
              package is the React and Vue wrappers, the custom-element builds, the ESM module
@@ -378,8 +378,8 @@
       <!-- Re-added from the wholesale sweeps above, for the same Ant reason as the maps:
            <exclude> beats <include> inside one fileset, so the survivors need their own. -->
       <fileset dir="${web.dir}">
-        <include name="javascript/tinymce-7.9.3/**/*.min.js"/>
-        <include name="javascript/tinymce-7.9.3/**/*.min.css"/>
+        <include name="javascript/tinymce-8.10.1/**/*.min.js"/>
+        <include name="javascript/tinymce-8.10.1/**/*.min.css"/>
         <include name="javascript/tinymce-plugins/**/*.min.js"/>
         <include name="javascript/swiper-12.1.2/swiper-bundle.min.js"/>
         <include name="javascript/swiper-12.1.2/swiper-bundle.min.css"/>
@@ -566,8 +566,8 @@
              model.min.js, plugin.min.js and icons.min.js at runtime; the unminified twins
              beside them are never requested. Swept wholesale and the .min files re-added below,
              because there are 57 of them. -->
-        <exclude name="javascript/tinymce-7.9.3/**/*.js"/>
-        <exclude name="javascript/tinymce-7.9.3/**/*.css"/>
+        <exclude name="javascript/tinymce-8.10.1/**/*.js"/>
+        <exclude name="javascript/tinymce-8.10.1/**/*.css"/>
         <exclude name="javascript/tinymce-plugins/**/*.js"/>
         <!-- Only swiper-bundle.min.js and swiper-bundle.min.css are served. The rest of the
              package is the React and Vue wrappers, the custom-element builds, the ESM module
@@ -600,8 +600,8 @@
       <!-- Re-added from the wholesale sweeps above, for the same Ant reason as the maps:
            <exclude> beats <include> inside one fileset, so the survivors need their own. -->
       <fileset dir="${web.dir}">
-        <include name="javascript/tinymce-7.9.3/**/*.min.js"/>
-        <include name="javascript/tinymce-7.9.3/**/*.min.css"/>
+        <include name="javascript/tinymce-8.10.1/**/*.min.js"/>
+        <include name="javascript/tinymce-8.10.1/**/*.min.css"/>
         <include name="javascript/tinymce-plugins/**/*.min.js"/>
         <include name="javascript/swiper-12.1.2/swiper-bundle.min.js"/>
         <include name="javascript/swiper-12.1.2/swiper-bundle.min.css"/>
