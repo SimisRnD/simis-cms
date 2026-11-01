@@ -250,18 +250,17 @@ class WebContainerCommandTest {
   }
 
   @Test
-  void composedTitleIsNotDoubledByContainerTitle() {
-    // BlogPostWidget composes "<post title> - <blog name>" itself; a wildcard WebPage titled
-    // "News" (matching the blog name) must not be appended a second time on top of that.
-    String blogPostTitle = "Launch Announcement" + " - " + "News";
-    String result = WebContainerCommand.composePageTitle(blogPostTitle, true, "News");
-    Assertions.assertEquals("Launch Announcement - News", result);
+  void composedTitleIsNotGivenTheContainerTitle() {
+    // BlogPostWidget marks the headline as its complete title; the wildcard WebPage it renders on,
+    // titled "News", must not be appended to it.
+    String result = WebContainerCommand.composePageTitle("Launch Announcement", true, "News");
+    Assertions.assertEquals("Launch Announcement", result);
   }
 
   @Test
   void composedTitleIsUnchangedWhenContainerTitleIsBlank() {
-    String result = WebContainerCommand.composePageTitle("Launch Announcement - News", true, "");
-    Assertions.assertEquals("Launch Announcement - News", result);
+    String result = WebContainerCommand.composePageTitle("Launch Announcement", true, "");
+    Assertions.assertEquals("Launch Announcement", result);
   }
 
   // Regression coverage for issue #259: the composition-canvas editor toolbar and
