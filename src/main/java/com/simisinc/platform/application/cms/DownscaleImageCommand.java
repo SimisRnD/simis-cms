@@ -32,6 +32,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -78,6 +79,12 @@ public class DownscaleImageCommand {
    * megapixels is about 200 MB, enough for a 3,700px-wide infographic 13,500px tall.
    */
   static final long MAX_DECODE_PIXELS = 50_000_000L;
+
+  /**
+   * One decode at a time, across uploads and the library backfill. The pixel ceiling bounds a single
+   * decode; this keeps several from adding up, since background jobs run on more than one worker.
+   */
+  private static final Semaphore DECODE_PERMIT = new Semaphore(1, true);
 
   private static final byte[] EXIF_HEADER = { 'E', 'x', 'i', 'f', 0, 0 };
   private static final int EXIF_ORIENTATION_TAG = 0x0112;
@@ -140,25 +147,33 @@ public class DownscaleImageCommand {
         return null;
       }
 
-      BufferedImage source = ImageIO.read(file);
-      if (source == null) {
-        return null;
-      }
-      boolean keepAsPng = !isJpeg && hasTransparentPixel(source);
-      int targetDisplayHeight = Math.max(1, Math.round((float) displayHeight * MAX_WIDTH / displayWidth));
-      int targetWidth = swapsAxes ? targetDisplayHeight : MAX_WIDTH;
-      int targetHeight = swapsAxes ? MAX_WIDTH : targetDisplayHeight;
-      BufferedImage resized = applyOrientation(resize(source, targetWidth, targetHeight, keepAsPng), orientation);
-      source.flush();
+      DECODE_PERMIT.acquire();
+      try {
+        BufferedImage source = ImageIO.read(file);
+        if (source == null) {
+          return null;
+        }
+        boolean keepAsPng = !isJpeg && hasTransparentPixel(source);
+        int targetDisplayHeight = Math.max(1, Math.round((float) displayHeight * MAX_WIDTH / displayWidth));
+        int targetWidth = swapsAxes ? targetDisplayHeight : MAX_WIDTH;
+        int targetHeight = swapsAxes ? MAX_WIDTH : targetDisplayHeight;
+        BufferedImage resized = applyOrientation(resize(source, targetWidth, targetHeight, keepAsPng), orientation);
+        source.flush();
 
-      byte[] bytes = keepAsPng ? encodePng(resized) : encodeJpeg(resized);
-      if (bytes == null || bytes.length >= file.length()) {
-        // Possible for a palette PNG, which comes back as full-color PNG. A larger file is not an
-        // improvement, so the original stands.
-        LOG.info("Not downscaling " + file.getName() + ": the result would not be smaller");
-        return null;
+        byte[] bytes = keepAsPng ? encodePng(resized) : encodeJpeg(resized);
+        if (bytes == null || bytes.length >= file.length()) {
+          // Possible for a palette PNG, which comes back as full-color PNG. A larger file is not an
+          // improvement, so the original stands.
+          LOG.info("Not downscaling " + file.getName() + ": the result would not be smaller");
+          return null;
+        }
+        return new Downscaled(bytes, keepAsPng ? "image/png" : "image/jpeg", resized.getWidth(), resized.getHeight());
+      } finally {
+        DECODE_PERMIT.release();
       }
-      return new Downscaled(bytes, keepAsPng ? "image/png" : "image/jpeg", resized.getWidth(), resized.getHeight());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return null;
     } catch (Exception e) {
       // Thrown by ImageIO for a CMYK JPEG, a truncated file, an unsupported PNG variant. The upload
       // continues with the bytes as they arrived; validation decides whether they are an image.
