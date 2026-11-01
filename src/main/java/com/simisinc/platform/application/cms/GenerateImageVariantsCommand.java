@@ -95,7 +95,8 @@ public class GenerateImageVariantsCommand {
    * WebP encode quality for generated variants. Pinned rather than left to ImageMagick's default of
    * 75, both so output is reproducible across ImageMagick versions and because this platform's
    * images are frequently diagrams carrying small text, where 75 is visibly soft. Governs only the
-   * derived renditions; the original upload is never re-encoded.
+   * derived renditions; the original is re-encoded only when it is downscaled at upload, as JPEG or
+   * PNG (see {@link DownscaleImageCommand}).
    */
   private static final double VARIANT_WEBP_QUALITY = 82d;
 
@@ -132,9 +133,7 @@ public class GenerateImageVariantsCommand {
     for (Map.Entry<String, Integer> entry : VARIANT_MAX_DIMENSION.entrySet()) {
       String variantType = entry.getKey();
       int maxDimension = entry.getValue();
-      if (image.getWidth() <= maxDimension && image.getHeight() <= maxDimension) {
-        // The original is already at or below this variant's target size -- resizing would
-        // either upscale (im4java's ">" flag already refuses this) or duplicate the original.
+      if (!needsVariant(image, maxDimension)) {
         continue;
       }
       try {
@@ -148,6 +147,29 @@ public class GenerateImageVariantsCommand {
       }
     }
     return generated;
+  }
+
+  /**
+   * Whether a variant with this target size adds anything. An original already smaller than the
+   * target on both axes gets none: resizing would upscale (im4java's ">" flag already refuses this)
+   * or duplicate the original.
+   *
+   * <p>An original whose longer side is exactly the target still gets the variant when it would
+   * change format. Uploads wider than {@link DownscaleImageCommand#MAX_WIDTH} are scaled to exactly
+   * that width, which is also the large rung, and without this the large WebP rendition would never
+   * be made: the srcset's 1600w candidate would be the JPEG or PNG original instead of the WebP,
+   * which is usually the smaller file. {@link ImageCommand} leaves the original out of the srcset
+   * when a variant already has its width.
+   */
+  static boolean needsVariant(Image image, int maxDimension) {
+    int longerSide = Math.max(image.getWidth(), image.getHeight());
+    if (longerSide < maxDimension) {
+      return false;
+    }
+    if (longerSide == maxDimension) {
+      return !variantFileTypeFor(image).equals(image.getFileType());
+    }
+    return true;
   }
 
   private static ImageVariant generateOneVariant(Image image, File originalFile, String variantType, int maxDimension)
@@ -279,8 +301,9 @@ public class GenerateImageVariantsCommand {
    * tuned to GIF's frame model, and silently flattening an animation to one frame is a worse
    * outcome than a larger file.
    *
-   * <p>The original upload is never rewritten -- only these derived renditions -- so the lossless
-   * source remains available and is still the largest srcset candidate.
+   * <p>These derived renditions never replace the original, which stays the largest srcset
+   * candidate unless a variant has the same width. An upload wider than
+   * {@link DownscaleImageCommand#MAX_WIDTH} is itself scaled down before it is stored.
    */
   /** The format derived variants are encoded in. See {@link #variantFileTypeFor(Image)}. */
   public static final String VARIANT_FILE_TYPE = "image/webp";
