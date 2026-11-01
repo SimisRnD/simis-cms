@@ -35,7 +35,7 @@ import com.simisinc.platform.infrastructure.database.DB;
  * Finds where an {@link Image} is referenced across the site, for the /admin/images delete-warning
  * and "Orphaned" badge (issue #498).
  * <p>
- * An image is referenced by its literal URL string ({@link Image#getUrl()}, embedded id and all)
+ * An image is referenced by its URL string (matched on the id-bearing part, see {@link #urlToken})
  * appearing in one of two different kinds of place -- there is no structural/foreign-key reference
  * to walk, so both are plain string scans:
  * <ul>
@@ -114,10 +114,28 @@ public class ImageUsageCommand {
   public static class UsageReference {
     private final String sourceType;
     private final String label;
+    private final String table;
+    private final String column;
 
     public UsageReference(String sourceType, String label) {
+      this(sourceType, label, null, null);
+    }
+
+    public UsageReference(String sourceType, String label, String table, String column) {
       this.sourceType = sourceType;
       this.label = label;
+      this.table = table;
+      this.column = column;
+    }
+
+    /** The table the reference was found in, e.g. {@code blog_posts}; null when not recorded */
+    public String getTable() {
+      return table;
+    }
+
+    /** The column the reference was found in -- {@code blog_posts.image_url} and {@code body} share a source type */
+    public String getColumn() {
+      return column;
     }
 
     public String getSourceType() {
@@ -141,9 +159,7 @@ public class ImageUsageCommand {
     if (image == null || image.getId() == null || image.getId() == -1) {
       return Collections.emptyList();
     }
-    // getUrl() embeds this image's own id ("{webPath}-{id}/{filename}"), so a substring match
-    // against it cannot cross-match a different image record, even one sharing the same filename.
-    String urlToken = image.getUrl();
+    String urlToken = urlToken(image);
     if (StringUtils.isBlank(urlToken)) {
       return Collections.emptyList();
     }
@@ -162,6 +178,23 @@ public class ImageUsageCommand {
   }
 
   /**
+   * The part of an image's URL that identifies it: {@code {webPath}-{id}/}, with the filename left
+   * off. The embedded id means a match cannot cross over to a different image record, even one
+   * sharing the same filename.
+   *
+   * <p>Matching the whole of {@link Image#getUrl()} missed references whose filename was not spelled
+   * the way getUrl() spells it. Page XML holds both "My%20Image.png" and "My Image.png" for the same
+   * image, and the literal-space form was reported as no usage at all -- which also cleared the image
+   * for deletion. The image is served by its id; the filename after the slash is never read.
+   */
+  static String urlToken(Image image) {
+    if (StringUtils.isBlank(image.getWebPath())) {
+      return image.getUrl();
+    }
+    return image.getWebPath() + "-" + image.getId() + "/";
+  }
+
+  /**
    * Convenience for the "Orphaned" badge: true when nothing references the image.
    */
   public static boolean isOrphaned(Image image) {
@@ -177,7 +210,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference(sourceType, rs.getString(1)));
+          results.add(new UsageReference(sourceType, rs.getString(1), table, column));
         }
       }
     } catch (SQLException se) {
@@ -204,7 +237,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference("Site Setting", rs.getString(1)));
+          results.add(new UsageReference("Site Setting", rs.getString(1), "site_properties", "property_value"));
         }
       }
     } catch (SQLException se) {
@@ -231,8 +264,7 @@ public class ImageUsageCommand {
    *
    * <p>
    * A plain substring match is enough here even for a filename containing spaces or an ampersand:
-   * {@link Image#getUrl()} runs the filename through {@code UrlCommand.encodeUri}, which is the
-   * same spelling the picker writes into the stylesheet.
+   * the match is on {@link #urlToken}, which stops before the filename.
    * </p>
    */
   private static List<UsageReference> queryStylesheetUsages(String likeValue) {
@@ -245,7 +277,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference("Stylesheet", rs.getString(1)));
+          results.add(new UsageReference("Stylesheet", rs.getString(1), "stylesheets", "css"));
         }
       }
     } catch (SQLException se) {
