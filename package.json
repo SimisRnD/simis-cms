@@ -28,7 +28,7 @@
     "prismjs": "1.30.0",
     "spectrum-colorpicker": "1.8.1",
     "swiper": "12.1.2",
-    "tinymce": "7.9.3"
+    "tinymce": "8.9.3"
   },
   "non-npm-dependencies": {
     "add-to-calendar-button": "1.18.7",
