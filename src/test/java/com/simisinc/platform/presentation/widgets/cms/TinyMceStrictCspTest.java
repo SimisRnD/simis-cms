@@ -323,7 +323,7 @@ class TinyMceStrictCspTest {
     // The message used to be hidden by a style attribute in the dialog's HTML, which this policy
     // refuses, so it showed whenever the picker opened. It is hidden by the plugin's stylesheet now,
     // which the plugin links on init; wait for it, or the message is briefly unstyled either way.
-    page.waitForFunction("() => Array.from(document.styleSheets)"
+    waitUntil("Array.from(document.styleSheets)"
         + ".some(sheet => (sheet.href || '').includes('/tinymce-plugins/fontawesome/css/fontawesome.css'))");
     page.click("button[aria-label='Insert an icon']");
     page.waitForSelector(".mce-fontawesome-search-container input");
