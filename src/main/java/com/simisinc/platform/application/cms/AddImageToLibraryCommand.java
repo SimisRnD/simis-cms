@@ -96,7 +96,7 @@ public class AddImageToLibraryCommand {
       deleteFile(destination);
       throw new DataException("The file could not be saved: " + e.getMessage());
     }
-    return register(destination, serverPath, submittedFilename, fileLength, userId);
+    return register(destination, serverPath, submittedFilename, fileLength, userId, null);
   }
 
   /**
@@ -110,6 +110,18 @@ public class AddImageToLibraryCommand {
    * @throws DataException when the file cannot be stored, is not a readable image, or the record cannot be saved
    */
   public static Image addFromFile(File sourceFile, String submittedFilename, long userId) throws DataException {
+    return addFromFile(sourceFile, submittedFilename, userId, null);
+  }
+
+  /**
+   * As {@link #addFromFile(File, String, long)}, with the new record starting out with another
+   * image's alt text and focal point. Used for the library backfill's resized copies, so a page
+   * switched to the copy keeps the alt text and crop it had.
+   *
+   * @param describedLike the image to copy the alt text and focal point from, or null
+   */
+  public static Image addFromFile(File sourceFile, String submittedFilename, long userId, Image describedLike)
+      throws DataException {
 
     if (sourceFile == null || !sourceFile.isFile()) {
       throw new DataException("The file could not be found");
@@ -128,7 +140,7 @@ public class AddImageToLibraryCommand {
       deleteFile(destination);
       throw new DataException("The file could not be saved: " + e.getMessage());
     }
-    return register(destination, serverPath, submittedFilename, fileLength, userId);
+    return register(destination, serverPath, submittedFilename, fileLength, userId, describedLike);
   }
 
   /**
@@ -136,7 +148,7 @@ public class AddImageToLibraryCommand {
    * bytes are removed again if no record ends up pointing at them, since nothing could reach them.
    */
   private static Image register(File destination, String serverPath, String submittedFilename, long fileLength,
-      long userId) throws DataException {
+      long userId, Image describedLike) throws DataException {
 
     // Shrink an oversized image first, so the record describes the file that is actually kept
     StoredImage stored = downscaleIfTooWide(new StoredImage(destination, serverPath, submittedFilename, fileLength));
@@ -150,6 +162,13 @@ public class AddImageToLibraryCommand {
     imageBean.setFileLength(fileLength);
     imageBean.setFileServerPath(serverPath);
     imageBean.setCreatedBy(userId);
+    if (describedLike != null) {
+      // Set before the insert rather than after: ImageVariantJob saves the record again when it
+      // finishes, and a later update could be overwritten by its stale copy
+      imageBean.setAltText(describedLike.getAltText());
+      imageBean.setFocalX(describedLike.getFocalX());
+      imageBean.setFocalY(describedLike.getFocalY());
+    }
 
     Image image;
     try {
