@@ -172,7 +172,7 @@ class WebRequestFilterImmutableCacheTest {
     String stamp = "1789143902000";
     for (String library : new String[] {
         "/javascript/spectrum-1.8.1/spectrum.js",
-        "/javascript/tinymce-7.9.3/tinymce.min.js",
+        "/javascript/tinymce-8.10.1/tinymce.min.js",
         "/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js",
         "/javascript/foundation-datepicker-20180424/foundation-datepicker.js",
         "/css/foundation-datepicker-20180424/foundation-datepicker.min.css"}) {
