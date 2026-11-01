@@ -18,6 +18,7 @@ package com.simisinc.platform.application.cms;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
@@ -44,8 +45,9 @@ import com.simisinc.platform.infrastructure.scheduler.cms.ImageVariantJob;
  * needed: the folder drop zone can now also register an uploaded image here. Everything the library
  * requires lives in one place rather than being re-implemented per caller -- the date-partitioned
  * {@code images/} sub-path, a collision-proof filename, root-contained path resolution, the upload
- * size cap, mime/dimension validation, deleting the bytes again if the record can't be saved, and
- * enqueuing srcset variant generation (issue #411).
+ * size cap, shrinking an image far wider than any page shows it ({@link DownscaleImageCommand}),
+ * mime/dimension validation, deleting the bytes again if the record can't be saved, and enqueuing
+ * srcset variant generation (issue #411).
  *
  * <p>Callers hand over bytes in one of two ways and get back the saved {@link Image}:
  * {@link #addFromPart} consumes a multipart part straight from a request, and {@link #addFromFile}
@@ -136,6 +138,13 @@ public class AddImageToLibraryCommand {
   private static Image register(File destination, String serverPath, String submittedFilename, long fileLength,
       long userId) throws DataException {
 
+    // Shrink an oversized image first, so the record describes the file that is actually kept
+    StoredImage stored = downscaleIfTooWide(new StoredImage(destination, serverPath, submittedFilename, fileLength));
+    destination = stored.file();
+    serverPath = stored.serverPath();
+    submittedFilename = stored.filename();
+    fileLength = stored.fileLength();
+
     Image imageBean = new Image();
     imageBean.setFilename(submittedFilename);
     imageBean.setFileLength(fileLength);
@@ -159,6 +168,48 @@ public class AddImageToLibraryCommand {
     // response time does not depend on ImageMagick's speed
     BackgroundJobRequest.enqueue(new ImageVariantJob(image.getId()));
     return image;
+  }
+
+  /** The bytes that will be registered, and the names they are registered under */
+  private record StoredImage(File file, String serverPath, String filename, long fileLength) {
+  }
+
+  /**
+   * Replaces an image wider than {@link DownscaleImageCommand#MAX_WIDTH} with its downscaled copy.
+   * The new bytes go to a temporary file and are then moved into place, so a failure at any point
+   * leaves the upload exactly as it arrived, and that is what gets registered.
+   */
+  private static StoredImage downscaleIfTooWide(StoredImage upload) {
+    DownscaleImageCommand.Downscaled downscaled = DownscaleImageCommand.downscaleIfTooWide(upload.file());
+    if (downscaled == null) {
+      return upload;
+    }
+    String serverPath = upload.serverPath();
+    String filename = upload.filename();
+    if (!downscaled.fileType().equals(DetectContentTypeCommand.detect(upload.file()))) {
+      // An opaque PNG became a JPEG; the name says so, both on disk and in the library
+      serverPath = FilenameUtils.removeExtension(serverPath) + "." + downscaled.extension();
+      filename = FilenameUtils.removeExtension(filename) + "." + downscaled.extension();
+    }
+    Path temporary = null;
+    try {
+      File destination = resolveDestination(serverPath);
+      temporary = Files.createTempFile(destination.getParentFile().toPath(), "downscale-", ".tmp");
+      Files.write(temporary, downscaled.bytes());
+      Files.move(temporary, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+      if (!destination.equals(upload.file())) {
+        Files.deleteIfExists(upload.file().toPath());
+      }
+      LOG.info("Downscaled " + upload.filename() + " to " + downscaled.width() + "x" + downscaled.height()
+          + ", " + upload.fileLength() + " to " + destination.length() + " bytes");
+      return new StoredImage(destination, serverPath, filename, destination.length());
+    } catch (Exception e) {
+      LOG.error("The downscaled copy of " + upload.filename() + " could not be saved; keeping it as uploaded", e);
+      if (temporary != null) {
+        deleteFile(temporary.toFile());
+      }
+      return upload;
+    }
   }
 
   /**

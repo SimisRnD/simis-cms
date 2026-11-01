@@ -128,6 +128,7 @@ public class ImageCommand {
       return "";
     }
     StringBuilder sb = new StringBuilder();
+    boolean variantHasOriginalWidth = false;
     for (ImageVariant variant : hasVariants ? variants : java.util.Collections.<ImageVariant>emptyList()) {
       // width <= 0 shouldn't happen (NOT NULL column, always set by GenerateImageVariantsCommand)
       // but a malformed/partial row must never produce a bogus "0w" descriptor.
@@ -139,10 +140,14 @@ public class ImageCommand {
       }
       sb.append(imageUrl).append("?variant=").append(variant.getVariantType())
           .append(" ").append(variant.getWidth()).append("w");
+      variantHasOriginalWidth |= variant.getWidth() == originalWidth;
     }
     // The original goes in last, with no ?variant= suffix -- it is the same url the <img> already
     // uses for src, so no new route is needed and browsers that ignore srcset are unaffected.
-    if (originalWidth > 0) {
+    // Left out when a variant has the same width: that is a WebP re-encode of an original already
+    // at the large size (see GenerateImageVariantsCommand.needsVariant), and two candidates with
+    // one width descriptor is invalid srcset.
+    if (originalWidth > 0 && !variantHasOriginalWidth) {
       if (sb.length() > 0) {
         sb.append(", ");
       }

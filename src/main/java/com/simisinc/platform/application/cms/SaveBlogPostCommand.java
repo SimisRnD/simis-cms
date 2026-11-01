@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FieldLengthCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.BlogPostPublishedEvent;
 import com.simisinc.platform.domain.model.cms.BlogPost;
@@ -39,6 +40,20 @@ public class SaveBlogPostCommand {
   public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveBlogPostCommand.class);
 
+  // The fields an admin types or pastes on the blog editor (issue #1740). The sweep that guarded
+  // the other editors missed this one, so a keyword list over 255 characters reached Postgres and
+  // came back as "could not be saved due to a system error" with nothing naming the field.
+  // @column blog_posts.title
+  private static final int MAX_TITLE_LENGTH = 255;
+  // @column blog_posts.keywords
+  private static final int MAX_KEYWORDS_LENGTH = 255;
+  // @column blog_posts.source_url
+  private static final int MAX_SOURCE_URL_LENGTH = 512;
+  // @column blog_posts.image_url
+  private static final int MAX_IMAGE_URL_LENGTH = 255;
+  // @column blog_posts.share_image_url
+  private static final int MAX_SHARE_IMAGE_URL_LENGTH = 255;
+
   public static BlogPost saveBlogPost(BlogPost blogPostBean) throws DataException {
 
     // Required dependencies
@@ -53,7 +68,16 @@ public class SaveBlogPostCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(blogPostBean.getTitle())) {
       errorMessages.append("A title is required");
+    } else {
+      FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A title",
+          blogPostBean.getTitle(), MAX_TITLE_LENGTH);
     }
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "Keywords",
+        blogPostBean.getKeywords(), MAX_KEYWORDS_LENGTH);
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A banner image URL",
+        blogPostBean.getImageUrl(), MAX_IMAGE_URL_LENGTH);
+    FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "A share image URL",
+        blogPostBean.getShareImageUrl(), MAX_SHARE_IMAGE_URL_LENGTH);
     if (StringUtils.isBlank(blogPostBean.getBody())) {
       if (errorMessages.length() > 0) {
         errorMessages.append("; ");
@@ -74,6 +98,10 @@ public class SaveBlogPostCommand {
         errorMessages.append("; ");
       }
       errorMessages.append("The source article link must be a full http:// or https:// address");
+    } else {
+      // a link that is not a URL at all is reported as that, not also as too long
+      FieldLengthCommand.appendIfTooLong(errorMessages, "; ", "The source article link",
+          blogPostBean.getSourceUrl(), MAX_SOURCE_URL_LENGTH);
     }
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
