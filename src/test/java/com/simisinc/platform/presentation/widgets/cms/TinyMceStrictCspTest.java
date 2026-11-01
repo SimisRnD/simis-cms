@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.WaitForSelectorState;
@@ -60,9 +61,8 @@ import com.sun.net.httpserver.HttpServer;
  * other than two known ones that 7.9.3 had as well (see {@link #RESIZE_HANDLE_REFUSAL} and
  * {@link #PREVIEW_SCRIPT_REFUSAL}).
  * <p>The configuration mirrors content-editor.jsp, the fullest of the six, plus insertdatetime and
- * fullscreen, which other editors load, so every plugin any of them uses is exercised. The
- * FontAwesome plugin is loaded but its dialog is not opened: its search-results markup carries its
- * own inline style, independent of TinyMCE.
+ * fullscreen, which other editors load, so every plugin any of them uses is exercised, including
+ * our own FontAwesome icon picker, whose vendored copy carries a local change of its own.
  *
  * @author SimIS Inc.
  */
@@ -316,6 +316,30 @@ class TinyMceStrictCspTest {
     assertEquals("inline-block", markerDisplay,
         "the scroll-into-view marker should get display:inline-block through the CSSOM, not a style "
             + "attribute; re-apply the local change in the vendored tinymce.js and tinymce.min.js");
+  }
+
+  @Test
+  void theIconPickerHidesItsNoResultsMessageUntilASearchFindsNothing() {
+    // The message used to be hidden by a style attribute in the dialog's HTML, which this policy
+    // refuses, so it showed whenever the picker opened. It is hidden by the plugin's stylesheet now,
+    // which the plugin links on init; wait for it, or the message is briefly unstyled either way.
+    waitUntil("Array.from(document.styleSheets)"
+        + ".some(sheet => (sheet.href || '').includes('/tinymce-plugins/fontawesome/css/fontawesome.css'))");
+    page.click("button[aria-label='Insert an icon']");
+    page.waitForSelector(".mce-fontawesome-search-container input");
+    Locator noResults = page.locator(".mce-fontawesome-search-noresults");
+    assertTrue(noResults.isHidden(), "the no-results message should be hidden when the picker opens");
+
+    page.fill(".mce-fontawesome-search-container input", "no-icon-is-called-this");
+    assertTrue(noResults.isVisible(), "a search that matches nothing should show the message");
+    page.fill(".mce-fontawesome-search-container input", "");
+    assertTrue(noResults.isHidden(), "clearing the search should hide the message again");
+
+    page.waitForTimeout(250);
+    assertEquals(List.of(), page.evaluate("() => window.cspViolations"),
+        "Content-Security-Policy refusals in the icon picker");
+    assertEquals(List.of(), consoleRefusals, "Content-Security-Policy refusals reported to the console");
+    assertEquals(List.of(), pageErrors, "uncaught errors on the editor page");
   }
 
   private static void serve(HttpExchange exchange) throws IOException {
