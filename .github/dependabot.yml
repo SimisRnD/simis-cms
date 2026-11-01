@@ -12,6 +12,12 @@
 # these PRs, check out its branch and run `python3 tools/vendor-sync.py`: it downloads the
 # jars the pom now declares from Maven Central, verifies their published checksums, replaces
 # the vendored copies and updates lib/PROVENANCE.sha256. Then run ci-test and commit.
+#
+# Test-scope bumps (mockito, playwright, junit, testcontainers, meanbean) are the exception:
+# the suite runs from lib/tests/, which vendor-sync.py does not touch, and the drift check only
+# REPORTS test-scope drift (its TEST SCOPE section) rather than failing on it. Such a PR goes
+# green while CI keeps running the old jar -- replace the jar in lib/tests/ by hand, or the
+# merge changes the pom and nothing else.
 version: 2
 updates:
   - package-ecosystem: "maven"
