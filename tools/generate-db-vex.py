@@ -92,10 +92,12 @@ INLINE_MITIGATIONS = "inline_mitigations_already_exist"
 # docker/db/Dockerfile; the schema declares no xml columns and the app calls no
 # XML/xpath functions.
 
+# libgdal39 is the PGDG build of GDAL that postgresql-17-postgis-3 now depends on; libgdal32
+# (Debian's own) is kept so statements already written for it still regenerate.
 GDAL_CHAIN = {
-    "libgdal32", "gdal-plugins", "gdal-data", "libaom3", "libheif1", "libde265-0",
+    "libgdal32", "libgdal39", "gdal-plugins", "gdal-data", "libaom3", "libheif1", "libde265-0",
     "libtiff6", "libhdf5-103-1", "libhdf5-hl-100", "libsqlite3-0", "libcurl4",
-    "libcurl3-gnutls", "libssh2-1", "libexpat1",
+    "libcurl3-gnutls", "libssh2-1", "libexpat1", "libcfitsio10", "libjxl0.7",
 }
 GDAL_REASON = (
     "Present only as a transitive dependency of the PostGIS package's GDAL stack. The "
@@ -140,8 +142,9 @@ LIBXML2_REASON = (
 # Shared by the MariaDB server CVEs below: what the two flagged packages are doing in a
 # PostgreSQL image at all.
 MARIADB_CLIENT_ONLY = (
-    "Both arrive only as dependencies of the PostGIS install's GDAL stack: libgdal32 is the sole "
-    "installed package depending on libmariadb3 (and libmariadb3 the sole one depending on "
+    "Both arrive only as dependencies of the PostGIS install's GDAL stack: GDAL's shared library "
+    "(packaged as libgdal39 at the time of writing) is the sole installed package depending on "
+    "libmariadb3 (and libmariadb3 the sole one depending on "
     "mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and "
     "postgis_raster, which is never created."
 )
@@ -399,6 +402,24 @@ CVE_POLICY = {
         "its client authentication plugins, and mariadb-common is a single configuration file. "
         + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as the fix.",
     ),
+    "CVE-2026-85746": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's ST_AsText() SQL function, which can write past its "
+        "output buffer when it serializes deeply nested GeometryCollections as WKT. The image "
+        "ships no MariaDB server and so no SQL functions: libmariadb3 is the client library with "
+        "its client authentication plugins, and mariadb-common is a single configuration file. "
+        "PostGIS's own ST_AsText() is separate code (liblwgeom) and is not the subject of this "
+        "CVE. " + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as "
+        "the fix.",
+    ),
+    "CVE-2026-92262": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's handling of the #mysql50# table-name prefix, which "
+        "bypasses the server's encoding of table names into filesystem paths. The image ships no "
+        "MariaDB server and so no table storage: libmariadb3 is the client library with its "
+        "client authentication plugins, and mariadb-common is a single configuration file. "
+        + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as the fix.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
@@ -448,6 +469,12 @@ CVE_ADDENDUM = {
         "never run here either -- no dbus daemon is started and every running process is "
         "postgres. Consistent with the existing CVE-2025-59375 and CVE-2026-66046 statements for "
         "this same package."
+    ),
+    "CVE-2026-115504": (
+        "The overflow is in ffgcls2(), reached only when CFITSIO reads a variable-length string "
+        "column from a crafted FITS file. libcfitsio10 arrives only as a dependency of GDAL, for "
+        "its FITS raster driver, which postgis_raster alone could load; nothing in this image "
+        "opens a FITS file."
     ),
     "CVE-2026-84450": (
         "Upstream places the affected range at libheif 1.19.0 through 1.23.2; the installed "
