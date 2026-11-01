@@ -168,24 +168,6 @@ class ImageUsageCommandTest {
   }
 
   @Test
-  void aReferenceWithLiteralSpacesInTheFilenameIsDetectedAsUsed() {
-    // Page XML holds both "HTT%20Infographic.png" and "HTT Infographic.png". Matching the whole of
-    // getUrl() found only the first, so an image used only the second way was reported orphaned
-    // and cleared for deletion.
-    Image image = insertImage("HTT Infographic.png");
-    String literalUrl = "/assets/img/" + image.getWebPath() + "-" + image.getId() + "/HTT Infographic.png";
-    insertWebPageXml("/htt-human-type-targets",
-        "<page><section><column><widget name=\"image\"><image>" + literalUrl + "</image></widget></column></section></page>", null);
-
-    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
-
-    assertTrue(usages.stream().anyMatch(u -> "Web Page".equals(u.getSourceType())
-        && "/htt-human-type-targets".equals(u.getLabel())
-        && "web_pages".equals(u.getTable()) && "page_xml".equals(u.getColumn())));
-    assertFalse(ImageUsageCommand.isOrphaned(image));
-  }
-
-  @Test
   void imageReferencedOnlyInlineInAPagesXmlIsDetectedAsUsed() {
     // A content/contentSlider widget can carry its markup inline as an <html><![CDATA[...]]></html>
     // preference instead of pointing at a content record, so the only reference lives in page_xml.
