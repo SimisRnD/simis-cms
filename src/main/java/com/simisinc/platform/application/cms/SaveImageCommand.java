@@ -66,6 +66,12 @@ public class SaveImageCommand {
       Date created = new Date(System.currentTimeMillis());
       SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
       image.setWebPath(sdf.format(created));
+      // A new record can start out described like an existing one (the library backfill's resized
+      // copies). Only on insert: an existing record's alt text and focal point have their own
+      // actions, and a bean that doesn't carry them must not reset them.
+      image.setAltText(imageBean.getAltText());
+      image.setFocalX(imageBean.getFocalX());
+      image.setFocalY(imageBean.getFocalY());
     }
     image.setFilename(imageBean.getFilename());
     image.setFileServerPath(imageBean.getFileServerPath());

@@ -34,6 +34,8 @@ import org.jobrunr.scheduling.BackgroundJobRequest;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.DeleteImageTagCommand;
+import com.simisinc.platform.application.cms.DownscaleImageCommand;
+import com.simisinc.platform.application.cms.DownscaleLibraryImagesCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.application.cms.SaveImageTagCommand;
 import com.simisinc.platform.application.cms.RegenerateImageVariantsCommand;
@@ -52,6 +54,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageTagMapRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageTagRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
+import com.simisinc.platform.infrastructure.scheduler.cms.DownscaleLibraryImageJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.RequestConstants;
@@ -73,6 +76,7 @@ public class AdminImageBrowserWidget extends GenericWidget {
   private static Log LOG = LogFactory.getLog(AdminImageBrowserWidget.class);
 
   static String JSP = "/admin/image-browser.jsp";
+  static String DOWNSCALE_JSP = "/admin/image-downscale-report.jsp";
 
   // A bulk delete request is rejected outright above this many ids, rather than silently
   // truncated -- truncation could apply the delete to a different subset than the admin reviewed
@@ -101,6 +105,17 @@ public class AdminImageBrowserWidget extends GenericWidget {
     // normal paginated grid below, since it's grouped by file_hash rather than one flat list.
     if ("duplicates".equals(context.getParameter("view"))) {
       return duplicatesViewAction(context);
+    }
+
+    // The oversized-image report (?view=downscale) and its per-row size preview. Admin only: the
+    // apply it leads to rewrites content across the site, and each preview decodes a large image.
+    if (context.hasRole("admin")) {
+      if (context.getParameterAsBoolean("downscalePreview")) {
+        return downscalePreviewAction(context);
+      }
+      if ("downscale".equals(context.getParameter("view"))) {
+        return downscaleReportAction(context);
+      }
     }
 
     // Standard request items
@@ -231,6 +246,48 @@ public class AdminImageBrowserWidget extends GenericWidget {
   }
 
   /**
+   * The report that comes before any oversized image is replaced: every candidate, where it is
+   * used, and what will and will not be switched. Nothing here changes anything. The new size of
+   * each image is filled in row by row from {@link #downscalePreviewAction}, one request at a
+   * time, because each one decodes a large image.
+   */
+  private WidgetContext downscaleReportAction(WidgetContext context) {
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("downscaleCandidates", DownscaleLibraryImagesCommand.findCandidates());
+    context.getRequest().setAttribute("downscaleLeftAlone", DownscaleLibraryImagesCommand.findLargeButNotOversized());
+    context.getRequest().setAttribute("downscaleMaxWidth", DownscaleImageCommand.MAX_WIDTH);
+    context.getRequest().setAttribute("downscaleMinFileLength", DownscaleLibraryImagesCommand.MIN_FILE_LENGTH);
+    context.setJsp(DOWNSCALE_JSP);
+    return context;
+  }
+
+  /**
+   * Returns {"imageId":N,"width":W,"height":H,"fileLength":B,"fileType":"..."} for the resized copy
+   * one image would get, or {"imageId":N,"skip":"reason"}. Computed in memory; nothing is written.
+   */
+  private WidgetContext downscalePreviewAction(WidgetContext context) {
+    long imageId = context.getParameterAsLong("imageId", -1);
+    Image image = imageId > -1 ? ImageRepository.findById(imageId) : null;
+    if (!DownscaleLibraryImagesCommand.isOversized(image)) {
+      context.setJson("{\"imageId\":" + imageId + ",\"skip\":\"Not an oversized image\"}");
+      return context;
+    }
+    DownscaleImageCommand.Downscaled downscaled = DownscaleLibraryImagesCommand.preview(image);
+    if (downscaled == null) {
+      context.setJson("{\"imageId\":" + imageId
+          + ",\"skip\":\"Would not come out smaller, or the file could not be read; kept as it is\"}");
+      return context;
+    }
+    context.setJson("{\"imageId\":" + imageId
+        + ",\"width\":" + downscaled.width()
+        + ",\"height\":" + downscaled.height()
+        + ",\"fileLength\":" + downscaled.bytes().length
+        + ",\"fileType\":\"" + JsonCommand.toJson(downscaled.fileType()) + "\"}");
+    return context;
+  }
+
+  /**
    * Renders the duplicate-review grid: every {@code file_hash} shared by 2+ images, each with its
    * member images fetched underneath it. Unlike the main grid, this is not paginated -- duplicate
    * groups are expected to be a small fraction of the library, not something to page through.
@@ -321,6 +378,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
       return generateMissingSizesAction(context);
     } else if ("regenerateVariantFormats".equals(command)) {
       return regenerateVariantFormatsAction(context);
+    } else if ("replaceOversizedImages".equals(command)) {
+      return replaceOversizedImagesAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
     } else if ("setAltText".equals(command)) {
@@ -360,6 +419,47 @@ public class AdminImageBrowserWidget extends GenericWidget {
           + " Nothing to re-encode.");
     }
     context.setRedirect("/admin/images");
+    return context;
+  }
+
+  /**
+   * Queues a replacement job for each image the admin reviewed on the report. Only the ids posted
+   * from the report are considered, and each must still be a candidate with references to switch,
+   * so an image that became oversized after the report was rendered is never touched unseen.
+   */
+  private WidgetContext replaceOversizedImagesAction(WidgetContext context) {
+    if (!context.hasRole("admin")) {
+      LOG.warn("No permission to replace oversized images");
+      return context;
+    }
+    Set<Long> reviewed = new LinkedHashSet<>();
+    String[] imageIds = context.getParameterMap().get("imageId");
+    if (imageIds != null) {
+      for (String rawImageId : imageIds) {
+        try {
+          reviewed.add(Long.parseLong(rawImageId.trim()));
+        } catch (NumberFormatException ignored) {
+        }
+      }
+    }
+    int queued = 0;
+    for (DownscaleLibraryImagesCommand.Candidate candidate : DownscaleLibraryImagesCommand.findCandidates()) {
+      long imageId = candidate.image().getId();
+      if (candidate.skipReason() == null && reviewed.contains(imageId)) {
+        BackgroundJobRequest.enqueue(new DownscaleLibraryImageJob(imageId, context.getUserId()));
+        queued++;
+      }
+    }
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.downscaleLibrary.start",
+        AuditEventCommand.SUCCESS, "image", null, null,
+        queued + " of " + reviewed.size() + " reviewed images queued for replacement");
+    if (queued > 0) {
+      context.setSuccessMessage(queued + " image" + (queued == 1 ? "" : "s")
+          + " queued. Check the Job Queue for progress; each finished image is recorded in the audit log.");
+    } else {
+      context.setSuccessMessage("Nothing to replace. Every reviewed image was already replaced or is no longer a candidate.");
+    }
+    context.setRedirect("/admin/images?view=downscale");
     return context;
   }
 

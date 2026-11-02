@@ -532,8 +532,11 @@ public class WebPageRepository {
    * <p>Both the link as given and its lower-cased form are evicted. Stored links are lower-cased on
    * write, but {@code WEB_PAGE_CACHE} keys on exactly what a caller passed -- so a request for a
    * mixed-case path can leave a negative entry under that spelling too.
+   *
+   * <p>Public for a write made outside this repository: the image library backfill
+   * ({@code DownscaleLibraryImagesCommand}) rewrites image URLs in page XML in place.
    */
-  private static void invalidateCachedPage(String link) {
+  public static void invalidateCachedPage(String link) {
     WebPageXmlLayoutCommand.removeCustomPage(link);
     if (link == null) {
       return;
