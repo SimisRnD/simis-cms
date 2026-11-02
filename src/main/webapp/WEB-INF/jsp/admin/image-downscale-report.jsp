@@ -19,7 +19,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <c:if test="${!empty title}">
-  <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
+  <h2 class="h1"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h2>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div class="button-group margin-bottom-10">
@@ -27,7 +27,7 @@
   <a class="button tiny secondary radius" href="${widgetContext.uri}?view=duplicates">Duplicates</a>
   <a class="button tiny primary radius" href="${widgetContext.uri}?view=downscale">Oversized</a>
 </div>
-<h3>Oversized images</h3>
+<h2 class="h3">Oversized images</h2>
 <p>
   Images over <c:out value="${number:suffix(downscaleMinFileLength)}"/> that are wider than
   <c:out value="${downscaleMaxWidth}"/>px. Each one that is used on a page can be replaced with a copy
@@ -115,7 +115,7 @@
   </c:otherwise>
 </c:choose>
 <c:if test="${!empty downscaleLeftAlone}">
-  <h4 class="margin-top-30">Over <c:out value="${number:suffix(downscaleMinFileLength)}"/>, left alone</h4>
+  <h3 class="h4 margin-top-30">Over <c:out value="${number:suffix(downscaleMinFileLength)}"/>, left alone</h3>
   <p>These are not wider than <c:out value="${downscaleMaxWidth}"/>px, or are a format that is not resized. They are listed so the report accounts for every large file.</p>
   <div class="table-scroll">
   <table class="unstriped">
