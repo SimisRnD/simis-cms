@@ -154,6 +154,15 @@ class ImageCommandTest {
   }
 
   @Test
+  void buildSrcsetLeavesOutTheOriginalWhenAVariantHasItsWidth() {
+    // An upload downscaled to 1600px is the same width as its large WebP variant. Two candidates
+    // with one descriptor is invalid srcset, and the WebP is the smaller download.
+    String result = ImageCommand.buildSrcset("/assets/img/1-1/x.jpg",
+        List.of(variant("medium", 800), variant("large", 1600)), 1600);
+    assertEquals("/assets/img/1-1/x.jpg?variant=medium 800w, /assets/img/1-1/x.jpg?variant=large 1600w", result);
+  }
+
+  @Test
   void buildSrcsetOmitsTheOriginalWhenItsWidthIsUnknown() {
     // width 0 means "not recorded" -- claiming a descriptor we cannot substantiate would be worse
     // than offering variants alone, so the old behaviour is preserved exactly
