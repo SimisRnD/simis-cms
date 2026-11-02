@@ -62,7 +62,7 @@
       <tbody>
         <c:forEach items="${downscaleCandidates}" var="candidate">
           <c:set var="image" value="${candidate.image}"/>
-          <tr class="downscale-row" data-image-id="${image.id}" data-file-length="${image.fileLength}" data-replaceable="${empty candidate.skipReason}">
+          <tr class="downscale-row" data-image-id="${image.id}" data-file-length="<c:out value="${image.fileLength}"/>" data-replaceable="<c:out value="${empty candidate.skipReason}"/>">
             <td>
               <a href="/assets/img/${fn:escapeXml(image.url)}" target="_blank" rel="noopener"><c:out value="${image.filename}"/></a><br />
               <small class="u-color-muted">Image <c:out value="${image.id}"/></small>
