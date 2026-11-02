@@ -1,8 +1,8 @@
 e07e4e7bcc9bfea352fccf323a280f45c3e7274ae484ed2db71837ab69ad83a7  lib/build/argon2/argon2-jvm-2.12.jar
 faa8169a2cf75067467592342d6d196334410d3ac7029a55dd3ba50e191bb2ad  lib/build/argon2/argon2-jvm-nolibs-2.12.jar
 4fb141dd8ef6b0585ffceea4bc49602fbc6312fa977e2c488794ea3e6aafecae  lib/build/argon2/jna-5.19.1.jar
-7b339126e92af79b07fcf96fe16fa5ba2a2854bb8ce7e03ac4776b9474fe7df5  lib/build/azure/azure-core-1.58.1.jar
-42f41cc327176141f258c00d5bdfe8e20c5bb599e3efc60df2ea1e2fcca26207  lib/build/azure/azure-core-http-okhttp-1.13.8.jar
+4f128671b71b874f1a8581ee8ad2906fbe3922df052674d3648c9af33ae6669a  lib/build/azure/azure-core-1.61.0.jar
+81c5d4e643702dfac8cd8be6e4d19813fec6d420463b9c51a6921cbb00d368d7  lib/build/azure/azure-core-http-okhttp-1.14.0.jar
 726eb1ca6fa08d295a7d45b2e7816de24996a907d035e537daabe7879607e50e  lib/build/azure/azure-identity-1.18.7.jar
 bad21d5eb306d82b85951b58a1d9e501a9b09970e452bee6d4d445fd5a91c519  lib/build/azure/azure-json-1.5.1.jar
 08b458481b656554605215ab0b165f68e6025359e52bea4736d032328d40ba3b  lib/build/azure/azure-xml-1.2.1.jar
@@ -11,7 +11,7 @@ b7e3d46c87bad2eb409b0e704916bcd81206168e357312dfddd0e253679cd9e0  lib/build/azur
 dfc41c817fbfa76057af6ffe4379dbca6a5e16b8e87df8bdda23f371756c2d09  lib/build/azure/msal4j-persistence-extension-1.3.0.jar
 12ae4a3a260095d7aeba2adea7ae396e8b9570db8b7b409e09a824c219cc0444  lib/build/azure/nimbus-jose-jwt-9.37.3.jar
 f75ca597789b3dac58f61857b9ac2e1034a68fa672db35055a8fb4509e325f28  lib/build/azure/reactive-streams-1.0.4.jar
-7d9b507c0d651de30a20dac634e7cb7ca908a7c23d57ce05e71bbb9bb79bf0c4  lib/build/azure/reactor-core-3.7.18.jar
+9a5f1bfc5ad0416a410ff63beaa279cc30c2da3ae9b111a678c83c99298a1551  lib/build/azure/reactor-core-3.8.7.jar
 c274208e4961855e8e341bcb74434af8771ce98a494aec48997028efeb4909f2  lib/build/bucket4j/bucket4j-core-8.10.1.jar
 1f916d052a3f8c0c10951f343f043f176ff2d3c2f9e380e15f0be673c5e67c48  lib/build/caffeine/caffeine-3.3.1.jar
 551ccd6ff1bb3f79c9857ab3d30543387c4b9a9de46ac826ee5c5f34a7013f98  lib/build/classgraph/classgraph-4.8.199.jar
@@ -35,7 +35,7 @@ edc8e3ec9796a5f41c1ae44b2d318507ee6ac1212f121d93d33699b3d0aff638  lib/build/flex
 1d8524be0a8f8de5a740f55e64c591e2c73a9a07034a7879384dd2a1b9648867  lib/build/geoip2/geoip2-5.2.0.jar
 4cc6993229122cb61ad8444f38d7e0da5a8623ae6c6f249858e0b28217978e77  lib/build/geoip2/maxmind-db-4.1.0.jar
 ae97e3519e35bdfe732e8b6fec07d7e73182a0f463febd1d965b668aebfbd5aa  lib/build/geojson/geojson-jackson-3.0.jar
-2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f  lib/build/gson/gson-2.14.0.jar
+96d3dd843dc2911de01cdabcd50064cb9e860353102a0a78c96fd833d396fc7d  lib/build/gson/gson-2.15.0.jar
 2be45c641b841e81df87292e181f2c203500c5f0e9a1676f135927387f3cf40b  lib/build/hikaricp/HikariCP-7.1.0.jar
 b8f0ffb6b87e0cb1893094f708d1f2f36fdd62d41f91d8852a5fd34de870eb1f  lib/build/im4java/im4java-1.4.0.jar
 21ddb598807d3a51a876704eb979d9296e1c6a6f47ab1826ff88c6d6a127a2d0  lib/build/jackson/jackson-annotations-2.22.jar
@@ -50,8 +50,8 @@ ec961697cbd631935b6fb6f673406861c75243521fb67fec10b59f1412ac50f7  lib/build/jack
 993302b16cd7056f21e779cc577d175a810bb4900ef73cd8fbf2b50f928ba9ce  lib/build/javamail/javax.activation-1.2.0.jar
 45b515e7104944c09e45b9c7bb1ce5dff640486374852dd2b2e80cc3752dfa11  lib/build/javamail/javax.mail-1.6.2.jar
 7497a8510c6ea93db2f0b022d5c8779738bdf579c6a6daf2a21f1873bffd8e59  lib/build/jmail/jmail-2.2.2.jar
-ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb  lib/build/jobrunr/asm-9.10.1.jar
-a836dcac1a9effb989339e77c4e20073929825086efc6d829feb73fbc6592bf4  lib/build/jobrunr/jobrunr-9.0.2.jar
+ae4e6e10d59d0a1500317764b21881ad883f8550e33c66e6142f7032c6fb566c  lib/build/jobrunr/asm-9.11.1.jar
+da4d82ab9e35675b36c1f146952d50d22c5583bef80e53b1a0417a3218602eea  lib/build/jobrunr/jobrunr-9.0.3.jar
 8c0494ab337b467a95883efef7551c8ee6dbb55f38ddf9ecc5e7336610c93fc7  lib/build/johnzon/geronimo-json_1.1_spec-1.5.jar
 cd3be391f599d4bef59bfb155257ad6b91e4521d19b8e972b0dfb52dfb0c5fc1  lib/build/johnzon/javax.json.bind-api-1.0.jar
 8a218ecf8535d52966ecab4520962cff3f61dc0ccd639e17ef394adb4d3ed32e  lib/build/johnzon/johnzon-core-1.3.1.jar
@@ -62,7 +62,7 @@ e9d8c856856680427f096d156f02a414289985c930998fcb519ce5be39b42003  lib/build/jsou
 5cc6e60b9e74d38c25fe4f2d22dfd40577f5b8396bc885f7061cd2c525a43b86  lib/build/jstl/jakarta.servlet.jsp.jstl-3.0.1.jar
 d55951aefedb543cb16193a873b92d22c40c3b8ba26cfa7ed9229eb118bb9c9b  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.2.jar
 6f64eac736db9434dd6925b4a518b9d1d17177652320c37916cf9ba3ce7d7d7a  lib/build/kotlin/kotlin-stdlib-2.3.21.jar
-c9efe6739636308930ecd2d3f282173e7d98a7c07592dbca466c02df8494f4a8  lib/build/libphonenumber/libphonenumber-9.0.41.jar
+9104a9ac04c118a9f59656f0d0b48e01a11cdee87e028b1371fb7a0d214af887  lib/build/libphonenumber/libphonenumber-9.0.42.jar
 73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c  lib/build/postgresql/postgresql-42.7.14.jar
 b27134820890c5e56ed57d27cc50b70742fa2c31b36a6e9e28e14a43f34ff96f  lib/build/rabbitmq/amqp-client-5.37.0.jar
 a87f14309be5458b901804cfd66788ed869a2b1d412e457c5098629e61f28ce1  lib/build/restfb/restfb-2026.9.0.jar
@@ -76,7 +76,7 @@ d4e0bb6857a25ee15e2082be6e83e1da897cfbabb025bfe01ae00346d7db7c78  lib/build/rome
 892898ff13b0cfda5f0bf689eb33b7c00c853b2531fcd4fe20fe5302d37981d8  lib/build/square/okio-3.17.0.jar
 3b13dcc3e1573047c2d507fc4f7fcb0bb0cbcd9d395da21d20e09406e2cd6a73  lib/build/square/okio-jvm-3.17.0.jar
 baa49c37698f9b1686beb00d0fc7fd324936ba393b9735be1b1eba225ebd418e  lib/build/square/square-24.0.0.20220921.jar
-663e511747a4dd55341a5e4b1497d4d23057c9ac1ddb05f00b5309ad44c2a4ba  lib/build/stripe/stripe-java-34.0.0.jar
+6544eb2cca80b3e6b6290c007b328508b39862e3a5df293a9cb6d2ccefe10538  lib/build/stripe/stripe-java-34.1.0.jar
 75dd1c045492bff8e1963aabb28bfe903c2064e11e27fe2f0f0aff1ad3d84476  lib/build/thymeleaf/attoparser-2.0.7.RELEASE.jar
 a90ddb25135df9e57ea9bd4e224e219554929758f9bae9965f29f81d60a3293f  lib/build/thymeleaf/javassist-3.29.2-GA.jar
 47fdd450407ff09b57df02f466f9b4c7d32818962d65f9d98e445c8b4d047603  lib/build/thymeleaf/ognl-3.3.4.jar
