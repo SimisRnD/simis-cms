@@ -288,13 +288,17 @@ public class PageServlet extends HttpServlet {
       // requirement is in the platform rather than in any page.
       String tileSource = FindMapTilesCredentialsCommand.cspImageSource();
       String mapTileImageSource = tileSource == null ? "" : " " + tileSource;
+      // Google Analytics requests images too, from www.google.com and www.googletagmanager.com.
+      // Added only when the site loads it; see CspPolicyCommand.googleAnalyticsImageSources. This is
+      // the whole policy for every page this servlet renders: nothing sets or overrides CSP per page.
 
       response.setHeader("Content-Security-Policy",
           "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
               + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self'; "
               + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
               + "https://api.weather.gov"
-              + mapTileImageSource + "; "
+              + mapTileImageSource
+              + CspPolicyCommand.googleAnalyticsImageSources() + "; "
               + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
               + "script-src 'self' 'nonce-" + cspNonce + "'");
 
