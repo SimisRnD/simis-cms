@@ -19,6 +19,7 @@ package com.simisinc.platform.application.items;
 import com.simisinc.platform.application.cms.FormatDateCommand;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -70,21 +71,30 @@ public class ItemDateFacetCommand {
   }
 
   /**
-   * The 4 fixed buckets, computed relative to "now" in the site's configured timezone -- the
-   * same convention CalendarSearchResultsWidget already uses for its own date-range query.
-   * Bounds are mutually exclusive so bucket counts partition the full result set.
+   * The 4 fixed buckets, measured back from now. The 7- and 30-day edges are exact durations, so
+   * they are the same instant whatever the site's timezone. The year edge is a calendar year in
+   * the site's configured timezone -- the same convention CalendarSearchResultsWidget uses for its
+   * own date-range query. Bounds are mutually exclusive so bucket counts partition the full result
+   * set.
    */
   public static List<DateFacetBucket> buckets() {
-    ZoneId siteZoneId = FormatDateCommand.getSiteZoneId();
-    ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), siteZoneId);
+    return buckets(Instant.now(), FormatDateCommand.getSiteZoneId());
+  }
+
+  /** {@link #buckets()} for a given now and site timezone, so tests can fix both. */
+  static List<DateFacetBucket> buckets(Instant now, ZoneId siteZoneId) {
+    // Days are subtracted from the instant rather than from the site's local time. Counting
+    // calendar days back in a zone that observes daylight saving time makes the window an hour
+    // longer or shorter whenever a change falls inside it -- for the 7-day edge, the week after
+    // each change -- which moved the edge and made it differ between site timezones.
+    Timestamp sevenDaysAgo = Timestamp.from(now.minus(Duration.ofDays(7)));
+    Timestamp thirtyDaysAgo = Timestamp.from(now.minus(Duration.ofDays(30)));
 
     // See UpcomingCalendarEventsWidget: toLocalDateTime() drops the offset and valueOf re-reads it
     // in the JVM zone, so these bucket edges moved by that offset wherever the two disagree
     // (issue #1386). The buckets are relative windows, so the error was less visible here than on a
     // calendar -- it still put each boundary in the wrong place.
-    Timestamp sevenDaysAgo = Timestamp.from(now.minusDays(7).toInstant());
-    Timestamp thirtyDaysAgo = Timestamp.from(now.minusDays(30).toInstant());
-    Timestamp oneYearAgo = Timestamp.from(now.minusYears(1).toInstant());
+    Timestamp oneYearAgo = Timestamp.from(ZonedDateTime.ofInstant(now, siteZoneId).minusYears(1).toInstant());
 
     List<DateFacetBucket> buckets = new ArrayList<>();
     buckets.add(new DateFacetBucket("last7", "Last 7 days", sevenDaysAgo, null));

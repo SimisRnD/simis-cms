@@ -22,7 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 /**
  * Builds the Content-Security-Policy-Report-Only header used to test a stricter policy against real
- * traffic before enforcing it.
+ * traffic before enforcing it, and the image hosts Google Analytics adds to the enforced policy.
  *
  * <p>
  * The remaining directives in #1430 cannot be written by reading the source. Every third-party
@@ -101,6 +101,34 @@ public class CspPolicyCommand {
       policy = policy + "; report-to " + REPORT_ENDPOINT_NAME;
     }
     return policy;
+  }
+
+  /**
+   * The image hosts Google Analytics needs, for the enforced img-src, or an empty string when the
+   * site does not load Google Analytics.
+   *
+   * <p>
+   * gtag.js requests images as well as making fetch calls: Google Signals' audience pixel on
+   * www.google.com (and on Google's country domains) and a pixel on www.googletagmanager.com. GA's
+   * tag diagnostics reported both blocked by img-src. CSP cannot wildcard a top-level domain, so
+   * {@code *.google.com} covers US visitors and requests to other country domains stay blocked.
+   * </p>
+   *
+   * <p>
+   * Only when Google Analytics is configured, under the same condition main.jsp uses to load
+   * gtag.js. img-src exists to close the CSS exfiltration channel (#1430), and each host it admits
+   * is somewhere an injected background-image could send a request. A site that does not use Google
+   * Analytics gains nothing from widening it.
+   * </p>
+   *
+   * @return the sources with a leading space, ready to append, or ""
+   */
+  public static String googleAnalyticsImageSources() {
+    if (!"google".equals(LoadSitePropertyCommand.loadByName("analytics.service"))
+        || StringUtils.isBlank(LoadSitePropertyCommand.loadByName("analytics.google.key"))) {
+      return "";
+    }
+    return " https://*.google.com https://*.googletagmanager.com";
   }
 
   /** The Reporting-Endpoints header value that gives report-to its destination. */
