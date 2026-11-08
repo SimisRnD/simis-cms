@@ -81,9 +81,13 @@ public class BlogPostWidget extends GenericWidget {
     // also read elsewhere (e.g. list widgets) expecting the raw, unprocessed value (issue #411 PR2).
     context.getRequest().setAttribute("blogPostBodyHtml", ContentVideoEmbedCommand.privacyEnhanceEmbeds(ContentImageSrcsetCommand.enhanceImageTags(blogPost.getBody())));
 
-    // Set the HTML page title -- already includes the blog name, so the container must not
-    // also append the WebPage's own title (e.g. a wildcard page like /news/*) on top of it
-    context.setComposedPageTitle(blogPost.getTitle() + " - " + blog.getName());
+    // Set the HTML page title to the headline alone. It was "<headline> - <blog name>", and with
+    // the " | <site name>" main.jsp adds, an SEO review (Oct 2026) found the section name pushed 87
+    // of the site's 91 over-long titles past Google's limit. The URL already says which blog a post
+    // is in. Still composed, so the container does not append the WebPage's own title (e.g. a
+    // wildcard page like /news/*) either. og:title and twitter:title read the same value, so they
+    // follow.
+    context.setComposedPageTitle(blogPost.getTitle());
     if (StringUtils.isNotBlank(blogPost.getSummary())) {
       context.setPageDescription(blogPost.getSummary());
     }
