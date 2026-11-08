@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 21,
+  "version": 22,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -114,8 +114,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The out-of-memory condition needs a crafted TIFF passed to TIFFRasterScanlineSize64(), which PROJ does not call itself. libtiff is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which uses libtiff only to read GeoTIFF grid files. It imports TIFFClientOpen, TIFFReadDirectory, TIFFReadEncodedStrip/Tile and TIFFGetField, and no write or TIFFSetField function. No crafted TIFF can reach it. There is no TIFF file anywhere on the image's filesystem: its seven grids are NTv2 (.gsb) and GTX (.gtx) files, which PROJ reads with its own code. PROJ's networking is off, so it downloads none. A database user can name a grid file in a PROJ string passed to ST_Transform() or ST_TransformPipeline(), but only one already on the server's disk, and placing a file there from SQL needs pg_write_server_files or superuser, which PostgreSQL's documentation notes can be used to gain superuser-level access; a crafted TIFF would give such a user nothing they do not already have. The other installed packages depending on libtiff6 (GDAL, libgeotiff5 and poppler) are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -213,8 +213,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The integer overflow in sqlite3KeyInfoFromExprList() needs an attacker who can run arbitrary SQL, with a SELECT whose ORDER BY has a very large number of expressions. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. The SQL run against it is PROJ's own. The values PostGIS hands PROJ, such as authority names and codes from a PROJ string, are bound as parameters (libproj imports sqlite3_bind_text and the other bind functions), and PostGIS imports none of PROJ's insert-statement or database-path functions, so no database user can change a query's shape, let alone its ORDER BY."
     },
     {
       "vulnerability": {
@@ -234,8 +234,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in the curl command-line tool, which mishandles a schemeless URL combined with --proto-default sftp or scp and so skips its SSH host-verification options; libcurl itself honors the request as made. The curl tool is not installed (no curl binary is present); libcurl4 and libcurl3-gnutls are the libraries alone."
     },
     {
       "vulnerability": {
@@ -253,7 +253,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The overflow is in decoding PixarLog-compressed images to the PIXARLOGDATAFMT_8BITABGR output format. libtiff 4.5.0 uses that format only when the application selects it with TIFFSetField(TIFFTAG_PIXARLOGDATAFMT); its own guess, PixarLogGuessDataFmt(), never picks it. PROJ imports no TIFFSetField, so the vulnerable decoding never runs, whatever file it opens. libtiff is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which uses libtiff only to read GeoTIFF grid files. It imports TIFFClientOpen, TIFFReadDirectory, TIFFReadEncodedStrip/Tile and TIFFGetField, and no write or TIFFSetField function. No crafted TIFF can reach it. There is no TIFF file anywhere on the image's filesystem: its seven grids are NTv2 (.gsb) and GTX (.gtx) files, which PROJ reads with its own code. PROJ's networking is off, so it downloads none. A database user can name a grid file in a PROJ string passed to ST_Transform() or ST_TransformPipeline(), but only one already on the server's disk, and placing a file there from SQL needs pg_write_server_files or superuser, which PostgreSQL's documentation notes can be used to gain superuser-level access; a crafted TIFF would give such a user nothing they do not already have. The other installed packages depending on libtiff6 (GDAL, libgeotiff5 and poppler) are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -387,8 +387,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The denial of service needs a crafted TIFF with an oversized SamplesPerPixel tag, which libtiff reads whenever it opens a file. libtiff is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which uses libtiff only to read GeoTIFF grid files. It imports TIFFClientOpen, TIFFReadDirectory, TIFFReadEncodedStrip/Tile and TIFFGetField, and no write or TIFFSetField function. No crafted TIFF can reach it. There is no TIFF file anywhere on the image's filesystem: its seven grids are NTv2 (.gsb) and GTX (.gtx) files, which PROJ reads with its own code. PROJ's networking is off, so it downloads none. A database user can name a grid file in a PROJ string passed to ST_Transform() or ST_TransformPipeline(), but only one already on the server's disk, and placing a file there from SQL needs pg_write_server_files or superuser, which PostgreSQL's documentation notes can be used to gain superuser-level access; a crafted TIFF would give such a user nothing they do not already have. The other installed packages depending on libtiff6 (GDAL, libgeotiff5 and poppler) are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -628,7 +628,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "libssh2 is used only by libcurl, for SCP and SFTP transfers: libcurl4 and libcurl3-gnutls are the only installed packages depending on it. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the server through vector PostGIS's PROJ, but never called. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim."
     },
     {
       "vulnerability": {
@@ -646,7 +646,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "libssh2 is used only by libcurl, for SCP and SFTP transfers: libcurl4 and libcurl3-gnutls are the only installed packages depending on it. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the server through vector PostGIS's PROJ, but never called. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim."
     },
     {
       "vulnerability": {
@@ -820,7 +820,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The cookie leak needs an application to send two HTTP requests on the same easy handle, the first with a custom Host: header. Here libcurl makes no transfers at all. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which links libcurl to download remote grid files. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -856,7 +856,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "libssh2 is used only by libcurl, for SCP and SFTP transfers: libcurl4 and libcurl3-gnutls are the only installed packages depending on it. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the server through vector PostGIS's PROJ, but never called. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim."
     },
     {
       "vulnerability": {
@@ -931,7 +931,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The flaw needs libcurl to reuse a live connection for a STARTTLS transfer whose TLS configuration does not match. Here libcurl makes no transfers at all. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which links libcurl to download remote grid files. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -979,7 +979,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The flaw needs libcurl to reuse a connection for Negotiate-authenticated transfers set to different services. Here libcurl makes no transfers at all. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which links libcurl to download remote grid files. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -1000,7 +1000,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The leak needs a reused handle making sequential transfers through different proxies configured from the environment, the first with Digest proxy authentication. Here libcurl makes no transfers at all. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which links libcurl to download remote grid files. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -1021,7 +1021,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "The flaw needs libcurl to reuse a pooled connection after its client-certificate (mTLS) options change. Here libcurl makes no transfers at all. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which links libcurl to download remote grid files. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, which is never created."
     },
     {
       "vulnerability": {
@@ -1132,7 +1132,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+      "impact_statement": "libssh2 is used only by libcurl, for SCP and SFTP transfers: libcurl4 and libcurl3-gnutls are the only installed packages depending on it. libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which only postgis_raster loads, and it is never created. libcurl4 is loaded into the server through vector PostGIS's PROJ, but never called. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim."
     },
     {
       "vulnerability": {
@@ -1267,7 +1267,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite, so enabling it does not change this analysis. Consistent with the existing CVE-2025-7458 statement for this same package."
+      "impact_statement": "The out-of-bounds read is in SQLite's FTS5 full-text extension, fts5LeafSeek(), and needs a crafted database with a malformed FTS5 leaf page queried with MATCH. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. proj.db defines no FTS5 or other virtual tables (none among its 107 schema objects), and PROJ issues no MATCH query, so the FTS5 code never runs. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite."
     },
     {
       "vulnerability": {
@@ -1285,7 +1285,7 @@
       ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite, so enabling it does not change this analysis. Consistent with the existing CVE-2025-7458 statement for this same package."
+      "impact_statement": "The heap overflow is in SQLite's FTS5 full-text extension, fts5ChunkIterate(), and needs a crafted database with malformed FTS5 continuation-page metadata queried with MATCH. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. proj.db defines no FTS5 or other virtual tables (none among its 107 schema objects), and PROJ issues no MATCH query, so the FTS5 code never runs. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite."
     },
     {
       "vulnerability": {
@@ -1302,8 +1302,8 @@
         }
       ],
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The CVE is attributed to process_command_opts(), an option-handling routine belonging to libtiff's command-line utilities; this image installs the libtiff6 shared library as a GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is likewise reachable only through postgis_raster. Consistent with the existing CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in process_command_opts() in tools/tiffcrop.c, the tiffcrop command-line tool. That tool ships in libtiff-tools, which is not installed (no tiffcrop, tiffcp or tiff2pdf binary is present); libtiff6 is the library alone."
     },
     {
       "vulnerability": {
@@ -2269,5 +2269,5 @@
       "impact_statement": "The overflow is in gz_vacate(), part of zlib's gzFile write path. The advisory bounds the affected range at zlib 1.3.1.2 through 1.3.2, and upstream zlib 1.2.13's gzwrite.c has no gz_vacate() at all (it first appears in later releases). The installed zlib1g is 1:1.2.13.dfsg-1, built from 1.2.13 with only two build patches (cflags-for-minizip, use-dso-really), neither touching gzwrite.c. The vulnerable code is not present in the delivered library."
     }
   ],
-  "last_updated": "2026-11-08T17:49:37+00:00"
+  "last_updated": "2026-11-08T18:11:54+00:00"
 }
