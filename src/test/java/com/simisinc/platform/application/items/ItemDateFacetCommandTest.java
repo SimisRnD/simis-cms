@@ -24,9 +24,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -36,6 +40,8 @@ import com.simisinc.platform.application.items.ItemDateFacetCommand.DateFacetBuc
  * @author SimIS Inc.
  */
 class ItemDateFacetCommandTest {
+
+  private static final ZoneId NEW_YORK = ZoneId.of("America/New_York");
 
   /**
    * ItemDateFacetCommand.buckets() reads "site.timezone" via FormatDateCommand.getSiteZoneId()
@@ -171,5 +177,41 @@ class ItemDateFacetCommandTest {
       assertTrue(driftMillis < 5_000L,
           "the last-7-days edge was " + driftMillis + "ms away from seven days before now");
     }
+  }
+
+  // The two tests above read the real clock, so they could only see a daylight saving change
+  // during the week after one, which is how this was found (US clocks went back on 2026-11-01 and
+  // both failed until the window passed). These fix "now" on the far side of each change instead.
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({
+      // US clocks went back an hour at 2026-11-01 06:00 UTC
+      "after the fall change, 2026-11-03T12:00:00Z, 2026-10-27T12:00:00Z, 2026-10-04T12:00:00Z",
+      // and forward an hour at 2026-03-08 07:00 UTC
+      "after the spring change, 2026-03-10T12:00:00Z, 2026-03-03T12:00:00Z, 2026-02-08T12:00:00Z"
+  })
+  void dayEdgesAreExactDurationsAcrossADaylightSavingChange(String when, String now, String sevenDaysAgo,
+      String thirtyDaysAgo) {
+    List<DateFacetBucket> buckets = ItemDateFacetCommand.buckets(Instant.parse(now), NEW_YORK);
+    assertEquals(Instant.parse(sevenDaysAgo), buckets.get(0).getStart().toInstant(), "last 7 days, " + when);
+    assertEquals(Instant.parse(thirtyDaysAgo), buckets.get(1).getStart().toInstant(), "8-30 days ago, " + when);
+  }
+
+  @Test
+  void dayEdgesAreTheSameInstantInEverySiteTimezoneAcrossADaylightSavingChange() {
+    Instant now = Instant.parse("2026-11-03T12:00:00Z");
+    List<DateFacetBucket> newYork = ItemDateFacetCommand.buckets(now, NEW_YORK);
+    List<DateFacetBucket> tokyo = ItemDateFacetCommand.buckets(now, ZoneId.of("Asia/Tokyo"));
+    assertEquals(tokyo.get(0).getStart().toInstant(), newYork.get(0).getStart().toInstant());
+    assertEquals(tokyo.get(1).getStart().toInstant(), newYork.get(1).getStart().toInstant());
+  }
+
+  @Test
+  void theYearEdgeIsTheSameLocalDateAndTimeAYearEarlier() {
+    // A year is a calendar unit, so it is taken in the site's timezone: noon on 29 February 2028
+    // in New York goes back to noon on 28 February 2027 there, not 366 days.
+    Instant now = Instant.parse("2028-02-29T17:00:00Z");
+    List<DateFacetBucket> buckets = ItemDateFacetCommand.buckets(now, NEW_YORK);
+    assertEquals(Instant.parse("2027-02-28T17:00:00Z"), buckets.get(2).getStart().toInstant());
   }
 }
