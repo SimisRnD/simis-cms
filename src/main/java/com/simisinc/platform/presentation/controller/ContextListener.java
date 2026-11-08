@@ -295,6 +295,7 @@ public class ContextListener implements ServletContextListener {
       "/css/platform-leaderboard.css",
       "/css/platform-sitemap-editor.css",
       "/css/platform-todo-list.css",
+      "/javascript/ga-contact-click.js",
       "/javascript/platform-editor.js",
       "/javascript/platform-password-reveal.js",
       "/javascript/web-vitals-collector.js",
