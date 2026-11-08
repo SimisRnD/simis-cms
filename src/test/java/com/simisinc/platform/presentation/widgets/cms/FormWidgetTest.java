@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -33,6 +34,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
@@ -169,6 +171,25 @@ class FormWidgetTest extends WidgetBase {
 
       Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
       Assertions.assertEquals("contact", widgetContext.getRequest().getAttribute("formUniqueId"));
+      Assertions.assertEquals(Boolean.TRUE, widgetContext.getRequest().getAttribute("countAsLead"));
+    }
+  }
+
+  @Test
+  void executeSuccessDoesNotCountASpamFlaggedSubmissionAsALead() {
+    // The sender sees the same success page, but generate_lead is the GA property's only key event
+    initCommonPreferences();
+    widgetContext.addSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess", "true");
+    widgetContext.addSharedRequestValue(widgetContext.getUniqueId() + "formWidgetFlaggedAsSpam", "true");
+
+    try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+
+      Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+      Assertions.assertEquals(Boolean.FALSE, widgetContext.getRequest().getAttribute("countAsLead"));
     }
   }
 
@@ -279,11 +300,45 @@ class FormWidgetTest extends WidgetBase {
           Assertions.assertNull(widgetContext.getErrorMessage());
           workflowManagerMockedStatic.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()));
           Assertions.assertEquals("true", widgetContext.getSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess"));
+          Assertions.assertNull(widgetContext.getSharedRequestValue(widgetContext.getUniqueId() + "formWidgetFlaggedAsSpam"),
+              "a submission the spam rules did not flag counts as a lead");
           // issue #565 phase 1 -- a successful submission must be offered to the funnel tracker; the
           // tracker itself decides (via site properties) whether "contact" is the configured funnel
           funnelEventCommand.verify(() -> FunnelEventCommand.recordContactFormSubmitted(eq("contact"), any()));
         }
       }
+    }
+  }
+
+  @Test
+  void postSpamFlaggedSubmissionIsAcceptedButMarkedSoItIsNotCountedAsALead() {
+    initCommonPreferences();
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "organization", "Organization");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<FormCommand> formCommand = mockStatic(FormCommand.class);
+        MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(any())).thenReturn(new FormData());
+      // The spam rules flag it, e.g. by country or a listed phrase
+      formCommand.when(() -> FormCommand.checkNotificationRules(any(FormData.class))).thenAnswer(invocation -> {
+        ((FormData) invocation.getArgument(0)).setFlaggedAsSpam(true);
+        return true;
+      });
+
+      Assertions.assertNull(new FormWidget().post(widgetContext));
+
+      // Saved and shown the success page like any other, so the sender learns nothing
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.save(any()));
+      Assertions.assertEquals("true", widgetContext.getSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess"));
+      Assertions.assertEquals("true", widgetContext.getSharedRequestValue(widgetContext.getUniqueId() + "formWidgetFlaggedAsSpam"));
     }
   }
 
