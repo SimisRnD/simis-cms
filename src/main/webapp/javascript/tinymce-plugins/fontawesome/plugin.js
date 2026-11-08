@@ -1,5 +1,10 @@
 // Created by Josh Hunt
 // joshhunt180@gmail.com
+/* Local change (SimIS, issue #1999): the "No icons matched your search." message is hidden by
+ * .mce-fontawesome-search-noresults in css/fontawesome.css instead of a style attribute in the
+ * dialog's HTML. A style-src without 'unsafe-inline' refuses the attribute, so the message showed
+ * in the icon list every time the picker opened. Search still shows and hides it through
+ * element.style, which that policy allows. */
 // eslint-disable-next-line no-undef
 tinymce.PluginManager.add('fontawesome', function (editor, url) {
     var version = '6.1.2'
@@ -58,7 +63,7 @@ tinymce.PluginManager.add('fontawesome', function (editor, url) {
       Object.keys(categoryList).map(function (type) {
         panelHtml += groupHtml(categoryList[type])
       })
-      panelHtml += '<p class="mce-fontawesome-search-noresults" style="display: none;">No icons matched your search.</p>'
+      panelHtml += '<p class="mce-fontawesome-search-noresults">No icons matched your search.</p>'
 
     win = editor.windowManager.open({
       title: 'Icons',
