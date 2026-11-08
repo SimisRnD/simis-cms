@@ -103,6 +103,10 @@ public class FormWidget extends GenericWidget {
       // post() saves the submission, so a lead in GA and its stored form data carry the same id.
       context.getRequest().setAttribute("formUniqueId",
           formDefinition != null ? formDefinition.getUniqueId() : context.getPreferences().get("formUniqueId"));
+      // generate_lead is the property's only key event, so it counts submissions that look like
+      // leads: not ones the spam rules flagged (they stay reviewable in /admin/form-data)
+      context.getRequest().setAttribute("countAsLead",
+          !"true".equals(context.getSharedRequestValue(context.getUniqueId() + "formWidgetFlaggedAsSpam")));
       context.setJsp(SUCCESS_JSP);
       return context;
     }
@@ -385,6 +389,11 @@ public class FormWidget extends GenericWidget {
 
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
+    // A submission the spam rules flagged is accepted like any other, and its sender sees the same
+    // success page, but form-success.jsp does not count it as a lead in Google Analytics
+    if (formData.getFlaggedAsSpam()) {
+      context.addSharedRequestValue(context.getUniqueId() + "formWidgetFlaggedAsSpam", "true");
+    }
 
     return null;
   }
