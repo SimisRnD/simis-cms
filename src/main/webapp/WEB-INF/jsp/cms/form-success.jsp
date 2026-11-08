@@ -28,10 +28,13 @@
 <p><c:out value="${successMessage}" /></p>
 <%-- Counts the lead in Google Analytics. This JSP is only reached after FormWidget.post() accepts a
      submission (captcha, honeypot and validation passed, data saved), so a submit attempt, a failed
-     validation or caught spam never fires it. main.jsp defines gtag at the end of <body>, after widget
-     output, so the event waits for DOMContentLoaded; where main.jsp does not load analytics at all
-     (not configured, Do-Not-Track/GPC honored, consent not given, admin pages) gtag is never defined
-     and nothing is sent. --%>
+     validation or caught spam never fires it. It renders once: the success flag is cleared after
+     this page is drawn, so a reload shows the empty form again. A submission the spam rules flagged
+     is still saved and shown this page, but countAsLead is false for it. main.jsp defines gtag at
+     the end of <body>, after widget output, so the event waits for DOMContentLoaded; where main.jsp
+     does not load analytics at all (not configured, Do-Not-Track/GPC honored, consent not given,
+     admin pages) gtag is never defined and nothing is sent. --%>
+<c:if test="${countAsLead}">
 <script nonce="${cspNonce}">
   document.addEventListener('DOMContentLoaded', function () {
     if (typeof gtag === 'function') {
@@ -39,3 +42,4 @@
     }
   });
 </script>
+</c:if>

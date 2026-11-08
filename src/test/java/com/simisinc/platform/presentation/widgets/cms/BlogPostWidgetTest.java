@@ -116,6 +116,10 @@ class BlogPostWidgetTest extends WidgetBase {
     }
 
     Assertions.assertEquals("Launch Announcement", widgetContext.getArticleHeadline());
+    // The headline alone, renders as "Launch Announcement | <site name>": the blog name made 87 of
+    // the site's 91 over-long titles too long. Composed, so the /news/* page's title isn't added.
+    Assertions.assertEquals("Launch Announcement", widgetContext.getPageTitle());
+    Assertions.assertTrue(widgetContext.isPageTitleComposed());
     Assertions.assertEquals(blogPost.getPublished(), widgetContext.getArticlePublishedDate());
     Assertions.assertEquals(blogPost.getModified(), widgetContext.getArticleModifiedDate());
     Assertions.assertEquals("Jane Author", widgetContext.getArticleAuthorName());

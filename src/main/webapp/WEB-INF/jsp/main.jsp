@@ -1238,6 +1238,7 @@
         gtag('js', new Date());
         gtag('config', '${js:escape(analyticsPropertyMap['analytics.google.key'])}');
       </script>
+      <script src="${ctx}/javascript/ga-contact-click.js?v=${fn:escapeXml(applicationScope.assetVersion)}" nonce="${cspNonce}"></script>
     </c:if>
     <c:if test="${!empty analyticsPropertyMap['analytics.simplifi.value']}">
       <script async src='https://tag.simpli.fi/sifitag/${js:escape(analyticsPropertyMap['analytics.simplifi.value'])}' nonce="${cspNonce}"></script>
