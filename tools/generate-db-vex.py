@@ -149,6 +149,23 @@ MARIADB_CLIENT_ONLY = (
     "postgis_raster, which is never created."
 )
 
+# Shared by the SQLite CVEs below. Unlike the rest of GDAL_CHAIN, libsqlite3 IS loaded into
+# the database server -- through vector PostGIS's PROJ dependency -- which is why these are
+# triaged per CVE instead of by the GDAL package rule. Verified against the image built from
+# docker/db/Dockerfile on 2026-11-08 (postgresql-17-postgis-3 3.7.0, libproj25 9.9.0,
+# libsqlite3-0 3.40.1-2+deb12u2).
+SQLITE_VIA_PROJ = (
+    "libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links "
+    "PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, "
+    "with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the "
+    "server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports "
+    "none of PROJ's functions that change where it looks for its database "
+    "(proj_context_set_database_path, proj_context_set_search_paths), so no database user can "
+    "point it at another file. The other installed packages depending on libsqlite3 are GDAL "
+    "and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled "
+    "in by GDAL's poppler) and gpg, which nothing runs at runtime."
+)
+
 CVE_POLICY = {
     "CVE-2023-2953": (
         NOT_IN_PATH,
@@ -419,6 +436,63 @@ CVE_POLICY = {
         "MariaDB server and so no table storage: libmariadb3 is the client library with its "
         "client authentication plugins, and mariadb-common is a single configuration file. "
         + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as the fix.",
+    ),
+    "CVE-2026-102523": (
+        NOT_PRESENT,
+        "The flaw is in the MariaDB server's ALTER TABLE ... CONVERT ... PARTITION, which builds "
+        "table file paths from partition names without applying filename encoding. The image "
+        "ships no MariaDB server and so no tables or partitions: libmariadb3 is the client library "
+        "with its client authentication plugins, and mariadb-common is a single configuration "
+        "file. " + MARIADB_CLIENT_ONLY + " MariaDB also names 10.11.19, the installed version, as "
+        "the fix.",
+    ),
+    "CVE-2026-85091": (
+        NOT_PRESENT,
+        "The overflow is in gz_vacate(), part of zlib's gzFile write path. The advisory bounds the "
+        "affected range at zlib 1.3.1.2 through 1.3.2, and upstream zlib 1.2.13's gzwrite.c has no "
+        "gz_vacate() at all (it first appears in later releases). The installed zlib1g is "
+        "1:1.2.13.dfsg-1, built from 1.2.13 with only two build patches (cflags-for-minizip, "
+        "use-dso-really), neither touching gzwrite.c. The vulnerable code is not present in the "
+        "delivered library.",
+    ),
+    "CVE-2026-76844": (
+        NOT_IN_PATH,
+        "The overflow is in zlib's gzFile write path: after an underlying write() fails, "
+        "gz_write() leaves a stale input pointer that a later gzwrite(), gzfwrite(), gzprintf(), "
+        "gzputs() or gzputc() call writes through. The running database never uses that API. The "
+        "postgres server binary imports deflate() and no gz* function, and PostGIS "
+        "(postgis-3.so), PROJ (libproj.so.25) and libpq import none either. The installed code "
+        "that does call gzwrite() is the pg_dump and pg_basebackup client tools, for "
+        "gzip-compressed output, and libxml2's compressed-file output. Nothing in the image's "
+        "entrypoint or in this repository runs pg_dump or pg_basebackup, and neither "
+        "PostgreSQL's xml functions nor PostGIS's GML/KML input writes files through libxml2. "
+        "Running pg_dump or pg_basebackup with gzip compression inside this container would void "
+        "this claim. (Trivy titles this CVE as a webpack-dev-middleware issue; its description, "
+        "as above, is zlib's.)",
+    ),
+    "CVE-2026-119373": (
+        NOT_IN_PATH,
+        "The overflow is in SQLite's FTS5 full-text extension, fts5MergeRowidLists(), and needs a "
+        "detail=none FTS5 table populated with negative rowids and then a prefix MATCH query. "
+        + SQLITE_VIA_PROJ + " proj.db defines no FTS5 or other virtual tables (none among its "
+        "107 schema objects), and PROJ issues only its own fixed queries against it, so the FTS5 "
+        "code never runs and no database user can create such a table. PostgreSQL's own "
+        "full-text search (tsvector/tsquery) is unrelated code and does not use SQLite.",
+    ),
+    "CVE-2026-119374": (
+        NOT_IN_PATH,
+        "The overflow is in SQLite's FTS5 full-text extension, fts5DoSecureDelete(), and needs a "
+        "database file with a corrupted FTS5 index that is then deleted from with secure-delete "
+        "enabled. " + SQLITE_VIA_PROJ + " proj.db has no FTS5 index (no FTS5 or other virtual "
+        "tables among its 107 schema objects), PROJ only reads it, and no attacker-supplied "
+        "database file reaches SQLite.",
+    ),
+    "CVE-2026-119379": (
+        NOT_IN_PATH,
+        "The overflow is in sqlite3changeset_apply(), part of SQLite's session extension, and "
+        "needs an attacker-supplied changeset. " + SQLITE_VIA_PROJ + " Neither PROJ nor PostGIS "
+        "imports any session, changeset or rebaser function, so the session extension never "
+        "runs.",
     ),
 }
 
