@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 20,
+  "version": 21,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1940,7 +1940,334 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-102523"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libmariadb3"
+            },
+            {
+              "@id": "pkg:deb/debian/mariadb-common"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in the MariaDB server's ALTER TABLE ... CONVERT ... PARTITION, which builds table file paths from partition names without applying filename encoding. The image ships no MariaDB server and so no tables or partitions: libmariadb3 is the client library with its client authentication plugins, and mariadb-common is a single configuration file. Both arrive only as dependencies of the PostGIS install's GDAL stack: GDAL's shared library (packaged as libgdal39 at the time of writing) is the sole installed package depending on libmariadb3 (and libmariadb3 the sole one depending on mariadb-common), and the only binaries linking libmariadb.so.3 are libgdal and postgis_raster, which is never created. MariaDB also names 10.11.19, the installed version, as the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-113351"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-115506"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-117610"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118370"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libexpat1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119373"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The overflow is in SQLite's FTS5 full-text extension, fts5MergeRowidLists(), and needs a detail=none FTS5 table populated with negative rowids and then a prefix MATCH query. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. proj.db defines no FTS5 or other virtual tables (none among its 107 schema objects), and PROJ issues only its own fixed queries against it, so the FTS5 code never runs and no database user can create such a table. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use SQLite."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119374"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The overflow is in SQLite's FTS5 full-text extension, fts5DoSecureDelete(), and needs a database file with a corrupted FTS5 index that is then deleted from with secure-delete enabled. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. proj.db has no FTS5 index (no FTS5 or other virtual tables among its 107 schema objects), PROJ only reads it, and no attacker-supplied database file reaches SQLite."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119379"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libsqlite3-0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The overflow is in sqlite3changeset_apply(), part of SQLite's session extension, and needs an attacker-supplied changeset. libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, with sqlite3_open_v2() to resolve CRS definitions. That is the only SQLite database the server opens. proj.db ships with the PROJ package and is owned by root, and PostGIS imports none of PROJ's functions that change where it looks for its database (proj_context_set_database_path, proj_context_set_search_paths), so no database user can point it at another file. The other installed packages depending on libsqlite3 are GDAL and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled in by GDAL's poppler) and gpg, which nothing runs at runtime. Neither PROJ nor PostGIS imports any session, changeset or rebaser function, so the session extension never runs."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-120208"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-50142"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-62289"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-62292"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-76844"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/zlib1g"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The overflow is in zlib's gzFile write path: after an underlying write() fails, gz_write() leaves a stale input pointer that a later gzwrite(), gzfwrite(), gzprintf(), gzputs() or gzputc() call writes through. The running database never uses that API. The postgres server binary imports deflate() and no gz* function, and PostGIS (postgis-3.so), PROJ (libproj.so.25) and libpq import none either. The installed code that does call gzwrite() is the pg_dump and pg_basebackup client tools, for gzip-compressed output, and libxml2's compressed-file output. Nothing in the image's entrypoint or in this repository runs pg_dump or pg_basebackup, and neither PostgreSQL's xml functions nor PostGIS's GML/KML input writes files through libxml2. Running pg_dump or pg_basebackup with gzip compression inside this container would void this claim. (Trivy titles this CVE as a webpack-dev-middleware issue; its description, as above, is zlib's.)"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84384"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84444"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84446"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-84447"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-85091"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/zlib1g"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The overflow is in gz_vacate(), part of zlib's gzFile write path. The advisory bounds the affected range at zlib 1.3.1.2 through 1.3.2, and upstream zlib 1.2.13's gzwrite.c has no gz_vacate() at all (it first appears in later releases). The installed zlib1g is 1:1.2.13.dfsg-1, built from 1.2.13 with only two build patches (cflags-for-minizip, use-dso-really), neither touching gzwrite.c. The vulnerable code is not present in the delivered library."
     }
   ],
-  "last_updated": "2026-10-30T13:42:04+00:00"
+  "last_updated": "2026-11-08T17:49:37+00:00"
 }
