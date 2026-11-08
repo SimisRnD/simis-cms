@@ -28,7 +28,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 /**
- * Tests the report-only policy header.
+ * Tests the report-only policy header and the Google Analytics image hosts.
  *
  * @author elizabeth houser
  */
@@ -109,5 +109,34 @@ class CspPolicyCommandTest {
   void theReportingEndpointsHeaderNamesTheSamePathTheServletServes() {
     assertEquals("csp-endpoint=\"/csp-report\"", CspPolicyCommand.reportingEndpointsHeader());
     assertEquals("/csp-report", CspPolicyCommand.REPORT_PATH);
+  }
+
+  private MockedStatic<LoadSitePropertyCommand> analytics(String service, String key) {
+    MockedStatic<LoadSitePropertyCommand> m = mockStatic(LoadSitePropertyCommand.class);
+    m.when(() -> LoadSitePropertyCommand.loadByName("analytics.service")).thenReturn(service);
+    m.when(() -> LoadSitePropertyCommand.loadByName("analytics.google.key")).thenReturn(key);
+    return m;
+  }
+
+  @Test
+  void googleAnalyticsAddsItsImageHostsWhenTheSiteLoadsIt() {
+    // GA's tag diagnostics reported img-src blocking www.google.* and www.googletagmanager.com
+    try (MockedStatic<LoadSitePropertyCommand> m = analytics("google", "G-4PCLCXQE3N")) {
+      assertEquals(" https://*.google.com https://*.googletagmanager.com", CspPolicyCommand.googleAnalyticsImageSources());
+    }
+  }
+
+  @Test
+  void aSiteWithoutGoogleAnalyticsKeepsTheNarrowerImgSrc() {
+    // img-src closes the CSS exfiltration channel (#1430); a host nothing needs is not added
+    try (MockedStatic<LoadSitePropertyCommand> m = analytics(null, null)) {
+      assertEquals("", CspPolicyCommand.googleAnalyticsImageSources());
+    }
+    try (MockedStatic<LoadSitePropertyCommand> m = analytics("google", "  ")) {
+      assertEquals("", CspPolicyCommand.googleAnalyticsImageSources(), "selected but no key: main.jsp loads nothing");
+    }
+    try (MockedStatic<LoadSitePropertyCommand> m = analytics("matomo", "G-4PCLCXQE3N")) {
+      assertEquals("", CspPolicyCommand.googleAnalyticsImageSources());
+    }
   }
 }
