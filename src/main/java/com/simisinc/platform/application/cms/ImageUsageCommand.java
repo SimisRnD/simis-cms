@@ -114,10 +114,28 @@ public class ImageUsageCommand {
   public static class UsageReference {
     private final String sourceType;
     private final String label;
+    private final String table;
+    private final String column;
 
     public UsageReference(String sourceType, String label) {
+      this(sourceType, label, null, null);
+    }
+
+    public UsageReference(String sourceType, String label, String table, String column) {
       this.sourceType = sourceType;
       this.label = label;
+      this.table = table;
+      this.column = column;
+    }
+
+    /** The table the reference was found in, e.g. {@code blog_posts}; null when not recorded */
+    public String getTable() {
+      return table;
+    }
+
+    /** The column the reference was found in -- {@code blog_posts.image_url} and {@code body} share a source type */
+    public String getColumn() {
+      return column;
     }
 
     public String getSourceType() {
@@ -192,7 +210,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference(sourceType, rs.getString(1)));
+          results.add(new UsageReference(sourceType, rs.getString(1), table, column));
         }
       }
     } catch (SQLException se) {
@@ -219,7 +237,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference("Site Setting", rs.getString(1)));
+          results.add(new UsageReference("Site Setting", rs.getString(1), "site_properties", "property_value"));
         }
       }
     } catch (SQLException se) {
@@ -259,7 +277,7 @@ public class ImageUsageCommand {
       pst.setString(1, likeValue);
       try (ResultSet rs = pst.executeQuery()) {
         while (rs.next()) {
-          results.add(new UsageReference("Stylesheet", rs.getString(1)));
+          results.add(new UsageReference("Stylesheet", rs.getString(1), "stylesheets", "css"));
         }
       }
     } catch (SQLException se) {

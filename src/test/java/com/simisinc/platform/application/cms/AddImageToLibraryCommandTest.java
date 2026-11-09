@@ -225,6 +225,39 @@ class AddImageToLibraryCommandTest {
   }
 
   @Test
+  void aCopyDescribedLikeAnotherImageStartsWithItsAltTextAndFocalPoint(@TempDir Path tempDir) throws Exception {
+    // The library backfill's resized copy replaces the original on pages, and render-time alt text
+    // comes from the image record, so the copy must carry it from the moment it is inserted
+    File sourceFile = writeSourceFile(tempDir, "the-logo-bytes");
+    File destination = tempDir.resolve("library-copy.png").toFile();
+    Image original = new Image();
+    original.setAltText("Human Type Targets infographic");
+    original.setFocalX(new java.math.BigDecimal("30.00"));
+    original.setFocalY(new java.math.BigDecimal("70.00"));
+    Image savedImage = new Image();
+    savedImage.setId(43L);
+
+    try (MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+        MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ValidateImageCommand> validate = mockStatic(ValidateImageCommand.class);
+        MockedStatic<SaveImageCommand> save = mockStatic(SaveImageCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      stubFileSystemCommand(fsc, tempDir, destination);
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      save.when(() -> SaveImageCommand.saveImage(any(Image.class))).thenReturn(savedImage);
+
+      AddImageToLibraryCommand.addFromFile(sourceFile, "logo.png", 1L, original);
+
+      save.verify(() -> SaveImageCommand.saveImage(argThat((Image image) -> {
+        assertEquals("Human Type Targets infographic", image.getAltText());
+        assertEquals(new java.math.BigDecimal("30.00"), image.getFocalX());
+        assertEquals(new java.math.BigDecimal("70.00"), image.getFocalY());
+        return true;
+      })));
+    }
+  }
+
+  @Test
   void addFromFileDeletesTheCopyWhenTheRecordCannotBeSaved(@TempDir Path tempDir) throws Exception {
     File sourceFile = writeSourceFile(tempDir, "the-logo-bytes");
     File destination = tempDir.resolve("library-copy.png").toFile();
