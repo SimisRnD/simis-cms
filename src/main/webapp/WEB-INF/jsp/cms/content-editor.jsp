@@ -22,7 +22,7 @@
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <jsp:useBean id="reusabilityWarning" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
+<script src="${ctx}/javascript/tinymce-8.10.1/tinymce.min.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
 <script nonce="${cspNonce}">
   $(window).on('resize', function () {
     setTimeout(function () {
