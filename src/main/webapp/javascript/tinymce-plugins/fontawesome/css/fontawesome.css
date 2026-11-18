@@ -124,6 +124,9 @@
 }
 
 .mce-fontawesome-search-noresults {
+	/* Local change (SimIS, issue #1999): hidden until a search finds nothing, in place of the
+	   style attribute plugin.js used to give it */
+	display: none;
 	text-align: center;
 	color: rgba(0, 0, 0, 0.4);
 	position: absolute;

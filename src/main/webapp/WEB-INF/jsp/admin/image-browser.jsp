@@ -34,6 +34,9 @@
 <div class="button-group margin-bottom-10">
   <a class="button tiny <c:if test="${empty duplicatesView}">primary</c:if><c:if test="${!empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}">All Images</a>
   <a class="button tiny <c:if test="${!empty duplicatesView}">primary</c:if><c:if test="${empty duplicatesView}">secondary</c:if> radius" href="${widgetContext.uri}?view=duplicates">Duplicates</a>
+  <c:if test="${userSession.hasRole('admin')}">
+    <a class="button tiny secondary radius" href="${widgetContext.uri}?view=downscale">Oversized</a>
+  </c:if>
   <button type="button" id="scanForDuplicatesBtn" class="button tiny secondary radius">Scan for Duplicates</button>
   <button type="button" id="generateMissingSizesBtn" class="button tiny secondary radius">Generate Missing Sizes</button>
   <button type="button" id="regenerateVariantFormatsBtn" class="button tiny secondary radius">Re-encode Sizes</button>
