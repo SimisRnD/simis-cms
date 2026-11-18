@@ -84,6 +84,8 @@ NOT_PRESENT = "vulnerable_code_not_present"
 # Used where the flaw is real and reachable in principle, but the image removes the
 # precondition it needs -- a mitigation baked into the build, not an absence.
 INLINE_MITIGATIONS = "inline_mitigations_already_exist"
+# Used where the vulnerable code does run, but only on input an attacker cannot supply.
+CANNOT_CONTROL = "vulnerable_code_cannot_be_controlled_by_adversary"
 
 # --- Justification policy -----------------------------------------------------------
 # Each entry: reason string shown as the statement's impact_statement.
@@ -96,9 +98,18 @@ INLINE_MITIGATIONS = "inline_mitigations_already_exist"
 # (Debian's own) is kept so statements already written for it still regenerate.
 GDAL_CHAIN = {
     "libgdal32", "libgdal39", "gdal-plugins", "gdal-data", "libaom3", "libheif1", "libde265-0",
-    "libtiff6", "libhdf5-103-1", "libhdf5-hl-100", "libsqlite3-0", "libcurl4",
-    "libcurl3-gnutls", "libssh2-1", "libexpat1", "libcfitsio10", "libjxl0.7",
+    "libhdf5-103-1", "libhdf5-hl-100", "libcurl3-gnutls", "libexpat1", "libcfitsio10",
+    "libjxl0.7",
 }
+
+# These four were in GDAL_CHAIN until 2026-11-08, but they are not GDAL-only. Vector PostGIS's
+# postgis-3.so links PROJ (libproj.so.25), and PROJ links libsqlite3, libtiff and libcurl4
+# (which brings libssh2), so all four are loaded into the database server -- checked with ldd
+# against the image built from docker/db/Dockerfile. GDAL_REASON's "never loaded" is false for
+# them. libsqlite3 and libtiff code does run there, so their CVEs are triaged one at a time in
+# CVE_POLICY; libcurl4 and libssh2 are loaded but never called, which PROJ_NETWORK_OFF covers.
+# test_libraries_proj_loads_are_kept_out_of_the_gdal_rule() keeps them out of GDAL_CHAIN.
+PROJ_LOADED = {"libsqlite3-0", "libtiff6", "libcurl4", "libssh2-1"}
 GDAL_REASON = (
     "Present only as a transitive dependency of the PostGIS package's GDAL stack. The "
     "database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is "
@@ -149,11 +160,10 @@ MARIADB_CLIENT_ONLY = (
     "postgis_raster, which is never created."
 )
 
-# Shared by the SQLite CVEs below. Unlike the rest of GDAL_CHAIN, libsqlite3 IS loaded into
-# the database server -- through vector PostGIS's PROJ dependency -- which is why these are
-# triaged per CVE instead of by the GDAL package rule. Verified against the image built from
-# docker/db/Dockerfile on 2026-11-08 (postgresql-17-postgis-3 3.7.0, libproj25 9.9.0,
-# libsqlite3-0 3.40.1-2+deb12u2).
+# Shared by the SQLite CVEs below. libsqlite3 IS loaded into the database server -- through
+# vector PostGIS's PROJ dependency, see PROJ_LOADED -- which is why these are triaged per CVE
+# rather than by a package rule. Verified against the image built from docker/db/Dockerfile on
+# 2026-11-08 (postgresql-17-postgis-3 3.7.0, libproj25 9.9.0, libsqlite3-0 3.40.1-2+deb12u2).
 SQLITE_VIA_PROJ = (
     "libsqlite3 is loaded into the database server through vector PostGIS: postgis-3.so links "
     "PROJ (libproj.so.25), which opens its coordinate-system database, /usr/share/proj/proj.db, "
@@ -164,6 +174,54 @@ SQLITE_VIA_PROJ = (
     "point it at another file. The other installed packages depending on libsqlite3 are GDAL "
     "and libspatialite (loaded only by postgis_raster, which is never created), libnss3 (pulled "
     "in by GDAL's poppler) and gpg, which nothing runs at runtime."
+)
+
+# Shared by the libtiff CVEs below. Same image and versions as above, plus libtiff6
+# 4.5.0-6+deb12u4.
+TIFF_VIA_PROJ = (
+    "libtiff is loaded into the database server through vector PostGIS: postgis-3.so links PROJ "
+    "(libproj.so.25), which uses libtiff only to read GeoTIFF grid files. It imports "
+    "TIFFClientOpen, TIFFReadDirectory, TIFFReadEncodedStrip/Tile and TIFFGetField, and no write "
+    "or TIFFSetField function. No crafted TIFF can reach it. There is no TIFF file anywhere on the "
+    "image's filesystem: its seven grids are NTv2 (.gsb) and GTX (.gtx) files, which PROJ reads "
+    "with its own code. PROJ's networking is off, so it downloads none. A database user can name "
+    "a grid file in a PROJ string passed to ST_Transform() or ST_TransformPipeline(), but only "
+    "one already on the server's disk, and placing a file there from SQL needs "
+    "pg_write_server_files or superuser, which PostgreSQL's documentation notes can be used to "
+    "gain superuser-level access; a crafted TIFF would give such a user nothing they do not "
+    "already have. The other installed packages depending on libtiff6 (GDAL, libgeotiff5 and "
+    "poppler) are loaded only by postgis_raster, which is never created."
+)
+
+# Why libcurl4 never runs although PROJ loads it. Checked against PROJ 9.9.0's source
+# (src/filemanager.cpp, src/networkfilemanager.cpp), the version libproj25 9.9.0 packages.
+PROJ_NETWORK_OFF = (
+    "PROJ refuses every http(s) resource unless its networking is enabled, and reaches "
+    "curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ "
+    "9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or "
+    "proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the "
+    "image or this repository sets PROJ_NETWORK, and PostGIS imports no "
+    "proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. "
+    "Enabling PROJ networking would void this claim."
+)
+CURL4_REASON = (
+    "libcurl4 is loaded into the database server through vector PostGIS: postgis-3.so links PROJ "
+    "(libproj.so.25), which links libcurl to download remote grid files. " + PROJ_NETWORK_OFF +
+    " libcurl4's other installed dependents, GDAL and libhdf5, are loaded only by postgis_raster, "
+    "which is never created."
+)
+CURL_GNUTLS_GDAL = (
+    "libcurl3-gnutls is used only by GDAL's dependencies (cfitsio, netCDF and Xerces-C), which "
+    "only postgis_raster loads, and it is never created."
+)
+LIBSSH2_REASON = (
+    "libssh2 is used only by libcurl, for SCP and SFTP transfers: libcurl4 and libcurl3-gnutls are "
+    "the only installed packages depending on it. " + CURL_GNUTLS_GDAL + " libcurl4 is loaded "
+    "into the server through vector PostGIS's PROJ, but never called. " + PROJ_NETWORK_OFF
+)
+# Shared by the libcurl CVEs below, each of which needs libcurl to make transfers.
+CURL_NO_TRANSFERS = (
+    "Here libcurl makes no transfers at all. " + CURL_GNUTLS_GDAL + " " + CURL4_REASON
 )
 
 CVE_POLICY = {
@@ -494,6 +552,94 @@ CVE_POLICY = {
         "imports any session, changeset or rebaser function, so the session extension never "
         "runs.",
     ),
+    # The statements below were written under the GDAL package rule, whose "never loaded" does
+    # not hold for the libraries PROJ loads (see PROJ_LOADED). Re-triaged 2026-11-08; the
+    # conclusions are unchanged except where a justification is now more precise.
+    "CVE-2025-7458": (
+        CANNOT_CONTROL,
+        "The integer overflow in sqlite3KeyInfoFromExprList() needs an attacker who can run "
+        "arbitrary SQL, with a SELECT whose ORDER BY has a very large number of expressions. "
+        + SQLITE_VIA_PROJ + " The SQL run against it is PROJ's own. The values PostGIS hands "
+        "PROJ, such as authority names and codes from a PROJ string, are bound as parameters "
+        "(libproj imports sqlite3_bind_text and the other bind functions), and PostGIS imports "
+        "none of PROJ's insert-statement or database-path functions, so no database user can "
+        "change a query's shape, let alone its ORDER BY.",
+    ),
+    "CVE-2026-11822": (
+        NOT_IN_PATH,
+        "The out-of-bounds read is in SQLite's FTS5 full-text extension, fts5LeafSeek(), and "
+        "needs a crafted database with a malformed FTS5 leaf page queried with MATCH. "
+        + SQLITE_VIA_PROJ + " proj.db defines no FTS5 or other virtual tables (none among its "
+        "107 schema objects), and PROJ issues no MATCH query, so the FTS5 code never runs. "
+        "PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use "
+        "SQLite.",
+    ),
+    "CVE-2026-11824": (
+        NOT_IN_PATH,
+        "The heap overflow is in SQLite's FTS5 full-text extension, fts5ChunkIterate(), and needs "
+        "a crafted database with malformed FTS5 continuation-page metadata queried with MATCH. "
+        + SQLITE_VIA_PROJ + " proj.db defines no FTS5 or other virtual tables (none among its "
+        "107 schema objects), and PROJ issues no MATCH query, so the FTS5 code never runs. "
+        "PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code and does not use "
+        "SQLite.",
+    ),
+    "CVE-2023-52355": (
+        CANNOT_CONTROL,
+        "The out-of-memory condition needs a crafted TIFF passed to TIFFRasterScanlineSize64(), "
+        "which PROJ does not call itself. " + TIFF_VIA_PROJ,
+    ),
+    "CVE-2026-12912": (
+        NOT_IN_PATH,
+        "The overflow is in decoding PixarLog-compressed images to the PIXARLOGDATAFMT_8BITABGR "
+        "output format. libtiff 4.5.0 uses that format only when the application selects it with "
+        "TIFFSetField(TIFFTAG_PIXARLOGDATAFMT); its own guess, PixarLogGuessDataFmt(), never "
+        "picks it. PROJ imports no TIFFSetField, so the vulnerable decoding never runs, whatever "
+        "file it opens. " + TIFF_VIA_PROJ,
+    ),
+    "CVE-2026-36849": (
+        CANNOT_CONTROL,
+        "The denial of service needs a crafted TIFF with an oversized SamplesPerPixel tag, which "
+        "libtiff reads whenever it opens a file. " + TIFF_VIA_PROJ,
+    ),
+    "CVE-2026-52490": (
+        NOT_PRESENT,
+        "The flaw is in process_command_opts() in tools/tiffcrop.c, the tiffcrop command-line "
+        "tool. That tool ships in libtiff-tools, which is not installed (no tiffcrop, tiffcp or "
+        "tiff2pdf binary is present); libtiff6 is the library alone.",
+    ),
+    "CVE-2026-12064": (
+        NOT_PRESENT,
+        "The flaw is in the curl command-line tool, which mishandles a schemeless URL combined "
+        "with --proto-default sftp or scp and so skips its SSH host-verification options; libcurl "
+        "itself honors the request as made. The curl tool is not installed (no curl binary is "
+        "present); libcurl4 and libcurl3-gnutls are the libraries alone.",
+    ),
+    "CVE-2026-6276": (
+        NOT_IN_PATH,
+        "The cookie leak needs an application to send two HTTP requests on the same easy handle, "
+        "the first with a custom Host: header. " + CURL_NO_TRANSFERS,
+    ),
+    "CVE-2026-8286": (
+        NOT_IN_PATH,
+        "The flaw needs libcurl to reuse a live connection for a STARTTLS transfer whose TLS "
+        "configuration does not match. " + CURL_NO_TRANSFERS,
+    ),
+    "CVE-2026-8458": (
+        NOT_IN_PATH,
+        "The flaw needs libcurl to reuse a connection for Negotiate-authenticated transfers set "
+        "to different services. " + CURL_NO_TRANSFERS,
+    ),
+    "CVE-2026-8927": (
+        NOT_IN_PATH,
+        "The leak needs a reused handle making sequential transfers through different proxies "
+        "configured from the environment, the first with Digest proxy authentication. "
+        + CURL_NO_TRANSFERS,
+    ),
+    "CVE-2026-8932": (
+        NOT_IN_PATH,
+        "The flaw needs libcurl to reuse a pooled connection after its client-certificate "
+        "(mTLS) options change. " + CURL_NO_TRANSFERS,
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
@@ -506,35 +652,10 @@ CVE_POLICY = {
 # this table the package rule is still consulted for each package, and an uncovered one
 # still forces the whole statement to under_investigation.
 CVE_ADDENDUM = {
-    "CVE-2026-11822": (
-        "Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- "
-        "crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the "
-        "same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: "
-        "libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through "
-        "postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code "
-        "and does not use SQLite, so enabling it does not change this analysis. Consistent with "
-        "the existing CVE-2025-7458 statement for this same package."
-    ),
-    "CVE-2026-11824": (
-        "Reaching this flaw requires SQLite itself to parse attacker-supplied database content -- "
-        "crafted FTS5 full-text index data for CVE-2026-11822, and the heap-overflow path on the "
-        "same parsing surface for CVE-2026-11824. Nothing in this image opens a SQLite database: "
-        "libsqlite3 arrives only under GDAL's SQLite/GeoPackage driver, reachable solely through "
-        "postgis_raster. PostgreSQL's own full-text search (tsvector/tsquery) is unrelated code "
-        "and does not use SQLite, so enabling it does not change this analysis. Consistent with "
-        "the existing CVE-2025-7458 statement for this same package."
-    ),
     "CVE-2026-26197": (
         "The CVE's out-of-bounds read requires opening a corrupted HDF5 file through libhdf5's "
         "own reader, which is only reachable via GDAL's HDF5 driver -- never loaded here, "
         "consistent with the existing CVE-2018-11205 statement for these same two packages."
-    ),
-    "CVE-2026-52490": (
-        "The CVE is attributed to process_command_opts(), an option-handling routine belonging to "
-        "libtiff's command-line utilities; this image installs the libtiff6 shared library as a "
-        "GDAL dependency and ships no TIFF tooling to invoke it. GDAL's own TIFF reader is "
-        "likewise reachable only through postgis_raster. Consistent with the existing "
-        "CVE-2023-52355, CVE-2026-12912 and CVE-2026-36849 statements for this same package."
     ),
     "CVE-2026-77214": (
         "The over-read is in XML_ParseBuffer, reached only by a process that parses XML through "
@@ -569,6 +690,11 @@ for _p in GDAL_CHAIN:
 for _p in PERL_PKGS:
     PACKAGE_POLICY[_p] = (NOT_IN_PATH, PERL_REASON)
 PACKAGE_POLICY["libxml2"] = (NOT_IN_PATH, LIBXML2_REASON)
+# Loaded by PROJ but never called (PROJ_NETWORK_OFF), so the claim holds for the package as a
+# whole. libsqlite3-0 and libtiff6 get no package rule: PROJ runs their code, so each new CVE
+# has to be read on its own and arrives as under_investigation until it is.
+PACKAGE_POLICY["libcurl4"] = (NOT_IN_PATH, CURL4_REASON)
+PACKAGE_POLICY["libssh2-1"] = (NOT_IN_PATH, LIBSSH2_REASON)
 
 UNDER_INVESTIGATION_NOTE = (
     "General-purpose OS package. Not yet individually analysed for reachability in this "
