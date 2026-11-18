@@ -214,6 +214,27 @@ public class ImageRepository {
    * @param maxDimension that variant's target size, so originals already smaller are left alone
    * @return the image ids needing this variant, empty if none
    */
+  /**
+   * Every image whose file is larger than the given size, largest first -- the population the
+   * library downscale report (see {@code DownscaleLibraryImagesCommand}) starts from.
+   */
+  public static List<Image> findAllLargerThan(long minFileLength) {
+    List<Image> records = new ArrayList<>();
+    String sql = "SELECT * FROM " + TABLE_NAME + " WHERE file_length > ? ORDER BY file_length DESC, image_id";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setLong(1, minFileLength);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          records.add(buildRecord(rs));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   public static List<Long> findAllMissingVariant(String variantType, int maxDimension) {
     List<Long> ids = new ArrayList<>();
     String sql = "SELECT i.image_id FROM " + TABLE_NAME + " i"
