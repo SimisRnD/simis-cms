@@ -29,7 +29,8 @@ They are pulled in almost entirely by **PostGIS and its GDAL dependency tree**
 (gdal, libheif, libcurl, perl, the MariaDB client libraries, and so on). In this
 image that surface is not reachable the way the CVEs describe: it is a
 database-only container, not internet-facing, and PostgreSQL serving SQL does
-not exercise those libraries. Real-world exploitability is low.
+not exercise those libraries, apart from the few that PostGIS's PROJ dependency
+loads (see below). Real-world exploitability is low.
 
 ### Machine-readable VEX
 
@@ -49,10 +50,27 @@ trivy image --vex docker/db/vex/simis-cms-db.openvex.json \
 where there is a concrete, checkable reason, and each carries an `impact_statement` saying
 what was verified:
 
-- **PostGIS/GDAL dependency chain** (gdal, libaom, libheif, libtiff, libhdf5, libsqlite3,
-  libcurl, libssh2, libexpat) — `vulnerable_code_not_in_execute_path`. The database enables
-  **vector PostGIS only** (`CREATE EXTENSION postgis`); `postgis_raster` is never created, so
-  GDAL's raster decoders and remote-dataset drivers are never loaded.
+- **PostGIS/GDAL dependency chain** (gdal, libaom, libheif, libde265, libhdf5, libcfitsio,
+  libjxl, libexpat, libcurl3-gnutls) — `vulnerable_code_not_in_execute_path`. The database
+  enables **vector PostGIS only** (`CREATE EXTENSION postgis`); `postgis_raster` is never
+  created, so GDAL's raster decoders and remote-dataset drivers are never loaded.
+- **Libraries PROJ loads into the server** (libsqlite3, libtiff, libcurl4, libssh2) — these
+  are *not* GDAL-only. Vector PostGIS links PROJ, and PROJ links them, so they are loaded
+  whenever PostGIS is; until 2026-11-08 they were wrongly listed under the GDAL chain above.
+  - **libcurl4 and libssh2** — `vulnerable_code_not_in_execute_path` for the package as a
+    whole: PROJ calls libcurl only to download grids, and only with its networking on, which
+    `proj.ini` turns off; libssh2 is used only through libcurl.
+  - **libsqlite3 and libtiff** — triaged one CVE at a time, because PROJ does run their code:
+    it reads its own `proj.db` through SQLite and would read GeoTIFF grids through libtiff.
+    The FTS5 and session-extension flaws (CVE-2026-11822, -11824, -119373, -119374,
+    -119379) and the PixarLog flaw (CVE-2026-12912) are `vulnerable_code_not_in_execute_path`,
+    since PROJ never uses those features. CVE-2025-7458 (SQLite), CVE-2023-52355 and
+    CVE-2026-36849 (libtiff) are `vulnerable_code_cannot_be_controlled_by_adversary`: PROJ
+    runs only its own SQL, and no TIFF exists on the image for it to read. Placing one needs
+    file-write privileges that already amount to superuser. A new CVE in either library
+    arrives as `under_investigation`.
+  - **Command-line tools** — CVE-2026-52490 (`tiffcrop`) and CVE-2026-12064 (the `curl` tool)
+    are `vulnerable_code_not_present`: neither tool is installed.
 - **Perl** (perl, perl-base, perl-modules, libperl) — `vulnerable_code_not_in_execute_path`.
   `postgresql-17-plperl` is **not installed**, so the engine cannot invoke Perl, and the
   entrypoint is the stock postgres shell entrypoint.
@@ -60,7 +78,11 @@ what was verified:
   `xpath()`/`xmltable()`; the shipped schema declares no xml columns.
 - **zlib1g / CVE-2023-45853** — `vulnerable_code_not_present`. The flaw is in zlib's MiniZip
   contrib component, which Debian does not build into the shared libz shipped here (hence
-  Debian's will-not-fix).
+  Debian's will-not-fix). **CVE-2026-85091** is `vulnerable_code_not_present` too: its
+  `gz_vacate()` does not exist in zlib 1.2.13. **CVE-2026-76844** is
+  `vulnerable_code_not_in_execute_path`: it is in zlib's gzFile write API, which the server,
+  PostGIS and PROJ never call; only `pg_dump`, `pg_basebackup` and libxml2's compressed-file
+  output do, and nothing here runs those.
 - **postgis and postgresql-\*-postgis-3(-scripts) / CVE-2026-73515** —
   `vulnerable_code_not_in_execute_path`. The flaw is in PostGIS's own
   `ST_FromFlatGeobuf()`/`ST_AsFlatGeobuf()` functions (memory disclosure and DoS via a
@@ -87,8 +109,9 @@ never rendered as "safe".
 
 > **Scope.** These statements describe the image **as shipped and configured**. If an operator
 > installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP
-> authentication, or adds compressed `*.sql.gz` init scripts from an untrusted source, the
-> corresponding statements no longer hold and the VEX should be re-evaluated.
+> authentication, adds compressed `*.sql.gz` init scripts from an untrusted source, or runs
+> `pg_dump` or `pg_basebackup` with gzip compression inside the container, the corresponding
+> statements no longer hold and the VEX should be re-evaluated.
 
 Update the document after any rebuild changes the finding set (it only ever emits statements
 for findings with **no** available fix):

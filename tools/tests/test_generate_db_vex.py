@@ -295,6 +295,27 @@ def test_a_cve_addendum_still_requires_every_package_to_be_covered(monkeypatch, 
     assert gen.CVE_ADDENDUM[cve] not in got[0]["impact_statement"]
 
 
+def test_libraries_proj_loads_are_kept_out_of_the_gdal_rule():
+    """GDAL_REASON says its packages are never loaded, which is false for these four.
+
+    Vector PostGIS links PROJ, which links libsqlite3, libtiff and libcurl4 (and through it
+    libssh2), so they are loaded into the database server whenever PostGIS is. They were in
+    GDAL_CHAIN until 2026-11-08, and every statement written under it named GDAL as the only
+    way in. Putting one back would make each new CVE in it repeat that claim.
+    """
+    assert not gen.GDAL_CHAIN & gen.PROJ_LOADED
+    for pkg in gen.PROJ_LOADED:
+        assert gen.PACKAGE_POLICY.get(pkg, (None, None))[1] != gen.GDAL_REASON, pkg
+
+
+def test_a_new_cve_in_a_library_proj_runs_is_left_for_triage(monkeypatch, tmp_path):
+    """PROJ runs libsqlite3 and libtiff code, so no package rule can answer for their next CVE."""
+    got = regenerate(monkeypatch, tmp_path, [
+        alert("CVE-2099-0001", "libsqlite3-0"), alert("CVE-2099-0002", "libtiff6"),
+    ])
+    assert [s["status"] for s in got] == ["under_investigation", "under_investigation"]
+
+
 # --- Unreachable input ----------------------------------------------------------------
 # The write guards above refuse with exit 1 after looking at the alerts. Failing to reach
 # the alerts at all is a different fact and gets its own code, so a broken `gh` in a
