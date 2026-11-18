@@ -24,6 +24,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.login.DeleteUserCommand;
 import com.simisinc.platform.application.login.RoleLevelCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
@@ -570,15 +571,18 @@ public class UserDetailsWidget extends GenericWidget {
     String targetId = String.valueOf(user.getId());
     String targetLabel = user.getEmail();
     try {
-      if (UserRepository.remove(user)) {
-        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
-            AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
-        context.setSuccessMessage("Account deleted");
-      } else {
-        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
-            AuditEventCommand.FAILURE, "user", targetId, targetLabel, "referenced in other tables");
-        context.setErrorMessage("Account not deleted - this user is referenced in other database tables");
-      }
+      // Everything the account created or changed passes to the site's holding account
+      DeleteUserCommand.Result result = DeleteUserCommand.delete(user);
+      User holdingAccount = result.getHoldingAccount();
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
+          AuditEventCommand.SUCCESS, "user", targetId, targetLabel,
+          result.getReassigned() + " references reassigned to user " + holdingAccount.getId());
+      context.setSuccessMessage("Account deleted. Anything it created or changed is now attributed to "
+          + holdingAccount.getFullName() + ".");
+    } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
+          AuditEventCommand.FAILURE, "user", targetId, targetLabel, e.getMessage());
+      context.setErrorMessage(e.getMessage());
     } catch (Exception e) {
       AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
           AuditEventCommand.FAILURE, "user", targetId, targetLabel, e.getMessage());
