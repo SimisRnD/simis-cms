@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.login.DeleteUserCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.Role;
@@ -150,6 +152,16 @@ class UserDetailsWidgetTest extends WidgetBase {
     user.setId(5L);
     user.setEmail("active@example.com");
     user.setEnabled(true);
+    return user;
+  }
+
+  /** The account a deleted account's content passes to, named after the site. */
+  private static User holdingAccount() {
+    User user = new User();
+    user.setId(99L);
+    user.setUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID);
+    user.setFirstName("SimIS");
+    user.setEnabled(false);
     return user;
   }
 
@@ -441,7 +453,7 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
-  void deleteAccountViaPostCallsRepositoryAndAudits() throws Exception {
+  void deleteAccountViaPostDeletesAndAudits() throws Exception {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "deleteAccount");
@@ -451,18 +463,47 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<DeleteUserCommand> deleteCmd = mockStatic(DeleteUserCommand.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
-      userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
+      deleteCmd.when(() -> DeleteUserCommand.delete(target)).thenReturn(new DeleteUserCommand.Result(holdingAccount(), 12));
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.remove(target), times(1));
+      deleteCmd.verify(() -> DeleteUserCommand.delete(target), times(1));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.delete"),
-          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
-      Assertions.assertEquals("Account deleted", result.getSuccessMessage());
+          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"),
+          eq("12 references reassigned to user 99")), times(1));
+      Assertions.assertEquals("Account deleted. Anything it created or changed is now attributed to SimIS.",
+          result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void aRefusedDeleteShowsWhyAndAuditsTheFailure() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+    User target = activeUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<DeleteUserCommand> deleteCmd = mockStatic(DeleteUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      deleteCmd.when(() -> DeleteUserCommand.delete(target))
+          .thenThrow(new DataException("The account could not be deleted. Nothing was changed."));
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.delete"),
+          eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"),
+          eq("The account could not be deleted. Nothing was changed.")), times(1));
+      Assertions.assertEquals("The account could not be deleted. Nothing was changed.", result.getErrorMessage());
+      Assertions.assertNull(result.getSuccessMessage());
     }
   }
 
@@ -481,6 +522,7 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<DeleteUserCommand> deleteCmd = mockStatic(DeleteUserCommand.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
@@ -488,7 +530,7 @@ class UserDetailsWidgetTest extends WidgetBase {
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.remove(any()), never());
+      deleteCmd.verify(() -> DeleteUserCommand.delete(any()), never());
       audit.verifyNoInteractions();
       Assertions.assertEquals("You cannot delete an account with a higher role level than your own",
           result.getErrorMessage());
@@ -509,16 +551,17 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<DeleteUserCommand> deleteCmd = mockStatic(DeleteUserCommand.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
-      userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
+      deleteCmd.when(() -> DeleteUserCommand.delete(target)).thenReturn(new DeleteUserCommand.Result(holdingAccount(), 0));
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.remove(target), times(1));
-      Assertions.assertEquals("Account deleted", result.getSuccessMessage());
+      deleteCmd.verify(() -> DeleteUserCommand.delete(target), times(1));
+      Assertions.assertTrue(result.getSuccessMessage().startsWith("Account deleted."));
     }
   }
 
@@ -668,12 +711,13 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<DeleteUserCommand> deleteCmd = mockStatic(DeleteUserCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(self);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.remove(any()), never());
+      deleteCmd.verify(() -> DeleteUserCommand.delete(any()), never());
       audit.verifyNoInteractions();
       Assertions.assertEquals("You cannot delete your own account", result.getErrorMessage());
     }
