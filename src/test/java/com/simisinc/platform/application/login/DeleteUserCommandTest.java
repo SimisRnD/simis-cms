@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -59,6 +60,19 @@ class DeleteUserCommandTest {
     user.setId(99L);
     user.setUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID);
     user.setFirstName("SimIS");
+    user.setPassword(DeleteUserCommand.NO_SIGN_IN_PASSWORD);
+    return user;
+  }
+
+  /** A person who was given the reserved ID because of their name, before it was reserved. */
+  private static User namesake() {
+    User user = new User();
+    user.setId(7L);
+    user.setUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID);
+    user.setFirstName("Deleted");
+    user.setLastName("Accounts");
+    user.setPassword("$argon2id$v=19$m=65536,t=3,p=1$c2FsdA$aGFzaA");
+    user.setEnabled(true);
     return user;
   }
 
@@ -153,6 +167,30 @@ class DeleteUserCommandTest {
       assertThrows(DataException.class, () -> DeleteUserCommand.delete(target));
       userRepo.verify(() -> UserRepository.removeAndReassign(any(), anyLong()), never());
     }
+  }
+
+  @Test
+  void aNamesakeHoldingTheReservedIdIsNeverGivenTheContent() {
+    User target = target();
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      userRepo.when(() -> UserRepository.findByUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID)).thenReturn(namesake());
+
+      DataException e = assertThrows(DataException.class, () -> DeleteUserCommand.delete(target));
+
+      assertEquals("Nothing was deleted: another account already uses the reserved ID \"deleted-accounts\". "
+          + "Change that account's name, then try again.", e.getMessage());
+      userRepo.verify(() -> UserRepository.removeAndReassign(any(), anyLong()), never());
+      userRepo.verify(() -> UserRepository.addDisabledAccount(any(), anyString()), never());
+    }
+  }
+
+  @Test
+  void theReservedIdAloneDoesNotMakeAnAccountTheHoldingAccount() {
+    assertTrue(DeleteUserCommand.isHoldingAccount(holdingAccount()));
+    assertFalse(DeleteUserCommand.isHoldingAccount(namesake()));
+    User noPasswordLoaded = holdingAccount();
+    noPasswordLoaded.setPassword(null);
+    assertFalse(DeleteUserCommand.isHoldingAccount(noPasswordLoaded));
   }
 
   @Test

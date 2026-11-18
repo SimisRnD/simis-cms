@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.register;
 
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
+import com.simisinc.platform.application.login.DeleteUserCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 
@@ -44,10 +45,18 @@ public class GenerateUserUniqueIdCommand {
     // Find the next available unique instance
     int count = 1;
     String uniqueId = value;
-    while (UserRepository.findByUniqueId(uniqueId) != null) {
+    while (isReserved(uniqueId) || UserRepository.findByUniqueId(uniqueId) != null) {
       ++count;
       uniqueId = value + "-" + count;
     }
     return uniqueId;
+  }
+
+  /**
+   * IDs kept for the system's own accounts. Someone named "Deleted Accounts" must not be given the
+   * ID of the account that holds deleted accounts' content, even before that account exists.
+   */
+  private static boolean isReserved(String uniqueId) {
+    return DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID.equals(uniqueId);
   }
 }

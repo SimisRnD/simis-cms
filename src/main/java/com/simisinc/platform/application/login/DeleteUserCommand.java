@@ -110,28 +110,42 @@ public class DeleteUserCommand {
     return new Result(holdingAccount, reassigned);
   }
 
-  /** True for the account that holds what deleted accounts created or changed. */
+  /**
+   * True for the account that holds what deleted accounts created or changed. The ID alone is not
+   * enough: users' unique IDs are made from their names, so a person named "Deleted Accounts" could
+   * have been given this one before it was reserved, and trusting it would hand that person every
+   * deleted account's content and make their account undeletable. The password value settles it:
+   * every password a person sets is stored as an Argon2 hash, and only this class writes one that
+   * is not.
+   */
   public static boolean isHoldingAccount(User user) {
-    return user != null && HOLDING_ACCOUNT_UNIQUE_ID.equals(user.getUniqueId());
+    return user != null && HOLDING_ACCOUNT_UNIQUE_ID.equals(user.getUniqueId())
+        && NO_SIGN_IN_PASSWORD.equals(user.getPassword());
   }
 
-  static User findOrCreateHoldingAccount() {
-    User existing = UserRepository.findByUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
-    if (existing != null) {
-      return existing;
+  static User findOrCreateHoldingAccount() throws DataException {
+    User account = UserRepository.findByUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
+    if (account == null) {
+      // Named after the site, so content from deleted accounts reads as the organization's
+      String name = StringUtils.left(
+          StringUtils.defaultIfBlank(LoadSitePropertyCommand.loadByName("site.name"), FALLBACK_NAME), 100);
+      User holdingAccount = new User();
+      holdingAccount.setUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
+      holdingAccount.setUsername(HOLDING_ACCOUNT_UNIQUE_ID);
+      holdingAccount.setFirstName(name);
+      holdingAccount.setOrganization(name);
+      holdingAccount.setPassword(NO_SIGN_IN_PASSWORD);
+      UserRepository.addDisabledAccount(holdingAccount, SUSPENSION_REASON);
+      // Read it back rather than trusting the insert: a delete running at the same moment may have
+      // created it first, and unique_id keeps there being only one
+      account = UserRepository.findByUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
     }
-    // Named after the site, so content from deleted accounts reads as the organization's
-    String name = StringUtils.left(
-        StringUtils.defaultIfBlank(LoadSitePropertyCommand.loadByName("site.name"), FALLBACK_NAME), 100);
-    User account = new User();
-    account.setUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
-    account.setUsername(HOLDING_ACCOUNT_UNIQUE_ID);
-    account.setFirstName(name);
-    account.setOrganization(name);
-    account.setPassword(NO_SIGN_IN_PASSWORD);
-    UserRepository.addDisabledAccount(account, SUSPENSION_REASON);
-    // Read it back rather than trusting the insert: a delete running at the same moment may have
-    // created it first, and unique_id keeps there being only one
-    return UserRepository.findByUniqueId(HOLDING_ACCOUNT_UNIQUE_ID);
+    if (account != null && !isHoldingAccount(account)) {
+      LOG.error("User " + account.getId() + " has the reserved unique_id " + HOLDING_ACCOUNT_UNIQUE_ID
+          + " but is not the holding account; refusing to reassign content to it");
+      throw new DataException("Nothing was deleted: another account already uses the reserved ID \""
+          + HOLDING_ACCOUNT_UNIQUE_ID + "\". Change that account's name, then try again.");
+    }
+    return account;
   }
 }
