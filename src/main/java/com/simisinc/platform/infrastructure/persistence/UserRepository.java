@@ -36,8 +36,13 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Persists and retrieves user objects
@@ -734,30 +739,140 @@ public class UserRepository {
     return null;
   }
 
-  // Remove
-  public static boolean remove(User record) {
-    try {
-      try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
-        // Delete the references
-        // @note the User is currently not cleaned up from all tables
-        // until a business decision is made
-        UserGroupRepository.removeAll(connection, record);
-        UserRoleRepository.removeAll(connection, record);
-        UserTokenRepository.removeAll(connection, record);
-        UserLoginRepository.removeAll(connection, record);
-        // Delete the record
-        DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("user_id = ?", record.getId()));
-        // Finish transaction
-        transaction.commit();
-        return true;
+  /**
+   * Rows that are the account itself rather than something its holder did, deleted with it.
+   * Listed in delete order where one references another (member_roles references members).
+   */
+  static final String[][] ACCOUNT_ROWS = {
+      {"user_mfa_recovery_codes", "user_id"},
+      {"capability_grants", "user_id"},
+      {"member_roles", "user_id"},
+      {"members", "user_id"},
+  };
+
+  /**
+   * Every reference that is part of the account: {@link #ACCOUNT_ROWS}, plus the tables whose own
+   * repositories clear them in {@link #removeAndReassign} (user_groups also keeps group member
+   * counts right, and user_tokens takes its oauth_tokens with it). These are never reassigned.
+   */
+  static final Set<String> ACCOUNT_REFERENCES = new HashSet<>(Arrays.asList(
+      "user_mfa_recovery_codes.user_id", "capability_grants.user_id", "member_roles.user_id",
+      "members.user_id", "user_groups.user_id", "user_roles.user_id", "user_tokens.user_id",
+      "oauth_tokens.user_id", "user_logins.user_id"));
+
+  private static final Pattern SQL_IDENTIFIER = Pattern.compile("[a-z_][a-z0-9_]*");
+
+  /**
+   * Deletes the account, and reassigns everything else that references it to {@code reassignTo}.
+   *
+   * <p>About 160 columns across 80 tables reference users(user_id) -- created_by, modified_by,
+   * approved_by, assigned_to and the like -- none with ON DELETE, and 75 of them NOT NULL. So
+   * deleting only the account's own rows, which is all this did before, failed for any account
+   * that had ever created or changed anything. Those columns record work the person did, and the
+   * rows (content, files, history) must outlive the account, so they are pointed at
+   * {@code reassignTo} instead. The account's own rows ({@link #ACCOUNT_REFERENCES}) are deleted:
+   * reassigning a membership or a capability grant would hand it to {@code reassignTo}.
+   *
+   * <p>The columns are read from the database's own foreign keys rather than listed here, so a
+   * table added later is covered without an edit. It all happens in one transaction: either the
+   * account is gone and nothing references it, or nothing changed.
+   *
+   * @return how many references were reassigned, or -1 if nothing was deleted
+   */
+  public static int removeAndReassign(User record, long reassignTo) {
+    if (record == null || record.getId() <= 0 || reassignTo <= 0 || record.getId() == reassignTo) {
+      return -1;
+    }
+    try (Connection connection = DB.getConnection();
+         AutoStartTransaction a = new AutoStartTransaction(connection);
+         AutoRollback transaction = new AutoRollback(connection)) {
+      Set<String> references = findUserReferences(connection);
+      // The account's own rows
+      for (String[] row : ACCOUNT_ROWS) {
+        if (references.contains(row[0] + "." + row[1])) {
+          DB.deleteFrom(connection, row[0], new SqlUtils().add(row[1] + " = ?", record.getId()));
+        }
       }
+      UserGroupRepository.removeAll(connection, record);
+      UserRoleRepository.removeAll(connection, record);
+      UserTokenRepository.removeAll(connection, record);
+      UserLoginRepository.removeAll(connection, record);
+      // Everything the person did
+      int reassigned = 0;
+      for (String reference : references) {
+        if (ACCOUNT_REFERENCES.contains(reference)) {
+          continue;
+        }
+        String[] tableAndColumn = reference.split("\\.");
+        String sql = "UPDATE " + tableAndColumn[0] + " SET " + tableAndColumn[1] + " = ? WHERE " + tableAndColumn[1] + " = ?";
+        try (PreparedStatement pst = connection.prepareStatement(sql)) {
+          pst.setLong(1, reassignTo);
+          pst.setLong(2, record.getId());
+          reassigned += pst.executeUpdate();
+        }
+      }
+      DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("user_id = ?", record.getId()));
+      transaction.commit();
+      CacheManager.invalidateKey(CacheManager.USER_CREDENTIALS_CACHE, record.getId());
+      return reassigned;
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
     }
     LOG.error("The delete failed!");
-    return false;
+    return -1;
+  }
+
+  /**
+   * Every "table.column" with a foreign key to users, from the catalog. Limited to the users
+   * table's own schema, since the UPDATEs that use these names are unqualified.
+   */
+  static Set<String> findUserReferences(Connection connection) throws SQLException {
+    String sql = "SELECT cl.relname, att.attname " +
+        "FROM pg_constraint con " +
+        "JOIN pg_class cl ON cl.oid = con.conrelid " +
+        "JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY (con.conkey) " +
+        "WHERE con.contype = 'f' AND con.confrelid = 'users'::regclass " +
+        "AND cl.relnamespace = (SELECT relnamespace FROM pg_class WHERE oid = 'users'::regclass) " +
+        "ORDER BY cl.relname, att.attname";
+    Set<String> references = new LinkedHashSet<>();
+    try (PreparedStatement pst = connection.prepareStatement(sql);
+         ResultSet rs = pst.executeQuery()) {
+      while (rs.next()) {
+        String table = rs.getString(1);
+        String column = rs.getString(2);
+        // These become SQL identifiers, so take only the plain lower-case names the schema uses
+        if (!SQL_IDENTIFIER.matcher(table).matches() || !SQL_IDENTIFIER.matcher(column).matches()) {
+          throw new SQLException("Unexpected name in a reference to users: " + table + "." + column);
+        }
+        references.add(table + "." + column);
+      }
+    }
+    return references;
+  }
+
+  /**
+   * Inserts an account that cannot sign in: disabled, with the given suspension reason, and no
+   * account token. For {@code DeleteUserCommand}'s holding account.
+   *
+   * @return the record with its id, or null if the insert failed
+   */
+  public static User addDisabledAccount(User record, String suspensionReason) {
+    SqlUtils insertValues = new SqlUtils()
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
+        .add("username", StringUtils.trimToNull(record.getUsername()))
+        .add("first_name", StringUtils.trimToNull(record.getFirstName()))
+        .add("organization", StringUtils.trimToNull(record.getOrganization()))
+        .add("password", record.getPassword())
+        .add("enabled", false)
+        .add("suspension_reason", suspensionReason, 255);
+    long id = DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY);
+    if (id == -1) {
+      LOG.error("addDisabledAccount failed!");
+      return null;
+    }
+    record.setId(id);
+    record.setEnabled(false);
+    return record;
   }
 
   /**
