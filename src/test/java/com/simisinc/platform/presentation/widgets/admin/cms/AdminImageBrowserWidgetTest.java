@@ -19,6 +19,8 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.DeleteImageTagCommand;
+import com.simisinc.platform.application.cms.DownscaleImageCommand;
+import com.simisinc.platform.application.cms.DownscaleLibraryImagesCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.application.cms.ScanForDuplicateImagesCommand;
 import com.simisinc.platform.domain.model.cms.Image;
@@ -30,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageTagMapRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageTagRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
+import com.simisinc.platform.infrastructure.scheduler.cms.DownscaleLibraryImageJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import org.jobrunr.scheduling.BackgroundJobRequest;
@@ -1339,5 +1342,123 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
 
       imageRepositoryMockedStatic.verifyNoInteractions();
     }
+  }
+
+  private static DownscaleLibraryImagesCommand.Candidate candidate(long imageId, String skipReason) {
+    Image image = new Image();
+    image.setId(imageId);
+    image.setFilename("infographic-" + imageId + ".png");
+    return new DownscaleLibraryImagesCommand.Candidate(image, List.of(), List.of(), skipReason);
+  }
+
+  @Test
+  void replaceOversizedImagesQueuesOnlyTheReviewedImagesThatAreStillReplaceable() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "replaceOversizedImages" });
+    // 3 was on the report; 4 became oversized after it rendered; 5 was on it but is used nowhere now
+    widgetContext.getParameterMap().put("imageId", new String[] { "3", "5" });
+
+    try (MockedStatic<DownscaleLibraryImagesCommand> downscaleMockedStatic = mockStatic(DownscaleLibraryImagesCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequestMockedStatic = mockStatic(BackgroundJobRequest.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      downscaleMockedStatic.when(DownscaleLibraryImagesCommand::findCandidates).thenReturn(List.of(
+          candidate(3L, null), candidate(4L, null), candidate(5L, "Not used on any page, so there is nothing to switch")));
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      ArgumentCaptor<DownscaleLibraryImageJob> jobs = ArgumentCaptor.forClass(DownscaleLibraryImageJob.class);
+      jobRequestMockedStatic.verify(() -> BackgroundJobRequest.enqueue(jobs.capture()), times(1));
+      Assertions.assertEquals(3L, jobs.getValue().getImageId(), "only what the admin saw on the report is replaced");
+      Assertions.assertEquals(widgetContext.getUserId(), jobs.getValue().getUserId());
+    }
+    Assertions.assertEquals("/admin/images?view=downscale", widgetContext.getRedirect());
+  }
+
+  @Test
+  void replaceOversizedImagesIsAdminOnly() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, CONTENT_MANAGER);
+    widgetContext.getParameterMap().put("command", new String[] { "replaceOversizedImages" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "3" });
+
+    try (MockedStatic<DownscaleLibraryImagesCommand> downscaleMockedStatic = mockStatic(DownscaleLibraryImagesCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequestMockedStatic = mockStatic(BackgroundJobRequest.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      jobRequestMockedStatic.verifyNoInteractions();
+      downscaleMockedStatic.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void theOversizedReportIsReadOnlyAndAdminOnly() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "view", "downscale");
+
+    try (MockedStatic<DownscaleLibraryImagesCommand> downscaleMockedStatic = mockStatic(DownscaleLibraryImagesCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequestMockedStatic = mockStatic(BackgroundJobRequest.class)) {
+      downscaleMockedStatic.when(DownscaleLibraryImagesCommand::findCandidates).thenReturn(List.of(candidate(3L, null)));
+      downscaleMockedStatic.when(DownscaleLibraryImagesCommand::findLargeButNotOversized).thenReturn(List.of());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      jobRequestMockedStatic.verifyNoInteractions();
+      downscaleMockedStatic.verify(() -> DownscaleLibraryImagesCommand.apply(anyLong(), anyLong()), never());
+    }
+    Assertions.assertEquals(AdminImageBrowserWidget.DOWNSCALE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(1, ((List<?>) request.getAttribute("downscaleCandidates")).size());
+  }
+
+  @Test
+  void theDownscalePreviewReportsTheNewSizeAsJson() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "downscalePreview", "true");
+    addQueryParameter(widgetContext, "imageId", "3");
+    Image image = new Image();
+    image.setId(3L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DownscaleLibraryImagesCommand> downscaleMockedStatic = mockStatic(DownscaleLibraryImagesCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(3L)).thenReturn(image);
+      downscaleMockedStatic.when(() -> DownscaleLibraryImagesCommand.isOversized(image)).thenReturn(true);
+      downscaleMockedStatic.when(() -> DownscaleLibraryImagesCommand.preview(image))
+          .thenReturn(new DownscaleImageCommand.Downscaled(new byte[412_000], "image/jpeg", 1600, 865));
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertTrue(widgetContext.hasJson());
+    Assertions.assertEquals("{\"imageId\":3,\"width\":1600,\"height\":865,\"fileLength\":412000,\"fileType\":\"image\\/jpeg\"}",
+        widgetContext.getJson());
+  }
+
+  @Test
+  void aContentManagerCannotRunTheDownscalePreview() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, CONTENT_MANAGER);
+    addQueryParameter(widgetContext, "downscalePreview", "true");
+    addQueryParameter(widgetContext, "imageId", "3");
+
+    try (MockedStatic<DownscaleLibraryImagesCommand> downscaleMockedStatic = mockStatic(DownscaleLibraryImagesCommand.class);
+        MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(), any(DataConstraints.class))).thenReturn(List.of());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      downscaleMockedStatic.verifyNoInteractions();
+    }
+    Assertions.assertFalse(widgetContext.hasJson(), "the preview decodes a full-size image; it falls through to the normal page");
   }
 }
