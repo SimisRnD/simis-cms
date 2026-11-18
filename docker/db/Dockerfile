@@ -25,7 +25,7 @@
 # Rebuild gosu with a current Go toolchain. The base image's gosu is built
 # against an older Go and carries that Go's stdlib CVEs; a fresh static build
 # clears them without changing gosu's behavior.
-FROM golang:1.27-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS gosu
+FROM golang:1.27-bookworm@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9 AS gosu
 ENV CGO_ENABLED=0
 RUN go install github.com/tianon/gosu@1.17
 
