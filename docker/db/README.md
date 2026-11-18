@@ -60,7 +60,16 @@ what was verified:
   `xpath()`/`xmltable()`; the shipped schema declares no xml columns.
 - **zlib1g / CVE-2023-45853** — `vulnerable_code_not_present`. The flaw is in zlib's MiniZip
   contrib component, which Debian does not build into the shared libz shipped here (hence
-  Debian's will-not-fix).
+  Debian's will-not-fix). **CVE-2026-85091** is `vulnerable_code_not_present` too: its
+  `gz_vacate()` does not exist in zlib 1.2.13. **CVE-2026-76844** is
+  `vulnerable_code_not_in_execute_path`: it is in zlib's gzFile write API, which the server,
+  PostGIS and PROJ never call; only `pg_dump`, `pg_basebackup` and libxml2's compressed-file
+  output do, and nothing here runs those.
+- **libsqlite3 / CVE-2026-119373, -119374, -119379** — `vulnerable_code_not_in_execute_path`,
+  triaged per CVE because, unlike the rest of the GDAL chain, libsqlite3 *is* loaded into the
+  server: vector PostGIS links PROJ, which reads its own `proj.db` through SQLite. The flaws are
+  in SQLite's FTS5 and session extensions, which PROJ never uses, and `proj.db` has no FTS5
+  tables.
 - **postgis and postgresql-\*-postgis-3(-scripts) / CVE-2026-73515** —
   `vulnerable_code_not_in_execute_path`. The flaw is in PostGIS's own
   `ST_FromFlatGeobuf()`/`ST_AsFlatGeobuf()` functions (memory disclosure and DoS via a
@@ -87,8 +96,9 @@ never rendered as "safe".
 
 > **Scope.** These statements describe the image **as shipped and configured**. If an operator
 > installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP
-> authentication, or adds compressed `*.sql.gz` init scripts from an untrusted source, the
-> corresponding statements no longer hold and the VEX should be re-evaluated.
+> authentication, adds compressed `*.sql.gz` init scripts from an untrusted source, or runs
+> `pg_dump` or `pg_basebackup` with gzip compression inside the container, the corresponding
+> statements no longer hold and the VEX should be re-evaluated.
 
 Update the document after any rebuild changes the finding set (it only ever emits statements
 for findings with **no** available fix):
