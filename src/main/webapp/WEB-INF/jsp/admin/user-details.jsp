@@ -37,7 +37,7 @@
     postAction('${widgetContext.uri}?action=restoreAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function deleteAccount() {
-    if (!confirm("Are you sure you want to DELETE this user account?")) {
+    if (!confirm("Are you sure you want to DELETE this user account? Anything it created or changed will be kept, attributed to the site's own account instead.")) {
       return;
     }
     postAction('${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
@@ -509,10 +509,11 @@
     level than yours: the lockout is a security control on that account, so clearing it is a change
     to the account, not a favour to its owner.</li>
   <li><strong>Delete Account</strong> is permanent, with no confirmation beyond the browser's own "Are
-    you sure?" prompt. It fails safely, with an explicit error rather than a partial delete, if the
-    account is still referenced elsewhere in the database (it authored content, owns uploaded files,
-    etc. -- see "Common problems" below). You can't delete your own account, or one with a higher role
-    level than yours -- an explicit error message says so if you try.</li>
+    you sure?" prompt. It removes the account and its roles, groups, grants, sign-in history and tokens.
+    Anything it created or changed (content, posts, files, form submissions, history) is kept and
+    attributed to a built-in account named after the site, which can't sign in. The audit log still
+    records who the account was and who deleted it. You can't delete your own account, or one with a
+    higher role level than yours -- an explicit error message says so if you try.</li>
 </ul>
 
 <script src="${ctx}/javascript/copy-button.js"></script>
@@ -556,9 +557,10 @@
   <li><strong>A user is locked out of MFA</strong> (lost their device, no backup codes left). Use
     <strong>Reset MFA</strong> in the Actions menu, then have them re-enroll -- it clears the second
     factor and any unused recovery codes in one step.</li>
-  <li><strong>Delete failed with "referenced in other tables."</strong> The account owns something
-    else in the system (content, files, form submissions, etc.) that deleting it outright would
-    orphan. Suspending instead of deleting is usually the safer option here.</li>
+  <li><strong>Content now shows the site's name as its author.</strong> That content belonged to an
+    account that was deleted. The built-in account holding it is listed under Users, suspended; it
+    can't sign in and can't be deleted. Suspend rather than delete when you want to keep an account's
+    name on its work.</li>
 </ul>
 
 <div class="reveal" id="resetPasswordReveal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordRevealTitle"
