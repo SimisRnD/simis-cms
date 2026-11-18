@@ -66,7 +66,7 @@ SimIS CMS is built on the work of many open-source projects and data providers. 
    Spectrum                    MIT      Color picker                                      https://github.com/bgrins/spectrum
    Superset-UI Embedded SDK    Apache   Visualizations and dashboards                     https://github.com/apache/superset
    Swiper                      MIT      Modern mobile touch slider                        https://github.com/nolimits4web/swiper
-   TinyMCE                     LGPL     HTML editor                                       https://github.com/tinymce/tinymce
+   TinyMCE                     GPL      HTML editor                                       https://github.com/tinymce/tinymce
    TinyMCE-FontAwesome-Plugin  MIT      Icon chooser                                      https://github.com/josh18/TinyMCE-FontAwesome-Plugin
 
  Testing:

@@ -49,6 +49,12 @@ class WebPageCacheInvalidationTest {
   private static final File REPOSITORY = new File(
       "src/main/java/com/simisinc/platform/infrastructure/persistence/cms/WebPageRepository.java");
 
+  /**
+   * The helper's declaration, without its access modifier. It was private until the image library
+   * backfill, which rewrites page XML outside this repository, needed it public.
+   */
+  private static final String HELPER = "static void invalidateCachedPage(";
+
   private static String source() throws IOException {
     assertTrue(REPOSITORY.isFile(), "not found (run from the project root): " + REPOSITORY.getAbsolutePath());
     return Files.readString(REPOSITORY.toPath(), StandardCharsets.UTF_8);
@@ -65,7 +71,7 @@ class WebPageCacheInvalidationTest {
     // removeCustomPage -- that is the point of it -- so scanning the whole file would only ever
     // flag the fix itself, which is what the first run of this test did.
     String source = source();
-    int helperAt = source.indexOf("private static void invalidateCachedPage(");
+    int helperAt = source.indexOf(HELPER);
     assertTrue(helperAt > -1, "invalidateCachedPage(String) should exist");
 
     List<String> offenders = new ArrayList<>();
@@ -86,7 +92,7 @@ class WebPageCacheInvalidationTest {
   @Test
   void theHelperDropsBothCaches() throws IOException {
     String helper = source();
-    int start = helper.indexOf("private static void invalidateCachedPage(");
+    int start = helper.indexOf(HELPER);
     assertTrue(start > -1, "invalidateCachedPage(String) should exist");
     String body = helper.substring(start, Math.min(helper.length(), start + 900));
     assertTrue(body.contains("WebPageXmlLayoutCommand.removeCustomPage("), "must drop the XML layout cache");
