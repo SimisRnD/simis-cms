@@ -309,6 +309,11 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot reset the password for an account with a higher role level than your own");
       return context;
     }
+    // UserRepository.createAccountToken() refuses it as well; refusing here says why
+    if (DeleteUserCommand.isHoldingAccount(user)) {
+      context.setErrorMessage(DeleteUserCommand.CANNOT_SIGN_IN_MESSAGE);
+      return context;
+    }
     // Capture the target before the token replaces the reference
     String targetId = String.valueOf(user.getId());
     String targetLabel = user.getEmail();

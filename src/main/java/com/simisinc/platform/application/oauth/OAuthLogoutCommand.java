@@ -21,6 +21,7 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -59,6 +60,20 @@ public class OAuthLogoutCommand {
         LOG.debug("Logout complete.");
       }
     }
+  }
+
+  /**
+   * Ends the person's session at the identity provider (OpenID Connect back-channel logout with their
+   * refresh token), for a sign-in this site refused. No site session or user token exists for it, so
+   * {@link #logout} has nothing to find. Without a refresh token there is nothing to send.
+   */
+  public static void endProviderSession(OAuthToken oAuthToken) {
+    if (oAuthToken == null || StringUtils.isBlank(oAuthToken.getRefreshToken())) {
+      return;
+    }
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("refresh_token", oAuthToken.getRefreshToken());
+    OAuthHttpCommand.sendHttpPost("protocol/openid-connect/logout", parameters);
   }
 
   public static String getLogoutRedirect() {

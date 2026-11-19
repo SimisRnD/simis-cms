@@ -205,10 +205,10 @@ public class UserSession implements Serializable {
   }
 
   /**
-   * Checks the capability set resolved from this session's roles at login (see
+   * Checks the capabilities this session's user holds, through a role or a direct grant (see
    * LoadUserCommand.populateUserRecord). Added alongside hasRole() (issue #701's walking
-   * skeleton) - like roleList, capabilityList is cached for the session lifetime and does not
-   * refresh until re-login.
+   * skeleton). Like roleList, capabilityList is set at login and re-read from the database by
+   * WebRequestFilter on every request, so a change takes effect on the user's next request.
    */
   public boolean hasPermission(String code) {
     if (capabilityList == null) {

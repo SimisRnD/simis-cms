@@ -19,6 +19,7 @@ package com.simisinc.platform.application.oauth;
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
+import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.domain.model.User;
@@ -66,6 +67,21 @@ public class OAuthLoginCommand {
       LOG.warn("The user was not found");
       SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", -1L,
           null, request.getRemoteAddr(), request.getSession().getId(), "oauth: user could not be created");
+      return;
+    }
+
+    // Refuse an account that cannot sign in -- suspended, or not validated -- before any login record,
+    // token, cookie or session exists for it. Re-read the way WebRequestFilter re-checks every signed-in
+    // request (the record in hand may not carry the stored enabled flag), so both agree. That check used
+    // to be the only one: it signed the account out on its next request, after this had already recorded
+    // a successful login and issued a "stay signed in" token.
+    if (AuthenticateLoginCommand.getAuthenticatedUser(user.getId()) == null) {
+      LOG.warn("OAuth sign-in refused for user " + user.getId() + ": the account is suspended or not validated");
+      SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", user.getId(),
+          user.getEmail(), request.getRemoteAddr(), request.getSession().getId(), "oauth: account suspended or not validated");
+      // Otherwise the provider would sign them straight back in on the next request, which every page
+      // sends to it while OAuth is on, and the callback would refuse them again, in a loop
+      OAuthLogoutCommand.endProviderSession(oAuthToken);
       return;
     }
 
