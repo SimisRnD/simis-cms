@@ -34,6 +34,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
+import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -84,8 +85,11 @@ class OAuthLoginCommandTest {
         MockedStatic<OAuthTokenRepository> oAuthTokenRepo = mockStatic(OAuthTokenRepository.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
-        MockedStatic<SaveSessionCommand> saveSession = mockStatic(SaveSessionCommand.class)) {
+        MockedStatic<SaveSessionCommand> saveSession = mockStatic(SaveSessionCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class)) {
       userInfo.when(() -> OAuthUserInfoCommand.createUser(oAuthToken)).thenReturn(user);
+      // An active account, as the sign-in's account check reads it
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(9L)).thenReturn(user);
       // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
       siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString()))
           .thenReturn(TEST_ZONE.getId());

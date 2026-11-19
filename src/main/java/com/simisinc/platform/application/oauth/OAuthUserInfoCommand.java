@@ -72,6 +72,12 @@ public class OAuthUserInfoCommand {
 
     // Find the existing local user, or create a new one
     User user = resolveExistingUser(username, email, emailVerified);
+    if (user != null && !user.isEnabled()) {
+      // A suspended account stays as an administrator left it: no profile, role or group changes from
+      // the provider, and no validation. OAuthLoginCommand refuses the sign-in.
+      LOG.warn("Not updating suspended user " + user.getId() + " from the identity provider");
+      return user;
+    }
     if (user == null) {
       user = new User();
     }
