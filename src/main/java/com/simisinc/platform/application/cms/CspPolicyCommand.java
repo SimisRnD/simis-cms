@@ -16,26 +16,34 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 
 /**
  * Builds the Content-Security-Policy-Report-Only header used to test a stricter policy against real
- * traffic before enforcing it, and the image hosts Google Analytics adds to the enforced policy.
+ * traffic before enforcing it, and the parts of the enforced policy that depend on which features a
+ * site has switched on: the image hosts Google Analytics adds, and the connect-src source list.
  *
  * <p>
- * The remaining directives in #1430 cannot be written by reading the source. Every third-party
- * integration arrives as a &lt;script src&gt; and then calls endpoints of its own: Stripe's script
- * talks to api.stripe.com, gtag builds google-analytics.com at runtime, Square reaches
- * pci-connect.squareup.com. None of those hosts appear anywhere in this repository, and they change
- * when a vendor updates their SDK, with no commit here. Guessing at connect-src means guessing at
- * whether checkout still works.
+ * Third-party integrations arrive as a &lt;script src&gt; and then call endpoints of their own:
+ * Stripe's script talks to api.stripe.com, gtag builds google-analytics.com at runtime, Square
+ * reaches pci-connect.squareup.com. None of those hosts appear in the platform's own code, and they
+ * change when a vendor updates its SDK, with no commit here. So connect-src (#1430) was not written
+ * from reading the source alone, but from three things together: an inventory of every call the
+ * platform's templates and scripts make, each vendor's published CSP requirements, and three months
+ * of report-only data from live traffic. See {@link #connectSourceList()}.
  * </p>
  *
  * <p>
- * Report-only is how that guess is replaced with evidence. The browser evaluates the candidate
- * policy, refuses nothing, and posts a report for anything that would have been blocked.
+ * Report-only stays useful once a directive is enforced. The browser evaluates the candidate policy,
+ * refuses nothing, and posts a report for anything that would have been blocked -- which is how a
+ * vendor's new endpoint shows up before anyone reports a broken page.
  * </p>
  *
  * <p>
@@ -61,6 +69,37 @@ public class CspPolicyCommand {
 
   /** Replaced with the request's script nonce, so a candidate can carry script-src. */
   public static final String NONCE_PLACEHOLDER = "{nonce}";
+
+  /** Vimeo's oEmbed endpoint, which video.jsp calls from the browser for a Vimeo video's thumbnail. */
+  static final String VIMEO_OEMBED = "https://vimeo.com/api/oembed.json";
+
+  /**
+   * What gtag.js calls: Google's documented connect-src list for Google Analytics, plus Google
+   * Signals' host. See {@link #connectSourceList()} for what is left out.
+   */
+  static final List<String> GOOGLE_ANALYTICS_CONNECT_SOURCES = List.of(
+      "https://www.googletagmanager.com",
+      "https://*.google-analytics.com",
+      "https://*.google.com",
+      "https://*.g.doubleclick.net");
+
+  /** What reCAPTCHA calls, per Google's reCAPTCHA FAQ. A path, so the rest of www.google.com stays closed. */
+  static final String RECAPTCHA_CONNECT_SOURCE = "https://www.google.com/recaptcha/";
+
+  /** What Stripe.js calls for the card field, per Stripe's integration security guide. */
+  static final String STRIPE_CONNECT_SOURCE = "https://api.stripe.com";
+
+  /** What Square's Web Payments SDK calls in production, per Square's CSP guide. */
+  static final List<String> SQUARE_PRODUCTION_CONNECT_SOURCES = List.of(
+      "https://web.squarecdn.com",
+      "https://pci-connect.squareup.com",
+      "https://o160250.ingest.sentry.io");
+
+  /** The same for Square's sandbox, which the form loads whenever ecommerce.production is off. */
+  static final List<String> SQUARE_SANDBOX_CONNECT_SOURCES = List.of(
+      "https://sandbox.web.squarecdn.com",
+      "https://pci-connect.squareupsandbox.com",
+      "https://o160250.ingest.sentry.io");
 
   private CspPolicyCommand() {
     // Static utility, not instantiated
@@ -124,11 +163,96 @@ public class CspPolicyCommand {
    * @return the sources with a leading space, ready to append, or ""
    */
   public static String googleAnalyticsImageSources() {
-    if (!"google".equals(LoadSitePropertyCommand.loadByName("analytics.service"))
-        || StringUtils.isBlank(LoadSitePropertyCommand.loadByName("analytics.google.key"))) {
+    if (!loadsGoogleAnalytics()) {
       return "";
     }
     return " https://*.google.com https://*.googletagmanager.com";
+  }
+
+  /**
+   * The enforced connect-src source list: this site, plus what each feature the site has switched on
+   * calls from the browser.
+   *
+   * <p>
+   * connect-src governs where script can send things -- fetch, XMLHttpRequest, sendBeacon,
+   * WebSocket, EventSource. With it absent and no default-src, script that got onto a page could post
+   * whatever it read to any host. Every such call in the platform's own templates and scripts goes
+   * to this site, except video.jsp's below; the rest of the list is what the vendors the platform
+   * integrates document for their SDKs, added only when the site uses that vendor.
+   * </p>
+   *
+   * <ul>
+   * <li><b>blob:</b> -- TinyMCE reads an image back out of a blob: URL with fetch() when the image is
+   * not in its own cache (uriToBlob). That reads memory the page already holds and sends nothing, so
+   * admitting it gives up no protection, for the same reason img-src admits data:.</li>
+   * <li><b>Vimeo's oEmbed endpoint</b> -- video.jsp fetches a Vimeo video's thumbnail from it. Always
+   * present, like the video hosts in img-src: whether a page carries a Vimeo video is up to content,
+   * not configuration, and a crawl of a site that has none would never show it. The exact path
+   * rather than the host, because nothing else on vimeo.com is called.</li>
+   * <li><b>Google Analytics</b> -- Google's documented connect-src list for the Google tag, plus
+   * *.g.doubleclick.net, which Google Signals uses and which this site's reports showed
+   * (stats.g.doubleclick.net). Google's country domains are left out, as they are from img-src: CSP
+   * cannot wildcard a top-level domain, and those calls are Signals' advertising audience pings,
+   * which analytics does not need. pagead2.googlesyndication.com, which Google lists for Ads
+   * features, has never been reported here and is left out too.</li>
+   * <li><b>reCAPTCHA</b> -- Google's reCAPTCHA FAQ lists https://www.google.com/recaptcha/. Turnstile
+   * needs nothing here; Cloudflare's guide asks only for 'self', and only for pre-clearance.</li>
+   * <li><b>Stripe or Square</b> -- the SDK behind the payment form's card field, chosen the way
+   * PaymentFormWidget chooses it. Stripe's guide lists api.stripe.com for Stripe.js
+   * (maps.googleapis.com is for the Address Element, which the form does not use). Square's lists
+   * its CDN, its PCI endpoint and the error-reporting host its SDK sends to, with separate hosts for
+   * the sandbox.</li>
+   * </ul>
+   *
+   * <p>
+   * Unlike frame-src there is no setting for more hosts. frame-src needs one because authored content
+   * embeds iframes from vendors the platform has never heard of. Content cannot run script -- script-src
+   * admits only this site and the request's nonce -- so the only code that can make a cross-origin
+   * call is code the platform ships, and a feature that needs a new host adds it here. The marketing
+   * tags under analytics settings are the exception that list does not cover: Google Tag Manager
+   * cannot load under the enforced script-src at all (its loader inserts gtm.js without the nonce),
+   * and Simpli.fi and BrandCDN publish no list of the hosts their scripts call.
+   * </p>
+   *
+   * @return the sources, space separated, without the directive name
+   */
+  public static String connectSourceList() {
+    Set<String> sources = new LinkedHashSet<>();
+    sources.add("'self'");
+    sources.add("blob:");
+    sources.add(VIMEO_OEMBED);
+    if (loadsGoogleAnalytics()) {
+      sources.addAll(GOOGLE_ANALYTICS_CONNECT_SOURCES);
+    }
+    if (usesGoogleCaptcha()) {
+      sources.add(RECAPTCHA_CONNECT_SOURCE);
+    }
+    String paymentProcessor = LoadSitePropertyCommand.loadByName("ecommerce.paymentProcessor");
+    if ("Stripe".equalsIgnoreCase(paymentProcessor)) {
+      sources.add(STRIPE_CONNECT_SOURCE);
+    } else if ("Square".equalsIgnoreCase(paymentProcessor)) {
+      sources.addAll(EcommerceCommand.isProductionEnabled()
+          ? SQUARE_PRODUCTION_CONNECT_SOURCES
+          : SQUARE_SANDBOX_CONNECT_SOURCES);
+    }
+    return String.join(" ", sources);
+  }
+
+  /** The condition main.jsp loads gtag.js under. */
+  private static boolean loadsGoogleAnalytics() {
+    return "google".equals(LoadSitePropertyCommand.loadByName("analytics.service"))
+        && StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("analytics.google.key"));
+  }
+
+  /**
+   * Whether a form can render reCAPTCHA: the rule AllowedIframeHostCommand uses for reCAPTCHA's
+   * frame, which covers every case CaptchaCommand renders it in. Turnstile wins when it is selected.
+   */
+  private static boolean usesGoogleCaptcha() {
+    String captchaService = LoadSitePropertyCommand.loadByName("captcha.service");
+    return !"turnstile".equals(captchaService)
+        && StringUtils.isNotBlank(captchaService)
+        && StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
   }
 
   /** The Reporting-Endpoints header value that gives report-to its destination. */

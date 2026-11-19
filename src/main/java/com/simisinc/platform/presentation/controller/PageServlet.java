@@ -218,94 +218,13 @@ public class PageServlet extends HttpServlet {
     SECURE_RANDOM.nextBytes(nonceBytes);
     String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);
     request.setAttribute("cspNonce", cspNonce);
-    // form-action 'self' keeps an injected <form> from posting to an attacker's origin. Every form
-    // the platform serves is same-origin: the payment forms tokenize client-side through the
-    // Stripe/Square SDK and then post the token back here, so none of them are affected.
-    // style-src and font-src close the two directives that were silently ungoverned: with no
-    // default-src, an absent directive falls back to nothing at all, so stylesheets and fonts could
-    // be fetched from any origin. Measured against every published page before choosing these --
-    // all 12 served stylesheets (including the site-specific one) reference zero external origins,
-    // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
-    //
-    // style-src admits no inline style (issue #1999): a <style> element applies only with this
-    // request's nonce -- the one script-src uses, since the templates stamp the same cspNonce on
-    // both -- and a style="" attribute never applies, because a nonce cannot authorize one. That
-    // rests on every source of inline style being closed: the templates render no attribute and
-    // nonce every <style> (tools/check-inline-styles.py), content cannot keep a style attribute
-    // (HtmlCommand drops it on save, #2001), and the vendored libraries write styles through the
-    // CSSOM or with the nonce (#2012). Script is unaffected where it uses the CSSOM -- el.style and
-    // insertRule are not governed by CSP -- and refused where it parses markup: innerHTML, a jQuery
-    // HTML string, setAttribute('style'). A browser sweep of the admin pages and a report-only trial
-    // of this exact directive on live traffic found nothing left before it was enforced. Keep the
-    // report-only policy configured: it is what shows a new inline style in /admin/csp-violations.
-    //
-    // img-src and default-src are deliberately NOT set yet (issue #1430). img-src is the directive
-    // that would close the CSS-based exfiltration channel, but published content still references
-    // images on an external origin, so setting it now would break real pages. default-src has to
-    // come last, after img-src and frame-src, or the video and careers iframes fall through to it.
-      // img-src is the directive that actually closes the exfiltration channel #1430 describes:
-      // with it absent and no default-src, a CSS attribute selector can encode a field value
-      // into a background-image URL and send it to any host. Setting it was blocked until now
-      // by published content referencing images elsewhere; those references are gone (#1449),
-      // and a crawl of all 135 sitemap pages finds 4,565 image sources, every one same-origin.
-      //
-      // data: is allowed rather than needed -- nothing emits an inline image today, but the
-      // editor can produce one on paste, and a data: URI cannot exfiltrate anything: it carries
-      // its own bytes and makes no request. Omitting it would buy no safety and would break a
-      // paste that looks perfectly reasonable to an author.
-      //
-      // The two video hosts are not optional. VideoWidget renders a YouTube poster as a CSS
-      // background-image from img.youtube.com, and video.jsp sets the Vimeo equivalent from the
-      // oEmbed response, which serves thumbnails off i.vimeocdn.com. A site-wide crawl does not
-      // reveal either, because this pilot happens not to use the widget -- the requirement is in
-      // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
-      //
-      // api.weather.gov is the third of that kind. WeatherWidget renders the National Weather
-      // Service's own forecast icons as <img> elements straight from that host, so without it
-      // the widget half-works: temperatures and conditions render, every icon becomes a broken
-      // placeholder, and nothing errors anywhere a developer would look. It went unnoticed
-      // because curl fetches the icon URL happily -- only a browser enforces CSP (issue #1805).
-      // Unlike the tile server below it, this is a fixed government host with nothing to
-      // configure, so it is a constant rather than a lookup.
-      //
-      // frame-src is emitted from AllowedIframeHostCommand, the same list HtmlCommand enforces
-      // when content is saved. Two layers on one list: the sanitizer stops a disallowed embed
-      // becoming stored content and tells the author while they can still fix it, and this stops
-      // anything that got stored another way -- content predating a host's removal, a direct
-      // database write, a sanitizer bug -- from loading. Either alone leaves a real gap. It is a
-      // list rather than a constant because this is a product: sites embed different vendors, and
-      // hardcoding one site's would mean a platform release every time another needed an embed.
-      // The hosts the platform's own widgets require are always included and cannot be removed by
-      // clearing the setting.
-      //
-      // default-src remains deliberately absent and has to stay last (see #1430): every directive
-      // it would back-stop must be set first, or the content it governs falls through to it.
-      // connect-src has had no inventory taken -- video.jsp alone calls Vimeo's oEmbed endpoint
-      // from the browser -- and must not be inherited from a backstop before it does.
-      // Leaflet fetches map tiles as images, so the configured tile host has to be here or the
-      // map widget renders its controls and marker over an empty grey square -- the same class of
-      // gap as the two video hosts above, and one a content crawl cannot find either, because the
-      // requirement is in the platform rather than in any page.
-      String tileSource = FindMapTilesCredentialsCommand.cspImageSource();
-      String mapTileImageSource = tileSource == null ? "" : " " + tileSource;
-      // Google Analytics requests images too, from www.google.com and www.googletagmanager.com.
-      // Added only when the site loads it; see CspPolicyCommand.googleAnalyticsImageSources. This is
-      // the whole policy for every page this servlet renders: nothing sets or overrides CSP per page.
-
-      response.setHeader("Content-Security-Policy",
-          "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-              + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self'; "
-              + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
-              + "https://api.weather.gov"
-              + mapTileImageSource
-              + CspPolicyCommand.googleAnalyticsImageSources() + "; "
-              + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
-              + "script-src 'self' 'nonce-" + cspNonce + "'");
+    // The whole page policy; contentSecurityPolicy has each directive and the reasoning behind it.
+    response.setHeader("Content-Security-Policy", contentSecurityPolicy(cspNonce));
 
       // The candidate policy from Security Settings, when one is configured. Report-only cannot
       // block a resource, so this is safe to run against live traffic -- which is the point: the
-      // directives #1430 still needs (connect-src, and default-src behind it) cannot be written by
-      // reading the source, because the hosts a third-party script calls only exist at runtime.
+      // hosts a third-party script calls only exist at runtime, so a vendor's new endpoint shows up
+      // here as a report before it shows up as a broken page.
       //
       // Reporting-Endpoints goes with it. report-to names an endpoint; without this header the
       // name resolves to nothing and the browser evaluates the policy and reports to nobody, which
@@ -1359,6 +1278,114 @@ public class PageServlet extends HttpServlet {
     } catch (Exception e) {
       LOG.error("Page error caught: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * The Content-Security-Policy sent with every page this servlet renders, for one request's nonce.
+   * It is the whole policy: nothing sets or overrides CSP per page.
+   *
+   * <p>Every directive that governs something the platform loads is set explicitly, and default-src
+   * 'self' backs up the rest (issue #1430). The reasoning for each sits next to it below.
+   *
+   * @param cspNonce this request's nonce, which script-src and style-src both carry
+   * @return the policy
+   */
+  static String contentSecurityPolicy(String cspNonce) {
+    // form-action 'self' keeps an injected <form> from posting to an attacker's origin. Every form
+    // the platform serves is same-origin: the payment forms tokenize client-side through the
+    // Stripe/Square SDK and then post the token back here, so none of them are affected.
+    // style-src and font-src were the first directives set beyond script-src: before default-src
+    // existed, an absent directive fell back to nothing at all, so stylesheets and fonts could be
+    // fetched from any origin. Measured against every published page before choosing these --
+    // all 12 served stylesheets (including the site-specific one) reference zero external origins,
+    // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
+    //
+    // style-src admits no inline style (issue #1999): a <style> element applies only with this
+    // request's nonce -- the one script-src uses, since the templates stamp the same cspNonce on
+    // both -- and a style="" attribute never applies, because a nonce cannot authorize one. That
+    // rests on every source of inline style being closed: the templates render no attribute and
+    // nonce every <style> (tools/check-inline-styles.py), content cannot keep a style attribute
+    // (HtmlCommand drops it on save, #2001), and the vendored libraries write styles through the
+    // CSSOM or with the nonce (#2012). Script is unaffected where it uses the CSSOM -- el.style and
+    // insertRule are not governed by CSP -- and refused where it parses markup: innerHTML, a jQuery
+    // HTML string, setAttribute('style'). A browser sweep of the admin pages and a report-only trial
+    // of this exact directive on live traffic found nothing left before it was enforced. Keep the
+    // report-only policy configured: it is what shows a new inline style in /admin/csp-violations.
+    //
+    // img-src is the directive that actually closes the exfiltration channel #1430 describes:
+    // with it absent and no default-src, a CSS attribute selector can encode a field value
+    // into a background-image URL and send it to any host. Setting it was blocked until
+    // published content stopped referencing images elsewhere (#1449); a crawl of all 135 sitemap
+    // pages then found 4,565 image sources, every one same-origin.
+    //
+    // data: is allowed rather than needed -- nothing emits an inline image today, but the
+    // editor can produce one on paste, and a data: URI cannot exfiltrate anything: it carries
+    // its own bytes and makes no request. Omitting it would buy no safety and would break a
+    // paste that looks perfectly reasonable to an author.
+    //
+    // The two video hosts are not optional. VideoWidget renders a YouTube poster as a CSS
+    // background-image from img.youtube.com, and video.jsp sets the Vimeo equivalent from the
+    // oEmbed response, which serves thumbnails off i.vimeocdn.com. A site-wide crawl does not
+    // reveal either, because this pilot happens not to use the widget -- the requirement is in
+    // the platform, not in the content, which is exactly the kind of gap a crawl cannot close.
+    //
+    // api.weather.gov is the third of that kind. WeatherWidget renders the National Weather
+    // Service's own forecast icons as <img> elements straight from that host, so without it
+    // the widget half-works: temperatures and conditions render, every icon becomes a broken
+    // placeholder, and nothing errors anywhere a developer would look. It went unnoticed
+    // because curl fetches the icon URL happily -- only a browser enforces CSP (issue #1805).
+    // Unlike the tile server below it, this is a fixed government host with nothing to
+    // configure, so it is a constant rather than a lookup.
+    //
+    // Leaflet fetches map tiles as images, so the configured tile host has to be here or the
+    // map widget renders its controls and marker over an empty grey square -- the same class of
+    // gap as the two video hosts above, and one a content crawl cannot find either, because the
+    // requirement is in the platform rather than in any page.
+    String tileSource = FindMapTilesCredentialsCommand.cspImageSource();
+    String mapTileImageSource = tileSource == null ? "" : " " + tileSource;
+    // Google Analytics requests images too, from www.google.com and www.googletagmanager.com.
+    // Added only when the site loads it; see CspPolicyCommand.googleAnalyticsImageSources.
+    //
+    // frame-src is emitted from AllowedIframeHostCommand, the same list HtmlCommand enforces
+    // when content is saved. Two layers on one list: the sanitizer stops a disallowed embed
+    // becoming stored content and tells the author while they can still fix it, and this stops
+    // anything that got stored another way -- content predating a host's removal, a direct
+    // database write, a sanitizer bug -- from loading. Either alone leaves a real gap. It is a
+    // list rather than a constant because this is a product: sites embed different vendors, and
+    // hardcoding one site's would mean a platform release every time another needed an embed.
+    // The hosts the platform's own widgets require are always included and cannot be removed by
+    // clearing the setting.
+    //
+    // connect-src limits where script can send what it reads -- fetch, XMLHttpRequest,
+    // sendBeacon. CspPolicyCommand.connectSourceList builds it: this site, plus what each feature
+    // the site has switched on calls from the browser (Vimeo's oEmbed endpoint always; Google
+    // Analytics, reCAPTCHA, Stripe or Square when configured). It was written from an inventory of
+    // every such call in the templates and scripts, the vendors' published requirements, and three
+    // months of report-only data; that method has the reasoning for each source.
+    //
+    // worker-src admits blob: because Ace, the code editor on the CSS, JSON and XML editing pages,
+    // starts its syntax checker as a worker from a blob: URL. With no worker-src a worker falls back
+    // to script-src, which has never admitted blob:, so those editors have been running with no
+    // checker -- Ace catches the refusal and carries on -- and the report-only trial recorded 191
+    // refusals on /admin/css-editor. Only script already running on the page can create a blob: URL,
+    // and what the worker then loads with importScripts is still held to script-src.
+    //
+    // default-src 'self' had to wait until every directive it backs up was set, or whatever those
+    // govern would have fallen through to it -- the video and careers iframes first among them.
+    // With frame-src, img-src and connect-src in place it changes nothing that works today. What
+    // does fall through: media-src, where 'self' is right because every video is served from the
+    // file library, and manifest-src, which has nothing to govern. Its job is the next kind of
+    // request a browser learns to make, which now starts closed instead of open.
+    return "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
+        + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self'; "
+        + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
+        + "https://api.weather.gov"
+        + mapTileImageSource
+        + CspPolicyCommand.googleAnalyticsImageSources() + "; "
+        + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
+        + "connect-src " + CspPolicyCommand.connectSourceList() + "; "
+        + "worker-src 'self' blob:; "
+        + "script-src 'self' 'nonce-" + cspNonce + "'";
   }
 
   /** True for the guest-facing auth pages that need header/branding even while site.online is false (issue #1005). */

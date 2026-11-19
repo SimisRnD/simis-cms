@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -174,14 +176,21 @@ class PageServletSecurityHeadersTest {
     // No analytics configured in this test, so Google's image hosts stay out
     assertTrue(!actualCsp.contains("google.com") && !actualCsp.contains("googletagmanager"),
         "img-src admits Google's hosts only for a site that loads Google Analytics: " + actualCsp);
-    // Deliberately still absent: img-src cannot be set until published content stops referencing
-    // external images, and default-src must come after it or the video/careers iframes break.
-    assertTrue(!actualCsp.contains("default-src"),
-        "default-src must not be added before frame-src is settled: " + actualCsp);
-    // frame-src has to land before any backstop, or the third-party embeds inherit default-src
-    // and stop rendering. If a future change adds default-src, frame-src must come with it.
-    assertTrue(!actualCsp.contains("default-src") || actualCsp.contains("frame-src"),
-        "default-src must not be introduced without frame-src: " + actualCsp);
+    // Issue #1430's last step: default-src 'self' backs up whatever is left unset. Anything an unset
+    // directive governs falls through to it, so each directive that governs something the platform
+    // loads has to stay set explicitly -- drop frame-src or connect-src and the video and careers
+    // iframes, or the Vimeo oEmbed call, are held to 'self' and stop working.
+    assertEquals("default-src 'self'", directive(actualCsp, "default-src"), actualCsp);
+    for (String name : List.of("script-src", "style-src", "font-src", "img-src", "frame-src", "connect-src",
+        "worker-src", "object-src")) {
+      assertFalse(directive(actualCsp, name).isEmpty(), name + " must be set, not left to default-src: " + actualCsp);
+    }
+    // With nothing switched on: this site, TinyMCE's blob: reads, and the Vimeo oEmbed call video.jsp
+    // makes from the browser. CspPolicyCommandTest covers the hosts each feature adds.
+    assertEquals("connect-src 'self' blob: https://vimeo.com/api/oembed.json", directive(actualCsp, "connect-src"),
+        actualCsp);
+    // Ace starts its syntax checker from a blob: URL, which script-src -- the fallback -- refuses
+    assertEquals("worker-src 'self' blob:", directive(actualCsp, "worker-src"), actualCsp);
   }
 
   @Test
@@ -216,6 +225,10 @@ class PageServletSecurityHeadersTest {
     assertTrue(imgSrc.contains(" https://*.google.com") && imgSrc.contains(" https://*.googletagmanager.com"),
         "gtag.js requests images from both hosts: " + imgSrc);
     assertTrue(imgSrc.startsWith("img-src 'self' data: https://img.youtube.com"), "the existing sources stay: " + imgSrc);
+    // gtag.js sends its hits with fetch and sendBeacon, so its hosts belong in connect-src as well
+    String connectSrc = directive(cspValues.getValue(), "connect-src");
+    assertTrue(connectSrc.contains(" https://*.google-analytics.com") && connectSrc.contains(" https://*.google.com")
+        && connectSrc.contains(" https://*.g.doubleclick.net"), "gtag.js sends hits to these hosts: " + connectSrc);
   }
 
   @Test
