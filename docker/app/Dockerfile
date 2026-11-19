@@ -65,10 +65,18 @@ RUN chmod 0750 /usr/local/tomcat/bin/setenv.sh && rm -rf /usr/local/tomcat/webap
 # connection string it logs a single startup notice ("No connection string provided") and self-disables --
 # the JVM and app are unaffected, so local/CI runs (which have no connection string) still boot normally.
 # Pinned + SHA-256 verified for supply-chain integrity; it auto-loads applicationinsights.json from /opt.
+# Maven Central's CDN has intermittently answered GitHub's runners with a 404 for this jar (it failed
+# #2143's smoke test twice on 2026-11-19 while the same URL served it everywhere else), so each source
+# is retried and Microsoft's GitHub release of the same version is the fallback. Either way the jar
+# must match the pinned SHA-256, so the fallback cannot change what is installed.
 ARG APPLICATIONINSIGHTS_VERSION=3.7.9
 ARG APPLICATIONINSIGHTS_SHA256=4ab7a442bf9defc7475d026c6b49042793ebb010c391a1db91ae07da0c04d848
-RUN curl -fsSL -o /opt/applicationinsights-agent.jar \
+RUN for url in \
       "https://repo1.maven.org/maven2/com/microsoft/azure/applicationinsights-agent/${APPLICATIONINSIGHTS_VERSION}/applicationinsights-agent-${APPLICATIONINSIGHTS_VERSION}.jar" \
+      "https://github.com/microsoft/ApplicationInsights-Java/releases/download/${APPLICATIONINSIGHTS_VERSION}/applicationinsights-agent-${APPLICATIONINSIGHTS_VERSION}.jar"; \
+    do \
+      curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 -o /opt/applicationinsights-agent.jar "$url" && break; \
+    done \
     && echo "${APPLICATIONINSIGHTS_SHA256}  /opt/applicationinsights-agent.jar" | sha256sum -c -
 COPY ./docker/app/applicationinsights.json /opt/applicationinsights.json
 

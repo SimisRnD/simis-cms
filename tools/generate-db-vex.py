@@ -224,6 +224,18 @@ CURL_NO_TRANSFERS = (
     "Here libcurl makes no transfers at all. " + CURL_GNUTLS_GDAL + " " + CURL4_REASON
 )
 
+# Shared by the MIT krb5 CVEs below whose code is in the KDC or the admin server. Checked in the
+# image built from docker/db/Dockerfile on 2026-11-19 (krb5 1.20.1-2+deb12u5): dpkg lists only the
+# four client libraries, and none of the vulnerable functions is in libkrb5.so.3 or
+# libgssapi_krb5.so.2.
+KRB5_CLIENT_ONLY = (
+    "The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 "
+    "and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC "
+    "(krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, "
+    "libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or "
+    "command-line tool is present, and none of their code is in the installed libraries."
+)
+
 CVE_POLICY = {
     "CVE-2023-2953": (
         NOT_IN_PATH,
@@ -639,6 +651,86 @@ CVE_POLICY = {
         NOT_IN_PATH,
         "The flaw needs libcurl to reuse a pooled connection after its client-certificate "
         "(mTLS) options change. " + CURL_NO_TRANSFERS,
+    ),
+    # MIT krb5, triaged 2026-11-19. CVE-2026-107364 and -119079 are NOT here: they are in the
+    # shared ASN.1 decoder, which a client can reach before signing in -- see .trivyignore.
+    "CVE-2026-71200": (
+        NOT_PRESENT,
+        "The NULL dereference is in the KDC's PKINIT pre-authentication handling, which runs only "
+        "in a KDC (krb5kdc) configured for PKINIT. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112317": (
+        NOT_PRESENT,
+        "The leak is in krb5_ktkdb_get_entry() in lib/kdb/keytab.c, the KDB keytab the KDC and "
+        "kadmind use, which is part of libkdb5. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-118380": (
+        NOT_PRESENT,
+        "The flaw is in MIT krb5's RPCSEC_GSS support for RPC services such as kadmind (lib/rpc, "
+        "built as libgssrpc). " + KRB5_CLIENT_ONLY + " libtirpc has its own, separate RPC code, "
+        "and nothing in the image runs an RPC service.",
+    ),
+    "CVE-2026-112315": (
+        NOT_PRESENT,
+        "The leak is in the RPCSEC_GSS routines in lib/rpc/authgss_prot.c, part of libgssrpc, as "
+        "used by kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112316": (
+        NOT_PRESENT,
+        "The leak is in xdr_krb5_tl_data() in lib/kadm5/kadm_rpc_xdr.c, part of the kadm5 "
+        "libraries, as used by kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112318": (
+        NOT_PRESENT,
+        "The NULL dereference is in kadmind's policy RPC stubs, kadmin/server/server_stubs.c. "
+        + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112319": (
+        NOT_PRESENT,
+        "The unbounded allocation is in the GSS-RPC layer's XDR decoding (libgssrpc), as used by "
+        "kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112320": (
+        NOT_PRESENT,
+        "The leak is in the GSS-RPC transport layer (libgssrpc), when a kadmind client switches "
+        "authentication flavors on one connection. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112321": (
+        NOT_PRESENT,
+        "The leak is in the AUTH_GSSAPI handler, lib/rpc/svc_auth_gssapi.c (libgssrpc), as used by "
+        "kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112322": (
+        NOT_PRESENT,
+        "The quadratic cleanup is in clean_client() in the AUTH_GSSAPI handler, "
+        "lib/rpc/svc_auth_gssapi.c (libgssrpc), as used by kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-112323": (
+        NOT_PRESENT,
+        "The memory exhaustion is in the AUTH_GSSAPI handler, lib/rpc/svc_auth_gssapi.c "
+        "(libgssrpc), as used by kadmind. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-71199": (
+        NOT_IN_PATH,
+        "The bypass is in verifying authentication indicators in a ticket's CAMMAC authorization "
+        "data. That data is inside the ticket's encrypted part, so it is read only after an "
+        "acceptor decrypts the ticket with a key from its keytab, and only a KDC or an application "
+        "that asks for authentication indicators acts on it. The image has no keytab: neither "
+        "/etc/krb5.keytab nor PostgreSQL's krb_server_keyfile "
+        "(FILE:/etc/postgresql-common/krb5.keytab) exists, so PostgreSQL can never complete a "
+        "Kerberos authentication, and it never asks for authentication indicators. No KDC is "
+        "installed. Adding a keytab and configuring gss authentication would void this claim.",
+    ),
+    # Linux-PAM, triaged 2026-11-19
+    "CVE-2025-6020": (
+        NOT_IN_PATH,
+        "The flaw is in the pam_namespace module, which runs only when a PAM service's stack lists "
+        "it, while opening a session for a local user. No stack in /etc/pam.d lists pam_namespace "
+        "(checked in the image). Nothing in the container opens a PAM session: the entrypoint "
+        "switches users with gosu, which does not use PAM; no login, su or sshd session runs; and "
+        "PostgreSQL uses PAM only for the pam authentication method, which is not configured "
+        "(SCRAM password authentication). Configuring pam authentication with a stack that "
+        "includes pam_namespace would void this claim.",
     ),
 }
 

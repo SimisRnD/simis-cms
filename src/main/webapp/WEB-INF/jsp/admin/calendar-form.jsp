@@ -97,14 +97,6 @@
       showInput: true,
       showInitial: true,
       showAlpha: false,
-      move: function(color) {
-        var targetId = $(this).attr('id');
-        changeColor(targetId, color);
-      },
-      hide: function(color) {
-        var targetId = $(this).attr('id');
-        changeColor(targetId, color);
-      },
       allowEmpty:true
     });
   });
