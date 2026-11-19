@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="${ctx}/javascript/prism-1.30.0/prism.css">
 <script src="${ctx}/javascript/prism-1.30.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
-<script src="${ctx}/javascript/mermaid-10.9.6/mermaid.min.js"></script>
+<script src="${ctx}/javascript/mermaid-12.3.0/mermaid.min.js"></script>
 <script nonce="${cspNonce}">
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   document.addEventListener('DOMContentLoaded', function () {
