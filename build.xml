@@ -335,7 +335,7 @@
         <exclude name="javascript/js-cookie-3.0.5/js.cookie.mjs"/>
         <exclude name="javascript/jsuites-5.0.29/jsuites.js"/>
         <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
-        <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
+        <exclude name="javascript/mermaid-12.3.0/mermaid.js"/>
         <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
         <exclude name="javascript/prism-1.30.0/prism.js"/>
         <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
@@ -557,7 +557,7 @@
         <exclude name="javascript/js-cookie-3.0.5/js.cookie.mjs"/>
         <exclude name="javascript/jsuites-5.0.29/jsuites.js"/>
         <exclude name="javascript/masonry-4.2.2/masonry.pkgd.js"/>
-        <exclude name="javascript/mermaid-10.9.6/mermaid.js"/>
+        <exclude name="javascript/mermaid-12.3.0/mermaid.js"/>
         <exclude name="javascript/payform-1.4.0/jquery.payform.js"/>
         <exclude name="javascript/prism-1.30.0/prism.js"/>
         <exclude name="javascript/sortablejs-1.15.2/Sortable.js"/>
