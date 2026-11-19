@@ -715,9 +715,12 @@ public class WebRequestFilter implements Filter {
         return;
       }
 
-      // Update user roles and groups
-      LOG.debug("Updating user roles and groups");
+      // Update user roles, capabilities and groups. Capabilities too: hasPermission() reads them, and
+      // a role granted or revoked, or a capability grant that is added, revoked or expires, has to
+      // take effect on the next request rather than at the person's next sign-in.
+      LOG.debug("Updating user roles, capabilities and groups");
       userSession.setRoleList(user.getRoleList());
+      userSession.setCapabilityList(user.getCapabilityList());
       userSession.setGroupList(user.getGroupList());
 
       // Enforce org-level MFA on every request for users whose role requires it (IA-2(1))

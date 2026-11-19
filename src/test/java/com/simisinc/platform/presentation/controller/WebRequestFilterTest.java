@@ -66,6 +66,7 @@ import com.simisinc.platform.application.login.BreakGlassAlertCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
@@ -376,6 +377,81 @@ class WebRequestFilterTest {
       verify(response).setHeader("Location", "/login");
       verify(chain, never()).doFilter(request, response);
     }
+  }
+
+  // --- Capabilities are re-read each request, like roles and groups ---
+  // (hasPermission() reads the session's capability list, which was set only at sign-in: an admin role
+  // granted mid-session opened every hasRole("admin") screen at once but no capability-only one, and a
+  // revoked capability, or an expired direct grant, kept working until the person signed out.)
+
+  private static User userWithCapabilities(long id, String... codes) {
+    User user = new User();
+    user.setId(id);
+    List<Capability> capabilities = new ArrayList<>();
+    for (String code : codes) {
+      Capability capability = new Capability();
+      capability.setCode(code);
+      capabilities.add(capability);
+    }
+    user.setCapabilityList(capabilities);
+    return user;
+  }
+
+  /** Runs one request for {@code userSession} with {@code fromDatabase} as the account's current record. */
+  private void requestAs(UserSession userSession, User fromDatabase) throws Exception {
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    HttpServletRequest request = loggedInRequest(session, null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(fromDatabase.getId())).thenReturn(fromDatabase);
+      mfa.when(() -> MfaEnforcementCommand.requiresEnrollment(userSession, fromDatabase)).thenReturn(false);
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn("UTC");
+
+      filterWithoutSSL(siteProperties).doFilter(request, response, chain);
+
+      verify(chain).doFilter(request, response);
+      logout.verify(() -> LogoutCommand.logout(request, response), never());
+    }
+  }
+
+  @Test
+  void aCapabilityGrantedMidSessionTakesEffectOnTheNextRequest() throws Exception {
+    UserSession userSession = new UserSession();
+    userSession.login(userWithCapabilities(23L));
+    Assertions.assertFalse(userSession.hasPermission("admin:manage"));
+
+    requestAs(userSession, userWithCapabilities(23L, "admin:manage"));
+
+    Assertions.assertTrue(userSession.hasPermission("admin:manage"));
+  }
+
+  @Test
+  void aCapabilityRevokedMidSessionStopsWorkingOnTheNextRequest() throws Exception {
+    UserSession userSession = new UserSession();
+    userSession.login(userWithCapabilities(24L, "admin:manage", "users:manage"));
+    Assertions.assertTrue(userSession.hasPermission("admin:manage"));
+
+    requestAs(userSession, userWithCapabilities(24L, "users:manage"));
+
+    Assertions.assertFalse(userSession.hasPermission("admin:manage"));
+    Assertions.assertTrue(userSession.hasPermission("users:manage"));
   }
 
   // --- Daily/Monthly Active Users tracking (DAU/MAU undercount fix) ---
