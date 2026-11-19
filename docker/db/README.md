@@ -104,11 +104,13 @@ what was verified:
   libraries are installed, and PostgreSQL links them. Flaws in the KDC, kadmind and the
   libraries only they use (libkdb5, libkadm5, libgssrpc) are `vulnerable_code_not_present`.
   CVE-2026-71199 (authentication indicators) is `vulnerable_code_not_in_execute_path`: it needs
-  a ticket decrypted with a keytab key, and there is no keytab. **CVE-2026-107364 and -119079
-  are pending** (`under_investigation`, in `.trivyignore`). They are in libkrb5's shared ASN.1
-  decoder, which a client that can reach port 5432 can drive before signing in: PostgreSQL
-  passes a GSSAPI encryption request's token to krb5, and krb5's IAKERB acceptor decodes it
-  without needing a keytab. `.trivyignore` has the detail.
+  a ticket decrypted with a keytab key, and there is no keytab. CVE-2026-107364 is in the KDC's
+  own request parsing, so `vulnerable_code_not_present`. CVE-2026-119079 is in libkrb5's shared
+  ASN.1 decoder but `vulnerable_code_not_in_execute_path`: the only untrusted Kerberos input is
+  the token PostgreSQL passes to `gss_accept_sec_context()` for a GSSAPI encryption request,
+  with no acceptor credential. With no keytab, the krb5 and SPNEGO acceptors stop at acquiring
+  credentials before decoding it, and the GSS-API layer refuses IAKERB (not a default
+  mechanism) whenever no acceptor credential is given.
 - **Linux-PAM / CVE-2025-6020** — `vulnerable_code_not_in_execute_path`. The flaw is in
   `pam_namespace`, which no stack in `/etc/pam.d` lists, and nothing in the container opens a
   PAM session.
