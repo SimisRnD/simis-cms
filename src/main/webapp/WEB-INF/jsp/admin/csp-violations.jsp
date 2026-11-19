@@ -43,10 +43,12 @@
     </c:if>
   </c:when>
   <c:otherwise>
-    <p class="help-text page-help">Each row is a host a candidate policy would have refused, and how many times. Add the ones
-      that belong to services this site genuinely uses to the matching directive, then re-test. Rows shown as
-      <code>'inline'</code> or <code>'eval'</code> are not hosts &mdash; they mean the policy would have blocked
-      inline or evaluated code on that page.</p>
+    <p class="help-text page-help">Each row is a host a candidate policy would have refused, and how many times across the whole
+      site. Add the ones that belong to services this site genuinely uses to the matching directive, then re-test.
+      Rows shown as <code>'inline'</code> or <code>'eval'</code> are not hosts &mdash; they mean the policy would have
+      blocked inline or evaluated code. The page under &ldquo;First seen&rdquo; is only where a row&rsquo;s first report
+      came from; later reports can come from any page, so it is a place to start looking, not the source of every
+      report.</p>
     <div class="table-scroll">
       <table class="unstriped">
         <thead>
@@ -55,7 +57,7 @@
             <th>Blocked</th>
             <th>Add to policy as</th>
             <th class="text-right">Times</th>
-            <th>Example page</th>
+            <th>First seen</th>
             <th>Last seen</th>
           </tr>
         </thead>
@@ -66,9 +68,13 @@
             <td><c:out value="${violation.blockedHost}"/></td>
             <td><code><c:out value="${violation.sourceListEntry}"/></code></td>
             <td class="text-right"><c:out value="${violation.occurrences}"/></td>
+            <%-- The page sits with the first sighting because that is all it is: CspViolationRepository.save()
+                 keeps sample_document_path from a row's first report and never updates it, while Times counts
+                 reports from every page. Headed "Example page", it read as the page behind the whole count. --%>
             <td>
+              <fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${violation.firstSeen}"/>
               <c:if test="${!empty violation.sampleDocumentPath}">
-                <a href="${ctx}<c:out value="${violation.sampleDocumentPath}"/>"><c:out value="${violation.sampleDocumentPath}"/></a>
+                <br/>on <a href="${ctx}<c:out value="${violation.sampleDocumentPath}"/>"><c:out value="${violation.sampleDocumentPath}"/></a>
               </c:if>
             </td>
             <td><fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${violation.lastSeen}"/></td>
