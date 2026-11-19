@@ -100,6 +100,18 @@ what was verified:
   3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-53613** (util-linux) is
   `inline_mitigations_already_exist`, since the Dockerfile's `chmod u-s` on `mount`/`umount`
   removes the setuid transition the TOCTOU needs.
+- **MIT krb5** (libkrb5-3, libgssapi-krb5-2, libk5crypto3, libkrb5support0) — only the client
+  libraries are installed, and PostgreSQL links them. Flaws in the KDC, kadmind and the
+  libraries only they use (libkdb5, libkadm5, libgssrpc) are `vulnerable_code_not_present`.
+  CVE-2026-71199 (authentication indicators) is `vulnerable_code_not_in_execute_path`: it needs
+  a ticket decrypted with a keytab key, and there is no keytab. **CVE-2026-107364 and -119079
+  are pending** (`under_investigation`, in `.trivyignore`). They are in libkrb5's shared ASN.1
+  decoder, which a client that can reach port 5432 can drive before signing in: PostgreSQL
+  passes a GSSAPI encryption request's token to krb5, and krb5's IAKERB acceptor decodes it
+  without needing a keytab. `.trivyignore` has the detail.
+- **Linux-PAM / CVE-2025-6020** — `vulnerable_code_not_in_execute_path`. The flaw is in
+  `pam_namespace`, which no stack in `/etc/pam.d` lists, and nothing in the container opens a
+  PAM session.
 
 Because those reasons are about individual flaws, they are keyed by CVE in the generator and say
 nothing about the next CVE in the same package: a newly published ncurses or util-linux issue
@@ -108,10 +120,11 @@ anything not yet analysed. We make no exploitability claim we cannot support; un
 never rendered as "safe".
 
 > **Scope.** These statements describe the image **as shipped and configured**. If an operator
-> installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP
-> authentication, adds compressed `*.sql.gz` init scripts from an untrusted source, or runs
-> `pg_dump` or `pg_basebackup` with gzip compression inside the container, the corresponding
-> statements no longer hold and the VEX should be re-evaluated.
+> installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP,
+> PAM or GSSAPI (Kerberos) authentication or adds a keytab, adds compressed `*.sql.gz` init
+> scripts from an untrusted source, or runs `pg_dump` or `pg_basebackup` with gzip compression
+> inside the container, the corresponding statements no longer hold and the VEX should be
+> re-evaluated.
 
 Update the document after any rebuild changes the finding set (it only ever emits statements
 for findings with **no** available fix):

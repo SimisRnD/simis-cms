@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 22,
+  "version": 23,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -2267,7 +2267,410 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "The overflow is in gz_vacate(), part of zlib's gzFile write path. The advisory bounds the affected range at zlib 1.3.1.2 through 1.3.2, and upstream zlib 1.2.13's gzwrite.c has no gz_vacate() at all (it first appears in later releases). The installed zlib1g is 1:1.2.13.dfsg-1, built from 1.2.13 with only two build patches (cflags-for-minizip, use-dso-really), neither touching gzwrite.c. The vulnerable code is not present in the delivered library."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-6020"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libpam-modules"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-modules-bin"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam-runtime"
+            },
+            {
+              "@id": "pkg:deb/debian/libpam0g"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The flaw is in the pam_namespace module, which runs only when a PAM service's stack lists it, while opening a session for a local user. No stack in /etc/pam.d lists pam_namespace (checked in the image). Nothing in the container opens a PAM session: the entrypoint switches users with gosu, which does not use PAM; no login, su or sshd session runs; and PostgreSQL uses PAM only for the pam authentication method, which is not configured (SCRAM password authentication). Configuring pam authentication with a stack that includes pam_namespace would void this claim."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107364"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112315"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The leak is in the RPCSEC_GSS routines in lib/rpc/authgss_prot.c, part of libgssrpc, as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112316"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The leak is in xdr_krb5_tl_data() in lib/kadm5/kadm_rpc_xdr.c, part of the kadm5 libraries, as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112317"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The leak is in krb5_ktkdb_get_entry() in lib/kdb/keytab.c, the KDB keytab the KDC and kadmind use, which is part of libkdb5. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112318"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The NULL dereference is in kadmind's policy RPC stubs, kadmin/server/server_stubs.c. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112319"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The unbounded allocation is in the GSS-RPC layer's XDR decoding (libgssrpc), as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112320"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The leak is in the GSS-RPC transport layer (libgssrpc), when a kadmind client switches authentication flavors on one connection. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112321"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The leak is in the AUTH_GSSAPI handler, lib/rpc/svc_auth_gssapi.c (libgssrpc), as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112322"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The quadratic cleanup is in clean_client() in the AUTH_GSSAPI handler, lib/rpc/svc_auth_gssapi.c (libgssrpc), as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-112323"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The memory exhaustion is in the AUTH_GSSAPI handler, lib/rpc/svc_auth_gssapi.c (libgssrpc), as used by kadmind. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-118380"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in MIT krb5's RPCSEC_GSS support for RPC services such as kadmind (lib/rpc, built as libgssrpc). The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries. libtirpc has its own, separate RPC code, and nothing in the image runs an RPC service."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-119079"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71199"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The bypass is in verifying authentication indicators in a ticket's CAMMAC authorization data. That data is inside the ticket's encrypted part, so it is read only after an acceptor decrypts the ticket with a key from its keytab, and only a KDC or an application that asks for authentication indicators acts on it. The image has no keytab: neither /etc/krb5.keytab nor PostgreSQL's krb_server_keyfile (FILE:/etc/postgresql-common/krb5.keytab) exists, so PostgreSQL can never complete a Kerberos authentication, and it never asks for authentication indicators. No KDC is installed. Adding a keytab and configuring gss authentication would void this claim."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-71200"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libgssapi-krb5-2"
+            },
+            {
+              "@id": "pkg:deb/debian/libk5crypto3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5-3"
+            },
+            {
+              "@id": "pkg:deb/debian/libkrb5support0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The NULL dereference is in the KDC's PKINIT pre-authentication handling, which runs only in a KDC (krb5kdc) configured for PKINIT. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
     }
   ],
-  "last_updated": "2026-11-08T18:11:54+00:00"
+  "last_updated": "2026-11-19T14:09:53+00:00"
 }
