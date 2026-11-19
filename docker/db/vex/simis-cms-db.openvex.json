@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 23,
+  "version": 24,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -2318,8 +2318,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The read overrun is in the KDC's own fetch_asn1_field() in src/kdc/kdc_util.c, which krb5kdc uses to find the body inside a request it has decoded; the upstream fix (krb5 commit cf44b0658) changes only that file. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
     },
     {
       "vulnerability": {
@@ -2614,8 +2615,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The repeated reallocation is in decode_sequence_of() in libkrb5's shared ASN.1 decoder (lib/krb5/asn.1/asn1_encode.c; upstream fix krb5 commit 782e5ac4), so it is in the installed libkrb5-3, but nothing in the image passes untrusted Kerberos data to it. PostgreSQL is the only Kerberos user: before sign-in it hands a client's GSSAPI encryption token to gss_accept_sec_context() with no acceptor credential, and no keytab is installed, so every mechanism stops before decoding the token. The krb5 and SPNEGO acceptors stop at acquiring credentials (kg_accept_krb5 does so before decode_krb5_ap_req), and the GSS-API layer refuses IAKERB outright when no acceptor credential is given, since krb5 marks it as not a default mechanism, so IAKERB never forwards a request to a KDC or decodes a reply. pg_hba.conf has no gss entries. Probing this image with krb5, SPNEGO and IAKERB tokens carrying a 3,000-element SEQUENCE OF, each was refused for lack of credentials. This holds while the image has no Kerberos keytab."
     },
     {
       "vulnerability": {
@@ -2672,5 +2674,5 @@
       "impact_statement": "The NULL dereference is in the KDC's PKINIT pre-authentication handling, which runs only in a KDC (krb5kdc) configured for PKINIT. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
     }
   ],
-  "last_updated": "2026-11-19T14:09:53+00:00"
+  "last_updated": "2026-11-19T15:41:23+00:00"
 }
