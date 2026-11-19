@@ -95,6 +95,10 @@ public class UnsuspendAccountCommand {
     if (target.isEnabled()) {
       return Outcome.NOT_SUSPENDED;
     }
+    // UserRepository.restoreAccount() refuses it as well; refusing here says why
+    if (DeleteUserCommand.isHoldingAccount(target)) {
+      throw new DataException(DeleteUserCommand.CANNOT_SIGN_IN_MESSAGE);
+    }
     if (!requiresApproval(target)) {
       User result = UserRepository.restoreAccount(target);
       if (result == null) {
@@ -139,6 +143,10 @@ public class UnsuspendAccountCommand {
     User target = LoadUserCommand.loadUser(request.getTargetUserId());
     if (target == null) {
       throw new DataException("The account for this request was not found");
+    }
+    // Before the claim, so the request is left undecided rather than marked approved
+    if (DeleteUserCommand.isHoldingAccount(target)) {
+      throw new DataException(DeleteUserCommand.CANNOT_SIGN_IN_MESSAGE);
     }
     int approverLevel = RoleLevelCommand.highestRoleLevel(approvingAdmin.getRoleList());
     int targetLevel = RoleLevelCommand.highestRoleLevel(target.getRoleList());

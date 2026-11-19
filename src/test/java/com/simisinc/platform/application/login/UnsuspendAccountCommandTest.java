@@ -352,4 +352,62 @@ class UnsuspendAccountCommandTest {
       assertEquals("not convinced", result.getDecisionReason());
     }
   }
+
+  // --- the account that holds deleted accounts' content (DeleteUserCommand) ------------------
+
+  private static User holdingAccount(long id) {
+    User user = userWithRoles(id, false);
+    user.setUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID);
+    user.setPassword(DeleteUserCommand.NO_SIGN_IN_PASSWORD);
+    return user;
+  }
+
+  @Test
+  void theHoldingAccountIsNeverRestored() {
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
+      DataException refused = assertThrows(DataException.class,
+          () -> UnsuspendAccountCommand.requestOrRestore(holdingAccount(9L), userWithRoles(1L, true, ADMIN), "reason"));
+
+      assertEquals(DeleteUserCommand.CANNOT_SIGN_IN_MESSAGE, refused.getMessage());
+      userRepo.verify(() -> UserRepository.restoreAccount(any()), never());
+      requestRepo.verify(() -> UnsuspendRequestRepository.add(any()), never());
+    }
+  }
+
+  /** A person who was given the reserved ID before it was reserved is not the holding account. */
+  @Test
+  void aNamesakeOfTheHoldingAccountIsRestoredLikeAnyoneElse() throws DataException {
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      User namesake = holdingAccount(9L);
+      namesake.setPassword("$argon2id$v=19$m=65536,t=3,p=1$c2FsdA$aGFzaA");
+      userRepo.when(() -> UserRepository.restoreAccount(namesake)).thenReturn(namesake);
+
+      assertEquals(UnsuspendAccountCommand.Outcome.RESTORED,
+          UnsuspendAccountCommand.requestOrRestore(namesake, userWithRoles(1L, true, ADMIN), null));
+      userRepo.verify(() -> UserRepository.restoreAccount(namesake), times(1));
+    }
+  }
+
+  /** A request for it can no longer be filed, but one may predate the guard; it stays undecided. */
+  @Test
+  void anApprovalForTheHoldingAccountIsRefusedBeforeItIsClaimed() {
+    try (MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      requestRepo.when(() -> UnsuspendRequestRepository.findById(43L)).thenReturn(pendingRequest(43L, 9L, 1L));
+      loadCmd.when(() -> LoadUserCommand.loadUser(2L)).thenReturn(userWithRoles(2L, true, ADMIN));
+      loadCmd.when(() -> LoadUserCommand.loadUser(9L)).thenReturn(holdingAccount(9L));
+
+      DataException refused = assertThrows(DataException.class, () -> UnsuspendAccountCommand.approve(43L, 2L));
+
+      assertEquals(DeleteUserCommand.CANNOT_SIGN_IN_MESSAGE, refused.getMessage());
+      requestRepo.verify(() -> UnsuspendRequestRepository.claimForApproval(anyLong(), anyLong(), any()), never());
+      userRepo.verify(() -> UserRepository.updatePassword(any()), never());
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      userRepo.verify(() -> UserRepository.restoreAccount(any()), never());
+    }
+  }
 }

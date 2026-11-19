@@ -652,8 +652,29 @@ CVE_POLICY = {
         "The flaw needs libcurl to reuse a pooled connection after its client-certificate "
         "(mTLS) options change. " + CURL_NO_TRANSFERS,
     ),
-    # MIT krb5, triaged 2026-11-19. CVE-2026-107364 and -119079 are NOT here: they are in the
-    # shared ASN.1 decoder, which a client can reach before signing in -- see .trivyignore.
+    # MIT krb5, triaged 2026-11-19.
+    "CVE-2026-107364": (
+        NOT_PRESENT,
+        "The read overrun is in the KDC's own fetch_asn1_field() in src/kdc/kdc_util.c, which "
+        "krb5kdc uses to find the body inside a request it has decoded; the upstream fix (krb5 "
+        "commit cf44b0658) changes only that file. " + KRB5_CLIENT_ONLY,
+    ),
+    "CVE-2026-119079": (
+        NOT_IN_PATH,
+        "The repeated reallocation is in decode_sequence_of() in libkrb5's shared ASN.1 decoder "
+        "(lib/krb5/asn.1/asn1_encode.c; upstream fix krb5 commit 782e5ac4), so it is in the "
+        "installed libkrb5-3, but nothing in the image passes untrusted Kerberos data to it. "
+        "PostgreSQL is the only Kerberos user: before sign-in it hands a client's GSSAPI "
+        "encryption token to gss_accept_sec_context() with no acceptor credential, and no "
+        "keytab is installed, so every mechanism stops before decoding the token. The krb5 and "
+        "SPNEGO acceptors stop at acquiring credentials (kg_accept_krb5 does so before "
+        "decode_krb5_ap_req), and the GSS-API layer refuses IAKERB outright when no acceptor "
+        "credential is given, since krb5 marks it as not a default mechanism, so IAKERB never "
+        "forwards a request to a KDC or decodes a reply. pg_hba.conf has no gss entries. "
+        "Probing this image with krb5, SPNEGO and IAKERB tokens carrying a 3,000-element "
+        "SEQUENCE OF, each was refused for lack of credentials. This holds while the image "
+        "has no Kerberos keytab.",
+    ),
     "CVE-2026-71200": (
         NOT_PRESENT,
         "The NULL dereference is in the KDC's PKINIT pre-authentication handling, which runs only "

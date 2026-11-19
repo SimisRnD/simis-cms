@@ -83,7 +83,9 @@
             </td>
             <td>
               <c:forEach items="${candidate.rewritable}" var="reference">
-                <c:out value="${reference.sourceType}"/>: <c:out value="${empty reference.label ? '(untitled)' : reference.label}"/>
+                <%-- reference is a record, and EL reads a record only through its components: reference.sourceType
+                     would throw on the live site (DownscaleReportJspExpressionsTest) --%>
+                <c:out value="${reference.source.sourceType}"/>: <c:out value="${empty reference.label ? '(untitled)' : reference.label}"/>
                 <small class="u-color-muted">
                   (<c:if test="${reference.spellings.encoded > 0}"><c:out value="${reference.spellings.encoded}"/> encoded</c:if><c:if test="${reference.spellings.encoded > 0 && reference.spellings.literal + reference.spellings.other > 0}">, </c:if><c:if test="${reference.spellings.literal > 0}"><c:out value="${reference.spellings.literal}"/> with literal spaces or characters</c:if><c:if test="${reference.spellings.literal > 0 && reference.spellings.other > 0}">, </c:if><c:if test="${reference.spellings.other > 0}"><c:out value="${reference.spellings.other}"/> with another filename</c:if>)
                 </small><br />

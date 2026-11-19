@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import com.simisinc.platform.application.SecretCryptoCommand;
+import com.simisinc.platform.application.login.DeleteUserCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
@@ -582,8 +583,8 @@ public class UserRepository {
         .add("account_token", (String) null)
         .add("last_password_changed_at", new Timestamp(System.currentTimeMillis()))
         .add("modified", new Timestamp(System.currentTimeMillis()));
-    SqlUtils where = new SqlUtils()
-        .add("user_id = ?", record.getId());
+    SqlUtils where = exceptTheHoldingAccount(new SqlUtils()
+        .add("user_id = ?", record.getId()));
     if (DB.update(TABLE_NAME, updateValues, where)) {
       // Invalidate user_tokens since there is a new password
       UserTokenRepository.removeAll(record.getId());
@@ -649,8 +650,8 @@ public class UserRepository {
         .add("account_token", newToken)
         .add("account_token_expires", expires)
         .add("modified", new Timestamp(System.currentTimeMillis()));
-    SqlUtils where = new SqlUtils()
-        .add("user_id = ?", record.getId());
+    SqlUtils where = exceptTheHoldingAccount(new SqlUtils()
+        .add("user_id = ?", record.getId()));
     if (DB.update(TABLE_NAME, updateValues, where)) {
       record.setAccountToken(newToken);
       record.setAccountTokenExpires(expires);
@@ -682,13 +683,27 @@ public class UserRepository {
         .add("enabled", true)
         .add("suspension_reason", (String) null)
         .add("modified", new Timestamp(System.currentTimeMillis()));
-    SqlUtils where = new SqlUtils()
-        .add("user_id = ?", record.getId());
+    SqlUtils where = exceptTheHoldingAccount(new SqlUtils()
+        .add("user_id = ?", record.getId()));
     if (DB.update(TABLE_NAME, updateValues, where)) {
       return record;
     }
     LOG.error("restoreAccount failed!");
     return null;
+  }
+
+  /**
+   * Leaves the account that holds deleted accounts' content (DeleteUserCommand) out of an update.
+   * That account must never be enabled, given a password, or sent a link to set one: it owns
+   * everything every deleted account created or changed, and a new password would also stop
+   * DeleteUserCommand recognizing it. Enforced here so that every caller -- the admin pages, the bulk
+   * actions, forgot-password, unsuspend approval and anything added later -- gets the same answer: the
+   * update matches no row and the method returns null, which each caller already treats as failure.
+   * Matched by the placeholder password only DeleteUserCommand writes, which no Argon2 hash can equal,
+   * so no other account is affected; IS DISTINCT FROM rather than {@code <>} so a NULL never excludes one.
+   */
+  private static SqlUtils exceptTheHoldingAccount(SqlUtils where) {
+    return where.add("password IS DISTINCT FROM ?", DeleteUserCommand.NO_SIGN_IN_PASSWORD);
   }
 
   public static User saveMfaSecret(User record, String secret) {
