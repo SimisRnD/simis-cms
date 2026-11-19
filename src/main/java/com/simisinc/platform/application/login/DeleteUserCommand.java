@@ -57,7 +57,17 @@ public class DeleteUserCommand {
    * Same approach as UnsuspendAccountCommand's sentinel: users.password is NOT NULL, and a
    * non-null malformed hash makes Argon2's verify() return false rather than throw.
    */
-  static final String NO_SIGN_IN_PASSWORD = "!holds-deleted-accounts-cannot-sign-in!";
+  public static final String NO_SIGN_IN_PASSWORD = "!holds-deleted-accounts-cannot-sign-in!";
+
+  /**
+   * Why the holding account cannot be restored or given a password. It owns everything every deleted
+   * account created or changed, so signing in as it would be signing in as all of them; and a new
+   * password would replace {@link #NO_SIGN_IN_PASSWORD}, after which {@link #isHoldingAccount} no
+   * longer recognizes it and every later delete refuses. UserRepository enforces this for every
+   * caller; the admin pages check first so they can say why.
+   */
+  public static final String CANNOT_SIGN_IN_MESSAGE =
+      "This account holds what deleted accounts created or changed. It can't be restored or given a password.";
 
   static final String SUSPENSION_REASON = "Holds what deleted accounts created or changed. It cannot sign in.";
 
