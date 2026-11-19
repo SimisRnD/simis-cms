@@ -19,6 +19,7 @@ package com.simisinc.platform.application.register;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -60,6 +61,38 @@ class GenerateUserUniqueIdCommandTest {
       String uniqueId = GenerateUserUniqueIdCommand.generateUniqueId(null, named("Deleted", "Accounts"));
 
       assertEquals(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID + "-2", uniqueId);
+    }
+  }
+
+  private static User existing(String uniqueId, String firstName, String lastName) {
+    User user = named(firstName, lastName);
+    user.setUniqueId(uniqueId);
+    return user;
+  }
+
+  @Test
+  void theHoldingAccountKeepsItsIdWhenItIsRenamed() {
+    User holdingAccount = existing(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID, "SimIS", null);
+    try (MockedStatic<DeleteUserCommand> deleteUser = mockStatic(DeleteUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      deleteUser.when(() -> DeleteUserCommand.isHoldingAccount(holdingAccount)).thenReturn(true);
+
+      String uniqueId = GenerateUserUniqueIdCommand.generateUniqueId(holdingAccount, named("SimIS", "Inc."));
+
+      assertEquals(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID, uniqueId);
+      userRepo.verify(() -> UserRepository.findByUniqueId(anyString()), never());
+    }
+  }
+
+  @Test
+  void anyoneElseWhoIsRenamedGetsAnIdFromTheNewName() {
+    User person = existing("jane-doe", "Jane", "Doe");
+    try (MockedStatic<DeleteUserCommand> deleteUser = mockStatic(DeleteUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      deleteUser.when(() -> DeleteUserCommand.isHoldingAccount(person)).thenReturn(false);
+      userRepo.when(() -> UserRepository.findByUniqueId(anyString())).thenReturn(null);
+
+      assertEquals("jane-smith", GenerateUserUniqueIdCommand.generateUniqueId(person, named("Jane", "Smith")));
     }
   }
 }

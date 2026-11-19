@@ -31,6 +31,13 @@ public class GenerateUserUniqueIdCommand {
 
   public static String generateUniqueId(User previousUser, User user) {
 
+    // The account that holds deleted accounts' content keeps its ID whatever it is called. Deletes
+    // find it by that ID, so renaming it here would leave the next delete to create a second holding
+    // account, splitting the content between them and leaving this one unrecognized.
+    if (DeleteUserCommand.isHoldingAccount(previousUser)) {
+      return previousUser.getUniqueId();
+    }
+
     // Use an existing uniqueId
     if (previousUser != null && previousUser.getUniqueId() != null) {
       // See if the name changed

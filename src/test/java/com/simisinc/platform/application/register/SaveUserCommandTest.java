@@ -30,6 +30,7 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.DeleteUserCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -329,6 +330,32 @@ class SaveUserCommandTest {
           () -> SaveUserCommand.saveUser(bean));
       Assertions.assertTrue(ex.getMessage().toLowerCase().contains("account with this email address already"),
           "expected a clear duplicate-email message, got: " + ex.getMessage());
+    }
+  }
+
+  /**
+   * Renaming the account that holds deleted accounts' content keeps its ID, which is how
+   * DeleteUserCommand finds it. Runs the real GenerateUserUniqueIdCommand, unlike runSaveUser().
+   */
+  @Test
+  void renamingTheHoldingAccountKeepsItsId() throws Exception {
+    User editor = userWithRoles(EDITOR_ID, "admin");
+    User holdingAccount = userWithRoles(TARGET_ID);
+    holdingAccount.setUniqueId(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID);
+    holdingAccount.setFirstName("SimIS");
+    User bean = editBeanRequesting(TARGET_ID, EDITOR_ID); // renames it "Test User"
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+         MockedStatic<DeleteUserCommand> deleteUser = mockStatic(DeleteUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(EDITOR_ID)).thenReturn(editor);
+      loadUser.when(() -> LoadUserCommand.loadUser(TARGET_ID)).thenReturn(holdingAccount);
+      deleteUser.when(() -> DeleteUserCommand.isHoldingAccount(holdingAccount)).thenReturn(true);
+      userRepo.when(() -> UserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      User saved = SaveUserCommand.saveUser(bean);
+
+      Assertions.assertEquals("Test", saved.getFirstName());
+      Assertions.assertEquals(DeleteUserCommand.HOLDING_ACCOUNT_UNIQUE_ID, saved.getUniqueId());
     }
   }
 }
