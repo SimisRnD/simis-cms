@@ -107,6 +107,19 @@ class EnforcedCspBrowserTest {
       </body></html>
       """.formatted(RECORD_REFUSALS, NONCE, NONCE, NONCE);
 
+  /** What the calendar JSPs load, and the month view they open on. */
+  private static final String CALENDAR_PAGE = """
+      <!DOCTYPE html>
+      <html><head><meta charset="utf-8"><title>FullCalendar</title>%s
+        <script src="/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
+      </head><body>
+        <div id="calendar"></div>
+        <script nonce="%s">
+          new FullCalendar.Calendar(document.getElementById('calendar'), { initialView: 'dayGridMonth' }).render();
+        </script>
+      </body></html>
+      """.formatted(RECORD_REFUSALS, NONCE);
+
   private static volatile String servedPolicy;
   private static volatile String servedPage;
 
@@ -237,6 +250,23 @@ class EnforcedCspBrowserTest {
       assertEquals(List.of(), cspViolations(), "refused while starting the editor");
       assertTrue(System.nanoTime() < deadline, "the syntax checker never reported: " + cspViolations());
       page.waitForTimeout(100);
+    }
+    assertEquals(List.of(), cspViolations());
+  }
+
+  @Test
+  void calendarsGetTheirToolbarIcons() {
+    open(CALENDAR_PAGE, Map.of());
+
+    // The previous/next chevrons are glyphs in fcicons, which FullCalendar's injected CSS declares
+    // as a data: URL. Refused, the font ends in "error" and the buttons render empty.
+    String fcicons = "[...document.fonts].find(f => f.family.replace(/\"/g, '') === 'fcicons')";
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (!"loaded".equals(page.evaluate("(" + fcicons + " || {}).status"))) {
+      assertTrue(!"error".equals(page.evaluate("(" + fcicons + " || {}).status")),
+          "the icon font was refused: " + cspViolations());
+      assertTrue(System.nanoTime() < deadline, "the icon font never loaded: " + cspViolations());
+      page.waitForTimeout(50);
     }
     assertEquals(List.of(), cspViolations());
   }
