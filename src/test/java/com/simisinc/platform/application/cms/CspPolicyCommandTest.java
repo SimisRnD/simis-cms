@@ -252,6 +252,61 @@ class CspPolicyCommandTest {
     // PaymentFormWidget falls back to its own form, which loads no vendor SDK
     try (MockedStatic<LoadSitePropertyCommand> m = properties(Map.of("ecommerce.paymentProcessor", "PayPal"))) {
       assertEquals(NOTHING_SWITCHED_ON, CspPolicyCommand.connectSourceList());
+      assertCardFieldSources("", "", "", "");
+    }
+  }
+
+  // --- the card field's other directives -----------------------------------------------------
+
+  private static void assertCardFieldSources(String script, String frame, String style, String font) {
+    assertEquals(script, CspPolicyCommand.cardFieldScriptSources(), "script-src");
+    assertEquals(frame, CspPolicyCommand.cardFieldFrameSources(), "frame-src");
+    assertEquals(style, CspPolicyCommand.cardFieldStyleSources(), "style-src");
+    assertEquals(font, CspPolicyCommand.cardFieldFontSources(), "font-src");
+  }
+
+  @Test
+  void aSiteWithNoProcessorAddsNothingToAnyDirective() {
+    try (MockedStatic<LoadSitePropertyCommand> m = properties(Map.of())) {
+      assertCardFieldSources("", "", "", "");
+    }
+  }
+
+  @Test
+  void stripeAddsItsScriptAndFrameHostsAndNoStyleOrFont() {
+    try (MockedStatic<LoadSitePropertyCommand> m = properties(Map.of("ecommerce.paymentProcessor", "stripe"))) {
+      // hooks.stripe.com is the 3D Secure challenge frame some cards are sent to
+      assertCardFieldSources(
+          " https://js.stripe.com https://*.js.stripe.com",
+          " https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com",
+          "",
+          "");
+    }
+  }
+
+  @Test
+  void squareAddsItsHostsToEachDirectiveForTheSandboxOrProduction() {
+    String fonts = " https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net";
+    try (MockedStatic<LoadSitePropertyCommand> m = properties(Map.of("ecommerce.paymentProcessor", "Square"))) {
+      String sandbox = " https://sandbox.web.squarecdn.com";
+      assertCardFieldSources(sandbox, sandbox, sandbox, fonts);
+    }
+    try (MockedStatic<LoadSitePropertyCommand> m = properties(
+        Map.of("ecommerce.paymentProcessor", "Square", "ecommerce.production", "true"))) {
+      String production = " https://web.squarecdn.com";
+      assertCardFieldSources(production, production, production, fonts);
+    }
+  }
+
+  /** frame-src gets the payment frames; the list authored content is held to does not. */
+  @Test
+  void paymentFramesStayOutOfWhatContentMayEmbed() {
+    for (String processor : List.of("Stripe", "Square")) {
+      try (MockedStatic<LoadSitePropertyCommand> m = properties(Map.of("ecommerce.paymentProcessor", processor))) {
+        for (String host : AllowedIframeHostCommand.allowedHosts()) {
+          assertFalse(host.contains("stripe") || host.contains("square"), processor + " leaked into content: " + host);
+        }
+      }
     }
   }
 

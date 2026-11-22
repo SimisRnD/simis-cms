@@ -1370,6 +1370,13 @@ public class PageServlet extends HttpServlet {
     // every such call in the templates and scripts, the vendors' published requirements, and three
     // months of report-only data; that method has the reasoning for each source.
     //
+    // The payment form's card field is a Stripe or Square iframe, so when a processor is switched on
+    // its SDK's hosts join script-src, frame-src, connect-src and, for Square, style-src and font-src
+    // (CspPolicyCommand.CardFieldSdk, from each vendor's CSP guide). Without them frame-src refused
+    // the card frame and checkout could not take a card. Nothing is added for a site without a
+    // processor, and frame-src's content list stays as it was: authored content has no business
+    // embedding a payment frame.
+    //
     // worker-src admits blob: because Ace, the code editor on the CSS, JSON and XML editing pages,
     // starts its syntax checker as a worker from a blob: URL. With no worker-src a worker falls back
     // to script-src, which has never admitted blob:, so those editors have been running with no
@@ -1384,15 +1391,16 @@ public class PageServlet extends HttpServlet {
     // file library, and manifest-src, which has nothing to govern. Its job is the next kind of
     // request a browser learns to make, which now starts closed instead of open.
     return "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-        + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self' data:; "
+        + "style-src 'self' 'nonce-" + cspNonce + "'" + CspPolicyCommand.cardFieldStyleSources() + "; "
+        + "font-src 'self' data:" + CspPolicyCommand.cardFieldFontSources() + "; "
         + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
         + "https://api.weather.gov"
         + mapTileImageSource
         + CspPolicyCommand.googleAnalyticsImageSources() + "; "
-        + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + "; "
+        + "frame-src " + AllowedIframeHostCommand.cspFrameSourceList() + CspPolicyCommand.cardFieldFrameSources() + "; "
         + "connect-src " + CspPolicyCommand.connectSourceList() + "; "
         + "worker-src 'self' blob:; "
-        + "script-src 'self' 'nonce-" + cspNonce + "'";
+        + "script-src 'self' 'nonce-" + cspNonce + "'" + CspPolicyCommand.cardFieldScriptSources();
   }
 
   /** True for the guest-facing auth pages that need header/branding even while site.online is false (issue #1005). */
