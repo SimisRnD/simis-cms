@@ -1298,7 +1298,14 @@ public class PageServlet extends HttpServlet {
     // existed, an absent directive fell back to nothing at all, so stylesheets and fonts could be
     // fetched from any origin. Measured against every published page before choosing these --
     // all 12 served stylesheets (including the site-specific one) reference zero external origins,
-    // and the Inter webfont is self-hosted under /css/google-fonts, so 'self' breaks nothing.
+    // and the Inter webfont is self-hosted under /css/google-fonts.
+    //
+    // font-src admits data: for FullCalendar, which that measurement missed because the font is in
+    // no stylesheet: the CSS FullCalendar injects declares its icon font, fcicons, as a data: URL.
+    // With 'self' alone the font was refused and every calendar (the editorial calendar and the
+    // public full and small calendars) drew its previous/next and other toolbar buttons with no
+    // icon; the report-only trial recorded 22 refusals on /admin/editorial-calendar. As with data:
+    // in img-src, a data: font carries its own bytes and makes no request, so it opens no way out.
     //
     // style-src admits no inline style (issue #1999): a <style> element applies only with this
     // request's nonce -- the one script-src uses, since the templates stamp the same cspNonce on
@@ -1377,7 +1384,7 @@ public class PageServlet extends HttpServlet {
     // file library, and manifest-src, which has nothing to govern. Its job is the next kind of
     // request a browser learns to make, which now starts closed instead of open.
     return "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-        + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self'; "
+        + "style-src 'self' 'nonce-" + cspNonce + "'; font-src 'self' data:; "
         + "img-src 'self' data: https://img.youtube.com https://i.vimeocdn.com "
         + "https://api.weather.gov"
         + mapTileImageSource

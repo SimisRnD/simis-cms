@@ -154,8 +154,9 @@ class PageServletSecurityHeadersTest {
         "style-src must admit exactly 'self' and the request's nonce: " + actualCsp);
     assertTrue(!actualCsp.contains("'unsafe-"),
         "the page policy must carry no unsafe-* keyword: " + actualCsp);
-    assertTrue(actualCsp.contains("font-src 'self'"),
-        "font-src must be present so a webfont cannot be loaded from a foreign origin: " + actualCsp);
+    // Exactly: no foreign origin, and data: for the icon font FullCalendar declares inline
+    assertEquals("font-src 'self' data:", directive(actualCsp, "font-src"),
+        "font-src must admit this site and data: only, so a webfont cannot come from a foreign origin: " + actualCsp);
     // The directive that closes the CSS-based exfiltration channel: without it, a background-image
     // URL can carry a field value to any host. data: is permitted because it makes no request.
     assertTrue(actualCsp.contains("img-src 'self' data:"),
