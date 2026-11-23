@@ -45,7 +45,9 @@ Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an 
 - The fields list warns when a form has a `file` field and **Use Captcha?** is off.
 - `ValidateFormUploadCommand` is the first check an upload will pass, before anything is written: its size against the field's limit (never above `system.upload.maxBytes`), then its type. A file passes only when both its extension and the content type found in its first bytes are on the field's list; PNG data named `.jpg` passes as a PNG, while SVG, HTML, PDF, GIF and executables are rejected under any name. The visitor is told which rule failed, never what the file turned out to be. No form calls it yet.
 
-The remaining steps (re-encoding, malware scan, wiring into forms, a review screen with a gated download) are tracked in #2130.
+- `SanitizeFormUploadCommand` is the second step: an accepted image is decoded and encoded again from its pixels, so what is stored is an image the platform drew, not the bytes the visitor sent. JPEG and PNG are re-encoded in-process (JPEG at quality 0.85, turned the way its EXIF orientation says; PNG keeping its transparency); WebP goes through the hardened ImageMagick `convert` with `-auto-orient -strip`. EXIF (including any GPS position), comments, text chunks and anything appended after the image data are dropped; an image that won't decode, or whose header claims more than 50 megapixels, is rejected. Each image also gets a thumbnail up to 320 pixels wide for the review screen. Animated PNG and WebP keep only their first frame. No form calls it yet.
+
+The remaining steps (malware scan, wiring into forms, a review screen with a gated download) are tracked in #2130.
 
 ## Validation
 
