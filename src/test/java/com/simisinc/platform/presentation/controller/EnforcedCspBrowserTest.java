@@ -31,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -180,12 +182,96 @@ class EnforcedCspBrowserTest {
     servedPolicy = policyFor(settings);
     servedPage = html;
     page = browser.newPage();
-    // Stands in for every other origin, so an allowed request succeeds without leaving the machine
-    page.route("https://**/*", route -> route.fulfill(new Route.FulfillOptions()
-        .setStatus(200)
-        .setHeaders(Map.of("Access-Control-Allow-Origin", "*", "Content-Type", "application/json"))
-        .setBody("{}")));
+    // Stands in for every other origin, so an allowed request succeeds without leaving the machine.
+    // A request the policy refuses never gets here, which is what reachedNetwork records.
+    page.route("https://**/*", route -> {
+      String url = route.request().url();
+      reachedNetwork.add(url);
+      String path = URI.create(url).getPath();
+      String type = path.endsWith(".js") ? "application/javascript"
+          : path.endsWith(".css") ? "text/css"
+          : path.endsWith(".html") ? "text/html"
+          : path.endsWith(".woff2") ? "font/woff2"
+          : "application/json";
+      String body = type.equals("application/json") ? "{}" : type.equals("text/html") ? "<!DOCTYPE html><title>x</title>" : "";
+      route.fulfill(new Route.FulfillOptions()
+          .setStatus(200)
+          .setHeaders(Map.of("Access-Control-Allow-Origin", "*", "Content-Type", type))
+          .setBody(body));
+    });
     page.navigate(origin + "/page.html");
+  }
+
+  private final List<String> reachedNetwork = Collections.synchronizedList(new ArrayList<>());
+
+  /**
+   * Has the page load each URL the way an SDK would -- a frame, a script without the nonce, a
+   * stylesheet, a font -- and reports each as "allowed" when it reached the network or "refused" when
+   * the policy stopped it.
+   */
+  private Map<String, String> loadFromPage(Map<String, String> urlsByKind) {
+    page.evaluate("loads => { for (const [url, kind] of Object.entries(loads)) {"
+        + " if (kind === 'frame') { const f = document.createElement('iframe'); f.src = url; document.body.appendChild(f); }"
+        + " else if (kind === 'script') { const s = document.createElement('script'); s.src = url; document.head.appendChild(s); }"
+        + " else if (kind === 'style') { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = url;"
+        + "   document.head.appendChild(l); }"
+        + " else if (kind === 'font') { new FontFace('probe' + Math.random(), 'url(' + url + ')').load().catch(() => {}); }"
+        + " } }", urlsByKind);
+    Map<String, String> directives = Map.of("frame", "frame-src", "script", "script-src-elem",
+        "style", "style-src-elem", "font", "font-src");
+    Map<String, String> outcomes = new LinkedHashMap<>();
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    while (outcomes.size() < urlsByKind.size()) {
+      List<String> violations = cspViolations();
+      for (Map.Entry<String, String> load : urlsByKind.entrySet()) {
+        URI target = URI.create(load.getKey());
+        String refusal = directives.get(load.getValue()) + " " + target.getScheme() + "://" + target.getHost();
+        if (reachedNetwork.contains(load.getKey())) {
+          outcomes.put(load.getKey(), "allowed");
+        } else if (violations.stream().anyMatch(v -> v.startsWith(refusal))) {
+          outcomes.put(load.getKey(), "refused");
+        }
+      }
+      assertTrue(System.nanoTime() < deadline, "neither loaded nor refused: " + urlsByKind + " " + outcomes);
+      page.waitForTimeout(50);
+    }
+    return outcomes;
+  }
+
+  private static final Map<String, String> STRIPE_LOADS = Map.of(
+      "https://js.stripe.com/v3/elements-inner-card.html", "frame",
+      "https://b.js.stripe.com/v3/controller.html", "frame",
+      "https://hooks.stripe.com/3d_secure_2/hosted.html", "frame",
+      // Stripe.js inserts this without the nonce; the real SDK's request, renamed
+      "https://js.stripe.com/v3/fingerprinted/js/trusted-types-checker.js", "script");
+
+  private static final Map<String, String> SQUARE_SANDBOX_LOADS = Map.of(
+      "https://sandbox.web.squarecdn.com/1.87.2/main-iframe.html", "frame",
+      "https://sandbox.web.squarecdn.com/1.87.2/chunk.js", "script",
+      "https://sandbox.web.squarecdn.com/1.87.2/square.css", "style",
+      "https://square-fonts-production-f.squarecdn.com/square-sans.woff2", "font",
+      "https://d1g145x70srn7h.cloudfront.net/fonts/square-sans.woff2", "font");
+
+  @Test
+  void withStripeOnTheCardFieldCanLoad() {
+    open(FETCH_PAGE, Map.of("ecommerce.paymentProcessor", "Stripe"));
+    loadFromPage(STRIPE_LOADS).forEach((url, outcome) -> assertEquals("allowed", outcome, url));
+    assertEquals("allowed", fetchFromPage("https://api.stripe.com/v1/tokens"));
+  }
+
+  @Test
+  void withSquareOnTheCardFieldCanLoad() {
+    open(FETCH_PAGE, Map.of("ecommerce.paymentProcessor", "Square"));
+    loadFromPage(SQUARE_SANDBOX_LOADS).forEach((url, outcome) -> assertEquals("allowed", outcome, url));
+    assertEquals("allowed", fetchFromPage("https://pci-connect.squareupsandbox.com/payments/hydrate"));
+  }
+
+  @Test
+  void withNoProcessorNoPaymentHostLoads() {
+    open(FETCH_PAGE, Map.of());
+    Map<String, String> all = new LinkedHashMap<>(STRIPE_LOADS);
+    all.putAll(SQUARE_SANDBOX_LOADS);
+    loadFromPage(all).forEach((url, outcome) -> assertEquals("refused", outcome, url));
   }
 
   /** "allowed" when the fetch completes, "refused" when connect-src stopped it. */
