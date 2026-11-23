@@ -17,16 +17,19 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormUploadSummary;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -35,11 +38,13 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -56,6 +61,19 @@ import static org.mockito.Mockito.times;
  * directly, the same method a real request now reaches, so it fails if that dispatch gap reopens.
  */
 class FormDataListWidgetTest extends WidgetBase {
+
+  // The CSV export reads site.url for its file links (issue #2130); a unit test has no database
+  private MockedStatic<LoadSitePropertyCommand> siteProperty;
+
+  @BeforeEach
+  void mockSiteProperties() {
+    siteProperty = mockStatic(LoadSitePropertyCommand.class);
+  }
+
+  @AfterEach
+  void closeSiteProperties() {
+    siteProperty.close();
+  }
 
   @Test
   void execute() {
@@ -445,7 +463,7 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(
-          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class), any()));
     }
 
     FormDataSpecification specification = specCaptor.getValue();
@@ -480,7 +498,7 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(
-          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class), any()));
     }
 
     Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getFlaggedAsSpam(),
@@ -507,7 +525,7 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(
-          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class), any()));
     }
 
     FormDataSpecification specification = specCaptor.getValue();
@@ -587,12 +605,55 @@ class FormDataListWidgetTest extends WidgetBase {
 
         // The role gate must return before export() (and therefore any file download) is reached
         formDataRepositoryMockedStatic.verify(
-            () -> FormDataRepository.export(any(), any(DataConstraints.class), any(File.class)), never());
+            () -> FormDataRepository.export(any(), any(), any(File.class), any()), never());
         Assertions.assertFalse(widgetContext.handledResponse(), "no file should be streamed back");
         Assertions.assertSame(widgetContext, result);
       }
     } catch (InvocationTargetException | IllegalAccessException e) {
       fail(e.getMessage());
     }
+  }
+
+  @Test
+  void executeLooksUpTheFilesAttachedToThePagesSubmissions() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\" />");
+    List<FormData> formDataList = new ArrayList<>(List.of(new FormData()));
+    Map<Long, Map<String, FormUploadSummary>> summaries = Map.of();
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<FormUploadSummary> formUploadSummary = mockStatic(FormUploadSummary.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(any(), any())).thenReturn(formDataList);
+      formUploadSummary.when(() -> FormUploadSummary.forSubmissions(formDataList)).thenReturn(summaries);
+      setRoles(widgetContext, ADMIN);
+
+      new FormDataListWidget().execute(widgetContext);
+    }
+
+    Assertions.assertSame(summaries, request.getAttribute("formUploads"));
+  }
+
+  @Test
+  void theCsvLinksAttachedFilesFromTheConfiguredSiteUrl() throws Exception {
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+    setRoles(widgetContext, ADMIN);
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("https://example.org/");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      new FormDataListWidget().post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.export(any(), any(), any(File.class),
+          eq("https://example.org/assets/form-upload?id=")));
+    }
+  }
+
+  @Test
+  void withoutASiteUrlTheCsvLinksRelativeToTheSite() {
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(null);
+    Assertions.assertEquals("/assets/form-upload?id=", FormDataListWidget.uploadLinkPrefix());
   }
 }

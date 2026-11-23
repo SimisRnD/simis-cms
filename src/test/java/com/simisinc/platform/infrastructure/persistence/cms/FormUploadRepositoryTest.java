@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -230,6 +232,78 @@ class FormUploadRepositoryTest {
   void anIdThatCannotExistFindsNothingWithoutAQuery() {
     assertNull(FormUploadRepository.findById(0));
     assertNull(FormUploadRepository.findById(-1));
+  }
+
+  private static List<Long> ids(List<FormUpload> uploads) {
+    return uploads.stream().map(FormUpload::getId).toList();
+  }
+
+  @Test
+  void uploadsAreFoundBySubmissionAndOnlyForThatSubmission() throws SQLException {
+    long first = insertFormData();
+    long second = insertFormData();
+    FormUpload a = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUpload b = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUpload c = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUpload unlinked = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUploadRepository.linkToFormData(List.of(a, b), first);
+    FormUploadRepository.linkToFormData(List.of(c), second);
+
+    assertEquals(List.of(a.getId(), b.getId()), ids(FormUploadRepository.findAllByFormDataId(first)));
+    assertEquals(List.of(a.getId(), b.getId(), c.getId()), ids(FormUploadRepository.findAllByFormDataIds(List.of(first, second))));
+    assertEquals(List.of(c.getId()), ids(FormUploadRepository.findAllByFormDataIds(List.of(second, 999L))));
+    assertFalse(ids(FormUploadRepository.findAllByFormDataIds(List.of(first, second))).contains(unlinked.getId()));
+  }
+
+  @Test
+  void noSubmissionsMeansNoUploadsAndNoQuery() {
+    FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+
+    assertEquals(List.of(), FormUploadRepository.findAllByFormDataIds(List.of()));
+    assertEquals(List.of(), FormUploadRepository.findAllByFormDataIds(null));
+    assertEquals(List.of(), FormUploadRepository.findAllByFormDataId(-1));
+  }
+
+  @Test
+  void unlinkedUploadsAreFoundOnlyOnceOlderThanTheCutoff() throws SQLException {
+    long formDataId = insertFormData();
+    FormUpload linkedOld = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUploadRepository.linkToFormData(List.of(linkedOld), formDataId);
+    FormUpload unlinkedOld = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUpload unlinkedNew = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    execute("UPDATE form_uploads SET created = NOW() - INTERVAL '2 days' WHERE form_upload_id IN ("
+        + linkedOld.getId() + ", " + unlinkedOld.getId() + ")");
+
+    Timestamp dayAgo = new Timestamp(System.currentTimeMillis() - Duration.ofDays(1).toMillis());
+    assertEquals(List.of(unlinkedOld.getId()), ids(FormUploadRepository.findUnlinkedCreatedBefore(dayAgo)),
+        "not the linked one, and not the one a submission may still be about to claim");
+  }
+
+  @Test
+  void aSubmissionDeletedLaterLeavesItsUploadsToBeFoundAsUnlinked() throws SQLException {
+    long formDataId = insertFormData();
+    FormUpload upload = FormUploadRepository.add(upload(FormUpload.SCAN_CLEAN));
+    FormUploadRepository.linkToFormData(List.of(upload), formDataId);
+    execute("UPDATE form_uploads SET created = NOW() - INTERVAL '100 days'");
+
+    execute("DELETE FROM form_data WHERE form_data_id = " + formDataId);
+
+    Timestamp dayAgo = new Timestamp(System.currentTimeMillis() - Duration.ofDays(1).toMillis());
+    assertEquals(List.of(upload.getId()), ids(FormUploadRepository.findUnlinkedCreatedBefore(dayAgo)));
+  }
+
+  @Test
+  void theStoredPathsAreEveryFileAndThumbnailPath() {
+    FormUpload withThumbnail = upload(FormUpload.SCAN_CLEAN);
+    withThumbnail.setFilePath("forms/a/1.png");
+    withThumbnail.setThumbnailPath("forms/a/1-thumbnail.png");
+    FormUploadRepository.add(withThumbnail);
+    FormUpload withoutThumbnail = upload(FormUpload.SCAN_CLEAN);
+    withoutThumbnail.setFilePath("forms/b/2.webp");
+    withoutThumbnail.setThumbnailPath(null);
+    FormUploadRepository.add(withoutThumbnail);
+
+    assertEquals(Set.of("forms/a/1.png", "forms/a/1-thumbnail.png", "forms/b/2.webp"), FormUploadRepository.findAllStoredPaths());
   }
 
   private static boolean isDockerAvailable() {

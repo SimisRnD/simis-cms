@@ -164,7 +164,13 @@
                           <dl>
                             <th:block th:each="formField: ${formData.formFieldList}">
                               <dt th:text="${formField.label}">Question</dt>
-                              <dd th:text="${formField.type == 'file' and formField.userValue != null ? 'A file was attached. Review it with the submission in Form Data.' : formField.userValue}">Response</dd>
+                              <dd th:if="${formField.type != 'file'}" th:text="${formField.userValue}">Response</dd>
+                              <dd th:if="${formField.type == 'file'}" th:with="upload=${formUploads != null and formField.userValue != null ? formUploads[formField.userValue] : null}">
+                                <span th:if="${formField.userValue == null}">No file attached</span>
+                                <span th:if="${upload != null}" th:text="${upload.filename + ' (' + upload.type + ', ' + upload.size + ')'}">screenshot.png (PNG image, 1.2 MB)</span>
+                                <span th:if="${formField.userValue != null and upload == null}">A file was attached</span>
+                                <th:block th:if="${formField.userValue != null}">&ndash; <a href="https://example.com/admin/form-data" th:href="${site.url + '/admin/form-data?formDataId=' + formData.id}">review it in Form Data</a></th:block>
+                              </dd>
                             </th:block>
                           </dl>
                         </td>

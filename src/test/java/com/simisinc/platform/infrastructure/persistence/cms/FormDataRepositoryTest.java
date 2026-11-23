@@ -46,6 +46,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -124,7 +125,7 @@ class FormDataRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE form_data RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE form_uploads, form_data RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset form_data table", se);
     }
@@ -280,6 +281,109 @@ class FormDataRepositoryTest {
     assertTrue(row.contains("Name: Jane Doe"), "row should contain the answered Name field: " + row);
     assertTrue(row.contains("Email: jane@example.org"), "row should contain the answered Email field: " + row);
     assertTrue(!row.contains("Company"), "an unanswered field must not appear in the flattened column: " + row);
+  }
+
+  /** A submission with a text field and a file field whose value is {@code fileValue} */
+  private static FormData addSubmissionWithFile(String fileValue) {
+    FormField name = new FormField();
+    name.setLabel("Name");
+    name.setName("name");
+    name.setType("text");
+    name.setUserValue("Jane Doe");
+    FormField screenshot = new FormField();
+    screenshot.setLabel("Screenshot");
+    screenshot.setName("screenshot");
+    screenshot.setType("file");
+    screenshot.setUserValue(fileValue);
+    FormData record = new FormData();
+    record.setFormUniqueId("contact-us");
+    record.setIpAddress("203.0.113.40");
+    record.setFormFieldList(List.of(name, screenshot));
+    return FormDataRepository.add(record);
+  }
+
+  private static FormUpload addUpload(long formDataId, String originalFilename) {
+    FormUpload upload = new FormUpload();
+    upload.setFormUniqueId("contact-us");
+    upload.setFieldName("screenshot");
+    upload.setOriginalFilename(originalFilename);
+    upload.setFilePath("forms/contact-us/abc.png");
+    upload.setContentType("image/png");
+    upload.setFileLength(1234);
+    upload.setScanStatus(FormUpload.SCAN_CLEAN);
+    FormUpload saved = FormUploadRepository.add(upload);
+    if (formDataId > 0) {
+      FormUploadRepository.linkToFormData(List.of(saved), formDataId);
+    }
+    return saved;
+  }
+
+  @Test
+  void exportShowsAnAttachedFileAsItsNameAndADownloadLink(@TempDir File tempDir) throws IOException, SQLException {
+    // issue #2130 -- a file field's value is the upload's id, which means nothing in a spreadsheet
+    FormData record = addSubmissionWithFile("0");
+    FormUpload upload = addUpload(record.getId(), "my shot.png");
+    rewriteFileValue(record.getId(), String.valueOf(upload.getId()));
+
+    File file = new File(tempDir, "file-export.csv");
+    FormDataRepository.export(null, null, file, "https://example.org/assets/form-upload?id=");
+
+    String row = Files.readAllLines(file.toPath()).get(1);
+    assertTrue(row.contains("Name: Jane Doe; Screenshot: my shot.png (https://example.org/assets/form-upload?id=" + upload.getId() + ")"), row);
+  }
+
+  @Test
+  void exportWithoutALinkPrefixLinksRelativeToTheSite(@TempDir File tempDir) throws IOException, SQLException {
+    FormData record = addSubmissionWithFile("0");
+    FormUpload upload = addUpload(record.getId(), null);
+    rewriteFileValue(record.getId(), String.valueOf(upload.getId()));
+
+    File file = new File(tempDir, "relative-export.csv");
+    FormDataRepository.export(null, null, file);
+
+    String row = Files.readAllLines(file.toPath()).get(1);
+    assertTrue(row.contains("Screenshot: attachment (/assets/form-upload?id=" + upload.getId() + ")"), row);
+  }
+
+  @Test
+  void exportNeverShowsAFileFromAnotherSubmission(@TempDir File tempDir) throws IOException, SQLException {
+    FormData other = addSubmissionWithFile("0");
+    FormUpload othersUpload = addUpload(other.getId(), "someone-elses.png");
+    rewriteFileValue(other.getId(), String.valueOf(othersUpload.getId()));
+    // This submission's file field names the other submission's upload
+    addSubmissionWithFile(String.valueOf(othersUpload.getId()));
+
+    File file = new File(tempDir, "scoped-export.csv");
+    FormDataRepository.export(null, null, file, "/assets/form-upload?id=");
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    String row = lines.stream().filter(line -> !line.contains("someone-elses.png") && line.contains("Screenshot:")).findFirst().orElseThrow();
+    assertTrue(row.contains("Screenshot: file no longer available"), row);
+    assertEquals(1, lines.stream().filter(line -> line.contains("someone-elses.png")).count(),
+        "only the submission it was attached to lists it: " + lines);
+  }
+
+  @Test
+  void exportOfAFileFieldWhoseValueIsNotAnIdStillSucceeds(@TempDir File tempDir) throws IOException {
+    addSubmissionWithFile("not-a-number");
+
+    File file = new File(tempDir, "odd-value-export.csv");
+    FormDataRepository.export(null, null, file, "/assets/form-upload?id=");
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size(), "one bad value must not fail the whole export: " + lines);
+    assertTrue(lines.get(1).contains("Screenshot: file no longer available"), lines.get(1));
+  }
+
+  /** Points the submission's file field at an upload, as FormWidget does once the upload is saved */
+  private static void rewriteFileValue(long formDataId, String value) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_data SET field_values = jsonb_set(field_values, '{1,value}', to_jsonb(?::text)) WHERE form_data_id = ?")) {
+      pst.setString(1, value);
+      pst.setLong(2, formDataId);
+      pst.executeUpdate();
+    }
   }
 
   @Test
@@ -672,6 +776,23 @@ class FormDataRepositoryTest {
           + "processed TIMESTAMP(3) DEFAULT NULL, "
           + "processed_by BIGINT, "
           + "processed_system VARCHAR(255))");
+      // The export reads attached files from form_uploads (issue #2130); mirrors NEW_10010__new_cms.sql
+      statement.execute("CREATE TABLE form_uploads ("
+          + "form_upload_id BIGSERIAL PRIMARY KEY, "
+          + "form_unique_id VARCHAR(255) NOT NULL, "
+          + "form_data_id BIGINT REFERENCES form_data(form_data_id) ON DELETE SET NULL, "
+          + "field_name VARCHAR(255) NOT NULL, "
+          + "original_filename VARCHAR(255), "
+          + "file_path VARCHAR(255) NOT NULL, "
+          + "content_type VARCHAR(50) NOT NULL, "
+          + "file_length BIGINT NOT NULL, "
+          + "width INTEGER, "
+          + "height INTEGER, "
+          + "thumbnail_path VARCHAR(255), "
+          + "thumbnail_content_type VARCHAR(50), "
+          + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')), "
+          + "scan_checked TIMESTAMP(3), "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the form_data schema", se);
     }
