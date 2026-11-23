@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.application.cms.FormFileFieldCommand;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberConfirmationRequestedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
@@ -48,6 +49,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
 
 /**
  * Builds the outbound webhook JSON payload for a domain event (issue #418): {@code {event,
@@ -216,16 +218,35 @@ public class BuildWebhookPayloadCommand {
     data.put("title", title);
   }
 
-  private static java.util.List<Map<String, String>> formFields(FormData formData) {
-    java.util.List<Map<String, String>> fields = new java.util.ArrayList<>();
+  /**
+   * Each field as {@code {label, name, value}}. A file field (issue #2130) stores the upload's id,
+   * which means nothing to a receiver, so its value is the visitor's name for the file and a
+   * {@code file} object adds its name, content type and size in bytes. There is no link: the file is
+   * only downloadable by a signed-in reviewer. A file field with nothing attached, or whose file is
+   * gone, has a null value and no {@code file}.
+   */
+  private static java.util.List<Map<String, Object>> formFields(FormData formData) {
+    java.util.List<Map<String, Object>> fields = new java.util.ArrayList<>();
     if (formData.getFormFieldList() == null) {
       return fields;
     }
     for (FormField field : formData.getFormFieldList()) {
-      Map<String, String> fieldMap = new LinkedHashMap<>();
+      Map<String, Object> fieldMap = new LinkedHashMap<>();
       fieldMap.put("label", field.getLabel());
       fieldMap.put("name", field.getName());
-      fieldMap.put("value", field.getUserValue());
+      if (FormFileFieldCommand.isFileField(field)) {
+        FormUpload upload = FormFileFieldCommand.attachedUpload(formData, field);
+        fieldMap.put("value", FormFileFieldCommand.attachedFilename(upload));
+        if (upload != null) {
+          Map<String, Object> file = new LinkedHashMap<>();
+          file.put("name", FormFileFieldCommand.attachedFilename(upload));
+          file.put("contentType", upload.getContentType());
+          file.put("size", upload.getFileLength());
+          fieldMap.put("file", file);
+        }
+      } else {
+        fieldMap.put("value", field.getUserValue());
+      }
       fields.add(fieldMap);
     }
     return fields;
