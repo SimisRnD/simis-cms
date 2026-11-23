@@ -66,6 +66,17 @@ class FormFileFieldCommandTest {
   }
 
   @Test
+  void theImageKindAcceptsJpgPngAndWebpByNameAndByContentAndNothingElse() {
+    FormFileFieldCommand.FileKind image = FormFileFieldCommand.kind(" Image ");
+
+    assertEquals(java.util.Set.of("jpg", "jpeg", "png", "webp"), image.extensions());
+    assertEquals(java.util.Set.of("image/jpeg", "image/png", "image/webp"), image.contentTypes());
+    assertEquals(FormFileFieldCommand.availableKinds().get("image"), image.label(), "the editor and the check share one label");
+    org.junit.jupiter.api.Assertions.assertNull(FormFileFieldCommand.kind("pdf"));
+    org.junit.jupiter.api.Assertions.assertNull(FormFileFieldCommand.kind(null));
+  }
+
+  @Test
   void kindsAreTrimmedLowercasedAndDeduplicated() {
     assertEquals("image", FormFileFieldCommand.normalizeKinds("image"));
     assertEquals("image", FormFileFieldCommand.normalizeKinds(" Image , image,,"));

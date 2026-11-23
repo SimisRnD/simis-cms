@@ -43,8 +43,9 @@ Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an 
 - Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file.
 - `FormWidget` leaves every `file` field off the live form, the required-field check, the stored submission, and the notification email. A required `file` field therefore can't block submissions.
 - The fields list warns when a form has a `file` field and **Use Captcha?** is off.
+- `ValidateFormUploadCommand` is the first check an upload will pass, before anything is written: its size against the field's limit (never above `system.upload.maxBytes`), then its type. A file passes only when both its extension and the content type found in its first bytes are on the field's list; PNG data named `.jpg` passes as a PNG, while SVG, HTML, PDF, GIF and executables are rejected under any name. The visitor is told which rule failed, never what the file turned out to be. No form calls it yet.
 
-The remaining steps (type and size check before any write, re-encoding, malware scan, a review screen with a gated download) are tracked in #2130.
+The remaining steps (re-encoding, malware scan, wiring into forms, a review screen with a gated download) are tracked in #2130.
 
 ## Validation
 

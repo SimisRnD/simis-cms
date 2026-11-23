@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -54,12 +55,27 @@ public class FormFileFieldCommand {
 
   static final long BYTES_PER_MEGABYTE = 1_048_576L;
 
-  // The kinds an editor may choose today, with the label the editor shows. PDF is part of the #2130
-  // design, but it needs its own sanitize step before it can be offered, so it is not listed yet.
+  /**
+   * What one kind of file accepts: the label the editor and the visitor see, the filename extensions
+   * allowed, and the content types DetectContentTypeCommand must find in the file's own bytes. A file
+   * passes only when both its extension and its content are in the lists (ValidateFormUploadCommand).
+   */
+  public record FileKind(String label, Set<String> extensions, Set<String> contentTypes) {
+  }
+
+  // The kinds an editor may choose today. GIF is left off the image list, as #2130 specifies. PDF is
+  // part of the design but needs its own sanitize step before it can be offered. SVG, HTML, Office
+  // files, archives and executables are never listed.
+  private static final Map<String, FileKind> KINDS = new LinkedHashMap<>();
   private static final Map<String, String> AVAILABLE_KINDS = new LinkedHashMap<>();
 
   static {
-    AVAILABLE_KINDS.put(KIND_IMAGE, "Images (JPG, PNG, WebP)");
+    KINDS.put(KIND_IMAGE, new FileKind("Images (JPG, PNG, WebP)",
+        Set.of("jpg", "jpeg", "png", "webp"),
+        Set.of("image/jpeg", "image/png", "image/webp")));
+    for (Map.Entry<String, FileKind> kind : KINDS.entrySet()) {
+      AVAILABLE_KINDS.put(kind.getKey(), kind.getValue().label());
+    }
   }
 
   private FormFileFieldCommand() {
@@ -77,6 +93,11 @@ public class FormFileFieldCommand {
   /** @return the kinds an editor may choose, mapped to the label the editor shows, in display order */
   public static Map<String, String> availableKinds() {
     return AVAILABLE_KINDS;
+  }
+
+  /** @return what the named kind accepts, or null for a kind this site does not offer */
+  public static FileKind kind(String key) {
+    return key == null ? null : KINDS.get(key.trim().toLowerCase(Locale.ROOT));
   }
 
   /** @return the site's own upload limit, which no file field may exceed */

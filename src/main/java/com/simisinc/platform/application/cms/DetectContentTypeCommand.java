@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 
@@ -76,14 +77,35 @@ public class DetectContentTypeCommand {
     if (file == null || !file.isFile()) {
       return null;
     }
-    byte[] header = new byte[SNIFF_HEADER_BYTES];
-    int headerLength;
     try (InputStream in = Files.newInputStream(file.toPath())) {
-      headerLength = in.readNBytes(header, 0, header.length);
+      return detectHeader(in);
     } catch (Exception e) {
       LOG.warn("Could not read the file's header bytes: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Detects content arriving as a stream, such as a form upload that must be checked before anything
+   * is written to disk (issue #2130). Reads at most the first 12 bytes and leaves the stream open;
+   * the caller owns it.
+   *
+   * @param in the content, positioned at its first byte
+   * @return the same content types as {@link #detect(File)}, or {@code null} when the header matches
+   *         none of them
+   * @throws IOException when the stream cannot be read, so a read failure is not mistaken for
+   *         content that matched nothing
+   */
+  public static String detectStream(InputStream in) throws IOException {
+    if (in == null) {
+      return null;
+    }
+    return detectHeader(in);
+  }
+
+  private static String detectHeader(InputStream in) throws IOException {
+    byte[] header = new byte[SNIFF_HEADER_BYTES];
+    int headerLength = in.readNBytes(header, 0, header.length);
     if (headerStartsWith(header, headerLength, PNG_SIGNATURE)) {
       return "image/png";
     }
