@@ -54,9 +54,9 @@ The remaining steps (wiring into forms, a review screen with a gated download) a
 #### Setting up the malware scanner
 
 - **Docker Compose:** `docker-compose.yaml` runs a `clamav` service (ClamAV 1.4 LTS, pinned by digest) on the internal network. Set **Malware scanner host** to `clamav` and leave the port at `3310` on `/admin/security-properties`. On first start the container downloads its signature database, which takes a minute or two; uploads made before `clamd` answers are rejected.
-- **Stream size:** `clamd` refuses a stream larger than its `StreamMaxLength` setting, and that refusal rejects the upload. Make sure it is at least the largest file field limit (at most `system.upload.maxBytes`).
+- **Stream size:** `clamd` refuses a stream larger than its `StreamMaxLength` setting, and that refusal rejects the upload. Make sure it is at least the largest file field limit (at most `system.upload.maxBytes`). In the Compose image it is 100 MB, above the 50 MB upload limit.
 - **Azure:** App Service does not run the Compose file. Production needs a `clamd` the app can reach on the virtual network (for example a sidecar container) before file uploads are turned on. Until `security.clamav.host` points at one, every form upload is rejected.
-- **Checking it works:** a submission carrying the [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) should be rejected, with `Eicar-Test-Signature` in the server log.
+- **Checking it works:** run `ClamAvScanProviderLiveTest` with `CLAMAV_TEST_HOST` (and `CLAMAV_TEST_PORT`) pointing at the scanner; it checks that `clamd` answers, passes a clean image, and flags the [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/). EICAR can't check it through an image field: ClamAV's EICAR signature matches only the whole test file, so on its own it fails the type check before reaching the scanner, and appended to an image it isn't flagged (that appended content is what the re-encode removes).
 
 ## Validation
 
