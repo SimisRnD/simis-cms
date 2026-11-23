@@ -130,7 +130,7 @@ public class ValidateFormUploadCommand {
    * The field's own limit, but never above the site's upload limit: the site limit can be lowered
    * after a field was saved with a higher one.
    */
-  static long effectiveMaxBytes(FormField field) {
+  public static long effectiveMaxBytes(FormField field) {
     long fieldLimit = field != null && field.getMaxBytes() > 0 ? field.getMaxBytes() : FormFileFieldCommand.defaultMaxBytes();
     return Math.min(fieldLimit, FormFileFieldCommand.maxBytesCeiling());
   }
@@ -186,7 +186,7 @@ public class ValidateFormUploadCommand {
   }
 
   /** Whole megabytes when the limit is at least 1 MB, otherwise whole kilobytes */
-  static String formatSize(long bytes) {
+  public static String formatSize(long bytes) {
     if (bytes >= FormFileFieldCommand.BYTES_PER_MEGABYTE) {
       return FormFileFieldCommand.toMegabytes(bytes) + " MB";
     }

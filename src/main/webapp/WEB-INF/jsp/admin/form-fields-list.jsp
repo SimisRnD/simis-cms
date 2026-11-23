@@ -90,11 +90,11 @@
                  row said nothing about them -- so the list read as fixed and the only way to find
                  out otherwise was to open a field on the off-chance. Listed rather than counted:
                  seeing the current choices is what tells you whether this is the field you want. --%>
-            <%-- Issue #2130: what a file field accepts, and that visitors don't see it yet --%>
+            <%-- Issue #2130: what a file field accepts, and whether visitors see it --%>
             <c:if test="${field.type eq 'file'}">
               &middot; accepts: <c:out value="${field.acceptedKinds}"/>
               <c:if test="${field.maxBytes > 0}"> &middot; up to <fmt:formatNumber value="${field.maxBytes / 1048576}" maxFractionDigits="0"/> MB</c:if>
-              &middot; not shown on the live form yet<c:if test="${!fileUploadsEnabled}"> (file uploads are off)</c:if>
+              <c:if test="${!fileUploadsEnabled}"> &middot; not shown on the live form (file uploads are off)</c:if>
             </c:if>
             <c:if test="${!empty field.listOfOptions}"> &middot; options:
               <c:forEach items="${field.listOfOptions}" var="option" varStatus="optionStatus"><c:out

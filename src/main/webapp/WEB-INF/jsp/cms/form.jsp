@@ -253,6 +253,25 @@
         </c:choose>
       </c:if>
     </c:forEach>
+    <%-- A file over the field's limit is caught here so the visitor is not left waiting on an upload
+         the server will refuse (issue #2130). The server checks the size again either way. --%>
+    <c:forEach items="${formFieldList}" var="formField">
+      <c:if test="${formField.type eq 'file'}">
+        var fileField = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
+        var sizeErrorEl = document.getElementById("error-size-${widgetContext.uniqueId}${js:escape(formField.name)}");
+        if (fileField && fileField.files && fileField.files.length > 0
+            && fileField.files[0].size > Number(fileField.getAttribute("data-max-bytes"))) {
+          if (sizeErrorEl) {
+            sizeErrorEl.classList.add("show");
+          }
+          markInvalid${widgetContext.uniqueId}(fileField, sizeErrorEl);
+          hasErrors = true;
+          if (!firstErrorField) firstErrorField = fileField;
+        } else if (sizeErrorEl) {
+          sizeErrorEl.classList.remove("show");
+        }
+      </c:if>
+    </c:forEach>
     if (hasErrors && firstErrorField) {
       firstErrorField.focus();
     }
@@ -273,7 +292,8 @@
     }
   });
 </script>
-<form id="form${widgetContext.uniqueId}" method="post">
+<%-- Multipart only for a form with a file field (issue #2130), so every other form is sent exactly as before --%>
+<form id="form${widgetContext.uniqueId}" method="post"<c:if test="${hasFileField}"> enctype="multipart/form-data"</c:if>>
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -345,6 +365,21 @@
       <c:otherwise>
         <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
         <c:choose>
+          <c:when test="${formField.type eq 'file'}">
+            <%-- Issue #2130. accept only filters the file picker and data-max-bytes only saves the
+                 visitor a wasted upload; FormWidget#post checks type, size and content regardless. --%>
+            <c:set var="fileInput" value="${fileFieldInputs[formField.name]}"/>
+            <input type="file"
+                id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                accept="<c:out value="${fileInput.accept}"/>"
+                data-max-bytes="<c:out value="${fileInput.maxBytes}"/>"
+                aria-describedby="help-${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${formField.required}">required</c:if>>
+            <span id="help-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="help-text">
+              <c:if test="${!empty formField.placeholder}"><c:out value="${formField.placeholder}"/> </c:if><c:out value="${fileInput.limits}"/>
+              <c:if test="${fileInput.attachAgain}"><strong>Attach your file again before submitting.</strong></c:if>
+            </span>
+          </c:when>
           <c:when test="${!empty formField.listOfOptions}">
             <%-- A required select gets the attribute the same way the input and textarea branches
                  below do. It was the only control that did not, so a required dropdown was enforced
@@ -403,6 +438,11 @@
     <c:if test="${formField.required}">
       <p id="error-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
         <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/> is required
+      </p>
+    </c:if>
+    <c:if test="${formField.type eq 'file'}">
+      <p id="error-size-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
+        <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/>: <c:out value="${fileFieldInputs[formField.name].limits}"/>
       </p>
     </c:if>
   </c:forEach>
