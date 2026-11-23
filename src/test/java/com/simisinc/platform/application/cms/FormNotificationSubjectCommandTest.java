@@ -19,15 +19,19 @@ package com.simisinc.platform.application.cms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
+import com.simisinc.platform.infrastructure.persistence.cms.FormUploadRepository;
 
 /**
  * Tests the per-form notification subject, whose placeholders substitute values a stranger typed
@@ -187,5 +191,55 @@ class FormNotificationSubjectCommandTest {
   void fieldNamesMatchWithoutRegardToCase() {
     assertEquals("Acme", FormNotificationSubjectCommand.createSubject(
         "{{Organization}}", submission("organization", "Acme"), "Contact Us"));
+  }
+
+  /** A saved submission whose field {@code name} is a file field holding upload id 7 */
+  private static FormData submissionWithFile(String name, String... namesAndValues) {
+    FormData formData = submission(namesAndValues);
+    formData.setId(42L);
+    FormField file = new FormField();
+    file.setName(name);
+    file.setType("file");
+    file.setUserValue("7");
+    formData.getFormFieldList().add(file);
+    return formData;
+  }
+
+  private static String subjectWithStoredFile(String template, FormData formData, long uploadFormDataId, String filename) {
+    FormUpload upload = new FormUpload();
+    upload.setId(7L);
+    upload.setFormDataId(uploadFormDataId);
+    upload.setOriginalFilename(filename);
+    try (MockedStatic<FormUploadRepository> repository = mockStatic(FormUploadRepository.class)) {
+      repository.when(() -> FormUploadRepository.findById(7L)).thenReturn(upload);
+      return FormNotificationSubjectCommand.createSubject(template, formData, "Contact Us");
+    }
+  }
+
+  @Test
+  void aFilePlaceholderShowsTheFilesNameNotItsId() {
+    // issue #2130 -- a file field stores the upload's id, which means nothing in a subject
+    String subject = subjectWithStoredFile("Inquiry with {{screenshot}}", submissionWithFile("screenshot"), 42L, "invoice.png");
+    assertEquals("Inquiry with invoice.png", subject);
+  }
+
+  @Test
+  void aFilenameIsSubmittedTextAndCannotForgeAHeaderEither() {
+    String subject = subjectWithStoredFile("Inquiry with {{screenshot}}", submissionWithFile("screenshot"), 42L,
+        "a.png\r\nBcc: victim@example.com {{secret}}");
+    assertFalse(subject.contains("\n") || subject.contains("\r") || subject.contains("{{"), subject);
+  }
+
+  @Test
+  void anotherSubmissionsFileIsNeverNamed() {
+    String subject = subjectWithStoredFile("Inquiry with {{screenshot}}", submissionWithFile("screenshot"), 99L, "someone-elses.png");
+    assertEquals("Inquiry with (not given)", subject);
+  }
+
+  @Test
+  void aFileFieldIsNeverTakenForWhoTheSubmissionIsFrom() {
+    // The default subject looks for a field named like an identifier; a file field so named is skipped
+    String subject = subjectWithStoredFile(null, submissionWithFile("name", "email", "chris@example.com"), 42L, "photo.png");
+    assertEquals("New Contact Us inquiry - chris@example.com", subject);
   }
 }

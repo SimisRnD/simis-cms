@@ -241,7 +241,8 @@ public class FormNotificationSubjectCommand {
     }
     for (FormField field : formData.getFormFieldList()) {
       if (fieldName.equalsIgnoreCase(field.getName())) {
-        return clean(field.getUserValue());
+        // A file field's stored value is an upload id, which identifies no one
+        return FormFileFieldCommand.isFileField(field) ? null : clean(field.getUserValue());
       }
     }
     return null;
@@ -254,7 +255,12 @@ public class FormNotificationSubjectCommand {
     }
     for (FormField field : formData.getFormFieldList()) {
       if (fieldName.equalsIgnoreCase(field.getName())) {
-        String value = clean(field.getUserValue());
+        // A file field stores the upload's id (issue #2130); the subject shows the visitor's name for
+        // the file instead, cleaned like any other submitted text
+        String submitted = FormFileFieldCommand.isFileField(field)
+            ? FormFileFieldCommand.attachedFilename(FormFileFieldCommand.attachedUpload(formData, field))
+            : field.getUserValue();
+        String value = clean(submitted);
         return StringUtils.isBlank(value) ? EMPTY_VALUE : StringUtils.abbreviate(value, MAX_VALUE_LENGTH);
       }
     }

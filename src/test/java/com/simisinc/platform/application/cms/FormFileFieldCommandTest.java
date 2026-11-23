@@ -18,15 +18,22 @@ package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
+import com.simisinc.platform.infrastructure.persistence.cms.FormUploadRepository;
 
 /**
  * Verifies {@link FormFileFieldCommand}, the rules for a form builder "file" field (issue #2130).
@@ -163,5 +170,63 @@ class FormFileFieldCommandTest {
     assertEquals(10 * MB, FormFileFieldCommand.fromMegabytes(10));
     assertEquals(10, FormFileFieldCommand.toMegabytes(10 * MB));
     assertEquals(9, FormFileFieldCommand.toMegabytes(10 * MB - 1));
+  }
+
+  private static FormData submission(long id) {
+    FormData formData = new FormData();
+    formData.setId(id);
+    return formData;
+  }
+
+  private static FormField fileField(String value) {
+    FormField field = new FormField();
+    field.setName("screenshot");
+    field.setType(FormFileFieldCommand.TYPE);
+    field.setUserValue(value);
+    return field;
+  }
+
+  private static FormUpload upload(long id, long formDataId, String originalFilename) {
+    FormUpload upload = new FormUpload();
+    upload.setId(id);
+    upload.setFormDataId(formDataId);
+    upload.setOriginalFilename(originalFilename);
+    return upload;
+  }
+
+  @Test
+  void aFileFieldsValueFindsTheUploadAttachedToThatSubmission() {
+    FormUpload attached = upload(7, 42, "shot.png");
+    try (MockedStatic<FormUploadRepository> repository = mockStatic(FormUploadRepository.class)) {
+      repository.when(() -> FormUploadRepository.findById(7L)).thenReturn(attached);
+
+      assertSame(attached, FormFileFieldCommand.attachedUpload(submission(42), fileField(" 7 ")));
+      assertNull(FormFileFieldCommand.attachedUpload(submission(43), fileField("7")),
+          "another submission's file is never reached through a value");
+      assertNull(FormFileFieldCommand.attachedUpload(submission(42), fileField("8")), "gone");
+    }
+  }
+
+  @Test
+  void onlyAFileFieldWithANumericValueOnASavedSubmissionIsLookedUp() {
+    FormField text = fileField("7");
+    text.setType("text");
+    try (MockedStatic<FormUploadRepository> repository = mockStatic(FormUploadRepository.class)) {
+      assertNull(FormFileFieldCommand.attachedUpload(submission(42), text));
+      assertNull(FormFileFieldCommand.attachedUpload(submission(42), fileField(null)));
+      assertNull(FormFileFieldCommand.attachedUpload(submission(42), fileField("7; DROP TABLE")));
+      assertNull(FormFileFieldCommand.attachedUpload(submission(42), fileField("99999999999999999999")));
+      assertNull(FormFileFieldCommand.attachedUpload(new FormData(), fileField("7")), "not saved yet");
+      assertNull(FormFileFieldCommand.attachedUpload(null, fileField("7")));
+
+      repository.verify(() -> FormUploadRepository.findById(anyLong()), never());
+    }
+  }
+
+  @Test
+  void anAttachedFileIsNamedAsTheVisitorNamedIt() {
+    assertEquals("shot.png", FormFileFieldCommand.attachedFilename(upload(7, 42, "shot.png")));
+    assertEquals("attachment", FormFileFieldCommand.attachedFilename(upload(7, 42, " ")));
+    assertNull(FormFileFieldCommand.attachedFilename(null));
   }
 }

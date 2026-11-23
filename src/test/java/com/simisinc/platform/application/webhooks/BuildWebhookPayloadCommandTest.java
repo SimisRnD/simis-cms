@@ -19,6 +19,7 @@ package com.simisinc.platform.application.webhooks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
@@ -39,11 +40,13 @@ import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdated
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormUploadRepository;
 
 /**
  * Verifies the {@code {event, occurredOn, deliveryId, data}} payload shape (issue #418) for two
@@ -125,6 +128,79 @@ class BuildWebhookPayloadCommandTest {
     assertEquals(1, fields.size());
     assertEquals("Name", fields.get(0).get("label"));
     assertEquals("Jane Doe", fields.get(0).get("value"));
+  }
+
+  /** A submission with a text field and a file field holding {@code fileValue}, built as the event reads it */
+  private static Map<String, Object> formSubmittedData(String fileValue, FormUpload stored) {
+    FormData formData = new FormData();
+    formData.setId(55L);
+    formData.setFormUniqueId("contact-us");
+    FormField nameField = new FormField();
+    nameField.setLabel("Name");
+    nameField.setName("name");
+    nameField.setType("text");
+    nameField.setUserValue("Jane Doe");
+    FormField fileField = new FormField();
+    fileField.setLabel("Screenshot");
+    fileField.setName("screenshot");
+    fileField.setType("file");
+    fileField.setUserValue(fileValue);
+    formData.setFormFieldList(List.of(nameField, fileField));
+
+    try (MockedStatic<FormDataRepository> formDataRepository = mockStatic(FormDataRepository.class);
+        MockedStatic<FormUploadRepository> formUploadRepository = mockStatic(FormUploadRepository.class)) {
+      formDataRepository.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
+      if (stored != null) {
+        formUploadRepository.when(() -> FormUploadRepository.findById(stored.getId())).thenReturn(stored);
+      }
+      return BuildWebhookPayloadCommand.buildData(new FormSubmittedEvent(formData, null));
+    }
+  }
+
+  private static FormUpload storedUpload(long formDataId) {
+    FormUpload upload = new FormUpload();
+    upload.setId(7L);
+    upload.setFormDataId(formDataId);
+    upload.setOriginalFilename("shot.png");
+    upload.setContentType("image/png");
+    upload.setFileLength(123_456L);
+    upload.setFilePath("forms/contact-us/0a1b2c.png");
+    return upload;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<Map<String, Object>> fieldsOf(Map<String, Object> data) {
+    return (List<Map<String, Object>>) data.get("fields");
+  }
+
+  @Test
+  void anAttachedFileIsSentAsItsNameTypeAndSizeNotItsId() {
+    List<Map<String, Object>> fields = fieldsOf(formSubmittedData("7", storedUpload(55L)));
+
+    Map<String, Object> screenshot = fields.get(1);
+    assertEquals("Screenshot", screenshot.get("label"));
+    assertEquals("screenshot", screenshot.get("name"));
+    assertEquals("shot.png", screenshot.get("value"));
+    assertEquals(Map.of("name", "shot.png", "contentType", "image/png", "size", 123_456L), screenshot.get("file"));
+    assertFalse(screenshot.toString().contains("form-upload") || screenshot.toString().contains("forms/"),
+        "no download link and no server path: " + screenshot);
+    assertEquals(Map.of("label", "Name", "name", "name", "value", "Jane Doe"), fields.get(0), "other fields are unchanged");
+  }
+
+  @Test
+  void aFileFromAnotherSubmissionIsNeverDescribed() {
+    Map<String, Object> screenshot = fieldsOf(formSubmittedData("7", storedUpload(99L))).get(1);
+
+    assertNull(screenshot.get("value"));
+    assertFalse(screenshot.containsKey("file"));
+  }
+
+  @Test
+  void aFileFieldLeftEmptyHasNoValueAndNoFile() {
+    Map<String, Object> screenshot = fieldsOf(formSubmittedData(null, null)).get(1);
+
+    assertNull(screenshot.get("value"));
+    assertFalse(screenshot.containsKey("file"));
   }
 
   private static MailingListMember member(long id, String emailAddress, boolean subscribed) {

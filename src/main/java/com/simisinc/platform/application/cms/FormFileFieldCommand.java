@@ -26,7 +26,10 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.FeatureFlagCommand;
+import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
+import com.simisinc.platform.infrastructure.persistence.cms.FormUploadRepository;
 
 /**
  * The rules for a form builder "file" field (issue #2130): when one may be defined, which kinds of
@@ -91,6 +94,28 @@ public class FormFileFieldCommand {
   }
 
   /** @return the kinds an editor may choose, mapped to the label the editor shows, in display order */
+  /**
+   * The file a submission's file field points at, or null when none was attached or it is gone. The
+   * field's stored value is the upload's id; the upload must belong to that same submission, so a
+   * value can never reach another submission's file.
+   */
+  public static FormUpload attachedUpload(FormData formData, FormField field) {
+    if (formData == null || formData.getId() == null || formData.getId() <= 0 || !isFileField(field)) {
+      return null;
+    }
+    String value = StringUtils.trimToEmpty(field.getUserValue());
+    if (!value.matches("[0-9]{1,18}")) {
+      return null;
+    }
+    FormUpload upload = FormUploadRepository.findById(Long.parseLong(value));
+    return upload != null && upload.getFormDataId() == formData.getId() ? upload : null;
+  }
+
+  /** The visitor's name for an attached file, for display; never used to name a stored file */
+  public static String attachedFilename(FormUpload upload) {
+    return upload == null ? null : StringUtils.defaultIfBlank(upload.getOriginalFilename(), "attachment");
+  }
+
   public static Map<String, String> availableKinds() {
     return AVAILABLE_KINDS;
   }
