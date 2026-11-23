@@ -23,18 +23,29 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
 import org.mockito.MockedStatic;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -42,7 +53,10 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormUploadFixtures;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
@@ -52,9 +66,13 @@ import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
+import com.simisinc.platform.infrastructure.malware.FakeClamd;
 import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+
+import jakarta.servlet.http.Part;
 
 /**
  * End-to-end verification of {@link FormWidget}'s database-backed field configuration (issue
@@ -132,7 +150,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE form_data, form_fields, form_definitions RESTART IDENTITY CASCADE");
+      statement.execute("TRUNCATE TABLE form_uploads, form_data, form_fields, form_definitions RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset form_definitions/form_fields/form_data tables", se);
     }
@@ -257,6 +275,308 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
     assertEquals(0, FormDataRepository.countTotalSubmissions(), "an invalid submission must not be saved");
   }
 
+  // Issue #2130: a file field can be defined, but no form takes a file yet, so a live form leaves it
+  // out entirely -- even a required one must not make the form impossible to submit
+
+  @Test
+  void executeLeavesAFileFieldOffTheLiveForm() {
+    saveField("screenshot", "Attach a screenshot", "file", true, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+
+    try (MockedStatic<com.simisinc.platform.application.RateLimitCommand> rateLimitCommand =
+        mockStatic(com.simisinc.platform.application.RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> com.simisinc.platform.application.RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+
+      new FormWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<FormField> formFieldList = (List<FormField>) widgetContext.getRequest().getAttribute("formFieldList");
+      assertEquals(4, formFieldList.size());
+      assertTrue(formFieldList.stream().noneMatch(f -> "file".equals(f.getType())));
+    }
+  }
+
+  @Test
+  void postSucceedsWithARequiredFileFieldOnTheFormAndStoresOnlyTheOtherFields() {
+    saveField("screenshot", "Attach a screenshot", "file", true, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+    preferences.put("formUniqueId", "db-contact");
+    preferences.put("checkForSpam", "false");
+
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+    // Whatever a direct POST sends under the file field's name is ignored, not stored
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "screenshot", "C:\\fakepath\\shot.png");
+
+    try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+      WidgetContext result = new FormWidget().post(widgetContext);
+
+      assertNull(result, "the required file field must not block the submission");
+      assertNull(widgetContext.getWarningMessage());
+    }
+
+    FormDataSpecification spec = new FormDataSpecification();
+    spec.setFormUniqueId("db-contact");
+    List<FormData> saved = FormDataRepository.findAll(spec, new DataConstraints());
+    assertEquals(1, saved.size());
+    List<FormField> savedFields = saved.get(0).getFormFieldList();
+    assertEquals(4, savedFields.size());
+    assertTrue(savedFields.stream().noneMatch(f -> "screenshot".equals(f.getName())));
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Live uploads (issue #2130, step 5): the flag on, a scanner, and a file-server root of our own
+  // ---------------------------------------------------------------------------------------------
+
+  private static final long MB = 1_048_576L;
+
+  @TempDir
+  Path fileRoot;
+
+  /**
+   * Runs {@code body} with file uploads on, the file-server root at {@link #fileRoot}, a scanner
+   * answering the given way (or none, for a null mode), and the side effects of a successful
+   * submission stubbed out. Returns the failure reasons recorded.
+   */
+  private List<String> withUploadsOn(FakeClamd.Mode scannerMode, ThrowingRunnable body) throws Exception {
+    List<String> failureReasons = new ArrayList<>();
+    FakeClamd clamd = scannerMode != null ? new FakeClamd(scannerMode) : null;
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class, Mockito.CALLS_REAL_METHODS);
+        MockedStatic<FormSubmissionFailureRepository> failures = mockStatic(FormSubmissionFailureRepository.class);
+        MockedStatic<com.simisinc.platform.application.RateLimitCommand> rateLimit =
+            mockStatic(com.simisinc.platform.application.RateLimitCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.form-file-uploads")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.clamav.host")).thenReturn(clamd != null ? clamd.host() : "");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.clamav.port")).thenReturn(clamd != null ? String.valueOf(clamd.port()) : "");
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(fileRoot.toString() + "/");
+      failures.when(() -> FormSubmissionFailureRepository.record(any(), any(), any(), any()))
+          .thenAnswer(invocation -> failureReasons.add(invocation.getArgument(1)));
+      rateLimit.when(() -> com.simisinc.platform.application.RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+      body.run();
+    } finally {
+      if (clamd != null) {
+        clamd.close();
+      }
+    }
+    return failureReasons;
+  }
+
+  private interface ThrowingRunnable {
+    void run() throws Exception;
+  }
+
+  private void saveFileField(String name, String label, boolean required, int fieldOrder) {
+    FormField field = new FormField();
+    field.setFormDefinitionId(formDefinitionId);
+    field.setName(name);
+    field.setLabel(label);
+    field.setType("file");
+    field.setRequired(required);
+    field.setFieldOrder(fieldOrder);
+    field.setAcceptedKinds("image");
+    field.setMaxBytes(10 * MB);
+    FormFieldRepository.save(field);
+  }
+
+  private void fillInTheTextFields() {
+    preferences.put("formId", String.valueOf(formDefinitionId));
+    preferences.put("formUniqueId", "db-contact");
+    preferences.put("checkForSpam", "false");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+  }
+
+  private void attach(String fieldName, String filename, byte[] bytes) throws Exception {
+    Part part = Mockito.mock(Part.class);
+    Mockito.when(part.getSubmittedFileName()).thenReturn(filename);
+    Mockito.when(part.getSize()).thenReturn((long) bytes.length);
+    Mockito.when(part.getInputStream()).thenAnswer(invocation -> new ByteArrayInputStream(bytes));
+    Mockito.when(request.getPart(widgetContext.getUniqueId() + fieldName)).thenReturn(part);
+  }
+
+  private List<String> filesUnderRoot() throws IOException {
+    try (Stream<Path> walk = Files.walk(fileRoot)) {
+      return walk.filter(Files::isRegularFile).map(path -> fileRoot.relativize(path).toString()).collect(Collectors.toList());
+    }
+  }
+
+  private static long countRows(String table) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM " + table)) {
+      rs.next();
+      return rs.getLong(1);
+    }
+  }
+
+  @Test
+  void executeShowsAFileFieldWhileUploadsAreOnAndSendsTheFormAsMultipart() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", false, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+
+    withUploadsOn(FakeClamd.Mode.ANSWER, () -> new FormWidget().execute(widgetContext));
+
+    @SuppressWarnings("unchecked")
+    List<FormField> formFieldList = (List<FormField>) widgetContext.getRequest().getAttribute("formFieldList");
+    assertEquals(5, formFieldList.size());
+    assertEquals(true, widgetContext.getRequest().getAttribute("hasFileField"));
+    @SuppressWarnings("unchecked")
+    Map<String, FormWidget.FileFieldInput> inputs =
+        (Map<String, FormWidget.FileFieldInput>) widgetContext.getRequest().getAttribute("fileFieldInputs");
+    assertEquals("Images (JPG, PNG, WebP), up to 10 MB.", inputs.get("screenshot").getLimits());
+    assertTrue(inputs.get("screenshot").getAccept().contains(".png"));
+    assertEquals(10 * MB, inputs.get("screenshot").getMaxBytes());
+  }
+
+  @Test
+  void postStoresAnAttachedImageAndPointsTheSubmissionAtIt() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", true, 50);
+    fillInTheTextFields();
+    attach("screenshot", "screenshot.jpg", FormUploadFixtures.pngWithTransparency());
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.ANSWER, () -> assertNull(new FormWidget().post(widgetContext)));
+
+    assertEquals(List.of(), failures);
+    assertNull(widgetContext.getWarningMessage());
+    FormDataSpecification spec = new FormDataSpecification();
+    spec.setFormUniqueId("db-contact");
+    List<FormData> saved = FormDataRepository.findAll(spec, new DataConstraints());
+    assertEquals(1, saved.size());
+    FormField screenshot = findByName(saved.get(0).getFormFieldList(), "screenshot");
+    assertEquals("file", screenshot.getType());
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery("SELECT * FROM form_uploads")) {
+      assertTrue(rs.next());
+      assertEquals(screenshot.getUserValue(), String.valueOf(rs.getLong("form_upload_id")),
+          "the submission's value for the field is the upload's id");
+      assertEquals(saved.get(0).getId().longValue(), rs.getLong("form_data_id"), "the upload points back at the submission");
+      assertEquals("clean", rs.getString("scan_status"));
+      assertEquals("image/png", rs.getString("content_type"));
+      assertEquals("screenshot.jpg", rs.getString("original_filename"));
+      assertTrue(Files.isRegularFile(fileRoot.resolve(rs.getString("file_path"))));
+      assertTrue(Files.isRegularFile(fileRoot.resolve(rs.getString("thumbnail_path"))));
+    }
+    assertEquals(2, filesUnderRoot().size(), "the image and its thumbnail; no quarantine copy is left");
+  }
+
+  @Test
+  void nothingIsWrittenWhenAnotherCheckFailsFirst() throws Exception {
+    // A valid image attached, but a required text field left blank: the file must not reach disk
+    saveFileField("screenshot", "Attach a screenshot", false, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+    preferences.put("formUniqueId", "db-contact");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    attach("screenshot", "screenshot.png", FormUploadFixtures.pngWithTransparency());
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.ANSWER, () -> new FormWidget().post(widgetContext));
+
+    assertEquals("How Can We Help? is required", widgetContext.getWarningMessage());
+    assertEquals(List.of("missing_field"), failures);
+    assertEquals(List.of(), filesUnderRoot());
+    assertEquals(0, countRows("form_uploads"));
+  }
+
+  @Test
+  void aRequiredFileFieldLeftEmptyIsRequired() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", true, 50);
+    fillInTheTextFields();
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.ANSWER, () -> new FormWidget().post(widgetContext));
+
+    assertEquals("Attach a screenshot is required", widgetContext.getWarningMessage());
+    assertEquals(List.of("missing_field"), failures);
+    assertEquals(0, countRows("form_data"));
+  }
+
+  @Test
+  void anOptionalFileFieldLeftEmptyStillSubmits() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", false, 50);
+    fillInTheTextFields();
+
+    withUploadsOn(FakeClamd.Mode.ANSWER, () -> assertNull(new FormWidget().post(widgetContext)));
+
+    assertEquals(1, countRows("form_data"));
+    assertEquals(0, countRows("form_uploads"));
+  }
+
+  @Test
+  void aRejectedFileShowsTheFormAgainRecordsWhyAndKeepsNothing() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", true, 50);
+    fillInTheTextFields();
+    attach("screenshot", "logo.png", FormUploadFixtures.svg());
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.ANSWER, () -> {
+      WidgetContext result = new FormWidget().post(widgetContext);
+      assertEquals(widgetContext, result, "the form is shown again");
+    });
+
+    assertEquals("Attach a screenshot: this type of file isn't accepted. Choose Images (JPG, PNG, WebP).",
+        widgetContext.getWarningMessage());
+    assertEquals(List.of("file_type_not_allowed"), failures);
+    assertEquals(0, countRows("form_data"));
+    assertEquals(0, countRows("form_uploads"));
+    assertEquals(List.of(), filesUnderRoot());
+  }
+
+  @Test
+  void withNoScannerAFileIsRejectedButAFormWithoutAFileFieldStillWorks() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", false, 50);
+    fillInTheTextFields();
+    attach("screenshot", "screenshot.png", FormUploadFixtures.pngWithTransparency());
+
+    List<String> failures = withUploadsOn(null, () -> new FormWidget().post(widgetContext));
+
+    assertEquals(List.of("file_scan_unavailable"), failures);
+    assertEquals(0, countRows("form_data"));
+    assertEquals(List.of(), filesUnderRoot());
+
+    // The same submission with no file attached goes through: only files depend on the scanner
+    Mockito.when(request.getPart(widgetContext.getUniqueId() + "screenshot")).thenReturn(null);
+    widgetContext.setWarningMessage(null);
+    withUploadsOn(null, () -> assertNull(new FormWidget().post(widgetContext)));
+    assertEquals(1, countRows("form_data"));
+  }
+
+  @Test
+  void whenALaterFileIsRejectedTheEarlierOneIsRemovedToo() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", false, 50);
+    saveFileField("logo", "Attach your logo", false, 60);
+    fillInTheTextFields();
+    attach("screenshot", "screenshot.png", FormUploadFixtures.pngWithTransparency());
+    attach("logo", "logo.png", FormUploadFixtures.svg());
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.ANSWER, () -> new FormWidget().post(widgetContext));
+
+    assertEquals(List.of("file_type_not_allowed"), failures);
+    assertEquals(0, countRows("form_uploads"));
+    assertEquals(List.of(), filesUnderRoot(), "the screenshot stored first is removed with the submission");
+  }
+
+  @Test
+  void anInfectedFileIsRejected() throws Exception {
+    saveFileField("screenshot", "Attach a screenshot", true, 50);
+    fillInTheTextFields();
+    attach("screenshot", "screenshot.png", FormUploadFixtures.pngWithTransparency());
+
+    List<String> failures = withUploadsOn(FakeClamd.Mode.FLAG_EVERYTHING, () -> new FormWidget().post(widgetContext));
+
+    assertEquals("Attach a screenshot: the file didn't pass a security check. Choose another file.", widgetContext.getWarningMessage());
+    assertEquals(List.of("file_infected"), failures);
+    assertEquals(List.of(), filesUnderRoot());
+  }
+
   private static FormField findByName(List<FormField> fields, String name) {
     return fields.stream().filter(f -> name.equals(f.getName())).findFirst()
         .orElseThrow(() -> new AssertionError("No field named " + name + " in " + fields));
@@ -291,6 +611,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
     // subset of form_data -- see FormDataRepositoryTest for the same trimming rationale).
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS form_uploads CASCADE");
       statement.execute("DROP TABLE IF EXISTS form_data CASCADE");
       statement.execute("DROP TABLE IF EXISTS form_fields CASCADE");
       statement.execute("DROP TABLE IF EXISTS form_definitions CASCADE");
@@ -327,6 +648,8 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
           + "placeholder VARCHAR(255), "
           + "default_value VARCHAR(255), "
           + "options TEXT, "
+          + "accepted_kinds TEXT, "
+          + "max_bytes BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE form_data ("
@@ -349,6 +672,23 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
           + "processed TIMESTAMP(3) DEFAULT NULL, "
           + "processed_by BIGINT, "
           + "processed_system VARCHAR(255))");
+      // Mirrors NEW_10010__new_cms.sql's form_uploads (issue #2130)
+      statement.execute("CREATE TABLE form_uploads ("
+          + "form_upload_id BIGSERIAL PRIMARY KEY, "
+          + "form_unique_id VARCHAR(255) NOT NULL, "
+          + "form_data_id BIGINT REFERENCES form_data(form_data_id) ON DELETE SET NULL, "
+          + "field_name VARCHAR(255) NOT NULL, "
+          + "original_filename VARCHAR(255), "
+          + "file_path VARCHAR(255) NOT NULL, "
+          + "content_type VARCHAR(50) NOT NULL, "
+          + "file_length BIGINT NOT NULL, "
+          + "width INTEGER, "
+          + "height INTEGER, "
+          + "thumbnail_path VARCHAR(255), "
+          + "thumbnail_content_type VARCHAR(50), "
+          + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')), "
+          + "scan_checked TIMESTAMP(3), "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the form_definitions/form_fields/form_data schema", se);
     }

@@ -338,12 +338,13 @@ CREATE TABLE form_definitions (
 CREATE UNIQUE INDEX form_definitions_unique_id_idx ON form_definitions(unique_id);
 CREATE INDEX form_definitions_enabled_idx ON form_definitions(enabled);
 
--- field_type is one of: text, email, textarea, select, checkbox, date -- validated in application code,
+-- field_type is one of: text, email, textarea, select, checkbox, date, file -- validated in application code,
 -- not a DB CHECK constraint (matching how this file leaves other small admin-defined enums, e.g.
 -- form_submission_failures.reason, unconstrained at the DB level). options stores select/checkbox
 -- choices using the same comma-separated "key=value,key2=value2" string the XML <field list="..."/>
 -- preference already produces (see FormFieldCommand#parseFieldContent), so both configuration sources
--- share one options format.
+-- share one options format. accepted_kinds (a comma list, e.g. "image") and max_bytes are set only on a
+-- file field (issue #2130, see FormFileFieldCommand) and are null on every other type.
 CREATE TABLE form_fields (
   form_field_id BIGSERIAL PRIMARY KEY,
   form_definition_id BIGINT NOT NULL REFERENCES form_definitions(form_definition_id),
@@ -355,11 +356,40 @@ CREATE TABLE form_fields (
   placeholder VARCHAR(255),
   default_value VARCHAR(255),
   options TEXT,
+  accepted_kinds TEXT,
+  max_bytes BIGINT,
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX form_fields_form_definition_idx ON form_fields(form_definition_id);
 CREATE INDEX form_fields_order_idx ON form_fields(field_order);
+
+-- Issue #2130: files visitors attach to forms. Kept apart from the CMS file library (files, folders):
+-- a visitor is not a user, so these rows have no created_by, and nothing here appears in the file
+-- library, folder pages or site search. They are served only by /assets/form-upload, to the roles
+-- that review form data, and only when scan_status is 'clean'. file_path and thumbnail_path are
+-- relative to the file-server root and are named by the server; original_filename is the visitor's
+-- own name for the file, kept for display only. form_data_id is set once the submission is saved, and
+-- set NULL (not cascaded) when it is deleted, so the files on disk can still be found and removed.
+CREATE TABLE form_uploads (
+  form_upload_id BIGSERIAL PRIMARY KEY,
+  form_unique_id VARCHAR(255) NOT NULL,
+  form_data_id BIGINT REFERENCES form_data(form_data_id) ON DELETE SET NULL,
+  field_name VARCHAR(255) NOT NULL,
+  original_filename VARCHAR(255),
+  file_path VARCHAR(255) NOT NULL,
+  content_type VARCHAR(50) NOT NULL,
+  file_length BIGINT NOT NULL,
+  width INTEGER,
+  height INTEGER,
+  thumbnail_path VARCHAR(255),
+  thumbnail_content_type VARCHAR(50),
+  scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')),
+  scan_checked TIMESTAMP(3),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX form_uploads_form_data_idx ON form_uploads(form_data_id);
+CREATE INDEX form_uploads_form_unique_idx ON form_uploads(form_unique_id);
 
 -- We want to know popular page_path
 -- We want to know popular web_page_id

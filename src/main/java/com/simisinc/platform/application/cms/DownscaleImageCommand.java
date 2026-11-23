@@ -81,10 +81,11 @@ public class DownscaleImageCommand {
   static final long MAX_DECODE_PIXELS = 50_000_000L;
 
   /**
-   * One decode at a time, across uploads and the library backfill. The pixel ceiling bounds a single
-   * decode; this keeps several from adding up, since background jobs run on more than one worker.
+   * One decode at a time, across uploads, the library backfill, and form uploads
+   * (SanitizeFormUploadCommand). The pixel ceiling bounds a single decode; this keeps several from
+   * adding up, since background jobs run on more than one worker.
    */
-  private static final Semaphore DECODE_PERMIT = new Semaphore(1, true);
+  static final Semaphore DECODE_PERMIT = new Semaphore(1, true);
 
   private static final byte[] EXIF_HEADER = { 'E', 'x', 'i', 'f', 0, 0 };
   private static final int EXIF_ORIENTATION_TAG = 0x0112;
@@ -183,7 +184,7 @@ public class DownscaleImageCommand {
   }
 
   /** The stored pixel dimensions from the file header, without decoding the pixels. */
-  private static int[] readSize(File file) throws IOException {
+  static int[] readSize(File file) throws IOException {
     try (ImageInputStream stream = ImageIO.createImageInputStream(file)) {
       if (stream == null) {
         return null;
@@ -245,7 +246,7 @@ public class DownscaleImageCommand {
    * bilinear or bicubic step samples only a few source pixels per output pixel, which breaks up the
    * thin lines and small text these infographics are full of; each halving averages every pixel.
    */
-  private static BufferedImage resize(BufferedImage source, int targetWidth, int targetHeight, boolean keepAlpha) {
+  static BufferedImage resize(BufferedImage source, int targetWidth, int targetHeight, boolean keepAlpha) {
     int type = keepAlpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB;
     BufferedImage current = source;
     int width = source.getWidth();
@@ -394,7 +395,7 @@ public class DownscaleImageCommand {
     return turned;
   }
 
-  private static byte[] encodeJpeg(BufferedImage image) throws IOException {
+  static byte[] encodeJpeg(BufferedImage image) throws IOException {
     Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpeg");
     if (!writers.hasNext()) {
       return null;
@@ -413,7 +414,7 @@ public class DownscaleImageCommand {
     return bytes.toByteArray();
   }
 
-  private static byte[] encodePng(BufferedImage image) throws IOException {
+  static byte[] encodePng(BufferedImage image) throws IOException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     if (!ImageIO.write(image, "png", bytes)) {
       return null;

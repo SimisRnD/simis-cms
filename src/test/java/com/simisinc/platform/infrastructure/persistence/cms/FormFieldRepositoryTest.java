@@ -340,6 +340,39 @@ class FormFieldRepositoryTest {
     }
   }
 
+  @Test
+  void aFileFieldsKindsAndLimitRoundTripAndAreClearedWhenTheTypeChanges() {
+    // Issue #2130: accepted_kinds and max_bytes are written on every update, so a field changed away
+    // from "file" (SaveFormFieldCommand hands the repository null and -1) drops them
+    FormField field = newField(formDefinitionId, "screenshot", "Screenshot", "file");
+    field.setAcceptedKinds("image");
+    field.setMaxBytes(10_485_760L);
+    FormField saved = FormFieldRepository.save(field);
+
+    FormField reloaded = FormFieldRepository.findById(saved.getId());
+    assertEquals("image", reloaded.getAcceptedKinds());
+    assertEquals(10_485_760L, reloaded.getMaxBytes());
+
+    reloaded.setType("text");
+    reloaded.setAcceptedKinds(null);
+    reloaded.setMaxBytes(-1);
+    FormFieldRepository.save(reloaded);
+
+    FormField cleared = FormFieldRepository.findById(saved.getId());
+    assertNull(cleared.getAcceptedKinds());
+    assertEquals(-1, cleared.getMaxBytes(), "a NULL max_bytes reads back as -1, not 0");
+  }
+
+  @Test
+  void aFieldThatIsNotAFileFieldReadsBackWithNoFileLimits() {
+    FormField saved = FormFieldRepository.save(newField(formDefinitionId, "full_name", "Full Name", "text"));
+
+    FormField reloaded = FormFieldRepository.findById(saved.getId());
+
+    assertNull(reloaded.getAcceptedKinds());
+    assertEquals(-1, reloaded.getMaxBytes());
+  }
+
   private static FormField newField(long formDefinitionId, String name, String label, String type) {
     FormField field = new FormField();
     field.setFormDefinitionId(formDefinitionId);
@@ -401,6 +434,8 @@ class FormFieldRepositoryTest {
           + "placeholder VARCHAR(255), "
           + "default_value VARCHAR(255), "
           + "options TEXT, "
+          + "accepted_kinds TEXT, "
+          + "max_bytes BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
     } catch (SQLException se) {

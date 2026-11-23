@@ -78,10 +78,32 @@ services:
       # exec (unlike tmpfs); setenv.sh points -Djna.tmpdir here. See docker/app/Dockerfile.
       - jna-exec:/opt/jna
 
+  # Malware scanner for files visitors attach to forms (issue #2130). clamd listens on 3310 on the
+  # platform network only; nothing is published to the host. The app reaches it once an admin sets
+  # security.clamav.host to "clamav" on /admin/security-properties -- with the host blank, every
+  # form upload is rejected rather than stored unscanned. On first start the image downloads the
+  # signature database into the clamav-db volume, which takes a minute or two before clamd answers;
+  # uploads made before then are rejected, not let through. Pinned by digest like the database
+  # image's base: 1.4 is ClamAV's long-term-support line, and the Debian variant is the one built for
+  # arm64 as well as amd64.
+  clamav:
+    image: clamav/clamav:1.4.7-debian@sha256:cac3829563613e6eb21962bc2e6ef999492d4c20c01f17d0b5bec2f4b7ce0320
+    restart: always
+    # [STIG] Blocks privilege escalation, as for the db service. Capabilities are not dropped: the
+    # image sets no USER and starts as root through its /init entrypoint, and running it with every
+    # capability dropped has not been tested.
+    security_opt:
+      - "no-new-privileges:true"
+    networks:
+      - platform
+    volumes:
+      - clamav-db:/var/lib/clamav
+
 volumes:
   db-data:
   web-data:
   jna-exec:
+  clamav-db:
 
 networks:
   platform:

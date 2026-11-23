@@ -61,3 +61,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- 'true' is both the seeded value and the behaviour when the row is missing -- this closes a hole
 -- rather than adding a restriction, so the default is the safe side.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Require page access for the content API', 'security.contentApi.enforcePageAccess', 'true', 'boolean');
+
+-- Issue #2130: the ClamAV clamd that scans files visitors attach to forms (MalwareScanCommand).
+-- Seeded on existing deployments by UPGRADE_20261123.1000__clamav_scanner_properties.sql. The host
+-- is blank on purpose: with no scanner configured every form upload is rejected, the opposite of the
+-- captcha keys, where a blank key lets submissions through. Forms without a file field are not
+-- affected. In docker-compose.yaml the scanner is the "clamav" service.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Malware scanner host (ClamAV clamd)', 'security.clamav.host', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (61, 'Malware scanner port', 'security.clamav.port', '3310', 'text');

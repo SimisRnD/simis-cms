@@ -433,6 +433,12 @@
     </section>
   </page>
 
+  <!-- Issue #2130: a file a visitor attached to a form, for the roles that review form data. The
+       widget serves only files whose malware scan passed. -->
+  <page name="/assets/form-upload" role="admin,community-manager">
+    <widget name="formUploadFile" />
+  </page>
+
   <page name="/admin/form-data" role="admin,community-manager" title="Form Data">
     <!--<section>-->
       <!--<column class="small-12 cell">-->

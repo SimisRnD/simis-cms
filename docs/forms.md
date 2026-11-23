@@ -29,11 +29,47 @@ FormSubmissionFailureRepository -- visible as a dashboard chart, not raw field v
 
 Build/manage forms at `/admin/forms` (list) and `/admin/forms-editor` (settings + fields):
 
-- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date` — that's the full list; there's no radio or file-upload type in the admin builder (`SaveFormFieldCommand`'s allow-list).
+- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date`, and, when the `features.form-file-uploads` flag is on, `file` — that's the full list; there's no radio type in the admin builder (`SaveFormFieldCommand`'s allow-list). See [File upload fields](#file-upload-fields).
 - **Per-field options**: label, internal name, placeholder, default value, required (yes/no), and an options list for `select`/`checkbox` (rendered as a dropdown or a checkbox group depending on type).
 - **Per-form settings**: title/subtitle/button text, success title/message, `emailTo` (who gets notified), `useCaptcha`, `checkForSpam`, `enabled`.
 
-Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring.
+Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring. The one exception is `type="file"`, which is left out like a builder `file` field.
+
+### File upload fields
+
+Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an inquiry. **Turn it on only once a malware scanner is set up** (see below): with no scanner, every attached file is rejected.
+
+**Defining one**
+
+- The type is offered in the field editor only while `features.form-file-uploads` is on (`/admin/feature-flags`, off by default). An existing `file` field can still be edited with the flag off.
+- Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file. The Placeholder, if set, is shown as help text under the file input.
+- The fields list warns when a form has a `file` field and **Use Captcha?** is off.
+- With the flag off, `file` fields are left off the live form entirely, so a required one can't block submissions. An XML `fields` preference with `type="file"` is always left out.
+
+**What happens when a visitor attaches a file**
+
+Only a form with a `file` field is sent as `multipart/form-data`; every other form is unchanged. In the browser, `accept` filters the file picker and a file over the limit is caught before upload — conveniences only. On the server, `FormWidget.post()` runs the existing checks first (honeypot, required fields, email, captcha, rate limit), and **nothing is written until they pass**. Then each file goes through `SaveFormUploadCommand`:
+
+1. **Size and type** (`ValidateFormUploadCommand`), before any write: the size against the field's limit, then both the filename extension and the content type in the file's first bytes against the field's list. PNG data named `.jpg` passes as a PNG; SVG, HTML, PDF, GIF and executables are rejected under any name.
+2. **Quarantine:** a copy under `forms/quarantine/` in the file-server root, named by the server, stopped at the size limit rather than trusting the declared size. Deleted whatever happens.
+3. **Re-encode** (`SanitizeFormUploadCommand`): decoded and encoded again from its pixels, so EXIF (including GPS), comments, text chunks and anything appended after the image data are dropped. JPEG and PNG in-process (JPEG turned the way its EXIF orientation says; PNG keeps transparency); WebP through the hardened ImageMagick `convert`. An image that won't decode, or claims more than 50 megapixels, is rejected. A thumbnail up to 320 pixels wide is made for review. Animated images keep their first frame.
+4. **Malware scan** (`MalwareScanCommand`) of the file as it arrived, then of the re-encoded image that will be stored. It **fails closed**: only a clean scan passes; no scanner, a scanner that is down or slow, or an unexpected reply rejects the file.
+5. **Store:** the re-encoded image and its thumbnail go under `forms/<form>/` with server-chosen names, and a `form_uploads` row is written with `scan_status = 'clean'`. The submission's stored value for the field is that row's id.
+
+If any file is rejected, nothing is kept for the submission: files already stored for it are removed, the form is shown again with a plain sentence naming the rule (never what the file turned out to be), and the rejection is recorded as `file_<reason>` — `file_too_large`, `file_type_not_allowed`, `file_undecodable`, `file_infected`, `file_scan_unavailable` and so on — in the Rejected Submissions chart. A file input can't be refilled, so the visitor is asked to attach the file again.
+
+**Where the files are, and who can get them**
+
+Form uploads are kept apart from the file library: the `form_uploads` table and the `forms/` directory, not `files` and folders, so they never appear in the file library, folder pages or site search. They are served only by `/assets/form-upload?id=N` to admins and community managers (the roles that review form data), only when `scan_status` is `clean` — anything else answers 403 — and always as a download (`attachment`, `nosniff`); `&thumbnail=true` serves the thumbnail inline for review. Every request is recorded in the audit log as `form_upload.download`.
+
+The notification email says a file was attached and to review it in Form Data; it never attaches the file. Showing each file's thumbnail, name and size on `/admin/form-data`, linking the download there, and removing files with their submission when retention runs come next (#2130, step 6).
+
+#### Setting up the malware scanner
+
+- **Docker Compose:** `docker-compose.yaml` runs a `clamav` service (ClamAV 1.4 LTS, pinned by digest) on the internal network. Set **Malware scanner host** to `clamav` and leave the port at `3310` on `/admin/security-properties`. On first start the container downloads its signature database, which takes a minute or two; uploads made before `clamd` answers are rejected.
+- **Stream size:** `clamd` refuses a stream larger than its `StreamMaxLength` setting, and that refusal rejects the upload. Make sure it is at least the largest file field limit (at most `system.upload.maxBytes`). In the Compose image it is 100 MB, above the 50 MB upload limit.
+- **Azure:** App Service does not run the Compose file. Production needs a `clamd` the app can reach on the virtual network (for example a sidecar container) before file uploads are turned on. Until `security.clamav.host` points at one, every form upload is rejected.
+- **Checking it works:** run `ClamAvScanProviderLiveTest` with `CLAMAV_TEST_HOST` (and `CLAMAV_TEST_PORT`) pointing at the scanner; it checks that `clamd` answers, passes a clean image, and flags the [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/). EICAR can't check it through an image field: ClamAV's EICAR signature matches only the whole test file, so on its own it fails the type check before reaching the scanner, and appended to an image it isn't flagged (that appended content is what the re-encode removes).
 
 ## Validation
 

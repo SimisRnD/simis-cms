@@ -17,18 +17,23 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -203,6 +208,152 @@ class SaveFormFieldCommandTest {
 
       assertThrows(DataException.class, () -> SaveFormFieldCommand.saveField(bean));
       formFieldRepository.verify(() -> FormFieldRepository.save(any()), never());
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // File upload fields (issue #2130)
+  // ---------------------------------------------------------------------------------------------
+
+  private static final long MB = 1_048_576L;
+
+  private static FormField fileField(long id, String kinds, long maxBytes) {
+    FormField bean = field(id, 5L, "Screenshot", "screenshot");
+    bean.setType("file");
+    bean.setAcceptedKinds(kinds);
+    bean.setMaxBytes(maxBytes);
+    return bean;
+  }
+
+  /** Mocks the repositories and site properties a save reads, with a 50 MB site upload limit */
+  private static void stubSave(MockedStatic<FormDefinitionRepository> formDefinitionRepository,
+      MockedStatic<FormFieldRepository> formFieldRepository, MockedStatic<LoadSitePropertyCommand> siteProperty,
+      boolean flagOn) {
+    formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(new FormDefinition());
+    formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(5L)).thenReturn(siblings());
+    formFieldRepository.when(() -> FormFieldRepository.getNextFieldOrder(5L)).thenReturn(10);
+    formFieldRepository.when(() -> FormFieldRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.form-file-uploads")).thenReturn(flagOn);
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+  }
+
+  @Test
+  void aNewFileFieldIsRejectedWhileTheFlagIsOff() {
+    FormField bean = fileField(-1L, "image", -1);
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, false);
+
+      DataException e = assertThrows(DataException.class, () -> SaveFormFieldCommand.saveField(bean));
+      assertTrue(e.getMessage().contains("File upload fields are turned off for this site"));
+      formFieldRepository.verify(() -> FormFieldRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aNewFileFieldIsSavedWithItsKindsAndTheDefaultLimitWhileTheFlagIsOn() throws DataException {
+    FormField bean = fileField(-1L, "image", -1);
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, true);
+
+      FormField saved = SaveFormFieldCommand.saveField(bean);
+
+      assertEquals("file", saved.getType());
+      assertEquals("image", saved.getAcceptedKinds());
+      assertEquals(10 * MB, saved.getMaxBytes(), "an unset limit takes the 10 MB default");
+    }
+  }
+
+  @Test
+  void aFileFieldLimitAboveTheSiteUploadLimitIsRejected() {
+    FormField bean = fileField(-1L, "image", 50 * MB + 1);
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, true);
+
+      DataException e = assertThrows(DataException.class, () -> SaveFormFieldCommand.saveField(bean));
+      assertTrue(e.getMessage().contains("between 1 MB and 50 MB"));
+      formFieldRepository.verify(() -> FormFieldRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aFileFieldWithNoKindOrAKindTheSiteDoesNotOfferIsRejected() {
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, true);
+
+      DataException none = assertThrows(DataException.class, () -> SaveFormFieldCommand.saveField(fileField(-1L, null, -1)));
+      assertTrue(none.getMessage().contains("Choose at least one kind of file to accept"));
+      DataException pdf = assertThrows(DataException.class, () -> SaveFormFieldCommand.saveField(fileField(-1L, "pdf", -1)));
+      assertTrue(pdf.getMessage().contains("\"pdf\" is not a kind of file this site accepts"));
+      formFieldRepository.verify(() -> FormFieldRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aFileFieldDropsOptionsAndADefaultValue() throws DataException {
+    // Options are checked before Type when form.jsp renders a field, so keeping them would turn a
+    // file field into a dropdown
+    FormField bean = fileField(-1L, "image", -1);
+    Map<String, String> options = new LinkedHashMap<>();
+    options.put("a", "A");
+    bean.setListOfOptions(options);
+    bean.setDefaultValue("something");
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, true);
+
+      FormField saved = SaveFormFieldCommand.saveField(bean);
+
+      assertNull(saved.getListOfOptions());
+      assertNull(saved.getDefaultValue());
+    }
+  }
+
+  @Test
+  void anExistingFileFieldCanStillBeEditedWhileTheFlagIsOff() throws DataException {
+    FormField existing = fileField(7L, "image", 10 * MB);
+    FormField bean = fileField(7L, "image", 5 * MB);
+    bean.setLabel("Attach a screenshot");
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, false);
+      formFieldRepository.when(() -> FormFieldRepository.findById(7L)).thenReturn(existing);
+
+      FormField saved = SaveFormFieldCommand.saveField(bean);
+
+      assertEquals("Attach a screenshot", saved.getLabel());
+      assertEquals(5 * MB, saved.getMaxBytes());
+    }
+  }
+
+  @Test
+  void changingAFileFieldToAnotherTypeClearsItsFileLimits() throws DataException {
+    FormField existing = fileField(7L, "image", 10 * MB);
+    FormField bean = field(7L, 5L, "Screenshot link", "screenshot");
+    bean.setType("text");
+    // The editor still submits the file settings box when another type is chosen
+    bean.setAcceptedKinds("image");
+    bean.setMaxBytes(10 * MB);
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      stubSave(formDefinitionRepository, formFieldRepository, siteProperty, true);
+      formFieldRepository.when(() -> FormFieldRepository.findById(7L)).thenReturn(existing);
+
+      FormField saved = SaveFormFieldCommand.saveField(bean);
+
+      assertEquals("text", saved.getType());
+      assertNull(saved.getAcceptedKinds());
+      assertEquals(-1, saved.getMaxBytes());
     }
   }
 }

@@ -17,6 +17,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="formDefinition" class="com.simisinc.platform.domain.model.cms.FormDefinition" scope="request"/>
@@ -40,6 +41,15 @@
   field as it was, new ones reflect whatever the form looks like now.
 </p>
 <%@include file="../page_messages.jspf" %>
+<c:if test="${fileFieldWithoutCaptcha}">
+  <div class="callout warning">
+    <p>
+      <strong>This form has a File upload field, but Use Captcha is off.</strong> A form that
+      accepts files from anyone on the internet should make them pass a captcha first. Turn on
+      <strong>Use Captcha?</strong> in Form Settings above before this form takes uploads.
+    </p>
+  </div>
+</c:if>
 <c:if test="${empty fieldList}">
   <p class="subheader">No fields were found, add one!</p>
 </c:if>
@@ -80,6 +90,12 @@
                  row said nothing about them -- so the list read as fixed and the only way to find
                  out otherwise was to open a field on the off-chance. Listed rather than counted:
                  seeing the current choices is what tells you whether this is the field you want. --%>
+            <%-- Issue #2130: what a file field accepts, and whether visitors see it --%>
+            <c:if test="${field.type eq 'file'}">
+              &middot; accepts: <c:out value="${field.acceptedKinds}"/>
+              <c:if test="${field.maxBytes > 0}"> &middot; up to <fmt:formatNumber value="${field.maxBytes / 1048576}" maxFractionDigits="0"/> MB</c:if>
+              <c:if test="${!fileUploadsEnabled}"> &middot; not shown on the live form (file uploads are off)</c:if>
+            </c:if>
             <c:if test="${!empty field.listOfOptions}"> &middot; options:
               <c:forEach items="${field.listOfOptions}" var="option" varStatus="optionStatus"><c:out
                   value="${option.value}"/><c:if test="${!optionStatus.last}">, </c:if></c:forEach></c:if>

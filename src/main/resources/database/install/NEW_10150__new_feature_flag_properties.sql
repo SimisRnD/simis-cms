@@ -19,3 +19,9 @@ VALUES (10, 'Enable visual page layout editor', 'features.layout-editor', 'true'
 -- this does nothing until that slice is built and wired to it.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type)
 VALUES (20, 'Enable item tag facet search', 'features.item-tags-facet-search', 'false', 'boolean');
+
+-- Issue #2130: offers the "File upload" field type in the form editor. Off by default. Turning it on
+-- does not yet let a visitor send a file: FormWidget leaves file fields off every live form until the
+-- upload pipeline (type check, sanitize, malware scan, gated download) is built.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type)
+VALUES (30, 'Enable file upload fields in the form editor', 'features.form-file-uploads', 'false', 'boolean');
