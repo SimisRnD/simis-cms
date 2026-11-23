@@ -47,7 +47,16 @@ Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an 
 
 - `SanitizeFormUploadCommand` is the second step: an accepted image is decoded and encoded again from its pixels, so what is stored is an image the platform drew, not the bytes the visitor sent. JPEG and PNG are re-encoded in-process (JPEG at quality 0.85, turned the way its EXIF orientation says; PNG keeping its transparency); WebP goes through the hardened ImageMagick `convert` with `-auto-orient -strip`. EXIF (including any GPS position), comments, text chunks and anything appended after the image data are dropped; an image that won't decode, or whose header claims more than 50 megapixels, is rejected. Each image also gets a thumbnail up to 320 pixels wide for the review screen. Animated PNG and WebP keep only their first frame. No form calls it yet.
 
-The remaining steps (malware scan, wiring into forms, a review screen with a gated download) are tracked in #2130.
+- `MalwareScanCommand` is the third step: the file is streamed to ClamAV's `clamd` (INSTREAM, 30-second deadline). It **fails closed**: only a scan that read the whole file and found nothing accepts it. A blank `security.clamav.host`, a port that isn't a port, a scanner that is down, slow, or refuses the file as too large, and any reply other than OK or FOUND all reject the upload — the opposite of the captcha keys, where a blank key lets everything through. The visitor is told only that the file didn't pass or couldn't be checked; the signature name goes to the server log. No form calls it yet.
+
+The remaining steps (wiring into forms, a review screen with a gated download) are tracked in #2130.
+
+#### Setting up the malware scanner
+
+- **Docker Compose:** `docker-compose.yaml` runs a `clamav` service (ClamAV 1.4 LTS, pinned by digest) on the internal network. Set **Malware scanner host** to `clamav` and leave the port at `3310` on `/admin/security-properties`. On first start the container downloads its signature database, which takes a minute or two; uploads made before `clamd` answers are rejected.
+- **Stream size:** `clamd` refuses a stream larger than its `StreamMaxLength` setting, and that refusal rejects the upload. Make sure it is at least the largest file field limit (at most `system.upload.maxBytes`).
+- **Azure:** App Service does not run the Compose file. Production needs a `clamd` the app can reach on the virtual network (for example a sidecar container) before file uploads are turned on. Until `security.clamav.host` points at one, every form upload is rejected.
+- **Checking it works:** a submission carrying the [EICAR test file](https://www.eicar.org/download-anti-malware-testfile/) should be rejected, with `Eicar-Test-Signature` in the server log.
 
 ## Validation
 
