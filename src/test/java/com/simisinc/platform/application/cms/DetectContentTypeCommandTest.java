@@ -17,10 +17,17 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,5 +108,59 @@ class DetectContentTypeCommandTest {
     file.getParentFile().mkdirs();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), format, file);
     return file;
+  }
+
+  // Issue #2130: a form upload is checked before anything is written, so its header comes from the
+  // upload stream rather than a file on disk
+
+  @Test
+  void detectReadsAStreamsHeaderWithoutClosingItOrReadingPastTwelveBytes() throws Exception {
+    ByteArrayOutputStream png = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB), "png", png);
+    CountingStream in = new CountingStream(png.toByteArray());
+
+    assertEquals("image/png", DetectContentTypeCommand.detectStream(in));
+    assertTrue(in.bytesRead() <= 12, "read " + in.bytesRead() + " bytes");
+    assertFalse(in.closed, "the caller owns the stream");
+  }
+
+  @Test
+  void detectReturnsNullForAStreamOfUnrecognizedContentAndForNoStream() throws Exception {
+    byte[] svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".getBytes(StandardCharsets.UTF_8);
+
+    assertNull(DetectContentTypeCommand.detectStream(new ByteArrayInputStream(svg)));
+    assertNull(DetectContentTypeCommand.detectStream(new ByteArrayInputStream(new byte[0])));
+    assertNull(DetectContentTypeCommand.detectStream(null));
+  }
+
+  @Test
+  void aStreamThatCannotBeReadThrowsRatherThanReportingNoMatch() {
+    InputStream broken = new InputStream() {
+      @Override
+      public int read() throws IOException {
+        throw new IOException("connection reset");
+      }
+    };
+
+    assertThrows(IOException.class, () -> DetectContentTypeCommand.detectStream(broken));
+  }
+
+  /** Reports how far it was read by its position, which every read method advances */
+  private static final class CountingStream extends ByteArrayInputStream {
+    boolean closed = false;
+
+    CountingStream(byte[] bytes) {
+      super(bytes);
+    }
+
+    int bytesRead() {
+      return pos;
+    }
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+      super.close();
+    }
   }
 }
