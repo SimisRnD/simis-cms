@@ -233,6 +233,48 @@ class PageServletSecurityHeadersTest {
   }
 
   @Test
+  void serviceLetsTheCardFieldSdkLoadWhenAProcessorIsSwitchedOn() throws Exception {
+    HttpServletRequest request = mockRequest(mockSession());
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      // Square in the sandbox, since ecommerce.production is not set: the SDK with the most directives
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName("ecommerce.paymentProcessor")).thenReturn("Square");
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+    }
+
+    ArgumentCaptor<String> cspValues = ArgumentCaptor.forClass(String.class);
+    verify(response, times(1)).setHeader(eq("Content-Security-Policy"), cspValues.capture());
+    String csp = cspValues.getValue();
+    String nonce = directive(csp, "script-src").replaceAll("^script-src 'self' 'nonce-([^']+)'.*$", "$1");
+    String square = "https://sandbox.web.squarecdn.com";
+    assertEquals("script-src 'self' 'nonce-" + nonce + "' " + square, directive(csp, "script-src"), csp);
+    assertTrue(directive(csp, "frame-src").endsWith(" " + square), csp);
+    // A host joins style-src, which still admits no inline style: no 'unsafe-inline', and the nonce
+    // is still the only way a <style> element applies
+    assertEquals("style-src 'self' 'nonce-" + nonce + "' " + square, directive(csp, "style-src"), csp);
+    assertTrue(!csp.contains("'unsafe-"), csp);
+    assertEquals("font-src 'self' data: https://square-fonts-production-f.squarecdn.com "
+        + "https://d1g145x70srn7h.cloudfront.net", directive(csp, "font-src"), csp);
+    assertTrue(directive(csp, "connect-src").contains(" https://pci-connect.squareupsandbox.com"), csp);
+  }
+
+  @Test
   void serviceSendsTheReportOnlyHeaderWhenACandidatePolicyIsConfigured() throws Exception {
     // The gap this covers: CspPolicyCommand and its tests existed, the report receiver existed,
     // the admin view existed -- and nothing called reportOnlyPolicy() from the request path, so

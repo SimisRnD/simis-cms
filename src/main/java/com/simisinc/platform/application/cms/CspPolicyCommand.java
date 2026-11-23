@@ -86,20 +86,55 @@ public class CspPolicyCommand {
   /** What reCAPTCHA calls, per Google's reCAPTCHA FAQ. A path, so the rest of www.google.com stays closed. */
   static final String RECAPTCHA_CONNECT_SOURCE = "https://www.google.com/recaptcha/";
 
-  /** What Stripe.js calls for the card field, per Stripe's integration security guide. */
-  static final String STRIPE_CONNECT_SOURCE = "https://api.stripe.com";
+  /**
+   * What one card-field SDK needs from each directive, as its vendor's CSP guide lists it.
+   *
+   * <p>
+   * The payment form renders the card number field in a vendor iframe, so the page policy has to let
+   * the SDK's script, frames, calls and -- for Square -- stylesheet and fonts through. Until these
+   * were added, frame-src refused the card frame on any site with a processor switched on, and
+   * checkout could not take a card (Stripe's three frames, and Square's one, were confirmed refused
+   * by loading each real SDK under the enforced policy).
+   * </p>
+   */
+  record CardFieldSdk(List<String> script, List<String> frame, List<String> connect, List<String> style,
+      List<String> font) {
+  }
 
-  /** What Square's Web Payments SDK calls in production, per Square's CSP guide. */
-  static final List<String> SQUARE_PRODUCTION_CONNECT_SOURCES = List.of(
-      "https://web.squarecdn.com",
-      "https://pci-connect.squareup.com",
-      "https://o160250.ingest.sentry.io");
+  /**
+   * Stripe.js, per Stripe's integration security guide. Loaded under the enforced policy with these
+   * added, the card element became ready with no refusal; without the script hosts, Stripe.js's
+   * Trusted Types checker -- a script it inserts without the nonce -- was refused. maps.googleapis.com
+   * is left out: the guide lists it for the Address Element, which the form does not use. No style or
+   * font host: Stripe styles its own frames.
+   */
+  static final CardFieldSdk STRIPE = new CardFieldSdk(
+      List.of("https://js.stripe.com", "https://*.js.stripe.com"),
+      List.of("https://js.stripe.com", "https://*.js.stripe.com", "https://hooks.stripe.com"),
+      List.of("https://api.stripe.com"),
+      List.of(),
+      List.of());
 
-  /** The same for Square's sandbox, which the form loads whenever ecommerce.production is off. */
-  static final List<String> SQUARE_SANDBOX_CONNECT_SOURCES = List.of(
-      "https://sandbox.web.squarecdn.com",
-      "https://pci-connect.squareupsandbox.com",
-      "https://o160250.ingest.sentry.io");
+  /**
+   * Square's Web Payments SDK in production, per Square's CSP guide. The card frame was confirmed
+   * refused without it; Square's stylesheet, font and script hosts are as the guide lists them,
+   * since the SDK would not initialize further without a real application ID.
+   */
+  static final CardFieldSdk SQUARE_PRODUCTION = new CardFieldSdk(
+      List.of("https://web.squarecdn.com"),
+      List.of("https://web.squarecdn.com"),
+      List.of("https://web.squarecdn.com", "https://pci-connect.squareup.com", "https://o160250.ingest.sentry.io"),
+      List.of("https://web.squarecdn.com"),
+      List.of("https://square-fonts-production-f.squarecdn.com", "https://d1g145x70srn7h.cloudfront.net"));
+
+  /** The same for Square's sandbox, which the form uses whenever ecommerce.production is off. */
+  static final CardFieldSdk SQUARE_SANDBOX = new CardFieldSdk(
+      List.of("https://sandbox.web.squarecdn.com"),
+      List.of("https://sandbox.web.squarecdn.com"),
+      List.of("https://sandbox.web.squarecdn.com", "https://pci-connect.squareupsandbox.com",
+          "https://o160250.ingest.sentry.io"),
+      List.of("https://sandbox.web.squarecdn.com"),
+      List.of("https://square-fonts-production-f.squarecdn.com", "https://d1g145x70srn7h.cloudfront.net"));
 
   private CspPolicyCommand() {
     // Static utility, not instantiated
@@ -198,10 +233,10 @@ public class CspPolicyCommand {
    * <li><b>reCAPTCHA</b> -- Google's reCAPTCHA FAQ lists https://www.google.com/recaptcha/. Turnstile
    * needs nothing here; Cloudflare's guide asks only for 'self', and only for pre-clearance.</li>
    * <li><b>Stripe or Square</b> -- the SDK behind the payment form's card field, chosen the way
-   * PaymentFormWidget chooses it. Stripe's guide lists api.stripe.com for Stripe.js
-   * (maps.googleapis.com is for the Address Element, which the form does not use). Square's lists
+   * PaymentFormWidget chooses it. Stripe's guide lists api.stripe.com for Stripe.js. Square's lists
    * its CDN, its PCI endpoint and the error-reporting host its SDK sends to, with separate hosts for
-   * the sandbox.</li>
+   * the sandbox. {@link CardFieldSdk} holds what each needs from every directive, not only this
+   * one.</li>
    * </ul>
    *
    * <p>
@@ -227,15 +262,71 @@ public class CspPolicyCommand {
     if (usesGoogleCaptcha()) {
       sources.add(RECAPTCHA_CONNECT_SOURCE);
     }
-    String paymentProcessor = LoadSitePropertyCommand.loadByName("ecommerce.paymentProcessor");
-    if ("Stripe".equalsIgnoreCase(paymentProcessor)) {
-      sources.add(STRIPE_CONNECT_SOURCE);
-    } else if ("Square".equalsIgnoreCase(paymentProcessor)) {
-      sources.addAll(EcommerceCommand.isProductionEnabled()
-          ? SQUARE_PRODUCTION_CONNECT_SOURCES
-          : SQUARE_SANDBOX_CONNECT_SOURCES);
+    CardFieldSdk cardFieldSdk = cardFieldSdk();
+    if (cardFieldSdk != null) {
+      sources.addAll(cardFieldSdk.connect());
     }
     return String.join(" ", sources);
+  }
+
+  /**
+   * The script hosts the payment form's card-field SDK needs, to append to script-src, or "". Only
+   * when a processor is switched on, and then on every page: the policy is one per site, not per
+   * page. Both SDKs load from a nonce'd tag already; these are for what the SDK loads after it.
+   *
+   * @return the sources with a leading space, ready to append, or ""
+   */
+  public static String cardFieldScriptSources() {
+    return appendable(cardFieldSdk() == null ? List.of() : cardFieldSdk().script());
+  }
+
+  /**
+   * The card-field SDK's frame hosts, to append to frame-src, or "". Deliberately not part of
+   * AllowedIframeHostCommand: that list also decides which iframes authored content may keep, and
+   * no author has a reason to embed a payment frame.
+   *
+   * @return the sources with a leading space, ready to append, or ""
+   */
+  public static String cardFieldFrameSources() {
+    return appendable(cardFieldSdk() == null ? List.of() : cardFieldSdk().frame());
+  }
+
+  /**
+   * The card-field SDK's stylesheet hosts, to append to style-src, or "". Hosts only: style-src
+   * still admits no inline style, which a host source cannot authorize.
+   *
+   * @return the sources with a leading space, ready to append, or ""
+   */
+  public static String cardFieldStyleSources() {
+    return appendable(cardFieldSdk() == null ? List.of() : cardFieldSdk().style());
+  }
+
+  /**
+   * The card-field SDK's font hosts, to append to font-src, or "".
+   *
+   * @return the sources with a leading space, ready to append, or ""
+   */
+  public static String cardFieldFontSources() {
+    return appendable(cardFieldSdk() == null ? List.of() : cardFieldSdk().font());
+  }
+
+  /**
+   * The SDK the payment form loads for its card field, chosen the way PaymentFormWidget chooses it,
+   * or null when the form loads none (no processor, or one the form does not recognize).
+   */
+  static CardFieldSdk cardFieldSdk() {
+    String paymentProcessor = LoadSitePropertyCommand.loadByName("ecommerce.paymentProcessor");
+    if ("Stripe".equalsIgnoreCase(paymentProcessor)) {
+      return STRIPE;
+    }
+    if ("Square".equalsIgnoreCase(paymentProcessor)) {
+      return EcommerceCommand.isProductionEnabled() ? SQUARE_PRODUCTION : SQUARE_SANDBOX;
+    }
+    return null;
+  }
+
+  private static String appendable(List<String> sources) {
+    return sources.isEmpty() ? "" : " " + String.join(" ", sources);
   }
 
   /** The condition main.jsp loads gtag.js under. */
