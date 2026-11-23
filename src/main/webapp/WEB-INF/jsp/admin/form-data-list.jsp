@@ -201,6 +201,36 @@
               <div class="small-8 cell">
                 <c:choose>
                   <c:when test="${formField.type eq 'email'}"><a href="mailto:<c:out value="${formField.userValue}"/>"><c:out value="${text:trim(formField.userValue, 512, true)}"/></a></c:when>
+                  <c:when test="${formField.type eq 'file'}">
+                    <%-- A file the visitor attached (issue #2130). The value is the upload's id, and
+                         formUploads only holds this submission's own uploads, so a value can never show
+                         another submission's file. The preview is the re-encoded thumbnail, never the
+                         file itself, and both it and the download are refused unless the scan passed. --%>
+                    <c:set var="formUpload" value="${formUploads[formData.id][formField.userValue]}"/>
+                    <c:choose>
+                      <c:when test="${empty formUpload}">
+                        <small>The attached file is no longer available.</small>
+                      </c:when>
+                      <c:otherwise>
+                        <c:if test="${!empty formUpload.thumbnailUrl}">
+                          <a href="${ctx}<c:out value="${formUpload.downloadUrl}"/>"><img src="${ctx}<c:out value="${formUpload.thumbnailUrl}"/>" width="160" alt="Preview of <c:out value="${formUpload.filename}"/>" loading="lazy" /></a><br />
+                        </c:if>
+                        <c:out value="${formUpload.filename}"/><br />
+                        <small>
+                          <c:out value="${formUpload.type}"/> &bull; <c:out value="${formUpload.size}"/><c:if test="${!empty formUpload.dimensions}"> &bull; <c:out value="${formUpload.dimensions}"/></c:if>
+                        </small><br />
+                        <c:choose>
+                          <c:when test="${formUpload.clean}">
+                            <span class="success label">Scanned clean</span>
+                            <a class="button tiny secondary radius" href="${ctx}<c:out value="${formUpload.downloadUrl}"/>"><i class="fa fa-download"></i> Download</a>
+                          </c:when>
+                          <c:otherwise>
+                            <span class="alert label">Not scanned clean</span> <small>This file can't be downloaded.</small>
+                          </c:otherwise>
+                        </c:choose>
+                      </c:otherwise>
+                    </c:choose>
+                  </c:when>
                   <c:otherwise><c:out value="${formField.userValue}"/></c:otherwise>
                 </c:choose>
               </div>

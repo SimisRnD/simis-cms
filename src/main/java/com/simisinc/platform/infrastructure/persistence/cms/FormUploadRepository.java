@@ -16,9 +16,16 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -26,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.domain.model.cms.FormUpload;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 
 /**
@@ -48,6 +56,69 @@ public class FormUploadRepository {
         TABLE_NAME,
         new SqlUtils().add("form_upload_id = ?", id),
         FormUploadRepository::buildRecord);
+  }
+
+  /** The uploads attached to one submission */
+  public static List<FormUpload> findAllByFormDataId(long formDataId) {
+    if (formDataId <= 0) {
+      return new ArrayList<>();
+    }
+    return findAll(new SqlUtils().add("form_data_id = ?", formDataId));
+  }
+
+  /** The uploads attached to any of these submissions, for a page of them; no query for none */
+  public static List<FormUpload> findAllByFormDataIds(Collection<Long> formDataIds) {
+    if (formDataIds == null || formDataIds.isEmpty()) {
+      return new ArrayList<>();
+    }
+    StringBuilder in = new StringBuilder("form_data_id IN (");
+    for (int i = 0; i < formDataIds.size(); i++) {
+      in.append(i > 0 ? ",?" : "?");
+    }
+    in.append(")");
+    return findAll(new SqlUtils().add(in.toString(), formDataIds.toArray(new Long[0])));
+  }
+
+  /**
+   * Uploads no submission points at, created before {@code cutoff}: their submission was deleted
+   * (the foreign key sets form_data_id to null), or it was never saved
+   */
+  public static List<FormUpload> findUnlinkedCreatedBefore(Timestamp cutoff) {
+    return findAll(new SqlUtils()
+        .add("form_data_id IS NULL")
+        .add("created < ?", cutoff));
+  }
+
+  /**
+   * Every file path and thumbnail path a form_uploads row holds, relative to the file-server root.
+   *
+   * @return the paths, or null when they could not be read -- a caller deciding which files are
+   *         unreferenced must then delete nothing, since an empty set would mean "none are"
+   */
+  public static Set<String> findAllStoredPaths() {
+    Set<String> paths = new HashSet<>();
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement("SELECT file_path, thumbnail_path FROM " + TABLE_NAME);
+        ResultSet rs = pst.executeQuery()) {
+      while (rs.next()) {
+        for (String path : new String[] { rs.getString("file_path"), rs.getString("thumbnail_path") }) {
+          if (StringUtils.isNotBlank(path)) {
+            paths.add(path);
+          }
+        }
+      }
+      return paths;
+    } catch (Exception e) {
+      LOG.error("Could not read the stored form upload paths: " + e.getMessage());
+      return null;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<FormUpload> findAll(SqlUtils where) {
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("form_upload_id").setUseCount(false);
+    return (List<FormUpload>) DB.selectAllFrom(TABLE_NAME, where, constraints, FormUploadRepository::buildRecord).getRecords();
   }
 
   public static FormUpload add(FormUpload record) {

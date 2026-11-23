@@ -24,6 +24,7 @@ import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndS
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FormDataRetentionJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.FormUploadSweepJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FormSubmissionFailureRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FunnelEventRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
@@ -106,6 +107,7 @@ public class SchedulerManager {
   public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
   public static final String FORM_DATA_RETENTION_JOB = "FormDataRetention";
+  public static final String FORM_UPLOAD_SWEEP_JOB = "FormUploadSweep";
   public static final String FUNNEL_EVENT_RETENTION_JOB = "FunnelEventRetention";
   public static final String NEWSLETTER_QUEUE_JOB = "NewsletterQueue";
 
@@ -218,6 +220,7 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(FUNNEL_EVENT_RETENTION_JOB, Cron.daily(5, 30), FunnelEventRetentionJob::execute);
         // Offset from the other retention jobs above so they aren't all competing for DB time at once
         BackgroundJob.scheduleRecurrently(FORM_DATA_RETENTION_JOB, Cron.daily(5, 45), FormDataRetentionJob::execute);
+        BackgroundJob.scheduleRecurrently(FORM_UPLOAD_SWEEP_JOB, Cron.daily(6), FormUploadSweepJob::execute);
         BackgroundJob.scheduleRecurrently(NEWSLETTER_QUEUE_JOB, Cron.minutely(), NewsletterQueueJob::execute);
       }
     } catch (Exception se) {

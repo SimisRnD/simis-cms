@@ -62,7 +62,17 @@ If any file is rejected, nothing is kept for the submission: files already store
 
 Form uploads are kept apart from the file library: the `form_uploads` table and the `forms/` directory, not `files` and folders, so they never appear in the file library, folder pages or site search. They are served only by `/assets/form-upload?id=N` to admins and community managers (the roles that review form data), only when `scan_status` is `clean` — anything else answers 403 — and always as a download (`attachment`, `nosniff`); `&thumbnail=true` serves the thumbnail inline for review. Every request is recorded in the audit log as `form_upload.download`.
 
-The notification email says a file was attached and to review it in Form Data; it never attaches the file. Showing each file's thumbnail, name and size on `/admin/form-data`, linking the download there, and removing files with their submission when retention runs come next (#2130, step 6).
+**Reviewing them**
+
+- **`/admin/form-data`** shows each attached file with the submission: its thumbnail (the re-encoded preview, never the file itself), the visitor's name for it, its type, size and dimensions, whether it scanned clean, and a **Download** button. A file is looked up within its own submission only. If its record is gone, the row says the file is no longer available.
+- **The notification email** names each file with its type and size (for example "screenshot.png (PNG image, 1.2 MB)") and links to the submission in Form Data. It never attaches the file or links it directly. The submitter's confirmation email lists no answers, files included.
+- **Download CSV** writes a file field as the file's name and its download link, e.g. `Screenshot: screenshot.png (https://example.com/assets/form-upload?id=17)`. The link is absolute when `site.url` is set, and works only for a signed-in admin or community manager.
+
+**When they're deleted**
+
+- With their submission: when the retention job (see [Retention](#retention)) deletes a submission, the same run deletes its files and their records. Deleting a submission unlinks its uploads (`form_data_id` becomes null), and the job then removes uploads with no submission.
+- A nightly sweep at 06:00 (`FormUploadSweepJob`) removes uploads whose submission was never saved, then any file under `forms/` that no `form_uploads` row names: left by a crash mid-submission, a delete that failed, or a quarantine copy. It skips anything less than a day old, so it can't catch a submission in progress. It doesn't follow symbolic links. If it can't read the list of stored files, it deletes nothing.
+- A rejected file is never kept, so there is nothing to clean up for it. Dismissing or archiving a submission keeps its files, the same as its answers.
 
 #### Setting up the malware scanner
 
@@ -113,7 +123,7 @@ A `form-submitted` workflow (see `WEB-INF/workflows/cms-workflows.yml`) sends a 
 - If the form has `emailTo` set, that address gets the notification.
 - If `emailTo` is blank, **every user with the `community-manager` role** gets it instead.
 
-The notification includes the submitter's IP, GeoIP-derived location string, and every field's label/value — sent through the same SMTP mechanism as the rest of the app's transactional email (see the [Mailing Lists doc](mailing-lists.md#azure-deployment-guidance) for the Azure port-25/587 guidance, which applies identically here).
+The notification includes the submitter's IP, GeoIP-derived location string, and every field's label/value (an attached file is listed by name, type and size, with a link to review it, never attached) — sent through the same SMTP mechanism as the rest of the app's transactional email (see the [Mailing Lists doc](mailing-lists.md#azure-deployment-guidance) for the Azure port-25/587 guidance, which applies identically here).
 
 ## Rate Limiting
 
@@ -136,6 +146,8 @@ Stored in `form_data`: IP address, session ID, page URL, query string (if presen
 **Form submission *failures*** (the rejection-tracking table above) have a retention job: `formData.failureRetentionDays` (default 90, bounded 7–3650 days), deleted daily at 05:00.
 
 **Submissions** (`form_data`, including IP addresses and free-text field values) have a retention job too: `formData.retentionDays` (default 90, bounded 7–3650 days), run daily at 05:45. It deletes only submissions an admin has **processed or dismissed**, counting from when that happened; a submission still awaiting review is never deleted, however old. So bounded retention depends on admins actually working the review queue.
+
+Files visitors attached to a submission are deleted with it, in the same run (see [File upload fields](#file-upload-fields)).
 
 Neither retention property has an admin editor yet; changing one means updating its `site_properties` row directly.
 
