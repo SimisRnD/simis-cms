@@ -3,8 +3,6 @@
 **Audience:** Site administrators, content managers, DevOps
 **Goal:** Explain what the Forms feature does, how to configure a form correctly, and what to check before/after going live on Azure.
 
-> **Note on scope:** two capabilities described here (a spam-flag filter on `/admin/form-data`, and a retention/purge job for `form_data` itself) are built and shipped as separate pull requests that are not yet merged to `main` as of this writing — PR #1025 (spam filter UI) and a form-data retention PR. Both are called out explicitly below wherever they apply so this doc stays accurate whether or not they've landed yet.
-
 ## Overview
 
 ```
@@ -13,15 +11,17 @@ Visitor loads a page with a form widget
     → client-side JS checks only "required" fields (not authoritative)
 
 Visitor submits
-  → FormWidget.post() re-validates server-side (required + email format) -- authoritative
-    → rate limit check (anonymous users only, per-IP)
+  → FormWidget.post() checks the hidden honeypot field -- filled in, the submission is dropped
+    silently: not saved, and the sender sees the same redirect as a success
+    → re-validates server-side (required + email format) -- authoritative
       → captcha check (if enabled for this form)
-        → spam heuristics (if checkForSpam is on) -- flags, does NOT reject
-          → FormData row saved (JSONB field values + IP/session/URL/query-string)
-            → "form-submitted" workflow fires an email notification, UNLESS spam-flagged
-              → recipient: form's emailTo, or every community-manager if blank
+        → rate limit check (anonymous users only, per-IP)
+          → spam heuristics (if checkForSpam is on) -- flags, does NOT reject
+            → FormData row saved (JSONB field values + IP/session/URL/query-string)
+              → "form-submitted" workflow fires an email notification, UNLESS spam-flagged
+                → recipient: form's emailTo, or every community-manager if blank
 
-Every rejection (missing field, bad email, captcha failure, rate limit) is recorded to
+Every rejection (honeypot, missing field, bad email, captcha failure, rate limit) is recorded to
 FormSubmissionFailureRepository -- visible as a dashboard chart, not raw field values.
 ```
 
@@ -29,11 +29,25 @@ FormSubmissionFailureRepository -- visible as a dashboard chart, not raw field v
 
 Build/manage forms at `/admin/forms` (list) and `/admin/forms-editor` (settings + fields):
 
-- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date` — that's the full list; there's no radio or file-upload type in the admin builder (`SaveFormFieldCommand`'s allow-list).
+- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date`, and, when the `features.form-file-uploads` flag is on, `file` — that's the full list; there's no radio type in the admin builder (`SaveFormFieldCommand`'s allow-list). Live forms don't show `file` fields yet; see [File upload fields](#file-upload-fields).
 - **Per-field options**: label, internal name, placeholder, default value, required (yes/no), and an options list for `select`/`checkbox` (rendered as a dropdown or a checkbox group depending on type).
 - **Per-form settings**: title/subtitle/button text, success title/message, `emailTo` (who gets notified), `useCaptcha`, `checkForSpam`, `enabled`.
 
-Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring.
+Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring. The one exception is `type="file"`, which is left out like a builder `file` field.
+
+### File upload fields
+
+Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an inquiry. It is being built in steps, and **no form accepts a file yet**:
+
+- The type is offered in the field editor only while `features.form-file-uploads` is on (`/admin/feature-flags`, off by default). An existing `file` field can still be edited with the flag off.
+- Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file.
+- `FormWidget` leaves every `file` field off the live form, the required-field check, the stored submission, and the notification email. A required `file` field therefore can't block submissions.
+- The fields list warns when a form has a `file` field and **Use Captcha?** is off.
+- `ValidateFormUploadCommand` is the first check an upload will pass, before anything is written: its size against the field's limit (never above `system.upload.maxBytes`), then its type. A file passes only when both its extension and the content type found in its first bytes are on the field's list; PNG data named `.jpg` passes as a PNG, while SVG, HTML, PDF, GIF and executables are rejected under any name. The visitor is told which rule failed, never what the file turned out to be. No form calls it yet.
+
+- `SanitizeFormUploadCommand` is the second step: an accepted image is decoded and encoded again from its pixels, so what is stored is an image the platform drew, not the bytes the visitor sent. JPEG and PNG are re-encoded in-process (JPEG at quality 0.85, turned the way its EXIF orientation says; PNG keeping its transparency); WebP goes through the hardened ImageMagick `convert` with `-auto-orient -strip`. EXIF (including any GPS position), comments, text chunks and anything appended after the image data are dropped; an image that won't decode, or whose header claims more than 50 megapixels, is rejected. Each image also gets a thumbnail up to 320 pixels wide for the review screen. Animated PNG and WebP keep only their first frame. No form calls it yet.
+
+The remaining steps (malware scan, wiring into forms, a review screen with a gated download) are tracked in #2130.
 
 ## Validation
 
@@ -59,14 +73,16 @@ When `checkForSpam` is on (default), a submission is checked against:
 
 - A country block-list (GeoIP-derived)
 - A keyword contains-list run against `textarea` fields, plus a hardcoded disallowed-character check
-- An email contains/wildcard block-list
+- An email contains/ends-with block-list, checked only against a field whose Name is `email` (not every `email`-type field)
 - One org-specific heuristic (a field literally named `organization` valued `gsa`, combined with a non-US or specific-city GeoIP location)
 
-These lists are flat CSV files on disk (`cms/country-ignore-list.csv`, `cms/spam-list.csv`, `cms/email-ignore-list.csv`) under the configured file-server path — editable by an admin with file access, but **there's no admin UI for them**, and **no honeypot field** exists anywhere in the form rendering.
+These lists are flat CSV files on disk (`cms/country-ignore-list.csv`, `cms/spam-list.csv`, `cms/email-ignore-list.csv`) under the configured file-server config path — editable by an admin with file access, but **there's no admin UI for them**.
 
-A spam match **flags** the submission (`flagged_as_spam = true`) — it is still saved, and the admin can review it at `/admin/form-data`. It is **not** rejected outright, and (important) a spam-flagged submission does **not** trigger the email notification, so a false-positive spam flag is effectively silent unless an admin checks the list.
+Separately from these lists, every form carries a **honeypot**: a visually hidden input (`_hpWebsite`, issue #1153) that a person never fills in. A submission that fills it in is dropped rather than flagged — not saved, no notification — and the sender gets the same redirect as a real success, so a bot has nothing to adapt to. Each one is counted under the `honeypot` reason in the rejection chart (see [Monitoring](#monitoring-rejected-submissions)).
 
-**Not yet merged**: a filter to isolate spam-flagged submissions on `/admin/form-data` (PR #1025) — until that lands, finding flagged submissions means scanning the full list for the "spam likely" label rather than filtering to just them.
+A spam match **flags** the submission (`flagged_as_spam = true`) — it is still saved, and the admin can review it at `/admin/form-data`. It is **not** rejected outright: the sender sees the normal success page (though it isn't counted as a lead in Google Analytics), and (important) a spam-flagged submission does **not** trigger the email notification, so a false-positive spam flag is effectively silent unless an admin checks the list.
+
+To review flagged submissions, use the **Spam** filter on `/admin/form-data`: *Spam-Flagged Only* lists just them (each marked "spam likely"), and *Exclude Spam-Flagged* hides them.
 
 ## Email Notifications
 
@@ -87,7 +103,7 @@ The bucket is also **shared site-wide by IP**, not scoped per form — a visitor
 
 ## Monitoring: Rejected Submissions
 
-Every rejection on submit (missing required field, invalid email, captcha failure, rate limit) is recorded — form ID, reason, IP, URL, timestamp, **deliberately no field values** — and surfaced as a "Rejected Submissions by Reason" chart on `/admin/community/analytics`. There's no dedicated list page, only the aggregate chart. A spike here is the fastest signal that something's actively attacking a form (or that a form itself broke, e.g. a required field silently stopped being submitted after a template change).
+Every rejection on submit (honeypot, missing required field, invalid email, captcha failure, rate limit) is recorded — form ID, reason, IP, URL, timestamp, **deliberately no field values** — and surfaced as a "Rejected Submissions by Reason" chart on `/admin/community/analytics`. There's no dedicated list page, only the aggregate chart. A spike here is the fastest signal that something's actively attacking a form (or that a form itself broke, e.g. a required field silently stopped being submitted after a template change).
 
 ## Data Captured Per Submission
 
@@ -97,7 +113,9 @@ Stored in `form_data`: IP address, session ID, page URL, query string (if presen
 
 **Form submission *failures*** (the rejection-tracking table above) have a retention job: `formData.failureRetentionDays` (default 90, bounded 7–3650 days), deleted daily at 05:00.
 
-**Not yet merged**: a retention/purge job for `form_data` itself — the actual submissions, including IP addresses and free-text field values, currently have **no expiry at all**. Every submission is retained indefinitely until an admin manually dismisses/archives it (which changes status, not deletion). If your compliance posture requires bounded retention of collected PII, treat this as an open gap until that job ships, not an already-configurable setting.
+**Submissions** (`form_data`, including IP addresses and free-text field values) have a retention job too: `formData.retentionDays` (default 90, bounded 7–3650 days), run daily at 05:45. It deletes only submissions an admin has **processed or dismissed**, counting from when that happened; a submission still awaiting review is never deleted, however old. So bounded retention depends on admins actually working the review queue.
+
+Neither retention property has an admin editor yet; changing one means updating its `site_properties` row directly.
 
 ## Azure Deployment Guidance
 

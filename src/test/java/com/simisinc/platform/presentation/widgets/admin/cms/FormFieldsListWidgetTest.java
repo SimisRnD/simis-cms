@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -55,7 +56,8 @@ class FormFieldsListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "formDefinitionId", "1");
 
     try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
-        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class)) {
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       formDefinitionRepository.when(() -> FormDefinitionRepository.findById(1L)).thenReturn(contactUs);
       formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(1L)).thenReturn(fieldList);
 
@@ -122,5 +124,46 @@ class FormFieldsListWidgetTest extends WidgetBase {
       Assertions.assertEquals("Field deleted", result.getSuccessMessage());
       Assertions.assertEquals("/admin/forms-editor?formDefinitionId=1", result.getRedirect());
     }
+  }
+
+  // Issue #2130: a form taking files from anonymous visitors should be behind a captcha
+
+  private Boolean fileFieldWithoutCaptchaFor(boolean useCaptcha, String... fieldTypes) {
+    FormDefinition contactUs = new FormDefinition();
+    contactUs.setId(1L);
+    contactUs.setUseCaptcha(useCaptcha);
+    List<FormField> fieldList = new ArrayList<>();
+    for (String type : fieldTypes) {
+      FormField field = new FormField();
+      field.setType(type);
+      fieldList.add(field);
+    }
+    addQueryParameter(widgetContext, "formDefinitionId", "1");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(1L)).thenReturn(contactUs);
+      formFieldRepository.when(() -> FormFieldRepository.findAllByFormDefinitionId(1L)).thenReturn(fieldList);
+
+      new FormFieldsListWidget().execute(widgetContext);
+
+      return (Boolean) request.getAttribute("fileFieldWithoutCaptcha");
+    }
+  }
+
+  @Test
+  void executeWarnsWhenAFormHasAFileFieldAndCaptchaIsOff() {
+    Assertions.assertEquals(true, fileFieldWithoutCaptchaFor(false, "text", "file"));
+  }
+
+  @Test
+  void executeDoesNotWarnWhenCaptchaIsOn() {
+    Assertions.assertEquals(false, fileFieldWithoutCaptchaFor(true, "text", "file"));
+  }
+
+  @Test
+  void executeDoesNotWarnWhenTheFormHasNoFileField() {
+    Assertions.assertEquals(false, fileFieldWithoutCaptchaFor(false, "text", "email"));
   }
 }

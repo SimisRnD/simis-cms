@@ -41,6 +41,11 @@ jobs:
             build-mode: none
           - language: actions
             build-mode: none
+          # The checks under tools/ run on every pull request and push to main, and one calls
+          # the GitHub API with the workflow token. Default setup scanned them until this
+          # workflow replaced it (#268); listing python here keeps them covered.
+          - language: python
+            build-mode: none
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 

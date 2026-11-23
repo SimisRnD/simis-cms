@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.FormFileFieldCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -59,6 +60,18 @@ public class FormFieldsListWidget extends GenericWidget {
 
     List<FormField> fieldList = FormFieldRepository.findAllByFormDefinitionId(formDefinitionId);
     context.getRequest().setAttribute("fieldList", fieldList);
+
+    // Issue #2130: a form that will take files from anonymous visitors should be behind a captcha,
+    // so the editor says so while a file field is on a form with Use Captcha off
+    boolean hasFileField = false;
+    for (FormField field : fieldList) {
+      if (FormFileFieldCommand.isFileField(field)) {
+        hasFileField = true;
+        break;
+      }
+    }
+    context.getRequest().setAttribute("fileFieldWithoutCaptcha", hasFileField && !formDefinition.getUseCaptcha());
+    context.getRequest().setAttribute("fileUploadsEnabled", FormFileFieldCommand.isEnabled());
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
