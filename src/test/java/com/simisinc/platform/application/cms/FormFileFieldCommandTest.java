@@ -135,6 +135,30 @@ class FormFileFieldCommandTest {
   }
 
   @Test
+  void theAcceptAttributeListsTheKindsTypesAndExtensionsInAStableOrder() {
+    FormField field = fieldOfType("file");
+    field.setAcceptedKinds("image");
+
+    assertEquals("image/jpeg,image/png,image/webp,.jpeg,.jpg,.png,.webp", FormFileFieldCommand.acceptAttribute(field));
+    field.setAcceptedKinds(null);
+    assertEquals("", FormFileFieldCommand.acceptAttribute(field));
+  }
+
+  @Test
+  void theLimitsAreDescribedForTheVisitor() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+      FormField field = fieldOfType("file");
+      field.setAcceptedKinds("image");
+      field.setMaxBytes(5 * MB);
+
+      assertEquals("Images (JPG, PNG, WebP), up to 5 MB.", FormFileFieldCommand.describeLimits(field));
+      field.setAcceptedKinds(null);
+      assertEquals("Up to 5 MB.", FormFileFieldCommand.describeLimits(field));
+    }
+  }
+
+  @Test
   void megabytesConvertBothWaysAndRoundDownForDisplay() {
     assertEquals(10 * MB, FormFileFieldCommand.fromMegabytes(10));
     assertEquals(10, FormFileFieldCommand.toMegabytes(10 * MB));

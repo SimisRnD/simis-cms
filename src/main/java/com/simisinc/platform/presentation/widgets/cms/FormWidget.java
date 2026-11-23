@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,18 +39,24 @@ import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
 import com.simisinc.platform.application.cms.FormFileFieldCommand;
+import com.simisinc.platform.application.cms.SaveFormUploadCommand;
+import com.simisinc.platform.application.cms.ValidateFormUploadCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
+import com.simisinc.platform.domain.model.cms.FormUpload;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormUploadRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+
+import jakarta.servlet.http.Part;
 
 /**
  * Description
@@ -148,6 +155,7 @@ public class FormWidget extends GenericWidget {
         context.getRequest().setAttribute("queryString", formData.getQueryParameters());
       }
       context.getRequest().setAttribute("formFieldList", formData.getFormFieldList());
+      setFileFieldAttributes(context, formData.getFormFieldList(), true);
       return context;
     }
 
@@ -158,6 +166,7 @@ public class FormWidget extends GenericWidget {
       return null;
     }
     context.getRequest().setAttribute("formFieldList", formFieldList);
+    setFileFieldAttributes(context, formFieldList, false);
 
     // Check for any query parameters to save with the form data
     if (StringUtils.isNotBlank(context.getRequest().getQueryString())) {
@@ -179,6 +188,8 @@ public class FormWidget extends GenericWidget {
     // issue #1154: the submitter's own address, if this form has an email-type field and the answer
     // is syntactically valid -- there's no other way to know who to reply to. First such field wins.
     String submitterEmail = null;
+    // issue #2130: files attached to file fields, processed only once every other check has passed
+    List<PendingUpload> pendingUploads = new ArrayList<>();
 
     // Resolve the database-backed form definition, if any (issue #409) -- see execute() for why a
     // formId configured but not resolvable, or resolved-but-disabled, must not proceed. Checking
@@ -226,6 +237,37 @@ public class FormWidget extends GenericWidget {
       return null;
     }
     for (FormField formField : formFieldList) {
+      // A file field's answer is a file, not a parameter (issue #2130). It is only collected here;
+      // nothing is read or written until the checks below have all passed.
+      if (FormFileFieldCommand.isFileField(formField)) {
+        formField.setUserValue(null);
+        Part part;
+        try {
+          part = filePart(context, formField);
+        } catch (IllegalStateException e) {
+          // Over the servlet's own multipart ceiling, refused before any of it was kept
+          isValid = false;
+          context.setWarningMessage(formField.getLabel() + ": files can be up to "
+              + ValidateFormUploadCommand.formatSize(ValidateFormUploadCommand.effectiveMaxBytes(formField)) + ".");
+          if (rejectionReason == null) {
+            rejectionReason = FormSubmissionFailureRepository.REASON_FILE_PREFIX + ValidateFormUploadCommand.REASON_TOO_LARGE;
+          }
+          continue;
+        }
+        if (part == null) {
+          if (formField.isRequired()) {
+            isValid = false;
+            context.setWarningMessage(formField.getLabel() + " is required");
+            if (rejectionReason == null) {
+              rejectionReason = FormSubmissionFailureRepository.REASON_MISSING_FIELD;
+            }
+          }
+          ++blankValues;
+          continue;
+        }
+        pendingUploads.add(new PendingUpload(formField, part));
+        continue;
+      }
       // Determine the user's value. A checkbox-group field (type == checkbox with options) can
       // have several boxes checked, which the browser submits as repeated same-named parameters --
       // getParameter() only ever returns the first one, silently dropping the rest.
@@ -339,6 +381,26 @@ public class FormWidget extends GenericWidget {
       return context;
     }
 
+    // Attached files (issue #2130): every other check has passed, so now each file is checked,
+    // re-encoded, scanned and stored. The first file rejected stops the submission and removes any
+    // already stored for it; the visitor is told which rule that file broke.
+    List<FormUpload> savedUploads = new ArrayList<>();
+    for (PendingUpload pending : pendingUploads) {
+      SaveFormUploadCommand.Result upload =
+          SaveFormUploadCommand.save(formUniqueId, pending.field(), SaveFormUploadCommand.fromPart(pending.part()));
+      if (!upload.accepted()) {
+        SaveFormUploadCommand.discard(savedUploads);
+        clearFileValues(pendingUploads);
+        context.setWarningMessage(upload.message());
+        recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_FILE_PREFIX + upload.reason());
+        context.setRequestObject(formData);
+        return context;
+      }
+      savedUploads.add(upload.upload());
+      // The stored submission refers to the file by its form_uploads id
+      pending.field().setUserValue(String.valueOf(upload.upload().getId()));
+    }
+
     // A database-backed form's own "Check for spam?" setting is authoritative when formId is
     // configured (issue #409 follow-up); only the XML-preference path still reads this from the
     // widget placement's own preferences
@@ -353,6 +415,8 @@ public class FormWidget extends GenericWidget {
     if (FormDataRepository.save(formData) == null) {
       // A genuine DB save failure (issue #563 follow-up) -- previously the submitter saw an error but
       // nothing was recorded in the rejection-tracking system at all
+      SaveFormUploadCommand.discard(savedUploads);
+      clearFileValues(pendingUploads);
       context.setErrorMessage("The form was not saved... try again?");
       recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_SYSTEM_ERROR);
       context.setRequestObject(formData);
@@ -362,6 +426,11 @@ public class FormWidget extends GenericWidget {
     // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this formUniqueId is the
     // site's admin-configured contact form
     FunnelEventCommand.recordContactFormSubmitted(formUniqueId, formData.getSessionId());
+
+    // Point the stored files at the submission they belong to
+    if (!savedUploads.isEmpty()) {
+      FormUploadRepository.linkToFormData(savedUploads, formData.getId());
+    }
 
     // Send an alert based on the preferences (or transform for another system) -- a database-backed
     // form's own "Email submissions to" setting is authoritative when formId is configured (issue
@@ -511,7 +580,12 @@ public class FormWidget extends GenericWidget {
    */
   private List<FormField> loadFormFieldList(WidgetContext context, FormDefinition formDefinition) {
     if (formDefinition != null) {
-      List<FormField> formFieldList = withoutFileFields(FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId()));
+      List<FormField> formFieldList = FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId());
+      // The flag is read only for a form that has a file field, so every other form renders and
+      // submits without the extra lookup
+      if (formFieldList.stream().anyMatch(FormFileFieldCommand::isFileField) && !FormFileFieldCommand.isEnabled()) {
+        formFieldList = withoutFileFields(formFieldList);
+      }
       if (formFieldList.isEmpty()) {
         LOG.warn("No fields were found for formId: " + formDefinition.getId());
         return null;
@@ -535,13 +609,12 @@ public class FormWidget extends GenericWidget {
   }
 
   /**
-   * Leaves out every "file" field (issue #2130). A file field can be defined in the form editor, but
-   * the upload pipeline that would accept a visitor's file safely is not built yet, so no form shows
-   * one or reads one. Leaving it out here, where both execute() and post() get their fields, keeps it
-   * out of the rendered form, the required-field check, the stored submission, and the notification
-   * email alike -- a required file field must not make a form impossible to submit. An XML
-   * {@code fields} preference with type="file" is left out the same way; before this it rendered as a
-   * plain text box.
+   * Leaves out every "file" field (issue #2130). A database-backed form shows its file fields only
+   * while features.form-file-uploads is on; with it off they are left out here, where both execute()
+   * and post() get their fields, so they stay out of the rendered form, the required-field check,
+   * the stored submission, and the notification email alike -- a required file field must not make a
+   * form impossible to submit. An XML {@code fields} preference with type="file" is always left out:
+   * that path has no editor to set the kinds and size a file field needs.
    */
   static List<FormField> withoutFileFields(List<FormField> formFieldList) {
     List<FormField> fields = new ArrayList<>();
@@ -594,6 +667,95 @@ public class FormWidget extends GenericWidget {
    * rejection the user actually sees -- a recording failure here must not become a second, unrelated
    * failure for the person submitting the form.
    */
+  /** A file field and the part its file arrived in, waiting until the other checks have passed */
+  private record PendingUpload(FormField field, Part part) {
+  }
+
+  /**
+   * The part holding a file field's file, or null when none was chosen. A browser sends an empty part
+   * with no filename for a file input left empty, so that counts as no file. A request that is not
+   * multipart has no parts.
+   *
+   * @throws IllegalStateException when the request exceeded the servlet's multipart size limits
+   */
+  private static Part filePart(WidgetContext context, FormField formField) {
+    try {
+      Part part = context.getRequest().getPart(context.getUniqueId() + formField.getName());
+      if (part == null || StringUtils.isBlank(part.getSubmittedFileName())) {
+        return null;
+      }
+      return part;
+    } catch (IllegalStateException e) {
+      throw e;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  /** A redisplayed form cannot keep a file, so no file field keeps a value from this attempt */
+  private static void clearFileValues(List<PendingUpload> pendingUploads) {
+    for (PendingUpload pending : pendingUploads) {
+      pending.field().setUserValue(null);
+    }
+  }
+
+  /**
+   * What form.jsp needs for file fields (issue #2130): whether the form has one at all, which decides
+   * whether the form is sent as multipart -- a form without one renders exactly as before -- and,
+   * per field, the accept list and the limit to show. On a redisplay after an error the file must be
+   * attached again, since a browser cannot refill a file input.
+   */
+  private static void setFileFieldAttributes(WidgetContext context, List<FormField> formFieldList, boolean redisplay) {
+    Map<String, FileFieldInput> fileFieldInputs = new HashMap<>();
+    if (formFieldList != null) {
+      for (FormField formField : formFieldList) {
+        if (FormFileFieldCommand.isFileField(formField)) {
+          fileFieldInputs.put(formField.getName(), new FileFieldInput(
+              FormFileFieldCommand.acceptAttribute(formField),
+              ValidateFormUploadCommand.effectiveMaxBytes(formField),
+              FormFileFieldCommand.describeLimits(formField),
+              redisplay));
+        }
+      }
+    }
+    context.getRequest().setAttribute("hasFileField", !fileFieldInputs.isEmpty());
+    context.getRequest().setAttribute("fileFieldInputs", fileFieldInputs);
+  }
+
+  /** A file field's input attributes for form.jsp */
+  public static class FileFieldInput {
+    private final String accept;
+    private final long maxBytes;
+    private final String limits;
+    private final boolean attachAgain;
+
+    FileFieldInput(String accept, long maxBytes, String limits, boolean attachAgain) {
+      this.accept = accept;
+      this.maxBytes = maxBytes;
+      this.limits = limits;
+      this.attachAgain = attachAgain;
+    }
+
+    /** The input's accept attribute, e.g. "image/jpeg,image/png,.jpg,.png" */
+    public String getAccept() {
+      return accept;
+    }
+
+    public long getMaxBytes() {
+      return maxBytes;
+    }
+
+    /** e.g. "Images (JPG, PNG, WebP), up to 10 MB." */
+    public String getLimits() {
+      return limits;
+    }
+
+    /** True on a redisplay after an error, when the visitor must attach the file again */
+    public boolean isAttachAgain() {
+      return attachAgain;
+    }
+  }
+
   private void recordFailureQuietly(WidgetContext context, String formUniqueId, String reason) {
     try {
       FormSubmissionFailureRepository.record(

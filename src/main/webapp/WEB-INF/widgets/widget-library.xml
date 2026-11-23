@@ -77,6 +77,7 @@
   <widget name="streamImage" class="com.simisinc.platform.presentation.widgets.cms.StreamImageWidget" />
   <widget name="captchaImage" class="com.simisinc.platform.presentation.widgets.cms.CaptchaImageWidget" />
   <widget name="downloadFile" class="com.simisinc.platform.presentation.widgets.cms.DownloadFileWidget" />
+  <widget name="formUploadFile" class="com.simisinc.platform.presentation.widgets.cms.FormUploadFileWidget" />
   <widget name="remoteContent" class="com.simisinc.platform.presentation.widgets.cms.RemoteContentWidget" />
   <widget name="weather" class="com.simisinc.platform.presentation.widgets.cms.WeatherWidget" />
   <widget name="socialMediaLinks" class="com.simisinc.platform.presentation.widgets.cms.SocialMediaLinksWidget" />

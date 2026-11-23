@@ -31,13 +31,13 @@ import javax.imageio.ImageIO;
  * them. The WebP is only a valid header: the JDK has no WebP encoder, and the type check reads no
  * further than the header.
  */
-final class FormUploadFixtures {
+public final class FormUploadFixtures {
 
   private FormUploadFixtures() {
   }
 
   /** A real 4x4 PNG whose left half is fully transparent */
-  static byte[] pngWithTransparency() {
+  public static byte[] pngWithTransparency() {
     BufferedImage image = new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB);
     for (int x = 2; x < 4; x++) {
       for (int y = 0; y < 4; y++) {
@@ -47,33 +47,33 @@ final class FormUploadFixtures {
     return encode(image, "png");
   }
 
-  static byte[] jpeg() {
+  public static byte[] jpeg() {
     return encode(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB), "jpg");
   }
 
-  static byte[] gif() {
+  public static byte[] gif() {
     return encode(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB), "gif");
   }
 
   /** "RIFF", a chunk size, "WEBP", then the start of a VP8L chunk */
-  static byte[] webpHeader() {
+  public static byte[] webpHeader() {
     return new byte[] { 'R', 'I', 'F', 'F', 0x1A, 0, 0, 0, 'W', 'E', 'B', 'P', 'V', 'P', '8', 'L', 0x0D, 0, 0, 0 };
   }
 
-  static byte[] svg() {
+  public static byte[] svg() {
     return text("<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>");
   }
 
-  static byte[] html() {
+  public static byte[] html() {
     return text("<!DOCTYPE html><html><body><script>alert(1)</script></body></html>");
   }
 
-  static byte[] pdf() {
+  public static byte[] pdf() {
     return text("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n");
   }
 
   /** The start of a Windows executable: "MZ", then padding */
-  static byte[] exe() {
+  public static byte[] exe() {
     byte[] bytes = new byte[64];
     bytes[0] = 'M';
     bytes[1] = 'Z';
@@ -83,7 +83,7 @@ final class FormUploadFixtures {
   // -- Re-encode fixtures (step 3): real images carrying things only the bytes, not the pixels, hold
 
   /** A real opaque image of the given size and format ("png" or "jpg"), filled with one color */
-  static byte[] opaque(int width, int height, String format) {
+  public static byte[] opaque(int width, int height, String format) {
     BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -97,7 +97,7 @@ final class FormUploadFixtures {
    * A real JPEG, 40 wide and 20 tall, carrying an EXIF segment whose orientation tag says to turn it
    * a quarter clockwise (6), and a comment segment holding script
    */
-  static byte[] jpegWithExifAndComment() {
+  public static byte[] jpegWithExifAndComment() {
     byte[] jpeg = opaque(40, 20, "jpg");
     // EXIF: "Exif\0\0", a big-endian TIFF header, then one IFD entry: tag 0x0112, SHORT, count 1, 6
     byte[] exif = { 'E', 'x', 'i', 'f', 0, 0, 'M', 'M', 0, 42, 0, 0, 0, 8,
@@ -112,7 +112,7 @@ final class FormUploadFixtures {
   }
 
   /** A real PNG with transparency, a tEXt chunk holding script, and HTML appended after IEND */
-  static byte[] pngWithTextChunkAndTrailer() {
+  public static byte[] pngWithTextChunkAndTrailer() {
     byte[] png = pngWithTransparency();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     // The 8-byte signature and the 25-byte IHDR chunk come first
@@ -125,7 +125,7 @@ final class FormUploadFixtures {
   }
 
   /** A real 1x1 PNG whose header is rewritten to claim the given dimensions */
-  static byte[] pngDeclaring(int width, int height) {
+  public static byte[] pngDeclaring(int width, int height) {
     byte[] png = opaque(1, 1, "png");
     java.nio.ByteBuffer.wrap(png).putInt(16, width).putInt(20, height);
     java.util.zip.CRC32 crc = new java.util.zip.CRC32();
@@ -135,7 +135,7 @@ final class FormUploadFixtures {
   }
 
   /** The first half of a real PNG: a valid header, then nothing to decode */
-  static byte[] truncatedPng() {
+  public static byte[] truncatedPng() {
     byte[] png = opaque(64, 64, "png");
     return java.util.Arrays.copyOf(png, png.length / 2);
   }

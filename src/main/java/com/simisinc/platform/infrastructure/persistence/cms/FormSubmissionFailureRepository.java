@@ -63,6 +63,11 @@ public class FormSubmissionFailureRepository {
   /** A validated, non-spam submission that still failed to persist (FormDataRepository.save() returned
    *  null) -- a genuine backend/database problem, not anything the submitter did. */
   public static final String REASON_SYSTEM_ERROR = "system_error";
+  /** A file attached to the form was rejected (issue #2130). Recorded as this prefix plus the step's
+   *  own reason -- file_too_large, file_type_not_allowed, file_undecodable, file_infected,
+   *  file_scan_unavailable and so on -- so the rejection chart breaks uploads out by cause. Every one
+   *  fits the 30-character reason column. */
+  public static final String REASON_FILE_PREFIX = "file_";
 
   private static final int DEFAULT_RETENTION_DAYS = 90;
   private static final int MIN_RETENTION_DAYS = 7;

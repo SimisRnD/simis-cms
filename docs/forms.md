@@ -29,7 +29,7 @@ FormSubmissionFailureRepository -- visible as a dashboard chart, not raw field v
 
 Build/manage forms at `/admin/forms` (list) and `/admin/forms-editor` (settings + fields):
 
-- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date`, and, when the `features.form-file-uploads` flag is on, `file` — that's the full list; there's no radio type in the admin builder (`SaveFormFieldCommand`'s allow-list). Live forms don't show `file` fields yet; see [File upload fields](#file-upload-fields).
+- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date`, and, when the `features.form-file-uploads` flag is on, `file` — that's the full list; there's no radio type in the admin builder (`SaveFormFieldCommand`'s allow-list). See [File upload fields](#file-upload-fields).
 - **Per-field options**: label, internal name, placeholder, default value, required (yes/no), and an options list for `select`/`checkbox` (rendered as a dropdown or a checkbox group depending on type).
 - **Per-form settings**: title/subtitle/button text, success title/message, `emailTo` (who gets notified), `useCaptcha`, `checkForSpam`, `enabled`.
 
@@ -37,19 +37,32 @@ Pages can also still define a form the old way via a `<fields>` XML preference o
 
 ### File upload fields
 
-Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an inquiry. It is being built in steps, and **no form accepts a file yet**:
+Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an inquiry. **Turn it on only once a malware scanner is set up** (see below): with no scanner, every attached file is rejected.
+
+**Defining one**
 
 - The type is offered in the field editor only while `features.form-file-uploads` is on (`/admin/feature-flags`, off by default). An existing `file` field can still be edited with the flag off.
-- Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file.
-- `FormWidget` leaves every `file` field off the live form, the required-field check, the stored submission, and the notification email. A required `file` field therefore can't block submissions.
+- Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file. The Placeholder, if set, is shown as help text under the file input.
 - The fields list warns when a form has a `file` field and **Use Captcha?** is off.
-- `ValidateFormUploadCommand` is the first check an upload will pass, before anything is written: its size against the field's limit (never above `system.upload.maxBytes`), then its type. A file passes only when both its extension and the content type found in its first bytes are on the field's list; PNG data named `.jpg` passes as a PNG, while SVG, HTML, PDF, GIF and executables are rejected under any name. The visitor is told which rule failed, never what the file turned out to be. No form calls it yet.
+- With the flag off, `file` fields are left off the live form entirely, so a required one can't block submissions. An XML `fields` preference with `type="file"` is always left out.
 
-- `SanitizeFormUploadCommand` is the second step: an accepted image is decoded and encoded again from its pixels, so what is stored is an image the platform drew, not the bytes the visitor sent. JPEG and PNG are re-encoded in-process (JPEG at quality 0.85, turned the way its EXIF orientation says; PNG keeping its transparency); WebP goes through the hardened ImageMagick `convert` with `-auto-orient -strip`. EXIF (including any GPS position), comments, text chunks and anything appended after the image data are dropped; an image that won't decode, or whose header claims more than 50 megapixels, is rejected. Each image also gets a thumbnail up to 320 pixels wide for the review screen. Animated PNG and WebP keep only their first frame. No form calls it yet.
+**What happens when a visitor attaches a file**
 
-- `MalwareScanCommand` is the third step: the file is streamed to ClamAV's `clamd` (INSTREAM, 30-second deadline). It **fails closed**: only a scan that read the whole file and found nothing accepts it. A blank `security.clamav.host`, a port that isn't a port, a scanner that is down, slow, or refuses the file as too large, and any reply other than OK or FOUND all reject the upload — the opposite of the captcha keys, where a blank key lets everything through. The visitor is told only that the file didn't pass or couldn't be checked; the signature name goes to the server log. No form calls it yet.
+Only a form with a `file` field is sent as `multipart/form-data`; every other form is unchanged. In the browser, `accept` filters the file picker and a file over the limit is caught before upload — conveniences only. On the server, `FormWidget.post()` runs the existing checks first (honeypot, required fields, email, captcha, rate limit), and **nothing is written until they pass**. Then each file goes through `SaveFormUploadCommand`:
 
-The remaining steps (wiring into forms, a review screen with a gated download) are tracked in #2130.
+1. **Size and type** (`ValidateFormUploadCommand`), before any write: the size against the field's limit, then both the filename extension and the content type in the file's first bytes against the field's list. PNG data named `.jpg` passes as a PNG; SVG, HTML, PDF, GIF and executables are rejected under any name.
+2. **Quarantine:** a copy under `forms/quarantine/` in the file-server root, named by the server, stopped at the size limit rather than trusting the declared size. Deleted whatever happens.
+3. **Re-encode** (`SanitizeFormUploadCommand`): decoded and encoded again from its pixels, so EXIF (including GPS), comments, text chunks and anything appended after the image data are dropped. JPEG and PNG in-process (JPEG turned the way its EXIF orientation says; PNG keeps transparency); WebP through the hardened ImageMagick `convert`. An image that won't decode, or claims more than 50 megapixels, is rejected. A thumbnail up to 320 pixels wide is made for review. Animated images keep their first frame.
+4. **Malware scan** (`MalwareScanCommand`) of the file as it arrived, then of the re-encoded image that will be stored. It **fails closed**: only a clean scan passes; no scanner, a scanner that is down or slow, or an unexpected reply rejects the file.
+5. **Store:** the re-encoded image and its thumbnail go under `forms/<form>/` with server-chosen names, and a `form_uploads` row is written with `scan_status = 'clean'`. The submission's stored value for the field is that row's id.
+
+If any file is rejected, nothing is kept for the submission: files already stored for it are removed, the form is shown again with a plain sentence naming the rule (never what the file turned out to be), and the rejection is recorded as `file_<reason>` — `file_too_large`, `file_type_not_allowed`, `file_undecodable`, `file_infected`, `file_scan_unavailable` and so on — in the Rejected Submissions chart. A file input can't be refilled, so the visitor is asked to attach the file again.
+
+**Where the files are, and who can get them**
+
+Form uploads are kept apart from the file library: the `form_uploads` table and the `forms/` directory, not `files` and folders, so they never appear in the file library, folder pages or site search. They are served only by `/assets/form-upload?id=N` to admins and community managers (the roles that review form data), only when `scan_status` is `clean` — anything else answers 403 — and always as a download (`attachment`, `nosniff`); `&thumbnail=true` serves the thumbnail inline for review. Every request is recorded in the audit log as `form_upload.download`.
+
+The notification email says a file was attached and to review it in Form Data; it never attaches the file. Showing each file's thumbnail, name and size on `/admin/form-data`, linking the download there, and removing files with their submission when retention runs come next (#2130, step 6).
 
 #### Setting up the malware scanner
 

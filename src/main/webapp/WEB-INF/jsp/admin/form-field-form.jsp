@@ -69,11 +69,14 @@
     <fieldset id="fileFieldSettings" class="fieldset">
       <legend>File upload settings</legend>
       <p class="help-text">
-        <strong>Live forms don't show File upload fields yet.</strong> The upload checks, malware
-        scan, and review screen are still being built (issue #2130), so until then a File upload
-        field is left off the form visitors see, even when it's marked Required.
-        <c:if test="${!fileUploadsEnabled}">File uploads are also turned off in
-          <a href="${ctx}/admin/feature-flags">Feature Flags</a>.</c:if>
+        Every attached file is checked, re-encoded and scanned for malware before it is kept, and
+        reviewed from <a href="${ctx}/admin/form-data">Form Data</a>. <strong>Set up the malware
+        scanner first</strong> (Malware scanner host on the
+        <a href="${ctx}/admin/security-properties">Security settings</a> page): with no scanner,
+        every attached file is rejected.
+        <c:if test="${!fileUploadsEnabled}">File uploads are turned off in
+          <a href="${ctx}/admin/feature-flags">Feature Flags</a>, so this field is left off the form
+          visitors see, even when it's marked Required.</c:if>
       </p>
       <p class="u-mb-0"><strong>Accept</strong></p>
       <c:forEach items="${fileKinds}" var="kind">

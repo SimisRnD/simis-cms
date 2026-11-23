@@ -164,7 +164,7 @@
                           <dl>
                             <th:block th:each="formField: ${formData.formFieldList}">
                               <dt th:text="${formField.label}">Question</dt>
-                              <dd th:text="${formField.userValue}">Response</dd>
+                              <dd th:text="${formField.type == 'file' and formField.userValue != null ? 'A file was attached. Review it with the submission in Form Data.' : formField.userValue}">Response</dd>
                             </th:block>
                           </dl>
                         </td>

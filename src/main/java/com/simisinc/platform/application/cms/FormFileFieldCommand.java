@@ -100,6 +100,45 @@ public class FormFileFieldCommand {
     return key == null ? null : KINDS.get(key.trim().toLowerCase(Locale.ROOT));
   }
 
+  /**
+   * The file input's accept attribute for a field: its kinds' content types and extensions, e.g.
+   * "image/jpeg,image/png,image/webp,.jpeg,.jpg,.png,.webp". A browser uses it to filter the file
+   * picker; the server never relies on it.
+   */
+  public static String acceptAttribute(FormField field) {
+    java.util.TreeSet<String> types = new java.util.TreeSet<>();
+    java.util.TreeSet<String> extensions = new java.util.TreeSet<>();
+    if (field != null && StringUtils.isNotBlank(field.getAcceptedKinds())) {
+      for (String key : field.getAcceptedKinds().split(",")) {
+        FileKind kind = kind(key);
+        if (kind != null) {
+          types.addAll(kind.contentTypes());
+          for (String extension : kind.extensions()) {
+            extensions.add("." + extension);
+          }
+        }
+      }
+    }
+    List<String> accept = new ArrayList<>(types);
+    accept.addAll(extensions);
+    return String.join(",", accept);
+  }
+
+  /** What a field accepts, for the visitor, e.g. "Images (JPG, PNG, WebP), up to 10 MB." */
+  public static String describeLimits(FormField field) {
+    List<String> labels = new ArrayList<>();
+    if (field != null && StringUtils.isNotBlank(field.getAcceptedKinds())) {
+      for (String key : field.getAcceptedKinds().split(",")) {
+        FileKind kind = kind(key);
+        if (kind != null && !labels.contains(kind.label())) {
+          labels.add(kind.label());
+        }
+      }
+    }
+    String size = "up to " + ValidateFormUploadCommand.formatSize(ValidateFormUploadCommand.effectiveMaxBytes(field)) + ".";
+    return labels.isEmpty() ? StringUtils.capitalize(size) : String.join(" or ", labels) + ", " + size;
+  }
+
   /** @return the site's own upload limit, which no file field may exceed */
   public static long maxBytesCeiling() {
     return SaveFilePartCommand.resolveMaxUploadBytes();
