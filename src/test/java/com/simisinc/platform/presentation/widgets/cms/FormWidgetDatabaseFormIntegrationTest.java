@@ -257,6 +257,59 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
     assertEquals(0, FormDataRepository.countTotalSubmissions(), "an invalid submission must not be saved");
   }
 
+  // Issue #2130: a file field can be defined, but no form takes a file yet, so a live form leaves it
+  // out entirely -- even a required one must not make the form impossible to submit
+
+  @Test
+  void executeLeavesAFileFieldOffTheLiveForm() {
+    saveField("screenshot", "Attach a screenshot", "file", true, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+
+    try (MockedStatic<com.simisinc.platform.application.RateLimitCommand> rateLimitCommand =
+        mockStatic(com.simisinc.platform.application.RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> com.simisinc.platform.application.RateLimitCommand.isIpAllowedRightNow(any(), org.mockito.ArgumentMatchers.anyBoolean()))
+          .thenReturn(true);
+
+      new FormWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<FormField> formFieldList = (List<FormField>) widgetContext.getRequest().getAttribute("formFieldList");
+      assertEquals(4, formFieldList.size());
+      assertTrue(formFieldList.stream().noneMatch(f -> "file".equals(f.getType())));
+    }
+  }
+
+  @Test
+  void postSucceedsWithARequiredFileFieldOnTheFormAndStoresOnlyTheOtherFields() {
+    saveField("screenshot", "Attach a screenshot", "file", true, 50);
+    preferences.put("formId", String.valueOf(formDefinitionId));
+    preferences.put("formUniqueId", "db-contact");
+    preferences.put("checkForSpam", "false");
+
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+    // Whatever a direct POST sends under the file field's name is ignored, not stored
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "screenshot", "C:\\fakepath\\shot.png");
+
+    try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+      WidgetContext result = new FormWidget().post(widgetContext);
+
+      assertNull(result, "the required file field must not block the submission");
+      assertNull(widgetContext.getWarningMessage());
+    }
+
+    FormDataSpecification spec = new FormDataSpecification();
+    spec.setFormUniqueId("db-contact");
+    List<FormData> saved = FormDataRepository.findAll(spec, new DataConstraints());
+    assertEquals(1, saved.size());
+    List<FormField> savedFields = saved.get(0).getFormFieldList();
+    assertEquals(4, savedFields.size());
+    assertTrue(savedFields.stream().noneMatch(f -> "screenshot".equals(f.getName())));
+  }
+
   private static FormField findByName(List<FormField> fields, String name) {
     return fields.stream().filter(f -> name.equals(f.getName())).findFirst()
         .orElseThrow(() -> new AssertionError("No field named " + name + " in " + fields));
@@ -327,6 +380,8 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
           + "placeholder VARCHAR(255), "
           + "default_value VARCHAR(255), "
           + "options TEXT, "
+          + "accepted_kinds TEXT, "
+          + "max_bytes BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE form_data ("

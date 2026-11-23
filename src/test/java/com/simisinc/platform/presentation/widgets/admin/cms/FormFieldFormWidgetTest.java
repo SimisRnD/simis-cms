@@ -22,6 +22,7 @@ import static org.mockito.Mockito.never;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
@@ -53,7 +55,8 @@ class FormFieldFormWidgetTest extends WidgetBase {
 
     addQueryParameter(widgetContext, "fieldId", "10");
 
-    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class)) {
+    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       formFieldRepository.when(() -> FormFieldRepository.findById(10L)).thenReturn(colorField);
 
       WidgetContext result = new FormFieldFormWidget().execute(widgetContext);
@@ -68,7 +71,8 @@ class FormFieldFormWidgetTest extends WidgetBase {
   void executeWithNoFieldIdFallsBackToABlankFieldForTheGivenForm() {
     addQueryParameter(widgetContext, "formDefinitionId", "1");
 
-    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class)) {
+    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       formFieldRepository.when(() -> FormFieldRepository.findById(-1L)).thenReturn(null);
 
       WidgetContext result = new FormFieldFormWidget().execute(widgetContext);
@@ -178,5 +182,95 @@ class FormFieldFormWidgetTest extends WidgetBase {
       formFieldRepository.verify(() -> FormFieldRepository.save(
           org.mockito.ArgumentMatchers.argThat(field -> field.getFieldOrder() == 21)));
     }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // File upload fields (issue #2130)
+  // ---------------------------------------------------------------------------------------------
+
+  private static final long MB = 1_048_576L;
+
+  @Test
+  void executeOffersFileSettingsWithTheDefaultLimitAndTheSiteLimitWhileTheFlagIsOn() {
+    addQueryParameter(widgetContext, "formDefinitionId", "1");
+
+    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.form-file-uploads")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+
+      new FormFieldFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(true, request.getAttribute("fileUploadsEnabled"));
+      Assertions.assertEquals(10L, request.getAttribute("maxMegabytes"));
+      Assertions.assertEquals(50L, request.getAttribute("maxMegabytesCeiling"));
+      Assertions.assertEquals(List.of("image"), request.getAttribute("checkedFileKinds"),
+          "a new field starts with Images checked");
+    }
+  }
+
+  @Test
+  void executeShowsAnExistingFileFieldsOwnLimitsWhileTheFlagIsOff() {
+    FormField screenshot = new FormField();
+    screenshot.setId(10L);
+    screenshot.setFormDefinitionId(1L);
+    screenshot.setType("file");
+    screenshot.setAcceptedKinds("image");
+    screenshot.setMaxBytes(5 * MB);
+    addQueryParameter(widgetContext, "fieldId", "10");
+
+    try (MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      formFieldRepository.when(() -> FormFieldRepository.findById(10L)).thenReturn(screenshot);
+
+      new FormFieldFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(false, request.getAttribute("fileUploadsEnabled"));
+      Assertions.assertEquals(5L, request.getAttribute("maxMegabytes"));
+      Assertions.assertEquals(List.of("image"), request.getAttribute("checkedFileKinds"));
+    }
+  }
+
+  @Test
+  void postSavesAFileFieldWithItsCheckedKindsAndItsLimitInBytes()
+      throws InvocationTargetException, IllegalAccessException {
+    FormDefinition contactUs = new FormDefinition();
+    contactUs.setId(1L);
+
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "formDefinitionId", "1");
+    addQueryParameter(widgetContext, "label", "Screenshot");
+    addQueryParameter(widgetContext, "type", "file");
+    addQueryParameter(widgetContext, "acceptedKinds", "image");
+    addQueryParameter(widgetContext, "maxMegabytes", "5");
+    // A directly-posted byte limit is ignored: only the megabytes box sets it
+    addQueryParameter(widgetContext, "maxBytes", String.valueOf(1000 * MB));
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormFieldRepository> formFieldRepository = mockStatic(FormFieldRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(1L)).thenReturn(contactUs);
+      formFieldRepository.when(() -> FormFieldRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.form-file-uploads")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+
+      WidgetContext result = new FormFieldFormWidget().post(widgetContext);
+
+      Assertions.assertEquals("Field was saved", result.getSuccessMessage());
+      formFieldRepository.verify(() -> FormFieldRepository.save(org.mockito.ArgumentMatchers.argThat(
+          field -> "file".equals(field.getType()) && "image".equals(field.getAcceptedKinds()) && field.getMaxBytes() == 5 * MB)));
+    }
+  }
+
+  @Test
+  void theMegabytesBoxIsReadAsBytesWithBlankMeaningTheDefaultAndJunkMeaningInvalid() {
+    Assertions.assertEquals(-1, FormFieldFormWidget.parseMaxBytes(null));
+    Assertions.assertEquals(-1, FormFieldFormWidget.parseMaxBytes(" "));
+    Assertions.assertEquals(7 * MB, FormFieldFormWidget.parseMaxBytes(" 7 "));
+    Assertions.assertEquals(0, FormFieldFormWidget.parseMaxBytes("0"));
+    Assertions.assertEquals(0, FormFieldFormWidget.parseMaxBytes("-3"));
+    Assertions.assertEquals(0, FormFieldFormWidget.parseMaxBytes("2.5"));
+    Assertions.assertEquals(0, FormFieldFormWidget.parseMaxBytes("ten"));
+    Assertions.assertEquals(0, FormFieldFormWidget.parseMaxBytes(String.valueOf(Long.MAX_VALUE)), "must not overflow into a valid size");
   }
 }

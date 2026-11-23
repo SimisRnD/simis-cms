@@ -17,13 +17,16 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.FormFileFieldCommand;
 import com.simisinc.platform.application.cms.SaveFormFieldCommand;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
@@ -61,6 +64,16 @@ public class FormFieldFormWidget extends GenericWidget {
     context.getRequest().setAttribute("field", field);
     context.getRequest().setAttribute("optionsText", formatOptions(field.getListOfOptions()));
 
+    // File upload fields (issue #2130): the type is offered only while the feature flag is on, but
+    // an existing file field always shows its own settings so it can still be edited
+    context.getRequest().setAttribute("fileUploadsEnabled", FormFileFieldCommand.isEnabled());
+    context.getRequest().setAttribute("fileKinds", FormFileFieldCommand.availableKinds());
+    context.getRequest().setAttribute("checkedFileKinds", checkedFileKinds(field));
+    long maxBytes = field.getMaxBytes() > -1 ? field.getMaxBytes() : FormFileFieldCommand.defaultMaxBytes();
+    context.getRequest().setAttribute("maxMegabytes", FormFileFieldCommand.toMegabytes(maxBytes));
+    context.getRequest().setAttribute("maxMegabytesCeiling",
+        FormFileFieldCommand.toMegabytes(FormFileFieldCommand.maxBytesCeiling()));
+
     context.setJsp(JSP);
     return context;
   }
@@ -75,6 +88,12 @@ public class FormFieldFormWidget extends GenericWidget {
     // already skips the "widget"/"token" controller parameters), but FormField exposes a Map, so
     // it's parsed here into the shape FormFieldRepository/SaveFormFieldCommand expect.
     fieldBean.setListOfOptions(parseOptions(context.getParameter("options")));
+    // A file field's limits (issue #2130). Accepted kinds arrive as one checkbox per kind; the size
+    // arrives in whole megabytes and is stored in bytes. Both are set from these parameters alone,
+    // never from a directly-posted acceptedKinds/maxBytes that BeanUtils may have picked up above.
+    String[] kinds = context.getParameterMap() != null ? context.getParameterMap().get("acceptedKinds") : null;
+    fieldBean.setAcceptedKinds(kinds != null ? String.join(",", kinds) : null);
+    fieldBean.setMaxBytes(parseMaxBytes(context.getParameter("maxMegabytes")));
 
     FormField field;
     try {
@@ -120,6 +139,31 @@ public class FormFieldFormWidget extends GenericWidget {
       }
     }
     return optionsMap;
+  }
+
+  /**
+   * The editor's "Maximum size (MB)" box, in bytes: -1 when left blank so the default applies, and
+   * 0 for anything that is not a whole number, which SaveFormFieldCommand rejects with the allowed
+   * range rather than silently using the default.
+   */
+  static long parseMaxBytes(String megabytes) {
+    if (StringUtils.isBlank(megabytes)) {
+      return -1;
+    }
+    try {
+      long value = Long.parseLong(megabytes.trim());
+      return value > 0 && value <= Long.MAX_VALUE / 1_048_576L ? FormFileFieldCommand.fromMegabytes(value) : 0;
+    } catch (NumberFormatException e) {
+      return 0;
+    }
+  }
+
+  /** The kinds to show checked: the field's own, or Images for a field that has none yet */
+  private static List<String> checkedFileKinds(FormField field) {
+    if (StringUtils.isBlank(field.getAcceptedKinds())) {
+      return List.of(FormFileFieldCommand.KIND_IMAGE);
+    }
+    return Arrays.asList(field.getAcceptedKinds().split(","));
   }
 
   /** The inverse of {@link #parseOptions}, used to pre-fill the options text field when editing. */

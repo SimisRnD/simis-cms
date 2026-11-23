@@ -1,0 +1,132 @@
+/*
+ * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.simisinc.platform.application.cms;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.cms.FormField;
+
+/**
+ * Verifies {@link FormFileFieldCommand}, the rules for a form builder "file" field (issue #2130).
+ */
+class FormFileFieldCommandTest {
+
+  private static final long MB = 1_048_576L;
+
+  private static FormField fieldOfType(String type) {
+    FormField field = new FormField();
+    field.setType(type);
+    return field;
+  }
+
+  @Test
+  void onlyAFieldOfTypeFileIsAFileField() {
+    assertTrue(FormFileFieldCommand.isFileField(fieldOfType("file")));
+    assertFalse(FormFileFieldCommand.isFileField(fieldOfType("text")));
+    assertFalse(FormFileFieldCommand.isFileField(fieldOfType(null)));
+    assertFalse(FormFileFieldCommand.isFileField(null));
+  }
+
+  @Test
+  void theFlagIsReadFromFeaturesFormFileUploads() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      assertFalse(FormFileFieldCommand.isEnabled(), "a flag that was never set is off");
+
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.form-file-uploads")).thenReturn(true);
+      assertTrue(FormFileFieldCommand.isEnabled());
+    }
+  }
+
+  @Test
+  void imagesAreTheOnlyKindOfferedForNow() {
+    assertEquals(1, FormFileFieldCommand.availableKinds().size());
+    assertTrue(FormFileFieldCommand.availableKinds().containsKey(FormFileFieldCommand.KIND_IMAGE));
+  }
+
+  @Test
+  void kindsAreTrimmedLowercasedAndDeduplicated() {
+    assertEquals("image", FormFileFieldCommand.normalizeKinds("image"));
+    assertEquals("image", FormFileFieldCommand.normalizeKinds(" Image , image,,"));
+  }
+
+  @Test
+  void choosingNoKindIsRejected() {
+    IllegalArgumentException blank = assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeKinds(null));
+    assertEquals("Choose at least one kind of file to accept", blank.getMessage());
+    assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeKinds(" , "));
+  }
+
+  @Test
+  void aKindThisSiteDoesNotOfferIsRejectedByName() {
+    // PDF is in the #2130 design but has no sanitize step yet; anything else (an executable, SVG,
+    // HTML) is never on the list
+    IllegalArgumentException pdf = assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeKinds("image,pdf"));
+    assertEquals("\"pdf\" is not a kind of file this site accepts", pdf.getMessage());
+    assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeKinds("svg"));
+  }
+
+  @Test
+  void theDefaultLimitIsTenMegabytesUnderALargerSiteLimit() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+
+      assertEquals(10 * MB, FormFileFieldCommand.defaultMaxBytes());
+      assertEquals(50 * MB, FormFileFieldCommand.maxBytesCeiling());
+    }
+  }
+
+  @Test
+  void theDefaultLimitDropsToASiteLimitBelowTenMegabytes() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(5 * MB));
+
+      assertEquals(5 * MB, FormFileFieldCommand.defaultMaxBytes());
+    }
+  }
+
+  @Test
+  void anUnsetLimitTakesTheDefaultAndASetOneMustFitBetweenOneMegabyteAndTheSiteLimit() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("system.upload.maxBytes")).thenReturn(String.valueOf(50 * MB));
+
+      assertEquals(10 * MB, FormFileFieldCommand.normalizeMaxBytes(-1));
+      assertEquals(MB, FormFileFieldCommand.normalizeMaxBytes(MB));
+      assertEquals(50 * MB, FormFileFieldCommand.normalizeMaxBytes(50 * MB));
+
+      IllegalArgumentException overCap = assertThrows(IllegalArgumentException.class,
+          () -> FormFileFieldCommand.normalizeMaxBytes(50 * MB + 1));
+      assertEquals("Maximum size must be between 1 MB and 50 MB, the site's upload limit", overCap.getMessage());
+      assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeMaxBytes(0));
+      assertThrows(IllegalArgumentException.class, () -> FormFileFieldCommand.normalizeMaxBytes(MB - 1));
+    }
+  }
+
+  @Test
+  void megabytesConvertBothWaysAndRoundDownForDisplay() {
+    assertEquals(10 * MB, FormFileFieldCommand.fromMegabytes(10));
+    assertEquals(10, FormFileFieldCommand.toMegabytes(10 * MB));
+    assertEquals(9, FormFileFieldCommand.toMegabytes(10 * MB - 1));
+  }
+}

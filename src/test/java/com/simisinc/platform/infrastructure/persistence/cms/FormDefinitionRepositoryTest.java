@@ -302,6 +302,8 @@ class FormDefinitionRepositoryTest {
           + "placeholder VARCHAR(255), "
           + "default_value VARCHAR(255), "
           + "options TEXT, "
+          + "accepted_kinds TEXT, "
+          + "max_bytes BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
     } catch (SQLException se) {

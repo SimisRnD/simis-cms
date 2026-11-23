@@ -29,11 +29,22 @@ FormSubmissionFailureRepository -- visible as a dashboard chart, not raw field v
 
 Build/manage forms at `/admin/forms` (list) and `/admin/forms-editor` (settings + fields):
 
-- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date` — that's the full list; there's no radio or file-upload type in the admin builder (`SaveFormFieldCommand`'s allow-list).
+- **Field types**: `text`, `email`, `textarea`, `select`, `checkbox`, `date`, and, when the `features.form-file-uploads` flag is on, `file` — that's the full list; there's no radio type in the admin builder (`SaveFormFieldCommand`'s allow-list). Live forms don't show `file` fields yet; see [File upload fields](#file-upload-fields).
 - **Per-field options**: label, internal name, placeholder, default value, required (yes/no), and an options list for `select`/`checkbox` (rendered as a dropdown or a checkbox group depending on type).
 - **Per-form settings**: title/subtitle/button text, success title/message, `emailTo` (who gets notified), `useCaptcha`, `checkForSpam`, `enabled`.
 
-Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring.
+Pages can also still define a form the old way via a `<fields>` XML preference on the `form` widget — that path skips the field-type allow-list entirely, so a typo'd type just silently renders as a plain text input rather than erroring. The one exception is `type="file"`, which is left out like a builder `file` field.
+
+### File upload fields
+
+Issue #2130 adds a `file` field type so a visitor can attach a screenshot to an inquiry. It is being built in steps, and **no form accepts a file yet**:
+
+- The type is offered in the field editor only while `features.form-file-uploads` is on (`/admin/feature-flags`, off by default). An existing `file` field can still be edited with the flag off.
+- Each `file` field stores the kinds it accepts (`accepted_kinds`; today only `image`: JPG, PNG, WebP) and a maximum size (`max_bytes`; default 10 MB, never above `system.upload.maxBytes`). Options and a default value are cleared, since neither applies to a file.
+- `FormWidget` leaves every `file` field off the live form, the required-field check, the stored submission, and the notification email. A required `file` field therefore can't block submissions.
+- The fields list warns when a form has a `file` field and **Use Captcha?** is off.
+
+The remaining steps (type and size check before any write, re-encoding, malware scan, a review screen with a gated download) are tracked in #2130.
 
 ## Validation
 

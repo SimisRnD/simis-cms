@@ -42,7 +42,8 @@ public class SaveFormFieldCommand {
   // The set form-field-form.jsp's "Type" select actually offers, and the exact list
   // NEW_10010__new_cms.sql's form_fields.field_type comment documents as valid -- that comment
   // promises this is "validated in application code, not a DB CHECK constraint", so this is where
-  // that promise is kept.
+  // that promise is kept. The seventh type, "file" (issue #2130), is checked separately below,
+  // because whether it is allowed depends on the site's feature flag.
   private static final Set<String> VALID_FIELD_TYPES = Set.of("text", "email", "textarea", "select", "checkbox", "date");
 
   public static FormField saveField(FormField fieldBean) throws DataException {
@@ -58,11 +59,42 @@ public class SaveFormFieldCommand {
       }
       errorMessages.append("A label is required");
     }
-    if (StringUtils.isNotBlank(fieldBean.getType()) && !VALID_FIELD_TYPES.contains(fieldBean.getType())) {
+    boolean isFileField = FormFileFieldCommand.isFileField(fieldBean);
+    if (StringUtils.isNotBlank(fieldBean.getType()) && !VALID_FIELD_TYPES.contains(fieldBean.getType()) && !isFileField) {
       if (errorMessages.length() > 0) {
         errorMessages.append(", ");
       }
       errorMessages.append("A valid field type is required");
+    }
+    // A new file field needs the feature flag. A field that is already a file field can still be
+    // edited and saved with the flag off, so turning the flag off never forces an editor to change
+    // the field's type just to fix a label.
+    if (isFileField && !FormFileFieldCommand.isEnabled()
+        && !FormFileFieldCommand.isFileField(FormFieldRepository.findById(fieldBean.getId()))) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append(", ");
+      }
+      errorMessages.append("File upload fields are turned off for this site");
+    }
+    String acceptedKinds = null;
+    long maxBytes = -1;
+    if (isFileField) {
+      try {
+        acceptedKinds = FormFileFieldCommand.normalizeKinds(fieldBean.getAcceptedKinds());
+      } catch (IllegalArgumentException e) {
+        if (errorMessages.length() > 0) {
+          errorMessages.append(", ");
+        }
+        errorMessages.append(e.getMessage());
+      }
+      try {
+        maxBytes = FormFileFieldCommand.normalizeMaxBytes(fieldBean.getMaxBytes());
+      } catch (IllegalArgumentException e) {
+        if (errorMessages.length() > 0) {
+          errorMessages.append(", ");
+        }
+        errorMessages.append(e.getMessage());
+      }
     }
 
     if (errorMessages.length() > 0) {
@@ -120,8 +152,18 @@ public class SaveFormFieldCommand {
     field.setType(StringUtils.isNotBlank(fieldBean.getType()) ? fieldBean.getType() : "text");
     field.setRequired(fieldBean.isRequired());
     field.setPlaceholder(fieldBean.getPlaceholder());
-    field.setDefaultValue(fieldBean.getDefaultValue());
-    field.setListOfOptions(fieldBean.getListOfOptions());
+    if (isFileField) {
+      // A file field has no default answer, and Options would make form.jsp render it as a
+      // dropdown instead (Options are checked before Type), so neither is kept
+      field.setDefaultValue(null);
+      field.setListOfOptions(null);
+    } else {
+      field.setDefaultValue(fieldBean.getDefaultValue());
+      field.setListOfOptions(fieldBean.getListOfOptions());
+    }
+    // Null and -1 on every other type, so a field changed away from "file" drops its file limits
+    field.setAcceptedKinds(acceptedKinds);
+    field.setMaxBytes(maxBytes);
     return FormFieldRepository.save(field);
   }
 }

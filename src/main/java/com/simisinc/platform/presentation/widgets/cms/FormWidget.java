@@ -37,6 +37,7 @@ import com.simisinc.platform.application.cms.FormNotificationSubjectCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
+import com.simisinc.platform.application.cms.FormFileFieldCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
@@ -510,7 +511,7 @@ public class FormWidget extends GenericWidget {
    */
   private List<FormField> loadFormFieldList(WidgetContext context, FormDefinition formDefinition) {
     if (formDefinition != null) {
-      List<FormField> formFieldList = FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId());
+      List<FormField> formFieldList = withoutFileFields(FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId()));
       if (formFieldList.isEmpty()) {
         LOG.warn("No fields were found for formId: " + formDefinition.getId());
         return null;
@@ -525,12 +526,31 @@ public class FormWidget extends GenericWidget {
       return null;
     }
     String formUniqueId = context.getPreferences().get("formUniqueId");
-    List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
+    List<FormField> formFieldList = withoutFileFields(FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList));
     if (formFieldList.isEmpty()) {
       LOG.warn("No fields were found");
       return null;
     }
     return formFieldList;
+  }
+
+  /**
+   * Leaves out every "file" field (issue #2130). A file field can be defined in the form editor, but
+   * the upload pipeline that would accept a visitor's file safely is not built yet, so no form shows
+   * one or reads one. Leaving it out here, where both execute() and post() get their fields, keeps it
+   * out of the rendered form, the required-field check, the stored submission, and the notification
+   * email alike -- a required file field must not make a form impossible to submit. An XML
+   * {@code fields} preference with type="file" is left out the same way; before this it rendered as a
+   * plain text box.
+   */
+  static List<FormField> withoutFileFields(List<FormField> formFieldList) {
+    List<FormField> fields = new ArrayList<>();
+    for (FormField formField : formFieldList) {
+      if (!FormFileFieldCommand.isFileField(formField)) {
+        fields.add(formField);
+      }
+    }
+    return fields;
   }
 
   /**
