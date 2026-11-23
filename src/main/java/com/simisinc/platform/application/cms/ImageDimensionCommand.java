@@ -95,8 +95,12 @@ public class ImageDimensionCommand {
       ArrayListOutputConsumer output = new ArrayListOutputConsumer();
       identify.setOutputConsumer(output);
       IMOperation op = new IMOperation();
-      op.format("%w %h");
-      op.addImage(imageFile.getAbsolutePath());
+      // -ping reads the header without decoding pixels. For an animated image identify prints the
+      // format once per frame with nothing between them, so a two-frame 100x80 WebP printed
+      // "100 80100 80" and was read as 80,100 pixels tall; [0] asks for the first frame only.
+      op.ping();
+      op.format("%w %h\n");
+      op.addImage(imageFile.getAbsolutePath() + "[0]");
       identify.run(op);
 
       ArrayList<String> lines = output.getOutput();
