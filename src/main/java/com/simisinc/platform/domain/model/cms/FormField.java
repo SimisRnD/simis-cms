@@ -55,6 +55,12 @@ public class FormField extends Entity {
   private long formDefinitionId = -1;
   private int fieldOrder = -1;
 
+  // A "file" field's limits (issue #2130), both null/-1 on every other type: the kinds of file it
+  // accepts as a comma list (e.g. "image"), and the largest file it accepts, in bytes. See
+  // FormFileFieldCommand.
+  private String acceptedKinds = null;
+  private long maxBytes = -1;
+
   public FormField() {
   }
 
@@ -152,5 +158,21 @@ public class FormField extends Entity {
 
   public void setFieldOrder(int fieldOrder) {
     this.fieldOrder = fieldOrder;
+  }
+
+  public String getAcceptedKinds() {
+    return acceptedKinds;
+  }
+
+  public void setAcceptedKinds(String acceptedKinds) {
+    this.acceptedKinds = acceptedKinds;
+  }
+
+  public long getMaxBytes() {
+    return maxBytes;
+  }
+
+  public void setMaxBytes(long maxBytes) {
+    this.maxBytes = maxBytes;
   }
 }

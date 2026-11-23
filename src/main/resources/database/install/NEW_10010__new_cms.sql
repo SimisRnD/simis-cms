@@ -338,12 +338,13 @@ CREATE TABLE form_definitions (
 CREATE UNIQUE INDEX form_definitions_unique_id_idx ON form_definitions(unique_id);
 CREATE INDEX form_definitions_enabled_idx ON form_definitions(enabled);
 
--- field_type is one of: text, email, textarea, select, checkbox, date -- validated in application code,
+-- field_type is one of: text, email, textarea, select, checkbox, date, file -- validated in application code,
 -- not a DB CHECK constraint (matching how this file leaves other small admin-defined enums, e.g.
 -- form_submission_failures.reason, unconstrained at the DB level). options stores select/checkbox
 -- choices using the same comma-separated "key=value,key2=value2" string the XML <field list="..."/>
 -- preference already produces (see FormFieldCommand#parseFieldContent), so both configuration sources
--- share one options format.
+-- share one options format. accepted_kinds (a comma list, e.g. "image") and max_bytes are set only on a
+-- file field (issue #2130, see FormFileFieldCommand) and are null on every other type.
 CREATE TABLE form_fields (
   form_field_id BIGSERIAL PRIMARY KEY,
   form_definition_id BIGINT NOT NULL REFERENCES form_definitions(form_definition_id),
@@ -355,6 +356,8 @@ CREATE TABLE form_fields (
   placeholder VARCHAR(255),
   default_value VARCHAR(255),
   options TEXT,
+  accepted_kinds TEXT,
+  max_bytes BIGINT,
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );

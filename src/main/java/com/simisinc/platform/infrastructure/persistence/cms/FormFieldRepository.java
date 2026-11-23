@@ -90,7 +90,9 @@ public class FormFieldRepository {
         .add("required", record.isRequired())
         .addIfExists("placeholder", StringUtils.trimToNull(record.getPlaceholder()))
         .addIfExists("default_value", StringUtils.trimToNull(record.getDefaultValue()))
-        .addIfExists("options", formatOptions(record.getListOfOptions()));
+        .addIfExists("options", formatOptions(record.getListOfOptions()))
+        .addIfExists("accepted_kinds", StringUtils.trimToNull(record.getAcceptedKinds()))
+        .addIfExists("max_bytes", record.getMaxBytes(), -1L);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -109,6 +111,9 @@ public class FormFieldRepository {
         .add("placeholder", StringUtils.trimToNull(record.getPlaceholder()))
         .add("default_value", StringUtils.trimToNull(record.getDefaultValue()))
         .add("options", formatOptions(record.getListOfOptions()))
+        // Both are written on every save, so changing a file field to another type clears them
+        .add("accepted_kinds", StringUtils.trimToNull(record.getAcceptedKinds()))
+        .add("max_bytes", record.getMaxBytes(), -1L)
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
         .add("form_field_id = ?", record.getId());
@@ -258,6 +263,9 @@ public class FormFieldRepository {
       record.setPlaceholder(rs.getString("placeholder"));
       record.setDefaultValue(rs.getString("default_value"));
       record.setListOfOptions(parseOptions(rs.getString("options")));
+      record.setAcceptedKinds(rs.getString("accepted_kinds"));
+      long maxBytes = rs.getLong("max_bytes");
+      record.setMaxBytes(rs.wasNull() ? -1 : maxBytes);
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
