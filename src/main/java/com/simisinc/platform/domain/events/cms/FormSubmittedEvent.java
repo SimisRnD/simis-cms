@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.domain.events.cms;
 
+import com.simisinc.platform.application.cms.FormUploadSummary;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.model.cms.FormData;
@@ -27,6 +28,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Event details for when a form is submitted
@@ -104,5 +107,17 @@ public class FormSubmittedEvent extends Event {
 
   public FormData getFormData() {
     return FormDataRepository.findById(formId);
+  }
+
+  /**
+   * The files attached to the submission (issue #2130), by upload id -- the value its file field
+   * holds -- read when the notification is built, like {@link #getFormData()}. The queued job keeps
+   * only the event's fields, so neither reaches the job store.
+   */
+  public Map<String, FormUploadSummary> getFormUploads() {
+    if (formId <= 0) {
+      return new HashMap<>();
+    }
+    return FormUploadSummary.forSubmission(formId);
   }
 }

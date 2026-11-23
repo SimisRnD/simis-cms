@@ -40,6 +40,16 @@ class WorkflowEngineJobSerializationTest {
   }
 
   @Test
+  void formSubmittedEventKeepsItsSubmissionAndFilesOutOfTheQueuedJob() {
+    // The mapper stores the event's fields, not its getters, so the submission and its attached
+    // files (issue #2130) are read when the job runs and never sit in the job store. This holds
+    // only while the mapper keeps ignoring getters; it fails if that ever changes.
+    String json = mapper().serialize(new WorkflowEngineJob(new FormSubmittedEvent(new FormData(), "someone@example.com")));
+    Assertions.assertFalse(json.contains("formUploads"), json);
+    Assertions.assertFalse(json.contains("formData"), json);
+  }
+
+  @Test
   void mailingListConfirmationRequestedEventRoundTrips() {
     roundTrip(new MailingListMemberConfirmationRequestedEvent(member(), list(), "https://example.com/confirm"));
   }

@@ -417,17 +417,34 @@ public class FormDataRepository {
    * per-row Java transform hook, and different forms (or the same form edited over time) can have
    * entirely different field sets, so a single flattened column is used rather than one CSV column
    * per configured field.
+   * <p>
+   * A file field (issue #2130) stores the id of the upload as its value. In the export it becomes the
+   * file's name and a link to download it, {@code uploadLinkPrefix} followed by the id, e.g.
+   * "Screenshot: shot.png (https://example.com/assets/form-upload?id=17)". The upload is matched
+   * within the same submission only; one that is no longer there reads "file no longer available".
    */
   public static void export(FormDataSpecification specification, DataConstraints constraints, File file) {
+    export(specification, constraints, file, "/assets/form-upload?id=");
+  }
+
+  public static void export(FormDataSpecification specification, DataConstraints constraints, File file,
+      String uploadLinkPrefix) {
+    String fileValue = "COALESCE("
+        + "(SELECT COALESCE(u.original_filename, 'attachment') || ' (' || CAST(? AS TEXT) || u.form_upload_id || ')'"
+        + " FROM form_uploads u"
+        + " WHERE u.form_data_id = form_data.form_data_id AND CAST(u.form_upload_id AS TEXT) = t ->> 'value'),"
+        + " 'file no longer available')";
     SqlUtils selectFields = new SqlUtils()
         .addNames(
             "form_unique_id AS \"Form\"",
             "ip_address AS \"IP Address\"",
             "created AS \"Submitted\"",
             "url AS \"URL\"",
-            "flagged_as_spam AS \"Spam Flagged\"",
-            "(SELECT STRING_AGG(t ->> 'label' || ': ' || (t ->> 'value'), '; ') FROM JSONB_ARRAY_ELEMENTS(field_values) AS x(t) WHERE t ->> 'value' <> '') AS \"Field Data\""
-        );
+            "flagged_as_spam AS \"Spam Flagged\"")
+        .add("(SELECT STRING_AGG(t ->> 'label' || ': ' || "
+            + "CASE WHEN t ->> 'type' = 'file' THEN " + fileValue + " ELSE (t ->> 'value') END, '; ') "
+            + "FROM JSONB_ARRAY_ELEMENTS(field_values) AS x(t) WHERE t ->> 'value' <> '') AS \"Field Data\"",
+            StringUtils.defaultString(uploadLinkPrefix));
     SqlUtils where = createWhereStatement(specification);
     if (constraints == null) {
       constraints = new DataConstraints();

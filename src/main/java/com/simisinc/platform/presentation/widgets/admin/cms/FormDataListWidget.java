@@ -26,6 +26,8 @@ import java.time.LocalDate;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormUploadSummary;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
@@ -80,6 +82,9 @@ public class FormDataListWidget extends GenericWidget {
     // Load the latest form data
     List<FormData> formDataList = FormDataRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("formDataList", formDataList);
+
+    // Files visitors attached (issue #2130), by submission and then by the file field's value
+    context.getRequest().setAttribute("formUploads", FormUploadSummary.forSubmissions(formDataList));
 
     // Echo the filter values back so the form keeps its state
     context.getRequest().setAttribute("formUniqueId", formUniqueId);
@@ -265,6 +270,15 @@ public class FormDataListWidget extends GenericWidget {
     return context;
   }
 
+  /**
+   * The start of each attached file's link in the CSV (issue #2130): absolute when the site URL is
+   * configured, so the link works from a spreadsheet, and relative to the site otherwise
+   */
+  static String uploadLinkPrefix() {
+    String siteUrl = StringUtils.removeEnd(StringUtils.trimToEmpty(LoadSitePropertyCommand.loadByName("site.url")), "/");
+    return siteUrl + FormUploadSummary.DOWNLOAD_PATH;
+  }
+
   private WidgetContext downloadCSVFile(WidgetContext context) {
     String extension = "csv";
     String displayFilename = "form-data-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
@@ -273,7 +287,7 @@ public class FormDataListWidget extends GenericWidget {
       // Scope the export to the same filters currently applied to the on-screen list, instead of
       // unconditionally dumping the whole form_data table
       FormDataSpecification specification = buildSpecificationFromParameters(context);
-      FormDataRepository.export(specification, null, tempFile);
+      FormDataRepository.export(specification, null, tempFile, uploadLinkPrefix());
       String mimeType = "text/csv";
       MultipartFileSender.fromFile(tempFile)
           .with(context.getRequest())

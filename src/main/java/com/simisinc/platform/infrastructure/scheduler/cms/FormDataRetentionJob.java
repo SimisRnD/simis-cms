@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.PurgeFormUploadsCommand;
 import com.simisinc.platform.infrastructure.distributedlock.LockManager;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
@@ -33,6 +34,10 @@ import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
  * Submissions still awaiting review are never deleted here, no matter how old, since they represent
  * unactioned work an admin may still need to see. Unlike AuditLogRetentionJob, this does not record
  * an audit event for its own purge, mirroring FormSubmissionFailureRetentionJob.
+ *
+ * <p>Files visitors attached to the deleted submissions (issue #2130) go in the same run: deleting a
+ * submission unlinks its uploads, and {@link PurgeFormUploadsCommand#removeUnlinkedUploads()} then
+ * removes those records and their files.
  *
  * @author SimIS Inc.
  */
@@ -53,6 +58,10 @@ public class FormDataRetentionJob {
     int deleted = FormDataRepository.deleteOlderThan(days);
     if (deleted > 0) {
       LOG.info("Form data retention: deleted " + deleted + " terminal-state record(s) older than " + days + " days");
+      int files = PurgeFormUploadsCommand.removeUnlinkedUploads();
+      if (files > 0) {
+        LOG.info("Form data retention: removed " + files + " attached file(s) with their submissions");
+      }
     }
   }
 }
