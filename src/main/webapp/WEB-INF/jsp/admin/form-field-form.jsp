@@ -45,14 +45,10 @@
     <input type="text" placeholder="Auto-generated from the label if left blank" name="name" value="<c:out value="${field.name}"/>">
   </label>
   <p class="help-text u-mt-n8">
-    An internal identifier, not shown to visitors. Left blank, it's slugified from the Label.
-    <strong>Known issue, fix in progress:</strong> this doesn't currently check for a collision
-    against this form's other fields, so two fields can end up sharing a Name (including two
-    blank-Name fields that slugify the same way, e.g. both labeled "Email"). That's not just a
-    display quirk -- the live form reads each field's submitted answer back by this exact string, so
-    a shared Name silently makes one field's answer overwrite the other's, and can let a blank
-    second required field pass validation by inheriting the first field's value. Until this is fixed,
-    give every field on a form a distinct Name yourself.
+    An internal identifier, not shown to visitors. Left blank, it's slugified from the Label. Each
+    field on a form needs its own Name, because the live form reads each answer back by it, so a
+    Name another field on this form already uses is saved with a number added (for example,
+    <strong>email-2</strong>).
   </p>
   <label>Type
     <select name="type">

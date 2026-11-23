@@ -134,6 +134,26 @@ class ImageDimensionCommandTest {
   }
 
   /** Builds a real WebP file via a `convert`/`cwebp` subprocess -- the JDK cannot write WebP either. */
+  @Test
+  void readDimensionReadsAnAnimatedWebpAsOneFramesSize(@TempDir Path tempDir) throws Exception {
+    Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH - skipping animated WebP dimension test");
+
+    // identify prints one size per frame with nothing between them, so this two-frame 100x80
+    // animation used to come back as "100 80100 80": 100 wide and 80,100 tall
+    File animated = tempDir.resolve("animated.webp").toFile();
+    Process process = new ProcessBuilder("convert", "-size", "100x80", "xc:red", "-size", "100x80", "xc:blue",
+        "-delay", "50", animated.getAbsolutePath()).redirectErrorStream(true).start();
+    String output = new String(process.getInputStream().readAllBytes());
+    if (process.waitFor() != 0) {
+      throw new IllegalStateException("Could not build the animated WebP test fixture: " + output);
+    }
+
+    Dimension dimension = ImageDimensionCommand.readDimension(animated);
+
+    assertEquals(100, dimension.width);
+    assertEquals(80, dimension.height);
+  }
+
   private static File buildRealWebpFixture(Path tempDir, int width, int height) throws Exception {
     File pngSource = tempDir.resolve("source-for-webp.png").toFile();
     ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", pngSource);
