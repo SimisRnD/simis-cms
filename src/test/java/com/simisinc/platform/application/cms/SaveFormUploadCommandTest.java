@@ -205,6 +205,50 @@ class SaveFormUploadCommandTest {
   }
 
   @Test
+  void theQuarantineCopyReadsNoMoreThanOneBytePastTheLimit() throws IOException {
+    FormField field = screenshotField();
+    field.setMaxBytes(MB);
+    byte[] png = FormUploadFixtures.pngWithTransparency();
+    // A body that claims 1,000 bytes and runs on for 64 MB: only the limit plus one byte is read
+    long endless = 64 * MB;
+    List<long[]> readsPerOpen = new java.util.ArrayList<>();
+    UploadSource source = new UploadSource() {
+      @Override
+      public String submittedFileName() {
+        return "shot.png";
+      }
+
+      @Override
+      public long size() {
+        return 1000;
+      }
+
+      @Override
+      public InputStream openStream() {
+        long[] read = new long[1];
+        readsPerOpen.add(read);
+        return new InputStream() {
+          @Override
+          public int read() {
+            if (read[0] >= endless) {
+              return -1;
+            }
+            int b = read[0] < png.length ? png[(int) read[0]] & 0xff : 0;
+            read[0]++;
+            return b;
+          }
+        };
+      }
+    };
+
+    Result result = SaveFormUploadCommand.save("contact-us", field, source);
+
+    assertRejectedAndNothingKept(result, ValidateFormUploadCommand.REASON_TOO_LARGE);
+    assertEquals(2, readsPerOpen.size(), "opened once to check the type and once to copy");
+    assertEquals(MB + 1, readsPerOpen.get(1)[0], "the copy stops one byte past the limit");
+  }
+
+  @Test
   void anImageThatWillNotDecodeIsRejectedAndNothingIsKept() throws IOException {
     assertRejectedAndNothingKept(
         SaveFormUploadCommand.save("contact-us", screenshotField(), source("broken.png", FormUploadFixtures.truncatedPng())),

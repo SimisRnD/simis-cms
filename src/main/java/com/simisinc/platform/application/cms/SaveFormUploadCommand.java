@@ -19,14 +19,15 @@ package com.simisinc.platform.application.cms;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -153,9 +154,14 @@ public class SaveFormUploadCommand {
       // 2. Quarantine copy, stopped at the limit
       long limit = ValidateFormUploadCommand.effectiveMaxBytes(field);
       Files.createDirectories(quarantined.getParentFile().toPath());
+      // Straight from the request to the file, reading one byte past the limit at most, so a file
+      // larger than it declared still stops there. Files.copy rather than a write loop of our own:
+      // CodeQL resolves a write to any OutputStream to every subclass in the application, the
+      // response-compression stream among them, and so reported this copy as cross-site scripting.
       long copied;
-      try (InputStream in = source.openStream(); OutputStream out = Files.newOutputStream(quarantined.toPath())) {
-        copied = copyAtMost(in, out, limit + 1);
+      try (InputStream in = source.openStream();
+          InputStream bounded = BoundedInputStream.builder().setInputStream(in).setMaxCount(limit + 1).get()) {
+        copied = Files.copy(bounded, quarantined.toPath(), StandardCopyOption.REPLACE_EXISTING);
       }
       if (copied > limit) {
         return Result.reject(ValidateFormUploadCommand.REASON_TOO_LARGE,
@@ -261,18 +267,6 @@ public class SaveFormUploadCommand {
     String name = StringUtils.defaultString(formUniqueId).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9-]+", "-");
     name = StringUtils.left(StringUtils.strip(name, "-"), 100);
     return StringUtils.isBlank(name) ? "form" : name;
-  }
-
-  /** Copies until the stream ends or {@code max} bytes have been copied; returns the count */
-  static long copyAtMost(InputStream in, OutputStream out, long max) throws IOException {
-    byte[] buffer = new byte[64 * 1024];
-    long copied = 0;
-    int read;
-    while (copied < max && (read = in.read(buffer, 0, (int) Math.min(buffer.length, max - copied))) > 0) {
-      out.write(buffer, 0, read);
-      copied += read;
-    }
-    return copied;
   }
 
   private static void deleteQuietly(List<File> files) {
