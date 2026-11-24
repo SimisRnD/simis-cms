@@ -293,6 +293,18 @@ CVE_POLICY = {
         "component (gosu, postgis/GDAL, the stock entrypoint) opens a UDP listener or calls into "
         "OpenSSL's QUIC surface.",
     ),
+    "CVE-2026-107494": (
+        NOT_PRESENT,
+        "This vulnerability is in OpenSSL's QUIC stack, which queues a RETIRE_CONNECTION_ID frame "
+        "for every retransmitted NEW_CONNECTION_ID frame without a limit (the incomplete fix for "
+        "CVE-2026-84784). OpenSSL's CVE record lists only 3.5.0 before 3.5.10, 4.0.0 before 4.0.4 "
+        "and 4.1.0 as affected, and the fix changes only ssl/quic/quic_channel.c and its headers. "
+        "Debian bookworm's libssl3 and openssl packages (3.0.22-1~deb12u2) are built from the "
+        "OpenSSL 3.0.x line, which has no QUIC implementation at all: there is no ssl/quic "
+        "directory on the openssl-3.0 branch. Independently, nothing in this image would reach "
+        "QUIC: the postgres server speaks TCP only and uses libssl for TLS over TCP, and no "
+        "component opens a UDP socket for QUIC.",
+    ),
     "CVE-2026-41992": (
         NOT_IN_PATH,
         "gzip executes only to decompress *.sql.gz initialization scripts on first boot; this "
