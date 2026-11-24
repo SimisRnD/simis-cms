@@ -215,3 +215,16 @@ def test_a_missing_branch_condition_is_reported_not_ignored(repo):
     r = run_tool(TOOL, repo, "--strict")
     assert r.returncode == 1
     assert "admin-console branch condition" in r.stdout
+
+
+def test_a_script_end_tag_with_a_space_still_ends_the_script(repo):
+    # The parser ends a script at </script > too. Matching only </script> ran the first block on
+    # to the second one's end tag and blanked the h4 between them (CodeQL py/bad-tag-filter).
+    setup(repo, layout(page("/admin/users", "<h2>Section</h2>")),
+          jsp=('<h2 class="widget-title">Blogs</h2>\n'
+               '<script nonce="x">var a = 1;</script >\n'
+               '<h4>Detail</h4>\n'
+               '<script nonce="x">var b = 2;</script>\n'))
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "jumps h2 -> h4" in r.stdout
