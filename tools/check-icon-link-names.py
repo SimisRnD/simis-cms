@@ -70,7 +70,12 @@ JSP_ROOT = os.path.join("src", "main", "webapp", "WEB-INF", "jsp")
 BACKLOG: dict[str, int] = {}
 
 COMMENT_RE = re.compile(r"<%--.*?--%>|<!--.*?-->", re.S)
-SCRIPT_RE = re.compile(r"<script\b.*?</script\s*>", re.S | re.I)
+# An HTML end tag closes the element even with trailing junk: the parser accepts </script >,
+# </script\n> and </script foo="bar"> alike. A pattern that stops at \s* (or at ">") misses that
+# end tag and runs on to the next one, masking everything between as script, so a finding there
+# goes unreported. [^>]* accepts the junk; \b still rejects </scriptfoo>. The same fix as
+# check-unescaped-el.py's SCRIPT; CodeQL py/bad-tag-filter flagged these three.
+SCRIPT_RE = re.compile(r"<script\b.*?</script\b[^>]*>", re.S | re.I)
 CONTROL_RE = re.compile(r"<(a|button)\b([^>]*)>(.*?)</\1\s*>", re.S | re.I)
 
 # A JSP action tag carries its own ">", and these templates routinely put one INSIDE an

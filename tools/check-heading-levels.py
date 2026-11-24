@@ -118,7 +118,12 @@ JSP_SKIP_BASELINE = {
 # innerHTML = '<h4>' + data.title + '</h4>', and web-page-designer.jsp assembles the designer's
 # widget prototype the same way. Both looked like real findings until they were read.
 JSP_COMMENT = re.compile(r"<%--.*?--%>", re.S)
-SCRIPT_BLOCK = re.compile(r"<script\b.*?</script>", re.S | re.I)
+# An HTML end tag closes the element even with trailing junk: the parser accepts </script >,
+# </script\n> and </script foo="bar"> alike. A pattern that stops at \s* (or at ">") misses that
+# end tag and runs on to the next one, masking everything between as script, so a finding there
+# goes unreported. [^>]* accepts the junk; \b still rejects </scriptfoo>. The same fix as
+# check-unescaped-el.py's SCRIPT; CodeQL py/bad-tag-filter flagged these three.
+SCRIPT_BLOCK = re.compile(r"<script\b.*?</script\b[^>]*>", re.S | re.I)
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
 HEADING_PAIR = re.compile(r"<(h[1-6])\b([^>]*)>(.*?)</\1>", re.S)
 STRIP_TAGS = re.compile(r"<[^>]+>")
