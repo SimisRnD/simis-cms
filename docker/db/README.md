@@ -94,10 +94,12 @@ what was verified:
   ncurses overflow is in the `infocmp` binary nothing here invokes; `gzip` runs only over the
   image's own plain-text `init.sql`; sysstat's collectors start only from cron or systemd
   timers, and neither runs here; the libldap path needs LDAP authentication, which is not
-  configured. Two carry their own justification rather than
+  configured. Three carry their own justification rather than
   `vulnerable_code_not_in_execute_path` — **CVE-2026-14456** (libssl3, openssl) is
   `vulnerable_code_not_present`, since the flaw is in OpenSSL's QUIC listener, introduced in
-  3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-53613** (util-linux) is
+  3.5.0 and absent from bookworm's 3.0.x; **CVE-2026-107494** (libssl3, openssl) is too, since
+  it is in OpenSSL's QUIC stack (affected from 3.5.0) and the 3.0.x line has no QUIC code at
+  all; **CVE-2026-53613** (util-linux) is
   `inline_mitigations_already_exist`, since the Dockerfile's `chmod u-s` on `mount`/`umount`
   removes the setuid transition the TOCTOU needs.
 - **MIT krb5** (libkrb5-3, libgssapi-krb5-2, libk5crypto3, libkrb5support0) — only the client
