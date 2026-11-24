@@ -137,7 +137,12 @@ def _blank(match: "re.Match[str]") -> str:
 
 JSP_COMMENT = re.compile(r"<%--.*?--%>", re.DOTALL)
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-SCRIPT_BLOCK = re.compile(r"<script\b.*?</script\s*>", re.DOTALL | re.IGNORECASE)
+# An HTML end tag closes the element even with trailing junk: the parser accepts </script >,
+# </script\n> and </script foo="bar"> alike. A pattern that stops at \s* (or at ">") misses that
+# end tag and runs on to the next one, masking everything between as script, so a finding there
+# goes unreported. [^>]* accepts the junk; \b still rejects </scriptfoo>. The same fix as
+# check-unescaped-el.py's SCRIPT; CodeQL py/bad-tag-filter flagged these three.
+SCRIPT_BLOCK = re.compile(r"<script\b.*?</script\b[^>]*>", re.DOTALL | re.IGNORECASE)
 
 
 def strip_noise(text: str) -> str:

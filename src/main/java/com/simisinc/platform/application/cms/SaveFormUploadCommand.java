@@ -253,12 +253,16 @@ public class SaveFormUploadCommand {
   /**
    * The visitor's own filename, kept only to show an admin: the last path segment, without control
    * characters, quotes or backslashes, at most 255 characters. It is never used to name a file.
+   *
+   * <p>The last segment is found with lastIndexOf rather than a {@code .*[/\\]} pattern, which
+   * backtracks across the whole name from every position: quadratic in its length.
    */
   static String displayName(String submittedFileName) {
     if (StringUtils.isBlank(submittedFileName)) {
       return null;
     }
-    String name = submittedFileName.replaceAll(".*[/\\\\]", "").replaceAll("[\\x00-\\x1f\\x7f\"\\\\]", "").trim();
+    int lastSeparator = Math.max(submittedFileName.lastIndexOf('/'), submittedFileName.lastIndexOf('\\'));
+    String name = submittedFileName.substring(lastSeparator + 1).replaceAll("[\\x00-\\x1f\\x7f\"\\\\]", "").trim();
     return name.isEmpty() ? null : StringUtils.left(name, 255);
   }
 

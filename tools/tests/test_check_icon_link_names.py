@@ -194,3 +194,22 @@ def test_repository_is_clean_outside_the_backlog():
     found = chk.scan_tree(str(TOOLS_DIR.parent))
     over = {r: h for r, h in found.items() if len(h) > chk.BACKLOG.get(r, 0)}
     assert over == {}
+
+
+def test_a_script_end_tag_with_trailing_junk_still_ends_the_script(repo):
+    # The parser ends a script at </script\t\n bar> too. Matching only </script\s*> ran the first
+    # block on to the second one's end tag and blanked the link between them (CodeQL
+    # py/bad-tag-filter).
+    write(repo, JSP,
+          '<script nonce="n">var a = 1;</script\t\n bar>\n'
+          '<a href="/x"><i class="fa fa-edit"></i></a>\n'
+          '<script nonce="n">var b = 2;</script>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "cms/widget.jsp: line 3" in result.stdout
+
+
+def test_a_longer_name_is_not_a_script_end_tag(repo):
+    write(repo, JSP,
+          '<script nonce="n">el.innerHTML = \'</scripts><a href="#"><i class="fa fa-edit"></i></a>\';</script>\n')
+    assert check(repo, "--strict").returncode == 0
