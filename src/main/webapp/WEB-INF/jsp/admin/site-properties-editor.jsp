@@ -759,6 +759,17 @@
     <p class="help-text page-help">This page has two unrelated groups of settings: the four rate-limit fields above throttle repeated automated attempts (spam form submissions, login brute-forcing); the three alert-threshold fields below tune two passive indicator tiles ("Request Rate Spike" and "Geo Anomaly") on the Site Analytics dashboard. Neither group sends an email, text, or any other push notification -- someone has to open the dashboard to see them. For a hard block on a specific address, use the IP Allow/Block List page instead of tightening these numbers.</p>
     <p class="help-text page-help">A rate-limit change applies to new attempts right away, but an IP address or username that's already being watched keeps its old limit until it stops making attempts for 30 minutes straight -- which won't happen while an attack is still in progress. If you're mid-incident and need the new, stricter limit to apply immediately, restarting the app is the reliable way to do that (it clears the in-memory tracking for everyone, not just the attacker).</p>
     <p class="help-text page-help">Running on Azure App Service: rate-limit tracking lives in each instance's own memory, not a shared store, so scaling the App Service Plan out to N instances effectively multiplies these limits by N (a request round-robins to whichever instance is free, and each one counts independently). If you scale out and need a hard cap regardless of instance count, put a rate-limiting rule in front of the app (e.g. Azure Front Door or Application Gateway/WAF) rather than relying on these settings alone.</p>
+    <p class="help-text page-help">The malware scanner host and port name the ClamAV clamd that scans every file a visitor attaches to a form. With no scanner set, or one that can't be reached, every attached file is rejected. Save them, then use Test Malware Scanner before turning on form file uploads: it sends the saved scanner an ordinary file and the harmless EICAR test file, and passes only when the first is accepted and the second is flagged. A scanner that has just started may answer before its virus signatures have loaded, which this test catches.</p>
+    <c:if test="${!empty malwareScannerCheckMessage}">
+      <p class="callout radius ${malwareScannerCheckPassed ? 'success' : 'alert'} u-mt-n0_5rem" role="status">
+        <c:choose>
+          <c:when test="${malwareScannerCheckPassed}"><i class="fa fa-check-circle" aria-hidden="true"></i> </c:when>
+          <c:otherwise><i class="fa fa-exclamation-circle" aria-hidden="true"></i> </c:otherwise>
+        </c:choose>
+        <c:out value="${malwareScannerCheckMessage}" />
+      </p>
+    </c:if>
+    <p><button type="submit" name="action" value="testMalwareScanner" formnovalidate class="button radius secondary">Test Malware Scanner</button></p>
   </c:if>
   <c:if test="${prefix eq 'features'}">
     <p class="help-text page-help">Feature flags are on/off switches for specific pieces of functionality, stored here as plain settings so a feature can be turned on or off without a code deployment -- useful for a staged rollout, or for turning something off quickly if it misbehaves. Each toggle below has its own description of exactly what it controls, since "feature flag" alone doesn't say what a given one does. Running on Azure App Service: a toggle takes effect immediately on the instance you saved it from, and within about a minute on any other instance if the App Service Plan is scaled out.</p>
@@ -797,7 +808,7 @@
   <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
     <div class="callout radius warning">
       <p><strong>Re-authentication required</strong> — this page's settings are security-sensitive.
-        Enter your password or 6-digit authenticator code, then click Save again.</p>
+        Enter your password or 6-digit authenticator code, then click <c:choose><c:when test="${stepUpAction eq 'testMalwareScanner'}">Test Malware Scanner</c:when><c:otherwise>Save</c:otherwise></c:choose> again.</p>
       <input type="password" name="stepUpCredential" maxlength="255"
              placeholder="Password or authenticator code"
              title="Enter your password or 6-digit authenticator code"/>

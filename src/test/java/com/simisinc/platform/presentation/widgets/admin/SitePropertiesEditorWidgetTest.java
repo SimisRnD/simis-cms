@@ -40,6 +40,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
+import com.simisinc.platform.application.cms.MalwareScanCommand;
 import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
@@ -188,6 +189,123 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
           never());
       assertEquals("mailchimp", stored.get(0).getValue(), "the action must not fall through to the save logic");
       assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void testMalwareScannerChecksTheSavedScannerAndDoesNotSave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>security</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("security.clamav.host", "clamav", "text"));
+    addQueryParameter(widgetContext, "action", SitePropertiesEditorWidget.TEST_MALWARE_SCANNER_ACTION);
+    // Falling through to the save would store this
+    addQueryParameter(widgetContext, "security.clamav.host", "should-not-be-saved");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<MalwareScanCommand> scanner = mockStatic(MalwareScanCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      scanner.when(MalwareScanCommand::check).thenReturn(new MalwareScanCommand.CheckResult(true, "The scanner is working."));
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      scanner.verify(MalwareScanCommand::check);
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertEquals("clamav", stored.get(0).getValue(), "the form shows the saved settings, the ones tested");
+      assertEquals(true, widgetContext.getRequest().getAttribute("malwareScannerCheckPassed"));
+      assertEquals("The scanner is working.", widgetContext.getRequest().getAttribute("malwareScannerCheckMessage"));
+      assertEquals(stored, widgetContext.getRequest().getAttribute("sitePropertyList"));
+      assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void testMalwareScannerNeedsAStepUpLikeASave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>security</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("security.clamav.host", "clamav", "text"));
+    addQueryParameter(widgetContext, "action", SitePropertiesEditorWidget.TEST_MALWARE_SCANNER_ACTION);
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<MalwareScanCommand> scanner = mockStatic(MalwareScanCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      scanner.verify(MalwareScanCommand::check, never());
+      assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+      assertEquals(SitePropertiesEditorWidget.TEST_MALWARE_SCANNER_ACTION, widgetContext.getRequest().getAttribute("stepUpAction"),
+          "the prompt asks for Test Malware Scanner again, not Save");
+    }
+  }
+
+  @Test
+  void testMalwareScannerRunsAfterTheStepUpItWasHeldFor() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>security</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("security.clamav.host", "clamav", "text"));
+    addQueryParameter(widgetContext, "action", SitePropertiesEditorWidget.TEST_MALWARE_SCANNER_ACTION);
+    addQueryParameter(widgetContext, "stepUpCredential", "correct-password");
+
+    User actingUser = new User();
+    actingUser.setId(1L);
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<MalwareScanCommand> scanner = mockStatic(MalwareScanCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(actingUser);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(false);
+      stepUp.when(() -> StepUpAuthCommand.verify(any(), eq(actingUser), eq("correct-password"))).thenReturn(true);
+      scanner.when(MalwareScanCommand::check).thenReturn(new MalwareScanCommand.CheckResult(false, "No malware scanner is set."));
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      scanner.verify(MalwareScanCommand::check);
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertEquals(false, widgetContext.getRequest().getAttribute("malwareScannerCheckPassed"));
+      assertEquals("No malware scanner is set.", widgetContext.getRequest().getAttribute("malwareScannerCheckMessage"));
+    }
+  }
+
+  @Test
+  void testMalwareScannerIsIgnoredOnAPageWithoutTheSecuritySettings() {
+    // The site settings page has no step-up gate, so the check must not be reachable from it
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>site</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("site.name", "Test Site", "text"));
+    addQueryParameter(widgetContext, "action", SitePropertiesEditorWidget.TEST_MALWARE_SCANNER_ACTION);
+    addQueryParameter(widgetContext, "site.name", "Test Site");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<MalwareScanCommand> scanner = mockStatic(MalwareScanCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
+          .thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      scanner.verify(MalwareScanCommand::check, never());
+      assertNull(widgetContext.getRequest().getAttribute("malwareScannerCheckMessage"));
     }
   }
 

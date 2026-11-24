@@ -309,6 +309,8 @@ ALLOWLIST: dict[str, str] = {
         "EL ternary: evaluates to either the literal 0 or menuTab.id (a long DB primary key) -- both branches are purely numeric, cannot carry markup.",
     "${mailChimpTestResult.success ? 'success' : 'alert'}":
         "EL ternary between two fixed string literals ('success'/'alert') -- MailChimpCommand.ConnectionTestResult.success is a Java boolean, cannot carry markup regardless of its value.",
+    "${malwareScannerCheckPassed ? 'success' : 'alert'}":
+        "EL ternary between two fixed string literals ('success'/'alert') -- SitePropertiesEditorWidget sets malwareScannerCheckPassed to MalwareScanCommand.CheckResult.passed(), a Java boolean, so it cannot carry markup regardless of its value.",
     "${includeStylesheet}":
         "PageServlet sets this to pageStylesheet.getWebPageId(), a long DB primary key; only decimal digits, cannot carry markup.",
     "${includeStylesheetLastModified}":

@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.cms.InternalPageAccessCommand;
+import com.simisinc.platform.application.cms.MalwareScanCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.login.MfaEnrollmentPageCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
@@ -38,6 +39,8 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
 
 import jakarta.servlet.jsp.jstl.core.Config;
@@ -66,6 +69,11 @@ public class SitePropertiesEditorWidget extends GenericWidget {
   static String JSP = "/admin/site-properties-editor.jsp";
 
   static String PREFIX_PREFERENCE = "prefix";
+
+  private static Log LOG = LogFactory.getLog(SitePropertiesEditorWidget.class);
+
+  /** The Test Malware Scanner button on the Security settings page (issue #2130) */
+  static final String TEST_MALWARE_SCANNER_ACTION = "testMalwareScanner";
 
   // Prefixes controlling security-sensitive behaviour; changes require a recent step-up (IA-2 / AC-6).
   private static final Set<String> SECURITY_PREFIXES =
@@ -135,6 +143,10 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       }
       if (!verified) {
         context.addSharedRequestValue("stepUpRequired", "true");
+        // The prompt says which button to press again: the scanner test, or Save
+        if (TEST_MALWARE_SCANNER_ACTION.equals(context.getParameter("action"))) {
+          context.getRequest().setAttribute("stepUpAction", TEST_MALWARE_SCANNER_ACTION);
+        }
         redisplayEditor(context, prefix);
         return context;
       }
@@ -146,6 +158,12 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // this one action branch know about mailing-list specifically.
     if ("testMailChimpConnection".equals(context.getParameter("action"))) {
       return handleTestMailChimpConnection(context, prefix);
+    }
+
+    // The same kind of read-only check for the malware scanner (issue #2130). Only from a page that
+    // edits the security settings, so it always sits behind the step-up gate above.
+    if (TEST_MALWARE_SCANNER_ACTION.equals(context.getParameter("action")) && hasPrefix(prefix, "security")) {
+      return handleTestMalwareScanner(context, prefix);
     }
 
     // Load the properties
@@ -313,6 +331,22 @@ public class SitePropertiesEditorWidget extends GenericWidget {
   /** Re-loads the current (saved, not submitted) properties and re-renders the editor with the
    * MailChimp connection test result attached, mirroring what execute() shows on a normal page load. */
   private WidgetContext handleTestMailChimpConnection(WidgetContext context, String prefix) {
+    context.getRequest().setAttribute("mailChimpTestResult", MailChimpCommand.testConnection());
+    return showSavedEditor(context, prefix);
+  }
+
+  /** Runs the scanner check against the saved settings and shows the result above the button */
+  private WidgetContext handleTestMalwareScanner(WidgetContext context, String prefix) {
+    MalwareScanCommand.CheckResult result = MalwareScanCommand.check();
+    LOG.info("User " + context.getUserId() + " tested the malware scanner: " + (result.passed() ? "passed" : "failed")
+        + ". " + StringUtils.replaceChars(result.message(), "\r\n", "  "));
+    context.getRequest().setAttribute("malwareScannerCheckPassed", result.passed());
+    context.getRequest().setAttribute("malwareScannerCheckMessage", result.message());
+    return showSavedEditor(context, prefix);
+  }
+
+  /** Re-renders the editor with the saved (not submitted) properties, as execute() shows them */
+  private WidgetContext showSavedEditor(WidgetContext context, String prefix) {
     List<SiteProperty> siteProperties = new ArrayList<>();
     String[] prefixList = prefix.split(",");
     for (String thisPrefix : prefixList) {
@@ -327,9 +361,6 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("prefix", prefix);
     attachGroupList(context, siteProperties);
-
-    context.getRequest().setAttribute("mailChimpTestResult", MailChimpCommand.testConnection());
-
     context.setJsp(JSP);
     return context;
   }
@@ -451,6 +482,19 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       context.setWarningMessage("Internal pages are now restricted to \"" + group.getName()
           + "\", which has no members yet. Until someone is added, only content editors can view them.");
     }
+  }
+
+  /** Whether the comma-separated prefix list names {@code wanted} */
+  private static boolean hasPrefix(String prefix, String wanted) {
+    if (StringUtils.isBlank(prefix)) {
+      return false;
+    }
+    for (String p : prefix.split(",")) {
+      if (wanted.equals(p.trim())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean isSecuritySensitivePrefix(String prefix) {
