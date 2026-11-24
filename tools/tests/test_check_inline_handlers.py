@@ -98,3 +98,16 @@ def test_missing_jsp_tree_exits_two_without_strict_too(repo):
     # cannot find.
     r = run_tool(TOOL, repo)
     assert r.returncode == 2, r.stdout + r.stderr
+
+
+def test_a_script_end_tag_with_trailing_junk_still_ends_the_script(repo):
+    # The parser ends a script at </script foo="bar"> too. Matching only </script\s*> ran the
+    # first block on to the second one's end tag and blanked the link between them (CodeQL
+    # py/bad-tag-filter).
+    fill(repo)
+    write(repo, f"{JSP_ROOT}/junk-end-tag.jsp",
+          '<script nonce="x">var a = 1;</script foo="bar">\n' + JS_URL +
+          '<script nonce="x">var b = 2;</script>\n')
+    r = run_tool(TOOL, repo, "--strict")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "junk-end-tag.jsp" in r.stdout
