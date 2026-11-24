@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -248,5 +250,28 @@ class SaveFormUploadCommandTest {
     assertEquals("evilname.png", SaveFormUploadCommand.displayName("evil\"\r\nname.png"));
     assertNull(SaveFormUploadCommand.displayName("  "));
     assertEquals(255, SaveFormUploadCommand.displayName("a".repeat(300) + ".png").length());
+  }
+
+  @Test
+  void onlyTheLastFolderIsStrippedFromTheVisitorsFilename() {
+    assertEquals("shot.png", SaveFormUploadCommand.displayName("/home/me/Pictures/shot.png"));
+    assertEquals("shot.png", SaveFormUploadCommand.displayName("C:\\Users\\me/mixed\\shot.png"));
+    assertEquals("no folder.png", SaveFormUploadCommand.displayName("no folder.png"));
+    assertNull(SaveFormUploadCommand.displayName("ends/in/a/folder/"), "nothing after the last separator");
+    assertNull(SaveFormUploadCommand.displayName("C:\\"));
+  }
+
+  @Test
+  void aLongFilenameWithNoSeparatorIsCleanedInLinearTime() {
+    // CodeQL java/polynomial-redos: ".*[/\\\\]" retried the whole name from every position, so a
+    // name of n characters with no separator took about n^2/2 steps. Tomcat's maxPartHeaderSize
+    // (512 bytes in docker/app/conf/server.xml, and Tomcat 11's default) keeps real names short,
+    // but nothing here should depend on that. Measured on JDK 21: 50,000 characters took the
+    // pattern about 4.5 seconds and 200,000 over a minute.
+    String name = "a".repeat(50_000);
+    assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
+      assertEquals(255, SaveFormUploadCommand.displayName(name).length());
+      assertEquals(255, SaveFormUploadCommand.displayName(name + "/" + name).length());
+    });
   }
 }

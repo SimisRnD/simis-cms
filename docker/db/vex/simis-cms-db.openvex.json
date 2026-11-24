@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 24,
+  "version": 25,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -2672,7 +2672,28 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "The NULL dereference is in the KDC's PKINIT pre-authentication handling, which runs only in a KDC (krb5kdc) configured for PKINIT. The image has only MIT krb5's client libraries -- libkrb5-3, libgssapi-krb5-2, libk5crypto3 and libkrb5support0, pulled in by PostgreSQL, libpq, libcurl and libtirpc. The KDC (krb5-kdc), the admin server (krb5-admin-server) and the libraries only they use (libkdb5, libkadm5srv/libkadm5clnt and libgssrpc) are not installed, no Kerberos daemon or command-line tool is present, and none of their code is in the installed libraries."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-107494"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libssl3"
+            },
+            {
+              "@id": "pkg:deb/debian/openssl"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "This vulnerability is in OpenSSL's QUIC stack, which queues a RETIRE_CONNECTION_ID frame for every retransmitted NEW_CONNECTION_ID frame without a limit (the incomplete fix for CVE-2026-84784). OpenSSL's CVE record lists only 3.5.0 before 3.5.10, 4.0.0 before 4.0.4 and 4.1.0 as affected, and the fix changes only ssl/quic/quic_channel.c and its headers. Debian bookworm's libssl3 and openssl packages (3.0.22-1~deb12u2) are built from the OpenSSL 3.0.x line, which has no QUIC implementation at all: there is no ssl/quic directory on the openssl-3.0 branch. Independently, nothing in this image would reach QUIC: the postgres server speaks TCP only and uses libssl for TLS over TCP, and no component opens a UDP socket for QUIC."
     }
   ],
-  "last_updated": "2026-11-19T15:41:23+00:00"
+  "last_updated": "2026-11-24T01:32:10+00:00"
 }
