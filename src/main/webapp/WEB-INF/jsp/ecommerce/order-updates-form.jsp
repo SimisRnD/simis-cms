@@ -59,7 +59,7 @@
       </label>
       <c:if test="${allowRegistrations eq 'true'}">
         <label>Password
-          <input name="password" type="password" placeholder="Password" autocomplete="off">
+          <input name="password" type="password" placeholder="Password" autocomplete="off" aria-describedby="passwordHelpText">
         </label>
         <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
       </c:if>

@@ -864,7 +864,7 @@
               <%-- Form Content --%>
             <form method="get" id="platformNewsletterOverlayForm">
               <div class="input-group">
-                <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" required>
+                <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" aria-describedby="platformOverlayEmailHelpText" required>
                 <div class="input-group-button">
                   <button type="submit" class="button small">Sign Up</button>
                 </div>
