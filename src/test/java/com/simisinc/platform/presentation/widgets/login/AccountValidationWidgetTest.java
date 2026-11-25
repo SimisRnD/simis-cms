@@ -139,6 +139,26 @@ class AccountValidationWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeShowsThePasswordRuleInForceWhenAPasswordIsNeeded() {
+    // The create-password form had no help at all, so the rule was learned only from a rejection.
+    logout(widgetContext);
+    addQueryParameter(widgetContext, "confirmation", "a-real-token");
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      userRepo.when(() -> UserRepository.findByAccountToken("a-real-token")).thenReturn(userWithToken(null));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.password.minLength")).thenReturn("12");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.password.requireComplexity", "true"))
+          .thenReturn("false");
+
+      new AccountValidationWidget().execute(widgetContext);
+
+      assertEquals("true", request.getAttribute("doPassword"));
+      assertEquals("Passwords must be at least 12 characters.", request.getAttribute("passwordHelp"));
+    }
+  }
+
+  @Test
   void resolveConfirmationPrefersPathSegment() {
     // The email link now carries the token as a path segment; that is what defeats a path-caching proxy.
     assertEquals("c48f6666-531b-4302-8ef1-a911016aea9b",

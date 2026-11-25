@@ -110,13 +110,14 @@ jobs:
       # nameless control cannot merge but a PR that fixes one is never blocked (issue 1962).
       - name: Fail on an icon-only control with no accessible name
         run: python3 tools/check-icon-link-names.py . --strict
-      # A settings field's help reaches a screen reader only through an aria-describedby on the
-      # field's input (WCAG 1.3.1, 3.3.2 -- Level A). The settings editor writes the help and
-      # the input in different places, one input branch per field type, so a new help paragraph
-      # looks finished without one: 45 of 116 had none, and the four logo color pickers pointed
-      # at theirs from a hidden input, which is never announced.
-      - name: Fail on settings help text that isn't linked to its field
-        run: python3 tools/check-settings-help-links.py . --strict
+      # A field's help reaches a screen reader only through an aria-describedby on the field's
+      # input (WCAG 1.3.1, 3.3.2 -- Level A), and nothing breaks without one, so a new help
+      # paragraph looks finished either way. The settings editor had 45 of 116 unlinked and its
+      # four logo color pickers pointed at theirs from a hidden input, which is never announced;
+      # 13 more turned up in 8 other forms. This reads every template. Help still to be linked is
+      # recorded in BACKLOG as a per-file count that may only shrink.
+      - name: Fail on field help text that isn't linked to its field
+        run: python3 tools/check-help-text-links.py . --strict
       # A class a JSP emits with no rule behind it is invisible to everything else here:
       # the JSP compiles, the CSS parses, the token/contrast gates pass, the WAR is
       # complete, and the page renders wrong. That is not hypothetical -- it happened
