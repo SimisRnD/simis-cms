@@ -85,7 +85,7 @@
   <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
   <div class="input-group">
     <%--<span class="input-group-label">$</span>--%>
-    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" name="email" placeholder="Your email" required>
+    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" name="email" placeholder="Your email" autocomplete="email" required>
     <div class="input-group-button">
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
