@@ -61,24 +61,24 @@
     <div class="small-12 medium-6 cell">
       <label for="startDate">Start <span class="js-date-label">Date/Time</span>
         <div class="input-group">
-          <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.startDate)}"/>" readonly aria-label="Select event start date and time" />
+          <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.startDate)}"/>" readonly aria-label="Select event start date and time" aria-describedby="startDateHelpText" />
           <span class="input-group-addon">
             <i class="fa fa-calendar"></i>
           </span>
         </div>
       </label>
-      <small class="help-text"><i class="fa fa-info-circle"></i> Format: <span class="js-date-hint">mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</span></small>
+      <small class="help-text" id="startDateHelpText"><i class="fa fa-info-circle"></i> Format: <span class="js-date-hint">mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</span></small>
     </div>
     <div class="small-12 medium-6 cell">
       <label for="endDate">End <span class="js-date-label">Date/Time</span>
         <div class="input-group">
-          <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.endDate)}"/>" readonly aria-label="Select event end date and time" />
+          <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${date:formatDateTimeInput(calendarEvent.endDate)}"/>" readonly aria-label="Select event end date and time" aria-describedby="endDateHelpText" />
           <span class="input-group-addon">
             <i class="fa fa-calendar"></i>
           </span>
         </div>
       </label>
-      <small class="help-text"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
+      <small class="help-text" id="endDateHelpText"><i class="fa fa-info-circle"></i> <span class="js-end-hint">Must be after start time</span></small>
     </div>
   </div>
   <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js?v=${fn:escapeXml(applicationScope.assetVersion)}"></script>
@@ -153,9 +153,9 @@
     });
   </script>
   <label>Location
-    <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>">
+    <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>" aria-describedby="locationHelpText">
   </label>
-  <small class="help-text"><i class="fa fa-info-circle"></i> The venue's name (e.g. "Main Auditorium" or "Zoom"). Put the street address in the fields below rather than in here -- search engines read them as a structured address, and a whole address typed into this one box is just an opaque string to them.</small>
+  <small class="help-text" id="locationHelpText"><i class="fa fa-info-circle"></i> The venue's name (e.g. "Main Auditorium" or "Zoom"). Put the street address in the fields below rather than in here -- search engines read them as a structured address, and a whole address typed into this one box is just an opaque string to them.</small>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
       <label>Street address
@@ -253,9 +253,9 @@
     </div>
     <div class="small-12 medium-3 cell">
       <label for="ticketSalesStart">Tickets on sale from
-        <input type="text" placeholder="mm-dd-yyyy hh:ii" id="ticketSalesStart" name="ticketSalesStart" value="<c:out value="${date:formatDateTimeInput(calendarEvent.ticketSalesStart)}"/>" aria-label="Select the date and time tickets go on sale" />
+        <input type="text" placeholder="mm-dd-yyyy hh:ii" id="ticketSalesStart" name="ticketSalesStart" value="<c:out value="${date:formatDateTimeInput(calendarEvent.ticketSalesStart)}"/>" aria-label="Select the date and time tickets go on sale" aria-describedby="ticketSalesStartHelpText" />
       </label>
-      <p class="help-text">Only if tickets are not on sale yet.</p>
+      <p class="help-text" id="ticketSalesStartHelpText">Only if tickets are not on sale yet.</p>
     </div>
   </div>
   <script nonce="${cspNonce}">
@@ -268,11 +268,11 @@
     });
   </script>
   <label>Video / Meeting Link
-    <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
+    <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>" aria-describedby="videoUrlHelpText">
   </label>
-  <small class="help-text"><i class="fa fa-info-circle"></i> Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</small>
+  <small class="help-text" id="videoUrlHelpText"><i class="fa fa-info-circle"></i> Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</small>
   <label>Event image
-    <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${calendarEvent.imageUrl}"/>">
+    <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${calendarEvent.imageUrl}"/>" aria-describedby="imageUrlHelpText">
   </label>
   <p>
     <a class="button small primary radius no-gap" data-open="imageBrowserReveal">Browse Images</a>
@@ -280,14 +280,14 @@
   <c:if test="${!empty calendarEvent.imageUrl}">
     <img id="imageUrlPreview" alt="" src="<c:out value="${calendarEvent.imageUrl}"/>" class="u-maxh-150 u-maxw-150">
   </c:if>
-  <small class="help-text"><i class="fa fa-info-circle"></i> Shown on the event's page, and used as its social card when the event is shared. Without one, a shared link falls back to the site-wide default image.</small>
+  <small class="help-text" id="imageUrlHelpText"><i class="fa fa-info-circle"></i> Shown on the event's page, and used as its social card when the event is shared. Without one, a shared link falls back to the site-wide default image.</small>
   <label>Tags
-    <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" value="<c:out value="${tagsListValue}"/>" maxlength="255">
+    <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" value="<c:out value="${tagsListValue}"/>" maxlength="255" aria-describedby="tagsListHelpText">
   </label>
-  <small class="help-text"><i class="fa fa-info-circle"></i> Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</small>
+  <small class="help-text" id="tagsListHelpText"><i class="fa fa-info-circle"></i> Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</small>
   <p>
-    <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${!empty calendarEvent.published}">checked</c:if>/><label for="enabled">Publish it?</label>
-    <br/><small class="help-text"><i class="fa fa-info-circle"></i> Unchecked saves this event as a draft, hidden from the public calendar.</small>
+    <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${!empty calendarEvent.published}">checked</c:if> aria-describedby="enabledHelpText"/><label for="enabled">Publish it?</label>
+    <br/><small class="help-text" id="enabledHelpText"><i class="fa fa-info-circle"></i> Unchecked saves this event as a draft, hidden from the public calendar.</small>
   </p>
   <div class="button-container">
     <c:choose>
