@@ -83,19 +83,19 @@
         <div class="grid-x grid-margin-x">
           <div class="small-12 medium-5 cell">
             <label for="creditCardNumber">Card number <span class="required">*</span>
-                <input type="tel" id="creditCardNumber" name="creditCardNumber" placeholder="Card number" value="" class="cc-number" autocomplete="cc-number" required/>
+                <input type="tel" id="creditCardNumber" name="creditCardNumber" placeholder="Card number" value="" class="cc-number" autocomplete="cc-number" aria-describedby="creditCardNumberHelpText" required/>
             </label>
             <p class="help-text" id="creditCardNumberHelpText"></p>
           </div>
           <div class="small-6 medium-3 cell">
             <label for="creditCardMMYY">Expiration <span class="required">*</span>
-              <input type="tel" id="creditCardMMYY" name="creditCardMMYY" placeholder="MM / YY" value="" class="cc-exp" autocomplete="cc-exp" required/>
+              <input type="tel" id="creditCardMMYY" name="creditCardMMYY" placeholder="MM / YY" value="" class="cc-exp" autocomplete="cc-exp" aria-describedby="creditCardMMYYHelpText" required/>
             </label>
             <p class="help-text" id="creditCardMMYYHelpText"></p>
           </div>
           <div class="small-6 medium-3 cell">
             <label for="creditCardCVC">CVV/CVC <span class="required">*</span>
-              <input type="tel" id="creditCardCVC" name="creditCardCVC" placeholder="Code" value="<c:out value="${payment.creditCardCVC}" />" autocomplete="off" required/>
+              <input type="tel" id="creditCardCVC" name="creditCardCVC" placeholder="Code" value="<c:out value="${payment.creditCardCVC}" />" autocomplete="off" aria-describedby="creditCardCVCHelpText" required/>
             </label>
             <p class="help-text" id="creditCardCVCHelpText"></p>
           </div>

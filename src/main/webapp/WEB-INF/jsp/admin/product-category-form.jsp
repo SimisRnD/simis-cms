@@ -47,7 +47,7 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label for="uniqueId">Unique Id <span class="required">*</span>
-        <input type="text" id="uniqueId" name="uniqueId" maxlength="255" placeholder="" value="<c:out value="${productCategory.uniqueId}" />"/>
+        <input type="text" id="uniqueId" name="uniqueId" maxlength="255" placeholder="" value="<c:out value="${productCategory.uniqueId}" />" aria-describedby="uniqueIdHelpText"/>
       </label>
       <p class="help-text" id="uniqueIdHelpText">Leave blank to auto-generate; this value does not usually change! No spaces, use lowercase, a-z, 0-9, dashes</p>
     </div>

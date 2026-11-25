@@ -384,13 +384,13 @@
     <div class="grid-x grid-margin-x">
       <fieldset class="medium-6 cell">
         <label>Community Nickname
-          <input type="text" placeholder="Nickname" name="nickname" value="">
+          <input type="text" placeholder="Nickname" name="nickname" value="" aria-describedby="nicknameHelpText">
         </label>
         <p class="help-text" id="nicknameHelpText">Optional name to be shown instead of first/last name</p>
       </fieldset>
       <fieldset class="medium-6 cell">
         <label>Username
-          <input type="text" placeholder="Username" name="username" value="">
+          <input type="text" placeholder="Username" name="username" value="" aria-describedby="usernameHelpText">
         </label>
         <p class="help-text" id="usernameHelpText">Optional, system uses email address when this is empty</p>
       </fieldset>

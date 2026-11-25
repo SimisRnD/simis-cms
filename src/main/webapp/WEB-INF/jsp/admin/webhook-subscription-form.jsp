@@ -60,7 +60,7 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label for="url">URL <span class="required">*</span>
-        <input type="url" id="url" name="url" maxlength="2000" placeholder="https://example.com/hooks/simis" value="<c:out value="${webhookSubscription.url}" />" <c:if test="${webhookSubscription.id eq -1}">autofocus="autofocus"</c:if> required>
+        <input type="url" id="url" name="url" maxlength="2000" placeholder="https://example.com/hooks/simis" value="<c:out value="${webhookSubscription.url}" />" aria-describedby="urlHelpText" <c:if test="${webhookSubscription.id eq -1}">autofocus="autofocus"</c:if> required>
       </label>
       <p class="help-text" id="urlHelpText">This application sends a signed HTTP POST here whenever a subscribed event happens.</p>
     </div>

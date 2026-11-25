@@ -44,7 +44,7 @@
     <label>Amount
       <div class="input-group">
         <span class="input-group-label"><i class="fa fa-dollar"></i></span>
-        <input class="input-group-field" name="amountToRefund" type="text" placeholder="0.00" value="" autocomplete="off">
+        <input class="input-group-field" name="amountToRefund" type="text" placeholder="0.00" value="" autocomplete="off" aria-describedby="amountToRefund">
       </div>
     </label>
     <p class="help-text" id="amountToRefund">Order total is <fmt:formatNumber type="currency" currencyCode="USD" value="${order.totalAmount}"/></p>
@@ -53,7 +53,7 @@
       <input name="email" type="text" placeholder="Email" required>
     </label>
     <label>Your Password
-      <input name="password" type="password" placeholder="Password" autocomplete="off" required>
+      <input name="password" type="password" placeholder="Password" autocomplete="off" aria-describedby="passwordHelp" required>
     </label>
     <p class="help-text" id="passwordHelp">Your password is required to process the refund</p>
     <div class="button-container">

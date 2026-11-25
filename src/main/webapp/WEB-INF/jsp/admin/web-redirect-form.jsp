@@ -30,7 +30,7 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label for="fromPath">From Path <span class="required">*</span>
-        <input type="text" id="fromPath" name="fromPath" maxlength="500" placeholder="/old-page" value="<c:out value="${webRedirect.fromPath}" />" <c:if test="${webRedirect.id eq -1}">autofocus="autofocus"</c:if> required>
+        <input type="text" id="fromPath" name="fromPath" maxlength="500" placeholder="/old-page" value="<c:out value="${webRedirect.fromPath}" />" aria-describedby="fromPathHelpText" <c:if test="${webRedirect.id eq -1}">autofocus="autofocus"</c:if> required>
       </label>
       <p class="help-text" id="fromPathHelpText">The site-relative path to redirect from, starting with a /. Must be unique.</p>
     </div>
@@ -38,7 +38,7 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label for="toUrl">To URL <span class="required">*</span>
-        <input type="text" id="toUrl" name="toUrl" maxlength="2000" placeholder="/new-page or https://example.com/page" value="<c:out value="${webRedirect.toUrl}" />" required>
+        <input type="text" id="toUrl" name="toUrl" maxlength="2000" placeholder="/new-page or https://example.com/page" value="<c:out value="${webRedirect.toUrl}" />" aria-describedby="toUrlHelpText" required>
       </label>
       <p class="help-text" id="toUrlHelpText">Prefer a site-relative path (e.g. <code>/new-page</code>). An absolute
         http(s) URL sends visitors to an external site -- every visitor who hits the From Path above is bounced
