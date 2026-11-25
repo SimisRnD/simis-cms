@@ -87,8 +87,6 @@ BACKLOG: dict[str, int] = {
     "admin/dataset-sync.jsp": 1,
     "admin/dataset-upload-form.jsp": 1,
     "admin/folder-files-list.jsp": 1,
-    "admin/form-definition-form.jsp": 3,
-    "admin/form-field-form.jsp": 4,
     "admin/group-form.jsp": 1,
     "admin/integration-registry.jsp": 1,
     "admin/role-capabilities-form.jsp": 2,
