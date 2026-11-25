@@ -161,6 +161,12 @@
                       <c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if>
                       <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}"> aria-describedby="socialInstagramAccessTokenHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.apiKey'}"> aria-describedby="mailingListMailchimpApiKeyHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'mailing-list.zerobounce.apiKey'}"> aria-describedby="mailingListZerobounceApiKeyHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'elearning.lrs.key'}"> aria-describedby="elearningLrsKeyHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'elearning.lrs.secret'}"> aria-describedby="elearningLrsSecretHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'elearning.perls.clientId'}"> aria-describedby="elearningPerlsClientIdHelpText"</c:if>
+                      <c:if test="${siteProperty.name eq 'elearning.perls.secret'}"> aria-describedby="elearningPerlsSecretHelpText"</c:if>
                       />
                     <button type="button" class="secret-reveal-toggle" data-reveal-secret
                             aria-pressed="false" aria-label="Show the value while typing"
@@ -321,6 +327,18 @@
                     <c:if test="${siteProperty.name eq 'llms.enabled'}"> aria-describedby="llmsEnabledHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'features.layout-editor'}"> aria-describedby="featuresLayoutEditorHelpText"</c:if>
                     <c:if test="${siteProperty.name eq 'features.item-tags-facet-search'}"> aria-describedby="featuresItemTagsFacetSearchHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'elearning.perls.enabled'}"> aria-describedby="elearningPerlsEnabledHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'security.password.requireComplexity'}"> aria-describedby="securityPasswordRequireComplexityHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.gptbot'}"> aria-describedby="robotsAiGptbotHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.oai-searchbot'}"> aria-describedby="robotsAiOaiSearchbotHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.chatgpt-user'}"> aria-describedby="robotsAiChatgptUserHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.claudebot'}"> aria-describedby="robotsAiClaudebotHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.claude-searchbot'}"> aria-describedby="robotsAiClaudeSearchbotHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.claude-user'}"> aria-describedby="robotsAiClaudeUserHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.google-extended'}"> aria-describedby="robotsAiGoogleExtendedHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.perplexitybot'}"> aria-describedby="robotsAiPerplexitybotHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.perplexity-user'}"> aria-describedby="robotsAiPerplexityUserHelpText"</c:if>
+                    <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}"> aria-describedby="robotsAiCcbotHelpText"</c:if>
                     >
                 <label class="switch-paddle" for="${siteProperty.name}-yes-no">
                 <span class="switch-active" aria-hidden="true">Yes</span>
@@ -370,6 +388,29 @@
                   <c:if test="${siteProperty.name eq 'security.password.maxAgeDays'}"> aria-describedby="securityPasswordMaxAgeDaysHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'security.csp.reportOnly'}"> aria-describedby="securityCspReportOnlyHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'security.previewLinkTtlHours'}"> aria-describedby="securityPreviewLinkTtlHoursHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'mailing-list.service'}"> aria-describedby="mailingListServiceHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.listId'}"> aria-describedby="mailingListMailchimpListIdHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'mailing-list.quarantine.alertThresholdPercent'}"> aria-describedby="mailingListQuarantineAlertThresholdPercentHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'mailing-list.confirmation.expiryDays'}"> aria-describedby="mailingListConfirmationExpiryDaysHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.password.minLength'}"> aria-describedby="securityPasswordMinLengthHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.rateLimit.ipMaxAttempts'}"> aria-describedby="securityRateLimitIpMaxAttemptsHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.rateLimit.ipWindowMinutes'}"> aria-describedby="securityRateLimitIpWindowMinutesHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.rateLimit.usernameMaxAttempts'}"> aria-describedby="securityRateLimitUsernameMaxAttemptsHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}"> aria-describedby="securityRateLimitUsernameWindowMinutesHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.lockout.threshold'}"> aria-describedby="securityLockoutThresholdHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.lockout.durationMinutes'}"> aria-describedby="securityLockoutDurationMinutesHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}"> aria-describedby="securityIpRequestRateAlertThresholdHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.geoAnomalyBaselineDays'}"> aria-describedby="securityGeoAnomalyBaselineDaysHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}"> aria-describedby="securityGeoAnomalyRecentHoursHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'maps.service.tiles'}"> aria-describedby="mapsServiceTilesHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'maps.service.geocoder'}"> aria-describedby="mapsServiceGeocoderHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'maps.custom.tileserver.url'}"> aria-describedby="mapsCustomTileserverUrlHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'site.calendar.actionLabel'}"> aria-describedby="siteCalendarActionLabelHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'site.calendar.actionUrl'}"> aria-describedby="siteCalendarActionUrlHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'site.header.page'}"> aria-describedby="siteHeaderPageHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'social.email'}"> aria-describedby="socialEmailHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'social.phone'}"> aria-describedby="socialPhoneHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'social.instagram.facebookPageValue'}"> aria-describedby="socialInstagramFacebookPageValueHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -455,34 +496,34 @@
             <p class="help-text" id="captchaTurnstileSecretkeyHelpText">The private key the server uses to verify captcha responses with Cloudflare Turnstile. Never share it or commit it to source control. Cloudflare generates it together with the Site Key above, on the same Turnstile dashboard page. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.gptbot'}">
-            <p class="help-text">OpenAI's crawler for collecting training data for GPT models. Turning this off opts out of GPT model training only -- OpenAI's separate live-citation crawler (OAI-SearchBot, below) and on-demand user fetcher (ChatGPT-User, below) are controlled independently.</p>
+            <p class="help-text" id="robotsAiGptbotHelpText">OpenAI's crawler for collecting training data for GPT models. Turning this off opts out of GPT model training only -- OpenAI's separate live-citation crawler (OAI-SearchBot, below) and on-demand user fetcher (ChatGPT-User, below) are controlled independently.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.oai-searchbot'}">
-            <p class="help-text">OpenAI's crawler for real-time ChatGPT search results and citations. Unlike GPTBot above, this doesn't train future models -- it fetches pages to help answer live user queries, so turning this off is closer to an "exclude from ChatGPT answers" opt-out than a training opt-out.</p>
+            <p class="help-text" id="robotsAiOaiSearchbotHelpText">OpenAI's crawler for real-time ChatGPT search results and citations. Unlike GPTBot above, this doesn't train future models -- it fetches pages to help answer live user queries, so turning this off is closer to an "exclude from ChatGPT answers" opt-out than a training opt-out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.chatgpt-user'}">
-            <p class="help-text">OpenAI's on-demand fetcher, triggered when a specific ChatGPT user's query causes the assistant to visit this page directly (for example, via browsing or a GPT Action). Per OpenAI's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
+            <p class="help-text" id="robotsAiChatgptUserHelpText">OpenAI's on-demand fetcher, triggered when a specific ChatGPT user's query causes the assistant to visit this page directly (for example, via browsing or a GPT Action). Per OpenAI's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.claudebot'}">
-            <p class="help-text">Anthropic's crawler for collecting training data for Claude models. Turning this off opts out of Claude model training only -- Anthropic's separate search-indexing crawler (Claude-SearchBot, below) and on-demand user fetcher (Claude-User, below) are controlled independently.</p>
+            <p class="help-text" id="robotsAiClaudebotHelpText">Anthropic's crawler for collecting training data for Claude models. Turning this off opts out of Claude model training only -- Anthropic's separate search-indexing crawler (Claude-SearchBot, below) and on-demand user fetcher (Claude-User, below) are controlled independently.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.claude-searchbot'}">
-            <p class="help-text">Anthropic's crawler for indexing pages so Claude can find and cite them in real-time answers -- separate from ClaudeBot's model-training use above.</p>
+            <p class="help-text" id="robotsAiClaudeSearchbotHelpText">Anthropic's crawler for indexing pages so Claude can find and cite them in real-time answers -- separate from ClaudeBot's model-training use above.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.claude-user'}">
-            <p class="help-text">Anthropic's on-demand fetcher, triggered when a specific Claude user's query causes the assistant to visit this page directly. Per Anthropic's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
+            <p class="help-text" id="robotsAiClaudeUserHelpText">Anthropic's on-demand fetcher, triggered when a specific Claude user's query causes the assistant to visit this page directly. Per Anthropic's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.google-extended'}">
-            <p class="help-text">Controls whether Google may use this site's content to train Gemini and other generative AI features. Distinct from Google's regular search crawler (Googlebot) -- turning this off does not remove the site from Google Search results, only from AI training use. Google states no separate crawler or markup governs appearing in AI Overviews/AI Mode; that rides on standard Search indexing.</p>
+            <p class="help-text" id="robotsAiGoogleExtendedHelpText">Controls whether Google may use this site's content to train Gemini and other generative AI features. Distinct from Google's regular search crawler (Googlebot) -- turning this off does not remove the site from Google Search results, only from AI training use. Google states no separate crawler or markup governs appearing in AI Overviews/AI Mode; that rides on standard Search indexing.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.perplexitybot'}">
-            <p class="help-text">Perplexity's crawler that discovers and indexes pages for its AI answer engine. Perplexity states this crawler is not used for AI model training, though that specific claim is less independently verifiable than the equivalent OpenAI/Anthropic training-crawler distinctions above.</p>
+            <p class="help-text" id="robotsAiPerplexitybotHelpText">Perplexity's crawler that discovers and indexes pages for its AI answer engine. Perplexity states this crawler is not used for AI model training, though that specific claim is less independently verifiable than the equivalent OpenAI/Anthropic training-crawler distinctions above.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.perplexity-user'}">
-            <p class="help-text">Perplexity's on-demand fetcher, triggered when a specific user's query causes Perplexity to visit this page directly to help answer it. Per Perplexity's own documentation, this crawler generally does not honor robots.txt rules at all, so this opt-out is more of a stated preference than an enforceable block.</p>
+            <p class="help-text" id="robotsAiPerplexityUserHelpText">Perplexity's on-demand fetcher, triggered when a specific user's query causes Perplexity to visit this page directly to help answer it. Per Perplexity's own documentation, this crawler generally does not honor robots.txt rules at all, so this opt-out is more of a stated preference than an enforceable block.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}">
-            <p class="help-text">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>
+            <p class="help-text" id="robotsAiCcbotHelpText">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'security.rateLimit.ipMaxAttempts'}">
             <p class="help-text" id="securityRateLimitIpMaxAttemptsHelpText">The maximum number of form submissions, login attempts, or API calls allowed from a single IP address within the time window below, before that IP is temporarily blocked. Applies to public forms, login, "forgot password," newsletter unsubscribe, and the REST API. Lower this during a spam or brute-force wave (e.g. 2-3); the default of 10 is loose enough for normal use.</p>
