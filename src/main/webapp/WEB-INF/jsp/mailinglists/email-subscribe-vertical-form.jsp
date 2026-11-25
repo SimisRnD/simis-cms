@@ -87,13 +87,13 @@
   <c:if test="${showName eq 'true'}">
     <div class="small-12 cell">
       <label for="name${widgetContext.uniqueId}" class="show-for-sr">First name</label>
-      <input type="text" id="name${widgetContext.uniqueId}" placeholder="Your first name" required>
+      <input type="text" id="name${widgetContext.uniqueId}" placeholder="Your first name" autocomplete="given-name" required>
       <p class="help-text" id="nameHelpText${widgetContext.uniqueId}"></p>
     </div>
   </c:if>
   <div class="small-12 cell">
     <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
-    <input type="text" id="email${widgetContext.uniqueId}" placeholder="Your email address" required>
+    <input type="text" id="email${widgetContext.uniqueId}" placeholder="Your email address" autocomplete="email" required>
     <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
   </div>
   <c:if test="${!empty footerHtml}">
