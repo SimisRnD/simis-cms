@@ -260,7 +260,7 @@
             <label>Roles</label>
           </div>
           <div class="small-9 cell">
-            <p class="help-text u-mb-6">You can only grant a role at or below your
+            <p class="help-text u-mb-6" id="rolesHelpText">You can only grant a role at or below your
               own highest role level; a role you check above that level is silently not saved (no
               error is shown) -- and a role the account already holds above your level stays in place
               either way, whether or not you touch this list.</p>
@@ -268,10 +268,10 @@
               <c:choose>
                 <c:when test="${role.level > actingRoleLevel && !user.hasRole(role.code)}"><%-- above the editor's level, and not already held -- not grantable, omit --%></c:when>
                 <c:when test="${role.level > actingRoleLevel}">
-                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" checked disabled/><label for="roleId${role.id}"><c:out value="${role.title}" /> <small class="help-text u-d-inline u-mt-0">(requires a higher role to change)</small></label><br />
+                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" checked disabled aria-describedby="rolesHelpText"/><label for="roleId${role.id}"><c:out value="${role.title}" /> <small class="help-text u-d-inline u-mt-0">(requires a higher role to change)</small></label><br />
                 </c:when>
                 <c:otherwise>
-                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" <c:if test="${user.hasRole(role.code)}">checked</c:if>/><label for="roleId${role.id}"><c:out value="${role.title}" /></label><br />
+                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" <c:if test="${user.hasRole(role.code)}">checked</c:if> aria-describedby="rolesHelpText"/><label for="roleId${role.id}"><c:out value="${role.title}" /></label><br />
                 </c:otherwise>
               </c:choose>
             </c:forEach>
@@ -303,7 +303,7 @@
             <label>Groups</label>
           </div>
           <div class="small-9 cell">
-            <p class="help-text u-mb-6">Unlike roles, group membership isn't
+            <p class="help-text u-mb-6" id="groupsHelpText">Unlike roles, group membership isn't
               level-ranked -- anyone who can reach this form can add or remove any group.</p>
             <c:forEach items="${groupList}" var="group">
               <c:choose>
@@ -311,7 +311,7 @@
                   <%-- not a logged in user group --%>
                 </c:when>
                 <c:otherwise>
-                  <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.uniqueId)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
+                  <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.uniqueId)}">checked</c:if> aria-describedby="groupsHelpText"/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
                 </c:otherwise>
               </c:choose>
             </c:forEach>

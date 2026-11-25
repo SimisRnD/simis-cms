@@ -59,9 +59,9 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label>Enabled
-        <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${webRedirect.id eq -1 || webRedirect.enabled}">checked</c:if>/>
+        <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${webRedirect.id eq -1 || webRedirect.enabled}">checked</c:if> aria-describedby="enabledHelpText"/>
       </label>
-      <p class="help-text">Disabled redirects are kept but never applied to incoming requests.</p>
+      <p class="help-text" id="enabledHelpText">Disabled redirects are kept but never applied to incoming requests.</p>
     </div>
   </div>
   <div class="grid-x grid-margin-x">

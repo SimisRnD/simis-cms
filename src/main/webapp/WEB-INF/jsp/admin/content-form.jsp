@@ -31,9 +31,9 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Reference name <span class="required">*</span>
-    <input type="text" placeholder="example-unique-id" name="uniqueId" value="<c:out value="${content.uniqueId}"/>" required>
+    <input type="text" placeholder="example-unique-id" name="uniqueId" value="<c:out value="${content.uniqueId}"/>" aria-describedby="contentUniqueIdHelpText" required>
   </label>
-  <p class="help-text">This is the internal key a page's widget XML uses to find this content block -- never a
+  <p class="help-text" id="contentUniqueIdHelpText">This is the internal key a page's widget XML uses to find this content block -- never a
     URL, so there's no page-collision risk. It isn't scoped to just this form, though: if this name already
     exists, Continue will warn instead of creating a duplicate, since you'd otherwise be silently opening that
     existing block for editing.</p>

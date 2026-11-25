@@ -81,9 +81,9 @@
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-10 large-8 cell">
       <label>Enabled
-        <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${webhookSubscription.id eq -1 || webhookSubscription.enabled}">checked</c:if>/>
+        <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${webhookSubscription.id eq -1 || webhookSubscription.enabled}">checked</c:if> aria-describedby="enabledHelpText"/>
       </label>
-      <p class="help-text">Disabled subscriptions are kept but never receive deliveries.</p>
+      <p class="help-text" id="enabledHelpText">Disabled subscriptions are kept but never receive deliveries.</p>
     </div>
   </div>
   <div class="grid-x grid-margin-x">
