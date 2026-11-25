@@ -145,4 +145,31 @@ class PasswordPolicyCommandTest {
       assertTrue(PasswordPolicyCommand.requireComplexity());
     }
   }
+
+  @Test
+  void describeStatesTheDefaultLengthAndEveryCharacterClass() {
+    try (MockedStatic<LoadSitePropertyCommand> m = defaultPolicy()) {
+      assertEquals("Passwords must be at least 15 characters and include an uppercase letter, "
+          + "a lowercase letter, a number, and a special character.", PasswordPolicyCommand.describe());
+    }
+  }
+
+  @Test
+  void describeStatesOnlyTheLengthWhenComplexityIsOff() {
+    try (MockedStatic<LoadSitePropertyCommand> m = properties("20", "false")) {
+      assertEquals("Passwords must be at least 20 characters.", PasswordPolicyCommand.describe());
+    }
+  }
+
+  @Test
+  void describeStatesTheLengthValidateEnforcesNotTheConfiguredOne() {
+    // The help must never promise less than validate() accepts: a minimum configured below the
+    // floor is described as the floor, because that is what is enforced.
+    try (MockedStatic<LoadSitePropertyCommand> m = properties("4", "false")) {
+      assertEquals("Passwords must be at least " + PasswordPolicyCommand.ABSOLUTE_MIN_LENGTH + " characters.",
+          PasswordPolicyCommand.describe());
+      assertEquals("Passwords must be at least " + PasswordPolicyCommand.ABSOLUTE_MIN_LENGTH + " characters",
+          PasswordPolicyCommand.validate("aaaaaaa"));
+    }
+  }
 }

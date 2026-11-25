@@ -159,6 +159,7 @@
     });
 </script>
 <form method="get" id="emailSignUpForm${widgetContext.uniqueId}">
+  <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
   <div class="input-group">
     <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" placeholder="name@email.com" required>
     <div class="input-group-button">
@@ -180,9 +181,9 @@
   </c:if>
   <c:if test="${useCaptcha eq 'true' && empty googleSiteKey && empty turnstileSiteKey}">
     <p class="help-text">
-      Enter the text shown: <img src="/assets/captcha" alt="captcha" class="u-va-middle" height="40" decoding="async" />
+      <span id="captchaPrompt${widgetContext.uniqueId}">Enter the text shown:</span> <img src="/assets/captcha" alt="captcha" class="u-va-middle" height="40" decoding="async" />
       <a href="#" data-captcha-refresh class="margin-left-5 u-va-middle" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a>
-      <input type="text" id="captcha${widgetContext.uniqueId}" required/>
+      <input type="text" id="captcha${widgetContext.uniqueId}" aria-labelledby="captchaPrompt${widgetContext.uniqueId}" required/>
     </p>
   </c:if>
   <c:choose>

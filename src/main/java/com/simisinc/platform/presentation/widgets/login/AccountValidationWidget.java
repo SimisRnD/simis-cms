@@ -102,6 +102,8 @@ public class AccountValidationWidget extends GenericWidget {
     if ("new".equals(user.getPassword()) || StringUtils.isNotBlank(user.getAccountToken())) {
       context.getRequest().setAttribute("doPassword", "true");
       context.getRequest().setAttribute("confirmation", confirmation);
+      // The password rule in force, from the same settings post() enforces
+      context.getRequest().setAttribute("passwordHelp", PasswordPolicyCommand.describe());
     } else {
       // Make an update
       if (user.getValidated() == null) {

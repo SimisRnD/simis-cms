@@ -99,7 +99,7 @@
                 aria-pressed="false" aria-label="Show the value while typing"
                 title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
       </div>
-      <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
+      <p class="help-text" id="passwordHelpText"><c:out value="${passwordHelp}"/></p>
       <label for="register-password-confirm">Re-Enter Password</label>
       <div class="password-field">
         <input id="register-password-confirm" name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
@@ -126,10 +126,10 @@
         </c:when>
         <c:when test="${useCaptcha eq 'true'}">
           <p>
-            Please enter the text value you see in the image:<br />
+            <span id="captchaPrompt${widgetContext.uniqueId}">Please enter the text value you see in the image:</span><br />
             <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" />
             <a href="#" data-captcha-refresh class="margin-left-5" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a><br />
-            <input type="text" name="captcha" value="" required/>
+            <input type="text" name="captcha" value="" aria-labelledby="captchaPrompt${widgetContext.uniqueId}" required/>
             <input type="submit" class="button radius primary" value="Create Account"/>
           </p>
         </c:when>
