@@ -863,6 +863,9 @@
             <p><c:out value="${requestOverlayMessage}" /></p>
               <%-- Form Content --%>
             <form method="get" id="platformNewsletterOverlayForm">
+              <%-- A placeholder isn't a label: it isn't reliably announced as the field's name, and
+                   it's gone once the visitor starts typing. Hidden so the overlay's layout is unchanged. --%>
+              <label for="platformOverlayEmail" class="show-for-sr">Email address</label>
               <div class="input-group">
                 <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" aria-describedby="platformOverlayEmailHelpText" required>
                 <div class="input-group-button">
