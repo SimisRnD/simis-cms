@@ -17,15 +17,17 @@
      -- included once per property row from the enclosing <c:when> in site-properties-editor.jsp, so
      "siteProperty" is whichever one of the 4 is currently being rendered. All 4 pick among the same
      3 uploaded images (logoUrl/logoWhiteUrl/logoMixedUrl, set by SitePropertiesEditorWidget only when
-     prefix eq 'theme'); only the aria-describedby target differs per property. --%>
+     prefix eq 'theme'); only the aria-describedby target differs per property.
+     The help is tied to the group of cards, not to the hidden input that holds the value: a hidden
+     input is never focused or announced, so help attached to it reaches no one. --%>
 <c:choose>
   <c:when test="${siteProperty.name eq 'theme.logo.color'}"><c:set var="logoColorHelpTextId" value="themeLogoColorHelpText"/></c:when>
   <c:when test="${siteProperty.name eq 'theme.logo.color.dark'}"><c:set var="logoColorHelpTextId" value="themeLogoColorDarkHelpText"/></c:when>
   <c:when test="${siteProperty.name eq 'theme.footer.logo.color'}"><c:set var="logoColorHelpTextId" value="themeFooterLogoColorHelpText"/></c:when>
   <c:when test="${siteProperty.name eq 'theme.footer.logo.color.dark'}"><c:set var="logoColorHelpTextId" value="themeFooterLogoColorDarkHelpText"/></c:when>
 </c:choose>
-<input type="hidden" id="picker-${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>" aria-describedby="${logoColorHelpTextId}" />
-<div class="grid-x grid-margin-x logo-color-picker" data-logo-color-target="picker-${siteProperty.id}">
+<input type="hidden" id="picker-${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>" />
+<div class="grid-x grid-margin-x logo-color-picker" data-logo-color-target="picker-${siteProperty.id}" role="group" aria-label="${fn:escapeXml(siteProperty.label)}" aria-describedby="${logoColorHelpTextId}">
   <div class="cell shrink">
     <button type="button" class="admin card logo-color-card<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>" data-logo-color-value="full-color" aria-pressed="${siteProperty.value eq 'full-color'}">
       <c:choose>
