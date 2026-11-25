@@ -63,10 +63,10 @@
     </div>
     <div class="small-12 medium-6 cell">
       <label>Email submissions to
-        <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>">
+        <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>" aria-describedby="emailToHelpText">
       </label>
-      <button type="submit" name="action" value="sendTestEmail" formnovalidate class="button radius secondary tiny">Send Test Email</button>
-      <p class="help-text u-mt-n8">Comma-separated for multiple addresses. Checked
+      <button type="submit" name="action" value="sendTestEmail" formnovalidate class="button radius secondary tiny" aria-describedby="emailToHelpText">Send Test Email</button>
+      <p class="help-text u-mt-n8" id="emailToHelpText">Comma-separated for multiple addresses. Checked
         for valid email syntax when you save -- but a wrong-yet-valid-looking address (a typo of a
         real one) can't be caught that way. "Send Test Email" sends a real message to whatever's
         typed above right now, saved or not, so you can confirm it actually reaches the right inbox.</p>
@@ -76,9 +76,9 @@
     <input type="text" placeholder="Optional message shown after a successful submission..." name="successMessage" value="<c:out value="${formDefinition.successMessage}"/>">
   </label>
   <label>Notification Email Subject
-    <input type="text" placeholder="Leave blank for: New Contact Us inquiry - Acme Defense (Sales)" name="notificationSubject" value="<c:out value="${formDefinition.notificationSubject}"/>">
+    <input type="text" placeholder="Leave blank for: New Contact Us inquiry - Acme Defense (Sales)" name="notificationSubject" value="<c:out value="${formDefinition.notificationSubject}"/>" aria-describedby="notificationSubjectHelpText">
   </label>
-  <p class="help-text u-mt-n8">
+  <p class="help-text u-mt-n8" id="notificationSubjectHelpText">
     The subject of the email sent to "Email submissions to" above. Leave it blank and every form
     gets the same readable default -- <em>New &lt;form name&gt; inquiry - &lt;who it is from&gt;
     (&lt;their dropdown choice&gt;)</em> -- which is usually what you want.
@@ -87,8 +87,8 @@
     <code>RFI: {{organization}}</code>. Values a visitor typed are stripped of line breaks and
     shortened before they reach the subject.
   </p>
-  <input id="sendConfirmationToSubmitter" type="checkbox" name="sendConfirmationToSubmitter" value="true" <c:if test="${formDefinition.sendConfirmationToSubmitter}">checked</c:if>/><label for="sendConfirmationToSubmitter">Send a confirmation email to the person who submitted this form?</label>
-  <p class="help-text u-mt-n8">
+  <input id="sendConfirmationToSubmitter" type="checkbox" name="sendConfirmationToSubmitter" value="true" <c:if test="${formDefinition.sendConfirmationToSubmitter}">checked</c:if> aria-describedby="sendConfirmationToSubmitterHelpText"/><label for="sendConfirmationToSubmitter">Send a confirmation email to the person who submitted this form?</label>
+  <p class="help-text u-mt-n8" id="sendConfirmationToSubmitterHelpText">
     Only sent if the form has an "Email" type field and the visitor's answer to it is a valid
     address -- there's no other way to know who to reply to. The Success Title/Message above are
     shown on the page itself either way; this is a separate email, in addition to that.
@@ -108,8 +108,8 @@
   <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
   <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>
-  <input id="showPrivacyNotice" type="checkbox" name="showPrivacyNotice" value="true" <c:if test="${formDefinition.showPrivacyNotice}">checked</c:if>/><label for="showPrivacyNotice">Show a privacy notice near the submit button?</label>
-  <p class="help-text u-mt-n8">
+  <input id="showPrivacyNotice" type="checkbox" name="showPrivacyNotice" value="true" <c:if test="${formDefinition.showPrivacyNotice}">checked</c:if> aria-describedby="showPrivacyNoticeHelpText"/><label for="showPrivacyNotice">Show a privacy notice near the submit button?</label>
+  <p class="help-text u-mt-n8" id="showPrivacyNoticeHelpText">
     Links to the site's Privacy Policy page. Only actually appears on the live form if that page is
     also turned on under Site Settings -- checking this box here alone does nothing if it isn't.
   </p>
