@@ -58,8 +58,8 @@
   <label>Color
     <input id="color" type="text" name="color" value="<c:out value="${calendar.color}"/>">
   </label>
-  <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${calendar.id == -1 || calendar.enabled}">checked</c:if>/><label for="enabled">Online?</label>
-  <br/><small class="help-text"><i class="fa fa-info-circle"></i> Turning this off hides this calendar's events from their own individual event pages for public visitors (admins/content-managers can still open them directly). It does not currently remove them from calendar grids or search/upcoming-events widgets elsewhere on the site -- those don't check this setting.</small>
+  <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${calendar.id == -1 || calendar.enabled}">checked</c:if> aria-describedby="enabledHelpText"/><label for="enabled">Online?</label>
+  <br/><small class="help-text" id="enabledHelpText"><i class="fa fa-info-circle"></i> Turning this off hides this calendar's events from their own individual event pages for public visitors (admins/content-managers can still open them directly). It does not currently remove them from calendar grids or search/upcoming-events widgets elsewhere on the site -- those don't check this setting.</small>
   <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">

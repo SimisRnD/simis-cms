@@ -82,8 +82,6 @@ JSP_ROOT = os.path.join(WEBAPP_ROOT, "WEB-INF", "jsp")
 # fails, a count BELOW is only a note, so a PR that links help is never blocked.
 BACKLOG: dict[str, int] = {
     "admin/bot-list-form.jsp": 2,
-    "admin/calendar-event-form.jsp": 7,
-    "admin/calendar-form.jsp": 1,
     "admin/capability-grants.jsp": 1,
     "admin/content-form.jsp": 1,
     "admin/dataset-sync.jsp": 1,
@@ -99,7 +97,6 @@ BACKLOG: dict[str, int] = {
     "admin/user-form.jsp": 2,
     "admin/web-redirect-form.jsp": 1,
     "admin/webhook-subscription-form.jsp": 1,
-    "calendar/full-calendar.jsp": 3,
     "cms/web-page-templates.jsp": 1,
     "mailinglists/email-subscribe-inline-form.jsp": 1,
     "mailinglists/email-subscribe-vertical-form.jsp": 2,

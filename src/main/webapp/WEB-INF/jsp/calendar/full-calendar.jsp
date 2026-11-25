@@ -494,15 +494,15 @@
         </div>
       </div>
       <label>Video / Meeting Link
-        <input type="text" placeholder="https://..." name="videoUrl" id="videoUrl" value="">
+        <input type="text" placeholder="https://..." name="videoUrl" id="videoUrl" value="" aria-describedby="videoUrlHelpText">
       </label>
-      <p class="help-text">Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</p>
+      <p class="help-text" id="videoUrlHelpText">Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</p>
       <label>Tags
-        <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" id="tagsList" value="" maxlength="255">
+        <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" id="tagsList" value="" maxlength="255" aria-describedby="tagsListHelpText">
       </label>
-      <p class="help-text">Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</p>
-      <input id="enabled" type="checkbox" name="enabled" value="true" checked/><label for="enabled">Publish it?</label>
-      <p class="help-text">Unchecked saves this event as a draft, hidden from the public calendar.</p>
+      <p class="help-text" id="tagsListHelpText">Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</p>
+      <input id="enabled" type="checkbox" name="enabled" value="true" checked aria-describedby="enabledHelpText"/><label for="enabled">Publish it?</label>
+      <p class="help-text" id="enabledHelpText">Unchecked saves this event as a draft, hidden from the public calendar.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
         <input id="duplicateButton" type="submit" class="button radius primary expanded hide" name="duplicate" value="Duplicate" />
