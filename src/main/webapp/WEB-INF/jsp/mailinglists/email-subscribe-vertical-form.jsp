@@ -86,11 +86,13 @@
   </c:if>
   <c:if test="${showName eq 'true'}">
     <div class="small-12 cell">
+      <label for="name${widgetContext.uniqueId}" class="show-for-sr">First name</label>
       <input type="text" id="name${widgetContext.uniqueId}" placeholder="Your first name" required>
       <p class="help-text" id="nameHelpText${widgetContext.uniqueId}"></p>
     </div>
   </c:if>
   <div class="small-12 cell">
+    <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
     <input type="text" id="email${widgetContext.uniqueId}" placeholder="Your email address" required>
     <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
   </div>
