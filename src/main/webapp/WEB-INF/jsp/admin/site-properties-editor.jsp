@@ -367,6 +367,9 @@
                   <c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if>
                   <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}"> aria-describedby="securityIframeAllowedHostsHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.password.maxAgeDays'}"> aria-describedby="securityPasswordMaxAgeDaysHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.csp.reportOnly'}"> aria-describedby="securityCspReportOnlyHelpText"</c:if>
+                  <c:if test="${siteProperty.name eq 'security.previewLinkTtlHours'}"> aria-describedby="securityPreviewLinkTtlHoursHelpText"</c:if>
                   />
             </c:otherwise>
           </c:choose>
@@ -511,6 +514,12 @@
           <c:if test="${siteProperty.name eq 'security.iframe.allowedHosts'}">
             <p class="help-text" id="securityIframeAllowedHostsHelpText">Extra hosts whose embeds may appear on this site, separated by commas or spaces -- host names only, no <code>https://</code> and no path, for example <code>www.google.com</code> or <code>app.vendor.com</code>. Blank is the safe default and means only the hosts the platform itself needs. YouTube and Vimeo are always allowed for the Video widget and don't need to be listed; a Metabase host is added automatically when BI is enabled. Two things enforce this list: an embed from a host not on it is stripped when content is saved, and the page's Content-Security-Policy refuses to load one, so removing a host here also stops embeds already published from that host -- check what's live before removing one. Only add a host whose content is trusted: an embedded page can show anything its owner puts there.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.csp.reportOnly'}">
+            <p class="help-text" id="securityCspReportOnlyHelpText">A stricter Content Security Policy to try against real traffic without enforcing it. Browsers check each page against it as well as the enforced policy but block nothing, and whatever it would have blocked is reported to the <a href="${ctx}/admin/csp-violations">CSP Violations</a> page. Write <code>{nonce}</code> where the page's script nonce belongs, as in <code>script-src 'nonce-{nonce}'</code>. Leave out <code>report-uri</code> and <code>report-to</code>: they're added for you, so reports reach that page. Blank, the default, turns this off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.previewLinkTtlHours'}">
+            <p class="help-text" id="securityPreviewLinkTtlHoursHelpText">How many hours a draft preview link works after someone clicks Get Preview Link in the page editor. Until it expires, anyone with the link can view the page's current draft without signing in. Publishing or discarding the draft ends that page's links sooner. A change here applies only to links created afterward. Default is 24 hours, also used for a blank or invalid value. There's no upper limit.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS key and LRS secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
           </c:if>
@@ -637,6 +646,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'security.password.minLength'}">
             <p class="help-text" id="securityPasswordMinLengthHelpText">The fewest characters a new password can have. Applies whenever a password is set or changed -- self-registration, a self-service or admin-forced reset, and guest checkout account creation -- never retroactively to a password someone already has. Never enforced below 8 characters even if set lower here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.password.maxAgeDays'}">
+            <p class="help-text" id="securityPasswordMaxAgeDaysHelpText">How many days a password can go unchanged before it's flagged. A user's details page labels a password older than this "Aging" and one older than twice this "Overdue". A password with no recorded change date, shown as "Never tracked", is also "Overdue". The Users list's "Aging passwords" filter shows both. It's a reminder for administrators only: no one is made to change a password or told that theirs is old. Default is 90 days, also used for a blank or invalid value.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
