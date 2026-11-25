@@ -82,8 +82,6 @@ JSP_ROOT = os.path.join(WEBAPP_ROOT, "WEB-INF", "jsp")
 # fails, a count BELOW is only a note, so a PR that links help is never blocked.
 BACKLOG: dict[str, int] = {
     "cms/web-page-templates.jsp": 1,
-    "mailinglists/email-subscribe-inline-form.jsp": 1,
-    "mailinglists/email-subscribe-vertical-form.jsp": 2,
 }
 
 # Files where every help-text element describes one field, so every one needs an id however
