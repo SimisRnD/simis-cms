@@ -164,10 +164,10 @@
                 <c:if test="${empty menuItem.parentMenuItemId or menuItem.parentMenuItemId le 0}">
                   <div class="site-map-subitem-add">
                     <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemName"
-                           placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value=""/>
+                           placeholder="New sub-item..." title="Adds a sub-item under <c:out value="${menuItem.name}"/>" value="" aria-describedby="subItemHelpText${menuItem.id}"/>
                     <input class="input-group-field" type="text" name="menuItem${menuItem.id}subItemLink"
-                           placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks"/>
-                           <p class="help-text u-mt-4 u-mb-0">
+                           placeholder="Optional /link" title="Page path starting with /, e.g. /usv-fos" value="" list="webPageLinks" aria-describedby="subItemHelpText${menuItem.id}"/>
+                           <p class="help-text u-mt-4 u-mb-0" id="subItemHelpText${menuItem.id}">
                              Adds a third-level entry under <strong><c:out value="${menuItem.name}"/></strong>, shown when a
                              visitor opens this item. Name is required; the link is optional and is derived from the name when
                              left blank. Saved with the button at the bottom of the page.

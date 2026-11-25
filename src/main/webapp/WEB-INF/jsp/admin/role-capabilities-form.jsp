@@ -32,7 +32,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form --%>
   <input type="hidden" name="roleId" value="${role.id}"/>
-  <fieldset>
+  <fieldset aria-describedby="revokeAdminHelpText">
     <legend>Capabilities</legend>
     <c:forEach items="${capabilityList}" var="capability">
       <label>
@@ -41,12 +41,12 @@
       </label>
     </c:forEach>
   </fieldset>
-  <p class="help-text">Revoking "admin:manage" is refused if no one would be left holding it through any role or direct grant. Every other capability can be revoked here down to zero holders with no warning - confirm some other path to that functionality exists first.</p>
+  <p class="help-text" id="revokeAdminHelpText">Revoking "admin:manage" is refused if no one would be left holding it through any role or direct grant. Every other capability can be revoked here down to zero holders with no warning - confirm some other path to that functionality exists first.</p>
   <label>Reason (required)
-    <input type="text" name="reason" placeholder="Why is this change being made?" required>
+    <input type="text" name="reason" placeholder="Why is this change being made?" aria-describedby="reasonHelpText reasonAuditHelpText" required>
   </label>
-  <p class="help-text">The reason you enter is the only free-text detail that lands in the audit trail for this exact change - write something a future reader would actually find useful (what changed and why, e.g. a ticket or decision reference), not "cleanup" or "fix".</p>
-  <p class="help-text">Every grant or revoke here is recorded in the platform's audit log along with this reason. Sessions already logged in as an affected user won't see the change take effect until they log in again - tell them to log out and back in if the change needs to apply now.</p>
+  <p class="help-text" id="reasonHelpText">The reason you enter is the only free-text detail that lands in the audit trail for this exact change - write something a future reader would actually find useful (what changed and why, e.g. a ticket or decision reference), not "cleanup" or "fix".</p>
+  <p class="help-text" id="reasonAuditHelpText">Every grant or revoke here is recorded in the platform's audit log along with this reason. Sessions already logged in as an affected user won't see the change take effect until they log in again - tell them to log out and back in if the change needs to apply now.</p>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save"/>
     <a href="${ctx}/admin/role-capabilities" class="button radius secondary">Cancel</a>

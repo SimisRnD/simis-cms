@@ -81,20 +81,6 @@ JSP_ROOT = os.path.join(WEBAPP_ROOT, "WEB-INF", "jsp")
 # pointer names. Debt with a deadline, not an exemption -- a count ABOVE the recorded number
 # fails, a count BELOW is only a note, so a PR that links help is never blocked.
 BACKLOG: dict[str, int] = {
-    "admin/bot-list-form.jsp": 2,
-    "admin/capability-grants.jsp": 1,
-    "admin/content-form.jsp": 1,
-    "admin/dataset-sync.jsp": 1,
-    "admin/dataset-upload-form.jsp": 1,
-    "admin/folder-files-list.jsp": 1,
-    "admin/group-form.jsp": 1,
-    "admin/integration-registry.jsp": 1,
-    "admin/role-capabilities-form.jsp": 2,
-    "admin/sitemap-editor.jsp": 1,
-    "admin/social-media-link-form.jsp": 1,
-    "admin/user-form.jsp": 2,
-    "admin/web-redirect-form.jsp": 1,
-    "admin/webhook-subscription-form.jsp": 1,
     "cms/web-page-templates.jsp": 1,
     "mailinglists/email-subscribe-inline-form.jsp": 1,
     "mailinglists/email-subscribe-vertical-form.jsp": 2,

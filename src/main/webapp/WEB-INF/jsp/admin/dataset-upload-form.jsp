@@ -42,9 +42,9 @@
   </label>
   <%--<label for="file" class="button radius">Choose File...</label>--%>
   <label>Upload a file
-    <input type="file" id="file" name="file" accept="text/csv,.csv,application/json,application/vnd.geo+json,.json,.geojson,text/tab-separated-values,.tsv">
+    <input type="file" id="file" name="file" accept="text/csv,.csv,application/json,application/vnd.geo+json,.json,.geojson,text/tab-separated-values,.tsv" aria-describedby="datasetFileHelpText">
   </label>
-  <p class="help-text">File must be a .csv, .tsv, .json, or .geojson. RSS+XML and JSON API sources are supplied via URL above instead of a file upload.</p>
+  <p class="help-text" id="datasetFileHelpText">File must be a .csv, .tsv, .json, or .geojson. RSS+XML and JSON API sources are supplied via URL above instead of a file upload.</p>
   <label>Dataset Type <span class="required">*</span>
     <select name="fileType">
       <option value="application/json"<c:if test="${dataset.fileType eq 'application/json'}"> selected</c:if>>JSON</option>

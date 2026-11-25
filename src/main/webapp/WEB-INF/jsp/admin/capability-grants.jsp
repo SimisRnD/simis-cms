@@ -42,7 +42,7 @@
   <div class="grid-x grid-padding-x">
     <div class="cell medium-4">
       <label>Capability
-        <select name="capabilityId" required>
+        <select name="capabilityId" aria-describedby="grantHelpText" required>
           <option value="">Select...</option>
           <c:forEach items="${capabilityList}" var="capability">
             <option value="${capability.id}"><c:out value="${capability.code}" /> - <c:out value="${capability.description}" /></option>
@@ -52,7 +52,7 @@
     </div>
     <div class="cell medium-3">
       <label>Expires (optional)
-        <input type="date" name="expiresAt">
+        <input type="date" name="expiresAt" aria-describedby="grantHelpText">
       </label>
     </div>
     <div class="cell medium-5">
@@ -61,7 +61,7 @@
       </label>
     </div>
   </div>
-  <p class="help-text">Only capabilities that already exist in the system appear in the list above, and only one
+  <p class="help-text" id="grantHelpText">Only capabilities that already exist in the system appear in the list above, and only one
     active grant of a given capability is allowed per user at a time - granting a second one while the first is
     still active is refused with a message telling you to revoke the first rather than silently overwriting it. If
     you set an expiration date, re-open this page afterward and confirm the Expires column below shows the date you

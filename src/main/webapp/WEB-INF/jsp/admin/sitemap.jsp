@@ -72,14 +72,14 @@
 <div class="grid-x grid-margin-x">
   <div class="small-12 medium-5 cell">
     <div class="input-group">
-      <input class="input-group-field" type="text" id="siteMapNewTabName" placeholder="New tab name" title="The name shown in the menu, e.g. Solutions" value="">
-      <input class="input-group-field" type="text" id="siteMapNewTabLink" placeholder="Optional /link" title="Page path starting with /, e.g. /solutions. Leave blank if this tab should only open a submenu." value="">
-      <input class="input-group-field" type="text" id="siteMapNewTabIcon" placeholder="Optional icon" title="Icon name from the site's icon set, without the fa- prefix, e.g. briefcase" value="">
+      <input class="input-group-field" type="text" id="siteMapNewTabName" placeholder="New tab name" title="The name shown in the menu, e.g. Solutions" value="" aria-describedby="siteMapNewTabHelpText">
+      <input class="input-group-field" type="text" id="siteMapNewTabLink" placeholder="Optional /link" title="Page path starting with /, e.g. /solutions. Leave blank if this tab should only open a submenu." value="" aria-describedby="siteMapNewTabHelpText">
+      <input class="input-group-field" type="text" id="siteMapNewTabIcon" placeholder="Optional icon" title="Icon name from the site's icon set, without the fa- prefix, e.g. briefcase" value="" aria-describedby="siteMapNewTabHelpText">
       <div class="input-group-button">
-        <input type="button" id="siteMapAddTabButton" class="button success" value="Add Tab">
+        <input type="button" id="siteMapAddTabButton" class="button success" value="Add Tab" aria-describedby="siteMapNewTabHelpText">
       </div>
     </div>
-    <p class="help-text">Name is required. Link must start with / (e.g. /solutions) and is optional. Icon is an
+    <p class="help-text" id="siteMapNewTabHelpText">Name is required. Link must start with / (e.g. /solutions) and is optional. Icon is an
       optional icon name -- do not include the fa- prefix. Added here, this tab isn't saved until you click
       Save Site Map Changes below.</p>
   </div>
@@ -167,12 +167,12 @@
               </div>
             </c:forEach>
           </div>
-          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemName" placeholder="New item..." title="Adds a new submenu item under ${fn:escapeXml(menuTab.name)}" value="">
-          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="">
+          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemName" placeholder="New item..." title="Adds a new submenu item under ${fn:escapeXml(menuTab.name)}" value="" aria-describedby="menuItemHelpText${menuTab.id}">
+          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="" aria-describedby="menuItemHelpText${menuTab.id}">
           <div class="button-container">
             <input type="submit" class="button tiny expanded success" value="Add Item">
           </div>
-          <p class="help-text">Adds a submenu item under <strong><c:out value="${menuTab.name}"/></strong>. Link must start with /.</p>
+          <p class="help-text" id="menuItemHelpText${menuTab.id}">Adds a submenu item under <strong><c:out value="${menuTab.name}"/></strong>. Link must start with /.</p>
         </c:if>
       </div>
     </c:forEach>
@@ -308,10 +308,10 @@
     // whole form, exactly as it always has for an existing tab).
     var itemsMarkup = document.createElement('div');
     itemsMarkup.innerHTML =
-      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemName" placeholder="New item..." title="Adds a new submenu item under this tab" value="">' +
-      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="">' +
+      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemName" placeholder="New item..." title="Adds a new submenu item under this tab" value="" aria-describedby="menuItemHelpText' + tempId + '">' +
+      '<input class="input-group-field" type="text" name="menuTab' + tempId + 'menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="" aria-describedby="menuItemHelpText' + tempId + '">' +
       '<div class="button-container"><input type="submit" class="button tiny expanded success" value="Add Item"></div>' +
-      '<p class="help-text">Adds a submenu item under <strong class="site-map-new-tab-name-2"></strong>. Link must start with /.</p>';
+      '<p class="help-text" id="menuItemHelpText' + tempId + '">Adds a submenu item under <strong class="site-map-new-tab-name-2"></strong>. Link must start with /.</p>';
     itemsMarkup.querySelector('.site-map-new-tab-name-2').textContent = name;
     while (itemsMarkup.firstChild) {
       container.appendChild(itemsMarkup.firstChild);
