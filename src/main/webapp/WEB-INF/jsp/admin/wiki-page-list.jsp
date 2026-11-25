@@ -73,6 +73,9 @@
   });
 </script>
 <form id="newWikiPageForm" class="margin-bottom-10">
+  <%-- A placeholder isn't a label: it isn't reliably announced as the field's name, and it's gone
+       once something is typed. Hidden so the layout is unchanged. --%>
+  <label for="newWikiPageTitle" class="show-for-sr">New page title</label>
   <div class="input-group">
     <input id="newWikiPageTitle" class="input-group-field" type="text" placeholder="New page title&#8230;" aria-describedby="newWikiPageTitleHelpText" required>
     <div class="input-group-button">
