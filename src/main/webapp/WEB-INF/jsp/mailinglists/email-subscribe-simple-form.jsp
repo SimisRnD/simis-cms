@@ -82,9 +82,10 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
+  <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
   <div class="input-group">
     <%--<span class="input-group-label">$</span>--%>
-    <input class="input-group-field" type="text" name="email" placeholder="Your email" required>
+    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" name="email" placeholder="Your email" required>
     <div class="input-group-button">
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
@@ -100,10 +101,10 @@
           <input type="submit" class="button" value="<c:out value="${buttonName}" />"/>
         </c:when>
         <c:when test="${useCaptcha eq 'true'}">
-          Please enter the text value you see in the image:<br />
+          <span id="captchaPrompt${widgetContext.uniqueId}">Please enter the text value you see in the image:</span><br />
           <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" />
           <a href="#" data-captcha-refresh class="margin-left-5" title="Get a new image" aria-label="Get a new captcha image"><i class="fa fa-sync-alt"></i></a><br />
-          <input type="text" name="captcha" value="" required/>
+          <input type="text" name="captcha" value="" aria-labelledby="captchaPrompt${widgetContext.uniqueId}" required/>
           <input type="submit" class="button" value="<c:out value="${buttonName}" />"/>
         </c:when>
         <c:otherwise>

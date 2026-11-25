@@ -155,9 +155,9 @@
           <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
         </c:when>
         <c:when test="${useCaptcha eq 'true'}">
-          <p class="help-text">Please enter the text value you see in the image:</p>
+          <p class="help-text" id="captchaPrompt${widgetContext.uniqueId}">Please enter the text value you see in the image:</p>
           <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" /><br />
-          <input type="text" name="captcha" value="" required/>
+          <input type="text" name="captcha" value="" aria-labelledby="captchaPrompt${widgetContext.uniqueId}" required/>
           <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
         </c:when>
         <c:otherwise>
