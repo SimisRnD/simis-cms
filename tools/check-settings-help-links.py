@@ -19,7 +19,8 @@ help paragraphs had no pointer, 10 of them because they had no id to point at.
 
 What counts as a finding
 ------------------------
-In the editor and every file it statically includes (``<%@ include file=... %>``):
+In the editor and every file it includes (``<%@ include file=... %>``,
+``<jsp:directive.include file=.../>`` or ``<jsp:include page=.../>``):
 
   * a ``help-text`` element with no literal ``id``, so nothing can point at it.
     ``page-help`` paragraphs describe the whole page rather than one field, so
@@ -31,10 +32,22 @@ In the editor and every file it statically includes (``<%@ include file=... %>``
   * an ``aria-describedby`` naming an id that doesn't exist, which is usually a
     typo and links nothing.
 
-``aria-describedby="${name}"`` is followed through ``<c:set var="name" value="..."/>``,
-which is how ``logo-color-picker.jspf`` picks the help for whichever of its four
-properties it is rendering. Comments and ``<script>`` bodies are blanked first,
-preserving line numbers, so prose that mentions an attribute is not a link.
+The check fails rather than passes when it can't see something, because a gate
+that quietly reads less than the page renders passes the very change it exists to
+catch:
+
+  * an include it can't find, or whose path is computed, is a finding, not a skip.
+  * an ``aria-describedby`` it can't resolve to an id is a finding.
+    ``aria-describedby="${name}"`` is followed through ``<c:set var="name" ...>``
+    (either attribute order, either quote style, ``value=`` or a tag body), which
+    is how ``logo-color-picker.jspf`` picks the help for whichever of its four
+    properties it is rendering. A variable that is never set, or is set from an
+    expression, can't be resolved.
+  * attributes are read whether double-quoted, single-quoted or unquoted, so
+    ``type='hidden'`` or ``class=help-text`` can't slip past.
+
+Comments and ``<script>`` bodies are blanked first, preserving line numbers, so
+prose that mentions an attribute is not a link.
 
 There is no backlog: every field help in the editor is linked, so any finding is a
 regression.
@@ -50,24 +63,34 @@ import os
 import re
 import sys
 
-JSP_ROOT = os.path.join("src", "main", "webapp", "WEB-INF", "jsp")
+WEBAPP_ROOT = os.path.join("src", "main", "webapp")
+JSP_ROOT = os.path.join(WEBAPP_ROOT, "WEB-INF", "jsp")
 EDITOR = "admin/site-properties-editor.jsp"
 
 COMMENT_RE = re.compile(r"<%--.*?--%>|<!--.*?-->", re.S)
 # [^>]* after the tag name: the parser ends a script at </script foo> too. See
 # check-icon-link-names.py, where CodeQL py/bad-tag-filter flagged the narrower form.
 SCRIPT_RE = re.compile(r"<script\b.*?</script\b[^>]*>", re.S | re.I)
-INCLUDE_RE = re.compile(r'<%@\s*include\s+file\s*=\s*"([^"]+)"\s*%>')
-SET_RE = re.compile(r'<c:set\s+var\s*=\s*"(\w+)"\s+value\s*=\s*"([\w-]+)"\s*/>')
+# A quoted attribute value, either quote style. Used wherever a tag is read whole, so a ">"
+# inside a value never ends the tag early.
+_QUOTED = r"(?:\"[^\"]*\"|'[^']*')"
+_TAG_BODY = r"(?:[^>\"']|%s)*" % _QUOTED
+INCLUDE_RES = (
+    re.compile(r"<%@\s*include\b(" + _TAG_BODY + r")%>", re.S),
+    re.compile(r"<jsp:directive\.include\b(" + _TAG_BODY + r")/?>", re.S),
+    re.compile(r"<jsp:include\b(" + _TAG_BODY + r")/?>", re.S),
+)
+SET_SELF_CLOSING_RE = re.compile(r"<c:set\b(" + _TAG_BODY + r")/>", re.S)
+SET_WITH_BODY_RE = re.compile(r"<c:set\b(" + _TAG_BODY + r")(?<!/)>(.*?)</c:set\s*>", re.S)
 # Scriptlets and JSP action tags. These are blanked before reading HTML tags, because the
 # editor puts <c:if ...>aria-describedby="..."</c:if> INSIDE an input's opening tag, and the
-# ">" each <c:if> carries would otherwise end that tag early. Quoted strings are consumed
-# whole so a ">" inside an attribute value doesn't end the action tag either.
-JSP_TAG_RE = re.compile(
-    r"<%.*?%>|</?[a-zA-Z][\w-]*:[\w-]+\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*/?>", re.S)
-ELEMENT_RE = re.compile(r"<([a-zA-Z][\w-]*)\b((?:[^>\"']|\"[^\"]*\"|'[^']*')*)>", re.S)
-ATTR_RE = re.compile(r"([\w:-]+)\s*=\s*\"([^\"]*)\"")
+# ">" each <c:if> carries would otherwise end that tag early.
+JSP_TAG_RE = re.compile(r"<%.*?%>|</?[a-zA-Z][\w-]*:[\w-]+\b" + _TAG_BODY + r"/?>", re.S)
+ELEMENT_RE = re.compile(r"<([a-zA-Z][\w-]*)\b(" + _TAG_BODY + r")>", re.S)
+# Double-quoted, single-quoted or unquoted, as HTML allows all three.
+ATTR_RE = re.compile(r"([^\s\"'<>/=]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'=<>`]+))")
 VAR_RE = re.compile(r"^\$\{\s*(\w+)\s*\}$")
+LITERAL_ID_RE = re.compile(r"^[A-Za-z][\w:.-]*$")
 
 
 def _spaces(m: re.Match) -> str:
@@ -78,68 +101,125 @@ def strip_comments(text: str) -> str:
     return SCRIPT_RE.sub(_spaces, COMMENT_RE.sub(_spaces, text))
 
 
-def collect_files(root: str) -> list[str]:
-    """The editor plus everything it statically includes, as paths relative to JSP_ROOT."""
+def parse_attrs(text: str) -> list[tuple[str, str]]:
+    """(lowercased name, value) for every attribute, however its value is quoted."""
+    attrs = []
+    for m in ATTR_RE.finditer(text):
+        value = next(g for g in m.groups()[1:] if g is not None)
+        attrs.append((m.group(1).lower(), value))
+    return attrs
+
+
+def _line(text: str, offset: int) -> int:
+    return text[:offset].count("\n") + 1
+
+
+def collect_files(root: str) -> tuple[list[str], list[tuple[str, int, str]]]:
+    """The editor plus everything it includes, as paths relative to JSP_ROOT.
+
+    Also returns a finding for every include that couldn't be followed, so a file the page
+    renders is never silently left unchecked.
+    """
     base = os.path.join(root, JSP_ROOT)
+    webapp = os.path.join(root, WEBAPP_ROOT)
     order: list[str] = []
+    problems: list[tuple[str, int, str]] = []
     pending = [EDITOR]
     while pending:
         rel = pending.pop(0)
-        if rel in order or not os.path.isfile(os.path.join(base, rel)):
+        if rel in order:
             continue
         order.append(rel)
         with open(os.path.join(base, rel), encoding="utf-8", errors="replace") as handle:
             text = strip_comments(handle.read())
-        for target in INCLUDE_RE.findall(text):
-            joined = os.path.normpath(os.path.join(os.path.dirname(rel), target))
-            pending.append(joined.replace(os.sep, "/"))
-    return order
+        for pattern in INCLUDE_RES:
+            for m in pattern.finditer(text):
+                attrs = dict(parse_attrs(m.group(1)))
+                target = attrs.get("file", attrs.get("page"))
+                line = _line(text, m.start())
+                if not target or "${" in target or "<%" in target:
+                    problems.append((rel, line, "include with a computed or missing path "
+                                     "can't be followed, so it wasn't checked"))
+                    continue
+                if target.startswith("/"):
+                    path = os.path.normpath(os.path.join(webapp, target.lstrip("/")))
+                else:
+                    path = os.path.normpath(os.path.join(base, os.path.dirname(rel), target))
+                if not os.path.isfile(path):
+                    problems.append((rel, line, 'included file "%s" not found, so it wasn\'t '
+                                     "checked" % target))
+                    continue
+                pending.append(os.path.relpath(path, base).replace(os.sep, "/"))
+    return order, problems
 
 
-def scan(root: str) -> list[tuple[str, int, str]]:
-    """Return (file, line, message) for every finding, in file order."""
+def collect_variables(text: str) -> dict[str, set[str | None]]:
+    """Every value each <c:set> variable can take; None marks one set from an expression."""
+    found: dict[str, set[str | None]] = {}
+    sets = [(dict(parse_attrs(m.group(1))), None) for m in SET_SELF_CLOSING_RE.finditer(text)]
+    sets += [(dict(parse_attrs(m.group(1))), m.group(2)) for m in SET_WITH_BODY_RE.finditer(text)]
+    for attrs, body in sets:
+        var = attrs.get("var")
+        if not var:
+            continue
+        value = attrs.get("value", body)
+        value = value.strip() if value is not None else None
+        found.setdefault(var, set()).add(
+            value if value is not None and LITERAL_ID_RE.match(value) else None)
+    return found
+
+
+def scan(root: str) -> tuple[list[str], list[tuple[str, int, str]]]:
+    """Return the files read and (file, line, message) for every finding, in file order."""
     base = os.path.join(root, JSP_ROOT)
-    files = collect_files(root)
+    files, findings = collect_files(root)
     elements = []  # (file, line, tag, attrs as list of (name, value))
-    variables: dict[str, set[str]] = {}
+    variables: dict[str, set[str | None]] = {}
     for rel in files:
         with open(os.path.join(base, rel), encoding="utf-8", errors="replace") as handle:
             text = strip_comments(handle.read())
-        for var, value in SET_RE.findall(text):
-            variables.setdefault(var, set()).add(value)
+        for var, values in collect_variables(text).items():
+            variables.setdefault(var, set()).update(values)
         cleaned = JSP_TAG_RE.sub(_spaces, text)
         for m in ELEMENT_RE.finditer(cleaned):
-            line = cleaned[: m.start()].count("\n") + 1
-            elements.append((rel, line, m.group(1).lower(), ATTR_RE.findall(m.group(2))))
+            elements.append((rel, _line(cleaned, m.start()), m.group(1).lower(),
+                             parse_attrs(m.group(2))))
 
     ids: set[str] = set()
-    for _rel, _line, _tag, attrs in elements:
+    for _rel, _line_no, _tag, attrs in elements:
         for name, value in attrs:
-            if name.lower() == "id" and "${" not in value:
+            if name == "id" and "${" not in value:
                 ids.add(value)
 
-    findings: list[tuple[str, int, str]] = []
     help_paragraphs = []
     linked: set[str] = set()
     for rel, line, tag, attrs in elements:
-        classes = [v.split() for n, v in attrs if n.lower() == "class"]
-        classes = classes[0] if classes else []
+        classes = next((v.split() for n, v in attrs if n == "class"), [])
         hidden = tag == "input" and any(
-            n.lower() == "type" and v.strip().lower() == "hidden" for n, v in attrs)
+            n == "type" and v.strip().lower() == "hidden" for n, v in attrs)
         if "help-text" in classes and "page-help" not in classes:
-            own_id = [v for n, v in attrs if n.lower() == "id"]
-            help_paragraphs.append((rel, line, own_id[0] if own_id else None))
+            own_id = next((v for n, v in attrs if n == "id"), None)
+            help_paragraphs.append((rel, line, own_id))
         for name, value in attrs:
-            if name.lower() != "aria-describedby":
+            if name != "aria-describedby":
                 continue
             if hidden:
                 findings.append((rel, line, "aria-describedby on a hidden input is never "
                                  "announced; put it on the control the user reaches"))
                 continue
             var = VAR_RE.match(value.strip())
-            tokens = sorted(variables.get(var.group(1), set())) if var else value.split()
+            if var:
+                values = variables.get(var.group(1))
+                if not values or None in values:
+                    findings.append((rel, line, 'aria-describedby="%s" can\'t be resolved to '
+                                     "an id: set it with a literal <c:set> value" % value))
+                tokens = sorted(v for v in (values or ()) if v is not None)
+            else:
+                tokens = value.split()
             for token in tokens:
-                if "${" in token:
+                if "${" in token or "<%" in token:
+                    findings.append((rel, line, 'aria-describedby="%s" can\'t be resolved to '
+                                     "an id" % value))
                     continue
                 if token not in ids:
                     findings.append((rel, line, 'aria-describedby="%s" names no element '
@@ -147,13 +227,14 @@ def scan(root: str) -> list[tuple[str, int, str]]:
                 linked.add(token)
 
     for rel, line, own_id in help_paragraphs:
-        if not own_id:
-            findings.append((rel, line, "help text has no id, so no field can point at it"))
+        if not own_id or "${" in own_id:
+            findings.append((rel, line, "help text has no literal id, so no field can "
+                             "point at it"))
         elif own_id not in linked:
             findings.append((rel, line, 'id="%s" has no aria-describedby pointing at it'
                              % own_id))
     findings.sort(key=lambda f: (files.index(f[0]), f[1]))
-    return findings
+    return files, findings
 
 
 def main() -> int:
@@ -167,7 +248,7 @@ def main() -> int:
         print("MISSING  %s" % os.path.join(JSP_ROOT, EDITOR), file=sys.stderr)
         return 1
 
-    findings = scan(args.root)
+    files, findings = scan(args.root)
     if findings:
         print("FAIL  %d settings help problem(s) in %s and its includes"
               % (len(findings), EDITOR))
@@ -183,7 +264,7 @@ def main() -> int:
         return 1 if args.strict else 0
 
     print("OK  every field help in %s is linked to its field (%d file(s) checked)"
-          % (EDITOR, len(collect_files(args.root))))
+          % (EDITOR, len(files)))
     return 0
 
 

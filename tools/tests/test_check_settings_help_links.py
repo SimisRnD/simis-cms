@@ -61,7 +61,7 @@ def test_help_with_no_id_is_a_finding(repo):
     write(repo, EDITOR, '<p class="help-text">Explains a field.</p>\n')
     result = check(repo, "--strict")
     assert result.returncode == 1
-    assert "line 1  help text has no id" in result.stdout
+    assert "line 1  help text has no literal id" in result.stdout
 
 
 def test_page_help_is_not_field_help(repo):
@@ -144,6 +144,102 @@ def test_a_tag_inside_an_attribute_value_does_not_end_the_element(repo):
           '    <c:if test="${siteProperty.name eq \'mail.port\'}"> aria-describedby="mailPortHelpText"</c:if>\n'
           '    />\n' + HELP)
     assert check(repo, "--strict").returncode == 0
+
+
+def test_an_include_that_is_not_found_is_a_finding_not_a_skip(repo):
+    """Skipping it would leave whatever that file renders unchecked, and pass."""
+    write(repo, EDITOR, '<%@ include file="missing-picker.jspf" %>\n' + INPUT + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert 'line 1  included file "missing-picker.jspf" not found' in result.stdout
+
+
+def test_an_include_with_a_computed_path_is_a_finding(repo):
+    write(repo, EDITOR, '<jsp:include page="${pickerPage}" />\n' + INPUT + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "line 1  include with a computed or missing path" in result.stdout
+
+
+def test_single_quoted_and_other_include_forms_are_followed(repo):
+    write(repo, EDITOR,
+          "<%@include file='logo-color-picker.jspf' %>\n"
+          '<jsp:directive.include file="/WEB-INF/jsp/admin/other.jspf"/>\n'
+          '<jsp:include page="third.jsp" />\n')
+    write(repo, PICKER, '<p class="help-text" id="a">A.</p><div aria-describedby="a"></div>\n')
+    write(repo, "src/main/webapp/WEB-INF/jsp/admin/other.jspf",
+          '<p class="help-text" id="b">B.</p><div aria-describedby="b"></div>\n')
+    write(repo, "src/main/webapp/WEB-INF/jsp/admin/third.jsp",
+          '<p class="help-text">No id.</p>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "admin/third.jsp: line 1  help text has no literal id" in result.stdout
+    assert result.stdout.count("  admin/") == 1
+
+
+def test_a_single_quoted_hidden_input_is_still_hidden(repo):
+    write(repo, EDITOR,
+          "<input type='hidden' name='mail.port' aria-describedby='mailPortHelpText' />\n"
+          + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "line 1  aria-describedby on a hidden input" in result.stdout
+
+
+def test_an_unquoted_hidden_input_is_still_hidden(repo):
+    write(repo, EDITOR,
+          '<input type=hidden name=mail.port aria-describedby=mailPortHelpText>\n' + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "line 1  aria-describedby on a hidden input" in result.stdout
+
+
+def test_single_quoted_help_and_link_are_read(repo):
+    write(repo, EDITOR,
+          "<input type='text' aria-describedby='portHelp' />\n"
+          "<p class='help-text' id='portHelp'>Port.</p>\n"
+          "<p class=help-text id=otherHelp>Other.</p>\n")
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert 'line 3  id="otherHelp" has no aria-describedby' in result.stdout
+    assert "portHelp" not in result.stdout
+
+
+def test_a_variable_that_is_never_set_is_a_finding(repo):
+    write(repo, EDITOR,
+          '<div role="group" aria-describedby="${logoColorHelpTextId}"></div>\n'
+          '<p class="help-text" id="themeLogoColorHelpText">Header logo.</p>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert 'line 1  aria-describedby="${logoColorHelpTextId}" can\'t be resolved' in result.stdout
+
+
+def test_a_variable_set_from_an_expression_is_a_finding(repo):
+    write(repo, EDITOR,
+          '<c:set var="helpId" value="${siteProperty.name}HelpText"/>\n'
+          '<input type="text" aria-describedby="${helpId}" />\n' + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert 'line 2  aria-describedby="${helpId}" can\'t be resolved' in result.stdout
+
+
+def test_an_expression_inside_a_list_is_a_finding(repo):
+    write(repo, EDITOR,
+          '<input type="text" aria-describedby="mailPortHelpText ${extraHelp}" />\n' + HELP)
+    result = check(repo, "--strict")
+    assert result.returncode == 1
+    assert "can't be resolved to an id" in result.stdout
+
+
+def test_other_c_set_forms_are_followed(repo):
+    write(repo, EDITOR,
+          "<c:set value='mailPortHelpText' var='helpId'/>\n"
+          '<c:set var="otherId">otherHelpText</c:set>\n'
+          '<input type="text" aria-describedby="${helpId}" />\n'
+          '<input type="text" aria-describedby="${otherId}" />\n'
+          + HELP + '<p class="help-text" id="otherHelpText">Other.</p>\n')
+    result = check(repo, "--strict")
+    assert result.returncode == 0, result.stdout
 
 
 def test_repository_is_clean():
