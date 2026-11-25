@@ -71,6 +71,8 @@ public class OrderUpdatesFormWidget extends GenericWidget {
     // Enable the account creation button for non-users
     if (!context.getUserSession().isLoggedIn()) {
       context.getRequest().setAttribute("allowRegistrations", LoadSitePropertyCommand.loadByName("site.registrations"));
+      // The password rule in force, from the same settings post() enforces
+      context.getRequest().setAttribute("passwordHelp", PasswordPolicyCommand.describe());
     }
 
     // Try to populate the first/last name

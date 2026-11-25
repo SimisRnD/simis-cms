@@ -99,7 +99,7 @@
                 aria-pressed="false" aria-label="Show the value while typing"
                 title="Show the value while typing"><i class="fa fa-eye" aria-hidden="true"></i></button>
       </div>
-      <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
+      <p class="help-text" id="passwordHelpText"><c:out value="${passwordHelp}"/></p>
       <label for="register-password-confirm">Re-Enter Password</label>
       <div class="password-field">
         <input id="register-password-confirm" name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
