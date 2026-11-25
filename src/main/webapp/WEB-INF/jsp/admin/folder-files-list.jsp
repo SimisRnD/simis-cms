@@ -429,9 +429,9 @@
         <input type="text" placeholder="Version" name="version" id="version" value="">
       </label>
       <label>Expiration date (optional)
-        <input type="datetime-local" name="expirationDate" id="expirationDate" value="">
+        <input type="datetime-local" name="expirationDate" id="expirationDate" value="" aria-describedby="expirationDateHelpText">
       </label>
-      <p class="help-text">Once this date passes, non-admin users can no longer download or view the file. It stays visible and manageable here, and admins keep full access.</p>
+      <p class="help-text" id="expirationDateHelpText">Once this date passes, non-admin users can no longer download or view the file. It stays visible and manageable here, and admins keep full access.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
       </div>

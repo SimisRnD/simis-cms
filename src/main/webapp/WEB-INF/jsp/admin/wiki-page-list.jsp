@@ -74,12 +74,12 @@
 </script>
 <form id="newWikiPageForm" class="margin-bottom-10">
   <div class="input-group">
-    <input id="newWikiPageTitle" class="input-group-field" type="text" placeholder="New page title&#8230;" required>
+    <input id="newWikiPageTitle" class="input-group-field" type="text" placeholder="New page title&#8230;" aria-describedby="newWikiPageTitleHelpText" required>
     <div class="input-group-button">
       <button type="submit" class="button radius">New Page <i class="fa fa-plus"></i></button>
     </div>
   </div>
-  <p class="help-text">If the title matches an existing page in this wiki, the new page is still
+  <p class="help-text" id="newWikiPageTitleHelpText">If the title matches an existing page in this wiki, the new page is still
     created as a separate page -- a numbered suffix (e.g. "-2") is added to its URL so it can
     never silently open or overwrite the existing one.</p>
 </form>

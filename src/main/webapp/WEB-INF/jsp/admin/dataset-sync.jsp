@@ -158,13 +158,13 @@
         </div>
       </div>
       <div class="medium-4 cell">
-        <select aria-label="Sync merge type" name="syncMergeType">
+        <select aria-label="Sync merge type" name="syncMergeType" aria-describedby="syncMergeTypeHelpText">
           <option value="">Choose</option>
           <option value="sync"<c:if test="${dataset.syncMergeType eq 'sync'}"> selected</c:if>>Full Merge: Add, Update, and Delete records</option>
         </select>
       </div>
     </div>
-    <p class="help-text">"Sync Merge Type" is intended to control which operations (add/update/delete) a sync performs; only one option is offered here today.</p>
+    <p class="help-text" id="syncMergeTypeHelpText">"Sync Merge Type" is intended to control which operations (add/update/delete) a sync performs; only one option is offered here today.</p>
   </fieldset>
 
   <div class="button-container">

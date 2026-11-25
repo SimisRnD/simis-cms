@@ -42,9 +42,9 @@
     <input type="text" placeholder="What the visitor sees, e.g. Full Name" name="label" value="<c:out value="${field.label}"/>" required>
   </label>
   <label>Name
-    <input type="text" placeholder="Auto-generated from the label if left blank" name="name" value="<c:out value="${field.name}"/>">
+    <input type="text" placeholder="Auto-generated from the label if left blank" name="name" value="<c:out value="${field.name}"/>" aria-describedby="fieldNameHelpText">
   </label>
-  <p class="help-text u-mt-n8">
+  <p class="help-text u-mt-n8" id="fieldNameHelpText">
     An internal identifier, not shown to visitors. Left blank, it's slugified from the Label. Each
     field on a form needs its own Name, because the live form reads each answer back by it, so a
     Name another field on this form already uses is saved with a number added (for example,
@@ -66,9 +66,9 @@
   <c:if test="${fileUploadsEnabled || field.type eq 'file'}">
     <%-- Issue #2130. Shown for every type when scripts are off, so the settings are never
          unreachable; the script below hides them unless File upload is the chosen type. --%>
-    <fieldset id="fileFieldSettings" class="fieldset">
+    <fieldset id="fileFieldSettings" class="fieldset" aria-describedby="fileFieldSettingsHelpText">
       <legend>File upload settings</legend>
-      <p class="help-text">
+      <p class="help-text" id="fileFieldSettingsHelpText">
         Every attached file is checked, re-encoded and scanned for malware before it is kept, and
         reviewed from <a href="${ctx}/admin/form-data">Form Data</a>. <strong>Set up the malware
         scanner first</strong> (Malware scanner host on the
@@ -84,13 +84,13 @@
         <c:forEach items="${checkedFileKinds}" var="checkedKind">
           <c:if test="${checkedKind eq kind.key}"><c:set var="kindChecked" value="true"/></c:if>
         </c:forEach>
-        <input id="fileKind-<c:out value="${kind.key}"/>" type="checkbox" name="acceptedKinds" value="<c:out value="${kind.key}"/>" <c:if test="${kindChecked}">checked</c:if>/><label for="fileKind-<c:out value="${kind.key}"/>"><c:out value="${kind.value}"/></label>
+        <input id="fileKind-<c:out value="${kind.key}"/>" type="checkbox" name="acceptedKinds" value="<c:out value="${kind.key}"/>" <c:if test="${kindChecked}">checked</c:if> aria-describedby="acceptedKindsHelpText"/><label for="fileKind-<c:out value="${kind.key}"/>"><c:out value="${kind.value}"/></label>
       </c:forEach>
-      <p class="help-text">PDF isn't offered yet: it needs its own safety checks first.</p>
+      <p class="help-text" id="acceptedKindsHelpText">PDF isn't offered yet: it needs its own safety checks first.</p>
       <label>Maximum size (MB)
-        <input type="number" name="maxMegabytes" min="1" max="<c:out value="${maxMegabytesCeiling}"/>" step="1" value="<c:out value="${maxMegabytes}"/>">
+        <input type="number" name="maxMegabytes" min="1" max="<c:out value="${maxMegabytesCeiling}"/>" step="1" value="<c:out value="${maxMegabytes}"/>" aria-describedby="maxMegabytesHelpText">
       </label>
-      <p class="help-text u-mt-n8">Up to <c:out value="${maxMegabytesCeiling}"/> MB, this site's upload limit.</p>
+      <p class="help-text u-mt-n8" id="maxMegabytesHelpText">Up to <c:out value="${maxMegabytesCeiling}"/> MB, this site's upload limit.</p>
     </fieldset>
   </c:if>
   <label>Placeholder
@@ -100,9 +100,9 @@
     <input type="text" name="defaultValue" value="<c:out value="${field.defaultValue}"/>">
   </label>
   <label>Options
-    <input type="text" placeholder="Select/Checkbox only, e.g. red=Red,blue=Blue,green=Green" name="options" value="<c:out value="${optionsText}"/>">
+    <input type="text" placeholder="Select/Checkbox only, e.g. red=Red,blue=Blue,green=Green" name="options" value="<c:out value="${optionsText}"/>" aria-describedby="optionsHelpText">
   </label>
-  <p class="help-text u-mt-n8">
+  <p class="help-text u-mt-n8" id="optionsHelpText">
     <strong>Filling this in overrides how the field renders, for every Type, not just Select and
     Checkbox.</strong> The live form checks "does this field have Options" before it checks Type --
     so a Text, Email, Textarea, or Date field with Options stops rendering as its normal input and

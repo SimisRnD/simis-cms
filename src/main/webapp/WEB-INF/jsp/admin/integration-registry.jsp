@@ -63,9 +63,9 @@
               <c:forEach items="${card.definition.credentialFields}" var="field">
                 <label for="cred_<c:out value="${field.name}"/>_<c:out value="${card.definition.id}"/>"><c:out value="${field.label}" /> <span class="required">*</span>
                   <input type="${field.secret ? 'password' : 'text'}" id="cred_<c:out value="${field.name}"/>_<c:out value="${card.definition.id}"/>"
-                         name="cred_<c:out value="${field.name}"/>" autocomplete="off" required>
+                         name="cred_<c:out value="${field.name}"/>"<c:if test="${!empty field.helpText}"> aria-describedby="cred_<c:out value="${field.name}"/>_<c:out value="${card.definition.id}"/>HelpText"</c:if> autocomplete="off" required>
                 </label>
-                <c:if test="${!empty field.helpText}"><p class="help-text"><c:out value="${field.helpText}" /></p></c:if>
+                <c:if test="${!empty field.helpText}"><p class="help-text" id="cred_<c:out value="${field.name}"/>_<c:out value="${card.definition.id}"/>HelpText"><c:out value="${field.helpText}" /></p></c:if>
               </c:forEach>
               <c:if test="${!empty card.definition.supportedEventTypeIds}">
                 <fieldset>

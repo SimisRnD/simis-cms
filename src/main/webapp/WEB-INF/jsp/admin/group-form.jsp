@@ -50,10 +50,10 @@
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${group.description}"/>">
   </label>
   <label>Unique Id <span class="required">*</span>
-    <input type="text" placeholder="Internal Reference Id..." name="uniqueId" aria-describedby="uniqueIdHelpText" value="<c:out value="${group.uniqueId}"/>">
+    <input type="text" placeholder="Internal Reference Id..." name="uniqueId" aria-describedby="uniqueIdHelpText uniqueIdRulesHelpText" value="<c:out value="${group.uniqueId}"/>">
   </label>
   <p class="help-text" id="uniqueIdHelpText">Leave blank to auto-generate; this value does not usually change! No spaces, use lowercase, a-z, 0-9, dashes</p>
-  <p class="help-text">
+  <p class="help-text" id="uniqueIdRulesHelpText">
     This isn't just an internal label -- some access rules elsewhere on the site (restricting a page,
     section, or widget to this group) reference it by this exact Unique Id, not by the Name above.
     Unlike a Collection's "Access Groups" settings (which track a group by an internal id that

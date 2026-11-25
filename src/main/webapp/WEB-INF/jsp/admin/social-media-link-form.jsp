@@ -32,15 +32,15 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Platform Name <span class="required">*</span>
-    <input type="text" placeholder="e.g. Instagram, Mastodon, Discord..." name="platformName" value="<c:out value="${socialMediaLink.platformName}"/>" required>
+    <input type="text" placeholder="e.g. Instagram, Mastodon, Discord..." name="platformName" value="<c:out value="${socialMediaLink.platformName}"/>" aria-describedby="socialLinkHelpText" required>
   </label>
   <label>URL <span class="required">*</span>
     <input type="text" placeholder="https://..." name="url" value="<c:out value="${socialMediaLink.url}"/>" required>
   </label>
   <label>Order
-    <input type="number" name="linkOrder" value="<c:out value="${socialMediaLink.linkOrder}"/>">
+    <input type="number" name="linkOrder" value="<c:out value="${socialMediaLink.linkOrder}"/>" aria-describedby="socialLinkHelpText">
   </label>
-  <p class="help-text">Add any platform -- the name is used to look up an icon for known platforms (Facebook, Instagram, LinkedIn, X/Twitter, Flickr, YouTube, Mastodon, TikTok, Discord, GitHub); anything else shows a generic link icon. Order controls where the icon falls in the footer's row (lowest first); links that share a value fall back to alphabetical order.</p>
+  <p class="help-text" id="socialLinkHelpText">Add any platform -- the name is used to look up an icon for known platforms (Facebook, Instagram, LinkedIn, X/Twitter, Flickr, YouTube, Mastodon, TikTok, Discord, GitHub); anything else shows a generic link icon. Order controls where the icon falls in the footer's row (lowest first); links that share a value fall back to alphabetical order.</p>
   <div class="button-container">
     <input type="submit" class="button radius success expanded" value="${socialMediaLink.id > -1 ? 'Save Changes' : 'Add Platform'}"/>
     <c:if test="${socialMediaLink.id > -1}">
