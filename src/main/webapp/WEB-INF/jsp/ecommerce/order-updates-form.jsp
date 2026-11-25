@@ -61,7 +61,7 @@
         <label>Password
           <input name="password" type="password" placeholder="Password" autocomplete="off" aria-describedby="passwordHelpText">
         </label>
-        <p class="help-text" id="passwordHelpText">Passwords must be at least 6 characters</p>
+        <p class="help-text" id="passwordHelpText"><c:out value="${passwordHelp}"/></p>
       </c:if>
     </div>
   </div>

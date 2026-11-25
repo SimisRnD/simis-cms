@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.register;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.PasswordPolicyCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.register.RegisterUserCommand;
@@ -70,6 +71,9 @@ public class RegisterWidget extends GenericWidget {
     if (context.getRequestObject() != null) {
       context.getRequest().setAttribute("user", context.getRequestObject());
     }
+
+    // The password rule in force, from the same settings registration enforces
+    context.getRequest().setAttribute("passwordHelp", PasswordPolicyCommand.describe());
 
     // Show the form
     context.setJsp(JSP);

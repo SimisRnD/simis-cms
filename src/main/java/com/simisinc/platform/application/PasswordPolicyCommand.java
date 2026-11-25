@@ -91,6 +91,22 @@ public class PasswordPolicyCommand {
     return "Passwords must include " + String.join(", ", missing);
   }
 
+  /**
+   * The policy in force as one sentence, for the help beside a new-password field. Built from the
+   * same two settings {@link #validate} enforces, so the help can't drift from the rule again: the
+   * forms said "at least 6 characters" long after this class stopped accepting fewer than 8.
+   *
+   * @return e.g. "Passwords must be at least 15 characters and include an uppercase letter, a
+   *         lowercase letter, a number, and a special character."
+   */
+  public static String describe() {
+    String length = "Passwords must be at least " + minLength() + " characters";
+    if (!requireComplexity()) {
+      return length + ".";
+    }
+    return length + " and include an uppercase letter, a lowercase letter, a number, and a special character.";
+  }
+
   /** @return the configured minimum length, clamped to never go below {@link #ABSOLUTE_MIN_LENGTH} */
   public static int minLength() {
     String configured = LoadSitePropertyCommand.loadByName("security.password.minLength");
