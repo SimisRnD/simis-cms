@@ -161,7 +161,7 @@
 <form method="get" id="emailSignUpForm${widgetContext.uniqueId}">
   <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
   <div class="input-group">
-    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" placeholder="name@email.com" autocomplete="email" required>
+    <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" placeholder="name@email.com" autocomplete="email" aria-describedby="emailHelpText${widgetContext.uniqueId}" required>
     <div class="input-group-button">
       <c:choose>
         <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
