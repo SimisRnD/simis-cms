@@ -867,7 +867,7 @@
                    it's gone once the visitor starts typing. Hidden so the overlay's layout is unchanged. --%>
               <label for="platformOverlayEmail" class="show-for-sr">Email address</label>
               <div class="input-group">
-                <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" aria-describedby="platformOverlayEmailHelpText" required>
+                <input class="input-group-field" type="text" id="platformOverlayEmail" placeholder="name@example.com" autocomplete="email" aria-describedby="platformOverlayEmailHelpText" required>
                 <div class="input-group-button">
                   <button type="submit" class="button small">Sign Up</button>
                 </div>
