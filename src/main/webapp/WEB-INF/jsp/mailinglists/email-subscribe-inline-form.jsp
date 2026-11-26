@@ -51,6 +51,15 @@
         var re = /\S+@\S+\.\S+/;
         return re.test(email);
     }
+    // Writes a message into the status region below a field. A live region speaks only when its
+    // content changes, so it is emptied first and the message written a moment later: the same
+    // error twice in a row is still announced. A newer message cancels a pending older one.
+    function showSignUpMessage${widgetContext.uniqueId}(id, message) {
+        var el = document.getElementById(id);
+        window.clearTimeout(el.announceTimer);
+        el.innerHTML = "";
+        el.announceTimer = window.setTimeout(function () { el.innerHTML = message; }, 100);
+    }
     // Issue #598: one mailingListId param per list the visitor kept checked -- a hidden input
     // (always included) when there's exactly one public list, so today's single-list signup
     // looks and behaves exactly as it did before this feature existed.
@@ -66,11 +75,11 @@
     function submitEmailSignUp${widgetContext.uniqueId}(extraParams) {
         var email = document.getElementById("email${widgetContext.uniqueId}").value;
         if (email === undefined || email.length === 0) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please enter your email address";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please enter your email address");
             return;
         }
         if (!validateEmail${widgetContext.uniqueId}(email)) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please re-enter your email address using a proper format.");
             return;
         }
         extraParams += selectedMailingListParams${widgetContext.uniqueId}();
@@ -83,11 +92,10 @@
         // params, and an object would serialise those as mailingListId[].
         $.getJSON("${ctx}/json/emailSubscribe", "token=${userSession.formToken}&email=" + encodeURIComponent(email) + extraParams, function(data) {
             if (data.status === undefined || data.status !== '0') {
-                document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML =
-                    (data.message ? data.message : "Please re-enter your email address using a proper format.");
+                showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', (data.message ? data.message : "Please re-enter your email address using a proper format."));
                 return;
             }
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Almost done! Check your email to confirm your subscription to <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Almost done! Check your email to confirm your subscription to <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails");
         });
     }
     <c:choose>
@@ -110,7 +118,7 @@
         var turnstileField = document.querySelector("#turnstile${widgetContext.uniqueId} input[name='cf-turnstile-response']");
         var turnstileToken = turnstileField ? turnstileField.value : "";
         if (!turnstileToken) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please complete the verification challenge";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please complete the verification challenge");
             return false;
         }
         submitEmailSignUp${widgetContext.uniqueId}("&cf-turnstile-response=" + encodeURIComponent(turnstileToken));
@@ -121,7 +129,7 @@
     function emailSignUp${widgetContext.uniqueId}() {
         var captchaValue = document.getElementById("captcha${widgetContext.uniqueId}").value;
         if (!captchaValue) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please enter the text shown in the image";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please enter the text shown in the image");
             return false;
         }
         submitEmailSignUp${widgetContext.uniqueId}("&captcha=" + encodeURIComponent(captchaValue));
@@ -201,5 +209,5 @@
       <input type="hidden" class="mailingListCheckbox${widgetContext.uniqueId}" value="${onlineMailingLists[0].id}">
     </c:when>
   </c:choose>
-  <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
+  <p class="help-text" id="emailHelpText${widgetContext.uniqueId}" role="status"></p>
 </form>
