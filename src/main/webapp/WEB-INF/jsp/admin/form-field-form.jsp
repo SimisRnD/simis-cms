@@ -78,14 +78,17 @@
           <a href="${ctx}/admin/feature-flags">Feature Flags</a>, so this field is left off the form
           visitors see, even when it's marked Required.</c:if>
       </p>
-      <p class="u-mb-0"><strong>Accept</strong></p>
-      <c:forEach items="${fileKinds}" var="kind">
-        <c:set var="kindChecked" value="false"/>
-        <c:forEach items="${checkedFileKinds}" var="checkedKind">
-          <c:if test="${checkedKind eq kind.key}"><c:set var="kindChecked" value="true"/></c:if>
+      <%-- Named by its "Accept" heading, so each file-kind checkbox is announced as part of it. --%>
+      <div role="group" aria-labelledby="acceptedKindsLabel">
+        <p class="u-mb-0" id="acceptedKindsLabel"><strong>Accept</strong></p>
+        <c:forEach items="${fileKinds}" var="kind">
+          <c:set var="kindChecked" value="false"/>
+          <c:forEach items="${checkedFileKinds}" var="checkedKind">
+            <c:if test="${checkedKind eq kind.key}"><c:set var="kindChecked" value="true"/></c:if>
+          </c:forEach>
+          <input id="fileKind-<c:out value="${kind.key}"/>" type="checkbox" name="acceptedKinds" value="<c:out value="${kind.key}"/>" <c:if test="${kindChecked}">checked</c:if> aria-describedby="acceptedKindsHelpText"/><label for="fileKind-<c:out value="${kind.key}"/>"><c:out value="${kind.value}"/></label>
         </c:forEach>
-        <input id="fileKind-<c:out value="${kind.key}"/>" type="checkbox" name="acceptedKinds" value="<c:out value="${kind.key}"/>" <c:if test="${kindChecked}">checked</c:if> aria-describedby="acceptedKindsHelpText"/><label for="fileKind-<c:out value="${kind.key}"/>"><c:out value="${kind.value}"/></label>
-      </c:forEach>
+      </div>
       <p class="help-text" id="acceptedKindsHelpText">PDF isn't offered yet: it needs its own safety checks first.</p>
       <label>Maximum size (MB)
         <input type="number" name="maxMegabytes" min="1" max="<c:out value="${maxMegabytesCeiling}"/>" step="1" value="<c:out value="${maxMegabytes}"/>" aria-describedby="maxMegabytesHelpText">
