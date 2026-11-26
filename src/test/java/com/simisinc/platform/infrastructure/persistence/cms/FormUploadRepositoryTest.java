@@ -95,7 +95,7 @@ class FormUploadRepositoryTest {
         + "height INTEGER, "
         + "thumbnail_path VARCHAR(255), "
         + "thumbnail_content_type VARCHAR(50), "
-        + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')), "
+        + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected', 'not_required')), "
         + "scan_checked TIMESTAMP(3), "
         + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
   }
@@ -213,6 +213,20 @@ class FormUploadRepositoryTest {
     assertNotNull(orphan, "ON DELETE SET NULL, not CASCADE");
     assertEquals(-1, orphan.getFormDataId());
     assertEquals("forms/contact-us/abc.png", orphan.getFilePath());
+  }
+
+  @Test
+  void anImageStoredWithoutAScanReadsBackAsNotRequiredWithNoCheckTime() {
+    FormUpload upload = upload(FormUpload.SCAN_NOT_REQUIRED);
+    upload.setScanChecked(null);
+    FormUpload saved = FormUploadRepository.add(upload);
+    assertNotNull(saved, "the database accepts the status");
+
+    FormUpload found = FormUploadRepository.findById(saved.getId());
+
+    assertEquals(FormUpload.SCAN_NOT_REQUIRED, found.getScanStatus());
+    assertNull(found.getScanChecked());
+    assertTrue(found.isDownloadable());
   }
 
   @Test

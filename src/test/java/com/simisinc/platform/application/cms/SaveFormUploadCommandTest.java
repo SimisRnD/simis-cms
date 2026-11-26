@@ -194,6 +194,34 @@ class SaveFormUploadCommandTest {
   }
 
   @Test
+  void whenImagesNeedNoScanAnImageIsStoredWithoutOneAndRecordedAsNotRequiredNotClean() throws IOException {
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.clamav.host")).thenReturn("");
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName(MalwareScanCommand.IMAGE_SCAN_REQUIRED_PROPERTY)).thenReturn("false");
+
+    Result result = SaveFormUploadCommand.save("contact-us", screenshotField(), source("photo.jpg", FormUploadFixtures.jpeg()));
+
+    assertTrue(result.accepted(), String.valueOf(result.message()));
+    FormUpload upload = result.upload();
+    assertEquals(FormUpload.SCAN_NOT_REQUIRED, upload.getScanStatus(), "a skipped scan is never recorded as clean");
+    assertNull(upload.getScanChecked(), "no scan ran, so there is no time one was checked");
+    assertFalse(upload.isClean());
+    assertTrue(upload.isDownloadable());
+    assertEquals(List.of(upload.getFilePath(), upload.getThumbnailPath()).stream().sorted().collect(Collectors.toList()),
+        filesUnderRoot(), "the re-encoded image and its thumbnail are still what is stored");
+  }
+
+  @Test
+  void whenImagesNeedNoScanTheScannerIsNotAskedEvenIfOneIsConfigured() throws IOException {
+    scanner(FakeClamd.Mode.FLAG_EVERYTHING);
+    siteProperty.when(() -> LoadSitePropertyCommand.loadByName(MalwareScanCommand.IMAGE_SCAN_REQUIRED_PROPERTY)).thenReturn("false");
+
+    Result result = SaveFormUploadCommand.save("contact-us", screenshotField(), source("shot.png", FormUploadFixtures.pngWithTransparency()));
+
+    assertTrue(result.accepted(), "the setting decides; the scanner is not consulted");
+    assertEquals(FormUpload.SCAN_NOT_REQUIRED, result.upload().getScanStatus());
+  }
+
+  @Test
   void aFileLargerThanTheSizeItDeclaredIsStoppedAtTheLimit() throws IOException {
     FormField field = screenshotField();
     field.setMaxBytes(MB);

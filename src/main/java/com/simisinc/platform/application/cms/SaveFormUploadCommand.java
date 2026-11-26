@@ -50,9 +50,10 @@ import jakarta.servlet.http.Part;
  * <li>Re-encoding from the pixels ({@link SanitizeFormUploadCommand}).</li>
  * <li>A malware scan of the file as it arrived, then of the re-encoded image that will be stored
  * ({@link MalwareScanCommand}): a file matching a signature is rejected and logged even though the
- * re-encode might have made it harmless, and what is stored is what was scanned.</li>
+ * re-encode might have made it harmless, and what is stored is what was scanned. Skipped when the
+ * site does not require a scan for images ({@link MalwareScanCommand#isScanRequired}).</li>
  * <li>The re-encoded image and its thumbnail, written under {@code forms/<form>/} with server-chosen
- * names, and a form_uploads row marked clean.</li>
+ * names, and a form_uploads row marked clean, or marked not_required when the scan was skipped.</li>
  * </ol>
  *
  * <p>The quarantine copy is deleted whatever happens. Any rejection deletes everything written for
@@ -175,13 +176,17 @@ public class SaveFormUploadCommand {
       }
       SanitizeFormUploadCommand.Sanitized image = sanitized.image();
 
-      // 4. Scan what arrived, then what will be stored
-      MalwareScanCommand.Result scan = MalwareScanCommand.scan(field, quarantined);
-      if (scan.accepted()) {
-        scan = MalwareScanCommand.scan(field, image.bytes());
-      }
-      if (!scan.accepted()) {
-        return Result.reject(scan.reason(), scan.message());
+      // 4. Scan what arrived, then what will be stored -- unless the site does not require a scan for
+      // a rebuilt image, which is then recorded as not scanned rather than as clean
+      boolean scanned = MalwareScanCommand.isScanRequired(image.contentType());
+      if (scanned) {
+        MalwareScanCommand.Result scan = MalwareScanCommand.scan(field, quarantined);
+        if (scan.accepted()) {
+          scan = MalwareScanCommand.scan(field, image.bytes());
+        }
+        if (!scan.accepted()) {
+          return Result.reject(scan.reason(), scan.message());
+        }
       }
 
       // 5. Store the re-encoded image and its thumbnail under names the server chose
@@ -211,8 +216,8 @@ public class SaveFormUploadCommand {
       upload.setHeight(image.height());
       upload.setThumbnailPath(thumbnailPath);
       upload.setThumbnailContentType(image.thumbnailContentType());
-      upload.setScanStatus(FormUpload.SCAN_CLEAN);
-      upload.setScanChecked(new Timestamp(System.currentTimeMillis()));
+      upload.setScanStatus(scanned ? FormUpload.SCAN_CLEAN : FormUpload.SCAN_NOT_REQUIRED);
+      upload.setScanChecked(scanned ? new Timestamp(System.currentTimeMillis()) : null);
       if (FormUploadRepository.add(upload) == null) {
         deleteQuietly(written);
         return systemError;

@@ -433,7 +433,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
     @SuppressWarnings("unchecked")
     Map<String, FormWidget.FileFieldInput> inputs =
         (Map<String, FormWidget.FileFieldInput>) widgetContext.getRequest().getAttribute("fileFieldInputs");
-    assertEquals("Images (JPG, PNG, WebP), up to 10 MB.", inputs.get("screenshot").getLimits());
+    assertEquals("Images (JPG, PNG), up to 10 MB.", inputs.get("screenshot").getLimits());
     assertTrue(inputs.get("screenshot").getAccept().contains(".png"));
     assertEquals(10 * MB, inputs.get("screenshot").getMaxBytes());
   }
@@ -522,7 +522,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
       assertEquals(widgetContext, result, "the form is shown again");
     });
 
-    assertEquals("Attach a screenshot: this type of file isn't accepted. Choose Images (JPG, PNG, WebP).",
+    assertEquals("Attach a screenshot: this type of file isn't accepted. Choose Images (JPG, PNG).",
         widgetContext.getWarningMessage());
     assertEquals(List.of("file_type_not_allowed"), failures);
     assertEquals(0, countRows("form_data"));
@@ -686,7 +686,7 @@ class FormWidgetDatabaseFormIntegrationTest extends WidgetBase {
           + "height INTEGER, "
           + "thumbnail_path VARCHAR(255), "
           + "thumbnail_content_type VARCHAR(50), "
-          + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')), "
+          + "scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected', 'not_required')), "
           + "scan_checked TIMESTAMP(3), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
     } catch (SQLException se) {

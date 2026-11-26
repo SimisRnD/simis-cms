@@ -66,16 +66,19 @@ public class FormFileFieldCommand {
   public record FileKind(String label, Set<String> extensions, Set<String> contentTypes) {
   }
 
-  // The kinds an editor may choose today. GIF is left off the image list, as #2130 specifies. PDF is
-  // part of the design but needs its own sanitize step before it can be offered. SVG, HTML, Office
-  // files, archives and executables are never listed.
+  // The kinds an editor may choose today. GIF is left off the image list, as #2130 specifies. WebP is
+  // left off too: JPEG and PNG are decoded in-process by ImageIO, while WebP would have to go through
+  // ImageMagick and libwebp, the decoder behind CVE-2023-4863, so leaving it off keeps every visitor
+  // upload away from that native decoder. Phone photos and screenshots are JPEG or PNG. PDF is part of
+  // the design but needs its own sanitize step before it can be offered. SVG, HTML, Office files,
+  // archives and executables are never listed.
   private static final Map<String, FileKind> KINDS = new LinkedHashMap<>();
   private static final Map<String, String> AVAILABLE_KINDS = new LinkedHashMap<>();
 
   static {
-    KINDS.put(KIND_IMAGE, new FileKind("Images (JPG, PNG, WebP)",
-        Set.of("jpg", "jpeg", "png", "webp"),
-        Set.of("image/jpeg", "image/png", "image/webp")));
+    KINDS.put(KIND_IMAGE, new FileKind("Images (JPG, PNG)",
+        Set.of("jpg", "jpeg", "png"),
+        Set.of("image/jpeg", "image/png")));
     for (Map.Entry<String, FileKind> kind : KINDS.entrySet()) {
       AVAILABLE_KINDS.put(kind.getKey(), kind.getValue().label());
     }
@@ -127,7 +130,7 @@ public class FormFileFieldCommand {
 
   /**
    * The file input's accept attribute for a field: its kinds' content types and extensions, e.g.
-   * "image/jpeg,image/png,image/webp,.jpeg,.jpg,.png,.webp". A browser uses it to filter the file
+   * "image/jpeg,image/png,.jpeg,.jpg,.png". A browser uses it to filter the file
    * picker; the server never relies on it.
    */
   public static String acceptAttribute(FormField field) {
@@ -149,7 +152,7 @@ public class FormFileFieldCommand {
     return String.join(",", accept);
   }
 
-  /** What a field accepts, for the visitor, e.g. "Images (JPG, PNG, WebP), up to 10 MB." */
+  /** What a field accepts, for the visitor, e.g. "Images (JPG, PNG), up to 10 MB." */
   public static String describeLimits(FormField field) {
     List<String> labels = new ArrayList<>();
     if (field != null && StringUtils.isNotBlank(field.getAcceptedKinds())) {

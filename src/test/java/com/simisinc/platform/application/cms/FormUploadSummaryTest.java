@@ -83,6 +83,17 @@ class FormUploadSummaryTest {
   }
 
   @Test
+  void anImageStoredWithoutAScanIsLinkedButNotCalledClean() {
+    FormUploadSummary summary = new FormUploadSummary(upload(7, 1, FormUpload.SCAN_NOT_REQUIRED));
+
+    assertFalse(summary.isClean());
+    assertTrue(summary.isScanNotRequired());
+    assertTrue(summary.isDownloadable());
+    assertEquals("/assets/form-upload?id=7", summary.getDownloadUrl());
+    assertEquals("/assets/form-upload?id=7&thumbnail=true", summary.getThumbnailUrl());
+  }
+
+  @Test
   void anUploadThatDidNotPassItsScanHasNoLinks() {
     for (String status : new String[] { FormUpload.SCAN_PENDING, FormUpload.SCAN_REJECTED, null }) {
       FormUploadSummary summary = new FormUploadSummary(upload(7, 1, status));

@@ -64,8 +64,9 @@ public class FormUploadFileWidget extends GenericWidget {
       audit(context, id, null, AuditEventCommand.FAILURE, "not found");
       return null;
     }
-    if (!upload.isClean()) {
-      // Never served until the scan has passed, to anyone
+    if (!upload.isDownloadable()) {
+      // Never served while pending or rejected, to anyone: only once the scan has passed, or when the
+      // file was stored without one because none was required
       LOG.warn("Refused a form upload whose scan status is " + upload.getScanStatus() + ": " + id);
       audit(context, id, upload.getOriginalFilename(), AuditEventCommand.FAILURE, "scan status " + upload.getScanStatus());
       context.getResponse().setStatus(HttpServletResponse.SC_FORBIDDEN);

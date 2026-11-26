@@ -148,22 +148,32 @@ public class FormUploadSummary {
     return upload.getWidth() + " × " + upload.getHeight() + " px";
   }
 
-  /** Whether the file passed its malware scan; only then is it downloadable */
+  /** Whether a malware scan ran and passed the file */
   public boolean isClean() {
     return upload.isClean();
+  }
+
+  /** Whether the file was stored without a scan because none was required for images */
+  public boolean isScanNotRequired() {
+    return upload.isScanNotRequired();
+  }
+
+  /** Whether the file may be downloaded: scanned clean, or stored when no scan was required */
+  public boolean isDownloadable() {
+    return upload.isDownloadable();
   }
 
   public Timestamp getScanChecked() {
     return upload.getScanChecked();
   }
 
-  /** The gated download, relative to the site; null unless the file passed its scan */
+  /** The gated download, relative to the site; null unless the file is downloadable */
   public String getDownloadUrl() {
-    return isClean() ? DOWNLOAD_PATH + upload.getId() : null;
+    return isDownloadable() ? DOWNLOAD_PATH + upload.getId() : null;
   }
 
-  /** The thumbnail, relative to the site; null unless the file passed its scan and has one */
+  /** The thumbnail, relative to the site; null unless the file is downloadable and has one */
   public String getThumbnailUrl() {
-    return isClean() && StringUtils.isNotBlank(upload.getThumbnailPath()) ? DOWNLOAD_PATH + upload.getId() + "&thumbnail=true" : null;
+    return isDownloadable() && StringUtils.isNotBlank(upload.getThumbnailPath()) ? DOWNLOAD_PATH + upload.getId() + "&thumbnail=true" : null;
   }
 }
