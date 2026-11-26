@@ -102,6 +102,15 @@ what was verified:
   all; **CVE-2026-53613** (util-linux) is
   `inline_mitigations_already_exist`, since the Dockerfile's `chmod u-s` on `mount`/`umount`
   removes the setuid transition the TOCTOU needs.
+- **Zstandard / CVE-2026-124851** (libzstd1, zstd) —
+  `vulnerable_code_cannot_be_controlled_by_adversary`. The installed 1.5.4 is affected, but the
+  flaw leaks zstd's internal buffer through decompressed output, so it needs an attacker who can
+  supply compressed data and read the result. Nothing here decompresses such data:
+  PostgreSQL decompresses zstd only to restore full-page images from WAL it wrote itself; the
+  JIT feeds LLVM only the server's own uncompressed bitcode; PROJ's libtiff and libcurl never
+  see a zstd-compressed TIFF or HTTP response, since no TIFF exists on the image and PROJ's
+  networking is off; and the `zstd` tool runs only over `*.sql.zst` init scripts, of which the
+  image ships none.
 - **MIT krb5** (libkrb5-3, libgssapi-krb5-2, libk5crypto3, libkrb5support0) — only the client
   libraries are installed, and PostgreSQL links them. Flaws in the KDC, kadmind and the
   libraries only they use (libkdb5, libkadm5, libgssrpc) are `vulnerable_code_not_present`.
@@ -125,10 +134,11 @@ never rendered as "safe".
 
 > **Scope.** These statements describe the image **as shipped and configured**. If an operator
 > installs PL/Perl, creates `postgis_raster`, uses PostgreSQL's `xml` type, configures LDAP,
-> PAM or GSSAPI (Kerberos) authentication or adds a keytab, adds compressed `*.sql.gz` init
-> scripts from an untrusted source, or runs `pg_dump` or `pg_basebackup` with gzip compression
-> inside the container, the corresponding statements no longer hold and the VEX should be
-> re-evaluated.
+> PAM or GSSAPI (Kerberos) authentication or adds a keytab, adds compressed `*.sql.gz` or
+> `*.sql.zst` init scripts from an untrusted source, replays WAL or a base backup from an
+> untrusted source, or runs `pg_dump` or `pg_basebackup` with gzip compression, or PostgreSQL's
+> client tools over untrusted zstd-compressed input, inside the container, the corresponding
+> statements no longer hold and the VEX should be re-evaluated.
 
 Update the document after any rebuild changes the finding set (it only ever emits statements
 for findings with **no** available fix):
