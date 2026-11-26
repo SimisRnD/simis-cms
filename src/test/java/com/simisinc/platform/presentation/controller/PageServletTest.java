@@ -908,6 +908,63 @@ class PageServletTest {
     assertEquals(List.of("Home", "Data Center", "The Facility"), names(trail));
   }
 
+  private static WebPage webPage(String link, String title, boolean draft, String redirectUrl) {
+    WebPage page = new WebPage();
+    page.setLink(link);
+    page.setTitle(title);
+    page.setDraft(draft);
+    page.setRedirectUrl(redirectUrl);
+    return page;
+  }
+
+  @Test
+  void anAncestorWithNoPageIsSkippedNotLinked() {
+    // Search Console 404: every event page linked crawlers to "/calendar-event", which has no page.
+    // The event pages themselves resolve through the "/calendar-event/*" template.
+    List<Map<String, Object>> trail;
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/calendar-event")).thenReturn(null);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/calendar-event/i-itsec-2026"))
+          .thenReturn(webPage("/calendar-event/*", "Calendar", false, null));
+      trail = StructuredDataCommand.computeBreadcrumbList("https://example.com", "/calendar-event/i-itsec-2026",
+          null, null, "SimIS at I/ITSEC 2026, Booth 2181");
+    }
+    assertEquals(List.of("Home", "SimIS at I/ITSEC 2026, Booth 2181"), names(trail));
+    assertEquals(2, trail.get(1).get("position"));
+    assertEquals("https://example.com/calendar-event/i-itsec-2026", trail.get(1).get("item"));
+    for (Map<String, Object> entry : trail) {
+      assertFalse("https://example.com/calendar-event".equals(entry.get("item")), "no crumb may link the dead parent");
+    }
+  }
+
+  @Test
+  void draftAndRedirectAncestorsAreSkippedAndPublishedOnesKept() {
+    List<Map<String, Object>> trail;
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/a")).thenReturn(webPage("/a", "A", false, null));
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/a/b")).thenReturn(webPage("/a/b", "B", true, null));
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/a/b/c")).thenReturn(webPage("/a/b/c", "C", false, "/elsewhere"));
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/a/b/c/d")).thenReturn(null);
+      trail = StructuredDataCommand.computeBreadcrumbList("https://example.com", "/a/b/c/d", null, null, null);
+    }
+    // Draft /a/b and redirect stub /a/b/c drop out; positions stay contiguous; the leaf is always kept
+    assertEquals(List.of("Home", "A", "D"), names(trail));
+    assertEquals(3, trail.get(2).get("position"));
+  }
+
+  @Test
+  void aNamedLeafBeatsTheTemplateTitleAndTheSlug() {
+    List<Map<String, Object>> trail;
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/news")).thenReturn(webPage("/news", "News", false, null));
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/news/simis-makes-the-inc-5000-list"))
+          .thenReturn(webPage("/news/*", "News", false, null));
+      trail = StructuredDataCommand.computeBreadcrumbList("https://example.com", "/news/simis-makes-the-inc-5000-list",
+          null, null, "SimIS Makes the Inc. 5000 List!");
+    }
+    assertEquals(List.of("Home", "News", "SimIS Makes the Inc. 5000 List!"), names(trail));
+  }
+
   @Test
   void noMenuIsNotAnError() {
     assertNull(StructuredDataCommand.computeMenuBreadcrumbList("https://example.com", "/x", null));
