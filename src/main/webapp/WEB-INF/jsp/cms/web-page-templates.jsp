@@ -31,8 +31,10 @@
     <input type="hidden" name="webPage" value="${webPage.link}" />
     <input type="hidden" id="templateId" name="templateId" value="-1" />
     <input type="hidden" id="templateUniqueId" name="templateUniqueId" value="-1" />
-    <h2 class="h4">Set a web page title for this page</h2>
-    <input type="text" name="title" placeholder="Give it a title..." value="<c:out value="${webPage.title}" />" autofocus="autofocus" />
+    <%-- The heading is the field's visible label, so it names the field: a placeholder isn't a
+         dependable name and is gone once something is typed. --%>
+    <h2 class="h4" id="webPageTitleHeading">Set a web page title for this page</h2>
+    <input type="text" name="title" placeholder="Give it a title..." value="<c:out value="${webPage.title}" />" autofocus="autofocus" aria-labelledby="webPageTitleHeading" />
     <label>Description (optional, shown in search results)
       <input type="text" name="description" placeholder="Describe it..." value="<c:out value="${webPage.description}" />" />
     </label>
