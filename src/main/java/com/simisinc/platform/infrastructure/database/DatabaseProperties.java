@@ -79,6 +79,11 @@ public class DatabaseProperties {
       LOG.warn("Found variable DB_AUTH_METHOD=" + authMethod + ", but the only recognized value is \""
           + AZURE_SQL_SPN + "\" -- ignoring it and using the default DB_USER/DB_PASSWORD authentication");
     }
+
+    // Last, so it sees DB_USER and the server already applied above. These two are not Hikari
+    // properties and must not be added to databaseProperties: HikariConfig refuses a key it does
+    // not know. See MigrationLogin (issue #1129).
+    MigrationLogin.configure(databaseProperties, env);
   }
 
   /**

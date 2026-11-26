@@ -49,6 +49,8 @@ DB_SERVER_NAME=
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
+DB_MIGRATION_USER=<optional; a second login that owns the schema, see below>
+DB_MIGRATION_PASSWORD=<required with DB_MIGRATION_USER>
 ```
 
 > **`CMS_SECRET_KEY`** encrypts recoverable secrets at rest with AES-256-GCM: per-user MFA/TOTP seeds and the stored integration/payment secrets in Site Settings (payment gateway keys, the SMTP password, the OAuth client secret, and mailing-list/analytics API tokens). Generate one with `openssl rand -base64 32` and supply it out-of-band (not committed). Keep a secure backup — losing the key makes encrypted secrets unrecoverable (affected users re-enroll MFA; integration keys must be re-entered). Rotating: set the new key and re-save the affected records. If unset, secrets are stored as plaintext (backward compatible), so set it for a hardened deployment.
@@ -56,6 +58,44 @@ DB_PASSWORD=
 > Integration secrets encrypt when next saved. Existing plaintext values keep working (they are read back unchanged) and are encrypted the next time they are saved through Site Settings. Values that are read-only in the admin UI (production payment keys, set directly in the database) stay plaintext until re-saved — see the release notes for the optional one-time re-encryption step.
 
 > **`CMS_TRUSTED_PROXIES`** — set this when SimIS CMS runs behind a reverse proxy, load balancer, or CDN. Without it, the client address comes from the direct connection (`getRemoteAddr()`), which behind a proxy is the *proxy's* address — so the IP firewall, rate limiting, and geo filtering all act on that one address and analytics/audit logs record it instead of the visitor. Set it to a Java regular expression matching your trusted proxy addresses (for example `10\.\d+\.\d+\.\d+` for a private-range load balancer); the real client IP is then taken from `X-Forwarded-For` **only** for requests arriving through those proxies (SimIS CMS delegates to Tomcat's `RemoteIpFilter`). Leave it unset when the container terminates client connections directly. Do not set it to match untrusted networks — that would let a client spoof its address and bypass the IP controls.
+
+## Running with a data-only database login
+
+By default one database login does everything. `DB_USER` runs the schema migrations at startup and then serves every request, so it must be able to create and drop tables, and a SQL injection bug anywhere in the application would run with that power.
+
+Setting `DB_MIGRATION_USER` and `DB_MIGRATION_PASSWORD` splits the two jobs:
+
+- **The migration login** owns the schema. The application connects as it for a few seconds at startup, to run migrations and to set up the background-job tables.
+- **`DB_USER`** then needs only to read and write rows. Every request and background job runs as it.
+
+This is optional. With neither variable set, nothing changes.
+
+**To set it up**, an administrator does three things once, before the first start:
+
+1. Create both logins, and make the migration login the owner of the database (or of an existing schema's tables).
+2. Enable PostGIS in the database: `CREATE EXTENSION postgis`. On most managed services only an administrator may do this, and the install skips it when it's already there.
+3. Set the four variables: `DB_USER` and `DB_PASSWORD` for the data-only login, `DB_MIGRATION_USER` and `DB_MIGRATION_PASSWORD` for the owner.
+
+```sql
+CREATE ROLE cms_owner LOGIN PASSWORD '...';
+CREATE ROLE cms_app LOGIN PASSWORD '...';
+CREATE DATABASE "simis-cms" OWNER cms_owner;
+-- then, connected to that database as an administrator:
+CREATE EXTENSION postgis;
+```
+
+**You don't grant anything by hand.** At every start, the application connects as the migration login and gives `DB_USER` what it needs: read and write access to the tables, and use of the sequences. Tables that a later migration creates are covered automatically. `DB_USER` gets no right to create, alter, drop or truncate anything, and the migration history tables (Flyway's and the job scheduler's) are read-only to it.
+
+**What to know:**
+
+- **The two variables go together.** Setting only one stops the application at startup with a message naming both.
+- **The migration login signs in with a password,** whatever `DB_AUTH_METHOD` is set to.
+- **A missing login stops startup.** If the login in `DB_USER` doesn't exist, or the migration login can't sign in, the application refuses to start. That's deliberate: the alternative is a site where some pages fail later.
+- **Switching an existing site.** The migration login must own the existing tables. The simplest first step is to keep the login you have as the migration login, and point `DB_USER` at a new data-only login.
+- **Only the migration login's own tables are shared.** A table in the same schema that belongs to a different login is left alone, and the startup log names it. If it's part of this application, make the migration login its owner.
+- **Web-only nodes use `DB_USER` alone.** A node with `CMS_NODE_TYPE=web` never changes the schema, so it ignores the two migration variables. They're needed only where migrations run.
+- **To go back,** set `DB_USER` to the owner again and remove the two migration variables.
+- **The Database Maintenance page's VACUUM button does nothing under this setup.** It needs a privilege the data-only login doesn't have. PostgreSQL skips the table with a warning rather than an error, so the page still reports success. The database's autovacuum does that work anyway.
 
 ## Upgrading
 
