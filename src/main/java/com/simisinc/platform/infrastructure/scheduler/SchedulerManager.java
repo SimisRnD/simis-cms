@@ -18,6 +18,7 @@ package com.simisinc.platform.infrastructure.scheduler;
 
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.infrastructure.database.DataSource;
+import com.simisinc.platform.infrastructure.database.MigrationLogin;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.scheduler.admin.CapabilityGrantExpirationJob;
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
@@ -56,7 +57,9 @@ import org.jobrunr.scheduling.cron.Cron;
 import org.jobrunr.storage.InMemoryStorageProvider;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.StorageProviderUtils;
+import org.jobrunr.storage.sql.common.DatabaseCreator;
 import org.jobrunr.storage.sql.common.SqlStorageProviderFactory;
+import org.jobrunr.storage.sql.postgres.PostgresStorageProvider;
 import org.jobrunr.utils.mapper.jackson3.Jackson3JsonMapper;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 
@@ -146,7 +149,7 @@ public class SchedulerManager {
       long deleteDeletedJobsHours = Long.parseLong(properties.getProperty("org.jobrunr.configuration.deleteDeletedJobsInHours", "10"));
 
       // Configure the storage
-      StorageProvider jobStorageProvider = (inMemoryStorage ? new InMemoryStorageProvider() : SqlStorageProviderFactory.using(DataSource.getDataSource(), null, StorageProviderUtils.DatabaseOptions.CREATE));
+      StorageProvider jobStorageProvider = (inMemoryStorage ? new InMemoryStorageProvider() : createSqlStorageProvider());
       storageProvider = jobStorageProvider;
 
       // Initialize the scheduler
@@ -242,6 +245,29 @@ public class SchedulerManager {
 
   public static ServletContext getServletContext() {
     return servletContext;
+  }
+
+  /**
+   * JobRunr's storage over the connection pool.
+   *
+   * <p>JobRunr creates its own tables, and alters them when a new JobRunr version needs to. By
+   * default it does that through the data source it is given, which is the pool. With a separate
+   * migration login (issue #1129) the pool's login cannot create or alter anything, so the table
+   * setup runs as the migration login first, and the pool's provider is told to skip it. The grant
+   * afterwards covers tables JobRunr has just created.
+   *
+   * @throws IllegalStateException when the tables are in place but the pool's login could not be
+   *     granted access to them
+   */
+  public static StorageProvider createSqlStorageProvider() {
+    if (!MigrationLogin.isSeparate()) {
+      return SqlStorageProviderFactory.using(DataSource.getDataSource(), null, StorageProviderUtils.DatabaseOptions.CREATE);
+    }
+    new DatabaseCreator(MigrationLogin.dataSource(), PostgresStorageProvider.class).runMigrations();
+    if (!MigrationLogin.grantRuntimeAccess()) {
+      throw new IllegalStateException("The connection pool's login could not be granted access to the job tables");
+    }
+    return SqlStorageProviderFactory.using(DataSource.getDataSource(), null, StorageProviderUtils.DatabaseOptions.SKIP_CREATE);
   }
 
   /** The JobRunr StorageProvider backing the scheduler, so admin tooling (e.g. the Job Queue

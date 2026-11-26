@@ -1,7 +1,10 @@
 -- Copyright 2022 SimIS Inc. (https://www.simiscms.com), Licensed under the Apache License, Version 2.0 (the "License").
 -- Core Database
 
-CREATE EXTENSION postgis;
+-- IF NOT EXISTS so the install also runs where PostGIS is already enabled: a managed PostgreSQL
+-- that pre-enables it, or a database an administrator prepared because the login running this
+-- install is not allowed to create extensions (a separate migration login, issue #1129).
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE database_version (
   version_id BIGSERIAL PRIMARY KEY,

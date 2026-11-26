@@ -84,10 +84,10 @@ import com.simisinc.platform.application.admin.DatabaseCommand;
  */
 class DatabaseMigrationTest {
 
-  // PostGIS is required, not optional: the first install migration runs "CREATE EXTENSION postgis"
-  // on line 4, so a stock postgres image fails immediately. This tracks the project's own database
-  // image (docker/db/Dockerfile, PostgreSQL 17 + PostGIS) rather than the older stock image the
-  // other integration test uses, since the point here is to exercise the real schema.
+  // PostGIS is required, not optional: the first install migration creates the extension on its
+  // first statement, so a stock postgres image fails immediately. This tracks the project's own
+  // database image (docker/db/Dockerfile, PostgreSQL 17 + PostGIS) rather than the older stock image
+  // the other integration test uses, since the point here is to exercise the real schema.
   private static final String DEFAULT_IMAGE = "postgis/postgis:17-3.5";
   private static final int POSTGRES_PORT = 5432;
   private static final String DB_NAME = "simis";
@@ -112,12 +112,11 @@ class DatabaseMigrationTest {
         .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*\\n", 2));
     postgres.start();
 
-    // The migration must run against a database that does NOT already have PostGIS: the postgis
-    // image installs the extension into whatever database initdb creates, and the first install
-    // migration runs a bare "CREATE EXTENSION postgis" which then fails with
-    // "extension postgis already exists". Creating a second database gives the migrations the
-    // clean target they expect. (Worth noting separately: that bare CREATE EXTENSION means a
-    // managed PostgreSQL with PostGIS pre-enabled cannot be installed onto either.)
+    // The migration runs against a database that does NOT already have PostGIS, so the install's
+    // own "CREATE EXTENSION IF NOT EXISTS postgis" is what creates it here. The postgis image
+    // installs the extension into whatever database initdb creates, hence the second database.
+    // (The other case, PostGIS already enabled and a login that may not create extensions, is
+    // MigrationLoginIntegrationTest's.)
     createDatabase();
 
     Properties dataSourceProperties = new Properties();
