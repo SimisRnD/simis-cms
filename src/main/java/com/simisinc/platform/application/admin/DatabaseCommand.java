@@ -18,6 +18,7 @@ package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.ApplicationInfo;
 import com.simisinc.platform.domain.model.DatabaseVersion;
+import com.simisinc.platform.infrastructure.database.MigrationLogin;
 import com.simisinc.platform.infrastructure.distributedlock.LockManager;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.persistence.DatabaseVersionRepository;
@@ -73,11 +74,7 @@ public class DatabaseCommand {
     // R (Repeatable every upgrade)
     // Java-based: public class V1_2__Another_user implements JdbcMigration
 
-    String jdbcUrl =
-        "jdbc:postgresql://" +
-            databaseProperties.getProperty("dataSource.serverName") + ":" +
-            databaseProperties.getProperty("dataSource.portNumber") + "/" +
-            databaseProperties.getProperty("dataSource.databaseName");
+    String jdbcUrl = MigrationLogin.jdbcUrl(databaseProperties);
 
     // Multi-instance deployment: web-only nodes (CMS_NODE_TYPE=web) never run migrations
     // themselves -- not even unprotected -- they wait for the primary node to finish instead.
@@ -86,6 +83,15 @@ public class DatabaseCommand {
     boolean isWebNode = InstanceManager.isWebNodeOnly();
     String lockUuid = null;
     boolean acquired = false;
+
+    // With a separate migration login (issue #1129), the pool's login can do nothing until it has
+    // been granted access, and everything below reads through the pool: the lock table check, the
+    // lock itself, isInstalled(). Without its grants those would see no tables and take an installed
+    // database for a new one. So the grants come first. With one login this does nothing.
+    if (!isWebNode && !MigrationLogin.grantRuntimeAccess()) {
+      LOG.error("The connection pool's login could not be granted access to the schema. This node will not start.");
+      return false;
+    }
 
     if (!isWebNode) {
       if (!LockManager.lockTableExists()) {
@@ -142,12 +148,20 @@ public class DatabaseCommand {
         if (!installResult) {
           return false;
         }
+        if (!MigrationLogin.grantRuntimeAccess()) {
+          return false;
+        }
         // An entry is required
         DatabaseVersion databaseVersion = new DatabaseVersion("Initial Setup", ApplicationInfo.VERSION);
         DatabaseVersionRepository.save(databaseVersion);
       } else {
         LOG.info("Checking for database upgrades... " + jdbcUrl);
         if (!upgrade(jdbcUrl, databaseProperties)) {
+          return false;
+        }
+        // Default privileges already covered what the upgrade created; this also repairs a grant
+        // that was removed by hand, and keeps Flyway's own tables read-only to the pool's login
+        if (!MigrationLogin.grantRuntimeAccess()) {
           return false;
         }
       }
@@ -272,7 +286,7 @@ public class DatabaseCommand {
           .table("flyway_install")
           .sqlMigrationPrefix("NEW_")
           .repeatableSqlMigrationPrefix("DO_")
-          .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+          .dataSource(jdbcUrl, MigrationLogin.user(databaseProperties), MigrationLogin.password(databaseProperties))
           .locations("classpath:database/install", "com/simisinc/platform/infrastructure/database/install")
           .placeholderReplacement(false)
           .cleanDisabled(true)
@@ -298,7 +312,7 @@ public class DatabaseCommand {
           .table("flyway_history")
           .sqlMigrationPrefix("UPGRADE_")
           .repeatableSqlMigrationPrefix("REPEAT_")
-          .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+          .dataSource(jdbcUrl, MigrationLogin.user(databaseProperties), MigrationLogin.password(databaseProperties))
           .locations(databaseUpgradeLocations())
           .placeholderReplacement(false)
           .cleanDisabled(true)
@@ -321,7 +335,7 @@ public class DatabaseCommand {
         .table("flyway_history")
         .sqlMigrationPrefix("UPGRADE_")
         .repeatableSqlMigrationPrefix("REPEAT_")
-        .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+        .dataSource(jdbcUrl, MigrationLogin.user(databaseProperties), MigrationLogin.password(databaseProperties))
         .locations(locations)
         .placeholderReplacement(false)
         .load();
@@ -357,7 +371,7 @@ public class DatabaseCommand {
         .validateOnMigrate(false)
         .sqlMigrationPrefix("UPGRADE_")
         .repeatableSqlMigrationPrefix("REPEAT_")
-        .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+        .dataSource(jdbcUrl, MigrationLogin.user(databaseProperties), MigrationLogin.password(databaseProperties))
         .locations(databaseUpgradeLocations())
         .placeholderReplacement(false)
         .outOfOrder(true)

@@ -203,14 +203,33 @@ public class DB {
     return nextVal;
   }
 
+  /**
+   * Makes the sequence's next value {@code value}.
+   *
+   * <p>With setval rather than ALTER SEQUENCE ... RESTART: the result is the same, but ALTER
+   * SEQUENCE needs ownership of the sequence, and setval needs only UPDATE on it. That is the
+   * difference between a login that can read and write rows and one that must own the schema
+   * (issue #1129).
+   *
+   * @throws IllegalArgumentException when the sequence is not in
+   *     {@link MigrationLogin#RESETTABLE_SEQUENCES}. A data-only login is given UPDATE on those
+   *     sequences alone, so any other would be reset on some sites and refused on others.
+   */
   public static long resetSequence(String sequenceName, long value) {
+    if (!MigrationLogin.RESETTABLE_SEQUENCES.contains(sequenceName)) {
+      throw new IllegalArgumentException(
+          sequenceName + " is not a sequence the application resets. Add it to MigrationLogin.RESETTABLE_SEQUENCES.");
+    }
     long nextVal = -1;
-    String sqlRestartSequence = "ALTER SEQUENCE " + sequenceName + " RESTART WITH " + value;
+    // is_called = false: the next nextval() returns value itself, as RESTART WITH did
+    String sqlRestartSequence = "SELECT setval(?::regclass, ?, false)";
     try (Connection connection = getConnection();
-        PreparedStatement pst = createPreparedStatement(connection, sqlRestartSequence, null)) {
+        PreparedStatement pst = connection.prepareStatement(sqlRestartSequence)) {
+      pst.setString(1, sequenceName);
+      pst.setLong(2, value);
       pst.execute();
     } catch (SQLException se) {
-      LOG.error(sqlRestartSequence);
+      LOG.error(sqlRestartSequence + " [" + sequenceName + ", " + value + "]");
       LOG.error("Reset Sequence SQLException: " + se.getMessage());
     }
     return nextVal;

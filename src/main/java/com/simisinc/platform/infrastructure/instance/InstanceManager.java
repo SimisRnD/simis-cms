@@ -15,6 +15,8 @@
  */
 package com.simisinc.platform.infrastructure.instance;
 
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -40,9 +42,11 @@ public class InstanceManager {
    * @return if the current instance is configured as 'web' only
    */
   public static boolean isWebNodeOnly() {
-    if (System.getenv().containsKey(NODE_TYPE) && "web".equals(System.getenv(NODE_TYPE))) {
-      return true;
-    }
-    return false;
+    return isWebNodeOnly(System.getenv());
+  }
+
+  /** The same check against a given environment, for startup code that is handed one */
+  public static boolean isWebNodeOnly(Map<String, String> env) {
+    return "web".equals(env.get(NODE_TYPE));
   }
 }
