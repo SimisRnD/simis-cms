@@ -45,11 +45,10 @@ import org.apache.commons.logging.LogFactory;
  * milestone's Azure config is injected (e.g. APPLICATIONINSIGHTS_CONNECTION_STRING): plain env
  * vars, resolved from Key Vault by the App Service platform before the JVM ever starts, not read
  * by this application code:
- *   AZURE_FRONTDOOR_PROFILE_NAME   -- AFD profile name (infra/modules/frontdoor.bicep: afd-&lt;prefix&gt;)
+ *   AZURE_FRONTDOOR_PROFILE_NAME   -- AFD profile name
  *   AZURE_FRONTDOOR_RESOURCE_GROUP -- Azure resource group
- *   AZURE_FRONTDOOR_ENDPOINT_NAME  -- AFD endpoint name (infra/modules/frontdoor.bicep: fde-&lt;prefix&gt;;
- *                                     NOT derivable from the profile name -- both are independently
- *                                     derived from the same namePrefix, so it needs its own var)
+ *   AZURE_FRONTDOOR_ENDPOINT_NAME  -- AFD endpoint name (NOT derivable from the profile name,
+ *                                     so it needs its own var)
  *   AZURE_SUBSCRIPTION_ID          -- Subscription containing the AFD profile
  *
  * If any are missing, purge is skipped as a no-op (logged once at INFO, then DEBUG per call) --
@@ -60,10 +59,9 @@ import org.apache.commons.logging.LogFactory;
  *
  * Authentication uses azure-identity's DefaultAzureCredential (managed identity in Azure App
  * Service, falling back through the standard chain locally) -- the same trust model already
- * established for this milestone's Key Vault references (infra/modules/rbac.bicep grants the
- * App Service's system-assigned identity access to the vault and the registry). A CDN/Front Door
- * purge-capable role for that identity is NOT yet in rbac.bicep -- it must be added before a
- * purge call can succeed against a live subscription; see the #420 PR description.
+ * established for this milestone's Key Vault references. That identity also needs a CDN/Front
+ * Door purge-capable role before a purge call can succeed against a live subscription; see the
+ * #420 PR description.
  *
  * The purge call itself is a plain REST POST (Microsoft.Cdn profiles/afdEndpoints/purge), reusing
  * this class's own HTTP handling rather than the azure-resourcemanager-cdn fluent SDK -- that

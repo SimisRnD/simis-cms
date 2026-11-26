@@ -33,8 +33,8 @@ set -euo pipefail
 # staging, and exit non-zero on every run.
 #
 # The fix is App Service's own swap warm-up. `WEBSITE_SWAP_WARMUP_PING_PATH`
-# and `WEBSITE_SWAP_WARMUP_PING_STATUSES` (set in
-# infra/modules/appservice.bicep) tell Azure to request that path on the slot
+# and `WEBSITE_SWAP_WARMUP_PING_STATUSES` (app settings on the App Service)
+# tell Azure to request that path on the slot
 # from inside the platform and to abort the swap unless it answers 200. So the
 # swap in step 4 IS the health gate: if the new build cannot serve /healthz,
 # `az webapp deployment slot swap` fails and production is never touched.
@@ -240,9 +240,8 @@ fi
 # holds every role grant production's identity holds. This script cannot fix a
 # missing grant -- the CI principal is a Website Contributor and cannot create
 # role assignments, by design -- so it stops here, before deploying anything,
-# and prints the exact grants for an administrator to make. infra/main.bicep
-# makes the same grants, so an environment deployed from it passes on its
-# first run.
+# and prints the exact grants for an administrator to make. An environment
+# that already has those grants passes on its first run.
 #
 # Grants are read with a raw ARM call, not `az role assignment list
 # --assignee`: that resolves the principal through Microsoft Graph, which the
@@ -267,7 +266,7 @@ PRODUCTION_PRINCIPAL=$(az webapp identity show \
   --output tsv) \
   || die "Could not read production's managed identity -- see the Azure error above"
 if [[ -z "$PRODUCTION_PRINCIPAL" || "$PRODUCTION_PRINCIPAL" == "None" ]]; then
-  die "Production has no system-assigned managed identity, so there is no access for the staging slot to match. infra/modules/appservice.bicep gives it one; this App Service does not match that template."
+  die "Production has no system-assigned managed identity, so there is no access for the staging slot to match. Give production a system-assigned managed identity, then run this again."
 fi
 
 STAGING_PRINCIPAL=$(az webapp identity show \
@@ -335,7 +334,7 @@ if [[ -n "$MISSING" ]]; then
   log "  Without them the slot cannot pull its image or resolve its Key Vault references"
   log "  on its own, so the build it holds after a swap cannot run and a rollback cannot work."
   log "  The CI principal cannot create role assignments. An Owner or User Access"
-  log "  Administrator must run, once (redeploying infra/main.bicep makes the same grants):"
+  log "  Administrator must run, once:"
   printf '%s' "$MISSING" >&2
   die "Staging slot identity is missing role grants; nothing was deployed and production is untouched"
 fi
