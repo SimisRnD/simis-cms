@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-08-18T10:00:00+00:00",
-  "version": 25,
+  "version": 26,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -2693,7 +2693,28 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "This vulnerability is in OpenSSL's QUIC stack, which queues a RETIRE_CONNECTION_ID frame for every retransmitted NEW_CONNECTION_ID frame without a limit (the incomplete fix for CVE-2026-84784). OpenSSL's CVE record lists only 3.5.0 before 3.5.10, 4.0.0 before 4.0.4 and 4.1.0 as affected, and the fix changes only ssl/quic/quic_channel.c and its headers. Debian bookworm's libssl3 and openssl packages (3.0.22-1~deb12u2) are built from the OpenSSL 3.0.x line, which has no QUIC implementation at all: there is no ssl/quic directory on the openssl-3.0 branch. Independently, nothing in this image would reach QUIC: the postgres server speaks TCP only and uses libssl for TLS over TCP, and no component opens a UDP socket for QUIC."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-124851"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libzstd1"
+            },
+            {
+              "@id": "pkg:deb/debian/zstd"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The flaw lets crafted compressed data expose the contents of zstd's internal buffer through the decompressed output, so it needs an attacker who can both supply zstd-compressed data and read what it decompresses to. The installed versions are in the affected range (libzstd1 and the zstd tool, 1.5.4+dfsg2-5; upstream lists 1.5.1 through 1.5.7), so this rests on what reaches the decoder. PostgreSQL itself decompresses zstd in one place: RestoreBlockImage() in xlogreader.c, for full-page images in WAL written with wal_compression = zstd. The postgres binary imports ZSTD_decompress and no streaming decoder. That WAL is the server's own, read back in recovery; wal_compression is off by default and set nowhere in this image or repository, which also configures no replication, WAL archive or restore_command. Crafted WAL could come only from someone who can already write the data directory (the postgres account, or a database user with superuser or pg_write_server_files), which gives them nothing they do not already have. postgres links libsystemd only for sd_notify(), which decompresses nothing. PostgreSQL's JIT provider, llvmjit.so, loads libLLVM, which decompresses zstd when it reads compressed sections or profile data from files it is given. The JIT gives it only IR that PostgreSQL builds itself and the server's own bitcode files under /usr/lib/postgresql/17/lib/bitcode, all uncompressed LLVM bitcode owned by root, so no database user supplies its input. Vector PostGIS reaches zstd through PROJ, in libtiff's ZSTD codec and libcurl's content decoding. libtiff is loaded into the database server through vector PostGIS: postgis-3.so links PROJ (libproj.so.25), which uses libtiff only to read GeoTIFF grid files. It imports TIFFClientOpen, TIFFReadDirectory, TIFFReadEncodedStrip/Tile and TIFFGetField, and no write or TIFFSetField function. No crafted TIFF can reach it. There is no TIFF file anywhere on the image's filesystem: its seven grids are NTv2 (.gsb) and GTX (.gtx) files, which PROJ reads with its own code. PROJ's networking is off, so it downloads none. A database user can name a grid file in a PROJ string passed to ST_Transform() or ST_TransformPipeline(), but only one already on the server's disk, and placing a file there from SQL needs pg_write_server_files or superuser, which PostgreSQL's documentation notes can be used to gain superuser-level access; a crafted TIFF would give such a user nothing they do not already have. The other installed packages depending on libtiff6 (GDAL, libgeotiff5 and poppler) are loaded only by postgis_raster, which is never created. PROJ refuses every http(s) resource unless its networking is enabled, and reaches curl_easy_init() only behind that check (FileManager::open and NetworkFile::open in PROJ 9.9.0's source). Networking is enabled only by PROJ_NETWORK=ON, network = on in proj.ini, or proj_context_set_enable_network(). The image's proj.ini sets network = off, nothing in the image or this repository sets PROJ_NETWORK, and PostGIS imports no proj_context_set_enable_network, so PROJ never calls libcurl and no transfer is ever made. Enabling PROJ networking would void this claim. Outside the server, the zstd tool runs only in the stock entrypoint, to decompress *.sql.zst initialization scripts on first boot, and this image ships a single plain-text init.sql. PostgreSQL's client tools (pg_dump, pg_restore, pg_basebackup, pg_receivewal, pg_rewind, pg_waldump), PROJ's command-line tools, apt, dpkg and util-linux's logger and lslogins also link libzstd, but nothing in the entrypoint or this repository runs them. libarchive13 and libblosc1 are used only by GDAL, which only postgis_raster loads, and it is never created. Adding compressed init scripts from an untrusted source, replaying WAL or a base backup from an untrusted source, or running PostgreSQL's client tools over untrusted zstd-compressed input inside the container would void this claim."
     }
   ],
-  "last_updated": "2026-11-24T01:32:10+00:00"
+  "last_updated": "2026-11-26T16:25:13+00:00"
 }
