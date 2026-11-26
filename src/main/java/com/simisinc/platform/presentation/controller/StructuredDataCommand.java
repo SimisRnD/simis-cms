@@ -212,7 +212,17 @@ public class StructuredDataCommand {
       }
 
       // Add BreadcrumbList schema for pages more than one level deep (issue #403)
-      List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection);
+      // The page's own record title is often a wildcard template's ("/calendar-event/*",
+      // "/news/*"), so the leaf would otherwise fall back to a humanized slug ("I Itsec 2026").
+      // The bridged event or article knows the real name.
+      String leafName = null;
+      if (pageRenderInfo.getCalendarEvent() != null) {
+        leafName = pageRenderInfo.getCalendarEvent().getTitle();
+      }
+      if (StringUtils.isBlank(leafName)) {
+        leafName = pageRenderInfo.getArticleHeadline();
+      }
+      List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection, leafName);
       if (breadcrumbItemList == null || breadcrumbItemList.isEmpty()) {
         // A flat URL is not a shallow page. Since issue #1728 the navigation carries three
         // levels, so a product page sits two below a tab while its URL has one segment -- the
@@ -655,10 +665,21 @@ public class StructuredDataCommand {
    * (issue #403); shallower pages return null since a single-level trail is redundant with the
    * site nav. Each ancestor segment's name is resolved the same way the page itself would be
    * resolved (LoadWebPageCommand, including wildcard/template pages) so a breadcrumb never shows
-   * a path segment that the app wouldn't actually route to; a segment with no matching page falls
-   * back to a humanized version of the URL segment rather than leaving a gap in the trail.
+   * a path segment that the app wouldn't actually route to.
+   *
+   * <p>An ancestor segment with no published page behind it is skipped rather than emitted. It
+   * used to fall back to a humanized label pointing at the bare segment URL, so every event page
+   * linked crawlers to "/calendar-event", which has no page and returns 404; Search Console then
+   * reported it as a Not found error and failed the site's 404 validation. A shorter trail is
+   * better than one that links to a dead URL. The leaf is always kept, since it is the page being
+   * rendered; {@code leafName}, when given, names it ahead of the page record's own title.
    */
   static List<Map<String, Object>> computeBreadcrumbList(String siteUrl, String pagePath, Item item, Collection collection) {
+    return computeBreadcrumbList(siteUrl, pagePath, item, collection, null);
+  }
+
+  static List<Map<String, Object>> computeBreadcrumbList(String siteUrl, String pagePath, Item item, Collection collection,
+      String leafName) {
     if (StringUtils.isBlank(siteUrl) || StringUtils.isBlank(pagePath)) {
       return null;
     }
@@ -676,6 +697,7 @@ public class StructuredDataCommand {
     itemListElement.add(breadcrumbListItem(1, "Home", siteUrl));
 
     StringBuilder pathSoFar = new StringBuilder();
+    int position = 2;
     for (int i = 0; i < segments.size(); i++) {
       String segment = segments.get(i);
       pathSoFar.append('/').append(segment);
@@ -684,6 +706,8 @@ public class StructuredDataCommand {
       String name = null;
       if (isLeaf && item != null && StringUtils.isNotBlank(item.getName())) {
         name = item.getName();
+      } else if (isLeaf && StringUtils.isNotBlank(leafName)) {
+        name = leafName;
       } else if (collection != null && segment.equalsIgnoreCase(collection.getUniqueId())) {
         // The collection's own segment, whether it's the leaf (collection listing page) or an
         // ancestor of the leaf (an item detail page nested under it)
@@ -691,6 +715,10 @@ public class StructuredDataCommand {
       }
       if (StringUtils.isBlank(name)) {
         WebPage segmentPage = LoadWebPageCommand.loadByLink(pathSoFar.toString());
+        if (!isLeaf && !isLinkableAncestor(segmentPage)) {
+          // No published page answers at this URL, so linking to it hands crawlers a 404
+          continue;
+        }
         if (segmentPage != null && StringUtils.isNotBlank(segmentPage.getTitle())) {
           name = segmentPage.getTitle();
         }
@@ -699,9 +727,19 @@ public class StructuredDataCommand {
         name = humanizeUrlSegment(segment);
       }
 
-      itemListElement.add(breadcrumbListItem(i + 2, name, siteUrl + pathSoFar));
+      itemListElement.add(breadcrumbListItem(position++, name, siteUrl + pathSoFar));
     }
-    return itemListElement;
+    // Home plus the page alone is still a valid trail; only a trail with no page entry is not
+    return itemListElement.size() >= 2 ? itemListElement : null;
+  }
+
+  /**
+   * An ancestor breadcrumb is only worth linking when a visitor following it lands on a page: a
+   * record must exist, be published (a draft 404s to anonymous visitors), and not be a redirect
+   * stub (the crumb would name one page and deliver another).
+   */
+  static boolean isLinkableAncestor(WebPage segmentPage) {
+    return segmentPage != null && !segmentPage.getDraft() && StringUtils.isBlank(segmentPage.getRedirectUrl());
   }
 
   /**
