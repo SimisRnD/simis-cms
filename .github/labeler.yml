@@ -31,10 +31,6 @@ docker:
   - changed-files:
       - any-glob-to-any-file: 'docker/**'
 
-deployment:
-  - changed-files:
-      - any-glob-to-any-file: 'infra/**'
-
 compliance:
   - changed-files:
       - any-glob-to-any-file: 'docker/app/conf/**'

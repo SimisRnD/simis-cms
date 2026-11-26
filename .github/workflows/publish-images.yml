@@ -32,7 +32,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  # ACR_REGISTRY is the full login-server hostname (e.g. simiscms.azurecr.io).
+  # ACR_REGISTRY is the full login-server hostname (e.g. myregistry.azurecr.io).
   # Set via a repository variable so the same workflow runs in forks without
   # touching ACR. When the variable is absent the ACR steps are skipped.
   ACR_REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}

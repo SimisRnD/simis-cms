@@ -71,7 +71,7 @@
 <h5>For Azure</h5>
 <div class="callout radius">
   <p>The nightly tamper-evidence check (04:30) and the analytics PII scrub (04:45, see <a href="${ctx}/admin/analytics-retention">Analytics Retention</a>) are both distributed-lock protected, so on a multi-instance Azure App Service deployment exactly one instance runs each of them per night -- they will not run redundantly on every instance.</p>
-  <p>The JSON <code>AUDIT</code> stream this page's cross-check advice depends on is written via the application's normal logger and reaches Log Analytics the same way as any other container stdout log (see <code>infra/modules/loganalytics.bicep</code>). If log routing or a filter is scoped to a specific logger name rather than everything, confirm it explicitly includes <code>AUDIT</code> -- otherwise the out-of-band copy this page's own integrity-failure guidance relies on may not actually be reaching your SIEM.</p>
+  <p>The JSON <code>AUDIT</code> stream this page's cross-check advice depends on is written via the application's normal logger and reaches Log Analytics the same way as any other container stdout log. If log routing or a filter is scoped to a specific logger name rather than everything, confirm it explicitly includes <code>AUDIT</code> -- otherwise the out-of-band copy this page's own integrity-failure guidance relies on may not actually be reaching your SIEM.</p>
 </div>
 <%-- Quick range presets: finer-grained (hour precision) than the date-only filter below. Picking one
      clears the explicit date range server-side (see AuditLogListWidget#buildSpecification). --%>

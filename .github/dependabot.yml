@@ -127,8 +127,8 @@ updates:
       # Held: PostgreSQL majors change the data-directory format (pg_upgrade or
       # dump/restore required), the Debian package set behind the published VEX,
       # and the PostGIS compatibility matrix -- and the container major should
-      # move together with the Azure Flexible Server version in infra/, not
-      # ahead of it. See PR #271 for the held example.
+      # move together with the hosted database's version, not ahead of it.
+      # See PR #271 for the held example.
       - dependency-name: "postgres"
         update-types: ["version-update:semver-major"]
       # Held for the same reason majors are held generally; the gosu build
