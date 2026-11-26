@@ -107,6 +107,20 @@ AppServiceConsoleLogs
     description: 'The application failed to start. Two occurrences in the week before this alert existed; neither notified anyone.'
   }
   {
+    name: 'alert-scheduler-startup-failure'
+    severity: 2
+    frequency: 'PT5M'
+    window: 'PT15M'
+    threshold: 0
+    // SchedulerManager.startup() catches whatever goes wrong while it sets up JobRunr, logs this
+    // one line, and returns. Startup then finishes and the site serves pages, so nothing else
+    // reports it: alert-app-startup-failure does not fire and the health checks pass.
+    query: '''
+AppServiceConsoleLogs | where ResultDescription contains "Error starting jobrunr"
+'''
+    description: 'The background job scheduler (JobRunr) failed to start. The application logs the failure and finishes starting without it, so the site serves pages normally and no other alert fires. While the scheduler is down no scheduled job runs: audit log retention and the nightly audit integrity check, the session PII scrub, form data retention and the upload sweeps, the newsletter queue, order processing, and the cleanup jobs. The line is logged once, at startup, so this alert resolving does NOT mean the scheduler recovered: it stays down until the app restarts cleanly. Read the stack trace that follows the line in AppServiceConsoleLogs (most often the database or the job tables), fix the cause, restart the app, and confirm on /admin/job-queue-dashboard that jobs are listed again.'
+  }
+  {
     name: 'alert-http-503'
     severity: 1
     frequency: 'PT5M'
