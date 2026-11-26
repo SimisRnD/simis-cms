@@ -138,6 +138,17 @@ AppServiceConsoleLogs | where ResultDescription has "CaptchaCommand" and ResultD
     description: 'reCAPTCHA Enterprise verification is failing at the infrastructure level (API unreachable, HTTP error, unparseable response, or missing settings). CaptchaCommand fails CLOSED, so while this fires the contact and subscribe forms REJECT all submissions. Most likely cause: the backing Google Cloud project lost billing or the API key was revoked. Excludes normal bot rejections (low score, missing token).'
   }
   {
+    name: 'alert-malware-scanner-unavailable'
+    severity: 2
+    frequency: 'PT5M'
+    window: 'PT15M'
+    threshold: 0
+    query: '''
+AppServiceConsoleLogs | where ResultDescription has "MalwareScanCommand" and ResultDescription contains "could not be scanned and was rejected"
+'''
+    description: 'A form upload was rejected because the malware scanner could not scan it: no scanner configured, clamd unreachable or timed out, or still loading its signatures. MalwareScanCommand fails CLOSED (issue #2130), so while this fires every file attached to a form is rejected; text-only submissions are unaffected. Check the ClamAV container app (modules/malwarescanner.bicep) and run Test Malware Scanner on /admin/security-properties. Keyed on real upload attempts, so an outage with no uploads stays silent, and a rejection for a matched signature (infected) is a different log line that does not fire this.'
+  }
+  {
     name: 'alert-postgres-fatal'
     severity: 2
     frequency: 'PT15M'

@@ -105,6 +105,18 @@ param enableVpnGateway bool = false
 param vpnTenantId string = ''
 
 @description('''
+Deploy the ClamAV malware scanner that form file uploads are checked with (issue #2130,
+modules/malwarescanner.bicep). Off by default for two reasons: it bills from creation (about $47
+a month), and its image must first be imported into the registry, which this template cannot do
+(infra/DEPLOYMENT.md, "Malware scanner"). Its subnet and NSG are created either way. Until a
+scanner is configured on /admin/security-properties, every form upload is rejected.
+''')
+param enableMalwareScanner bool = false
+
+@description('ClamAV image the scanner runs, relative to the registry, pinned by digest. Keep it on the same release and digest as the clamav service in docker-compose.yaml.')
+param malwareScannerImage string = 'clamav/clamav:1.4.7-debian@sha256:cac3829563613e6eb21962bc2e6ef999492d4c20c01f17d0b5bec2f4b7ce0320'
+
+@description('''
 Resource id of the action group that every alert rule notifies. Empty skips the
 alert rules entirely. The action group itself is not created here: it holds the
 people who get paged, which is operational configuration rather than
@@ -291,6 +303,24 @@ module vpnGateway 'modules/vpngateway.bicep' = if (enableVpnGateway) {
   }
 }
 
+// The malware scanner form uploads are checked with. Nothing depends on it at deploy time: the
+// app reads the scanner's address from a site property, so turning this on or off leaves the rest
+// of the stack untouched.
+module malwareScanner 'modules/malwarescanner.bicep' = if (enableMalwareScanner) {
+  name: 'malwarescanner'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    tags: tags
+    infrastructureSubnetId: network.outputs.scannerSubnetId
+    vnetId: network.outputs.vnetId
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    acrName: acr.outputs.registryName
+    acrLoginServer: acr.outputs.loginServer
+    image: malwareScannerImage
+  }
+}
+
 // Alert rules watch everything above, so they come last.
 module alerts 'modules/alerts.bicep' = if (!empty(alertActionGroupId)) {
   name: 'alerts'
@@ -330,3 +360,8 @@ output frontDoorId string = frontDoor.outputs.frontDoorId
 // a conditional module is null until it is actually deployed, and reading through
 // it unguarded fails the whole deployment.
 output vpnGatewayPublicIp string = vpnGateway.?outputs.gatewayPublicIp ?? ''
+
+// Empty unless enableMalwareScanner is true. Enter these as Malware scanner host and port on
+// /admin/security-properties, then run Test Malware Scanner there.
+output malwareScannerHost string = malwareScanner.?outputs.host ?? ''
+output malwareScannerPort int = malwareScanner.?outputs.port ?? 0

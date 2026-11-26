@@ -65,6 +65,7 @@ Create a `deploy-params.json` file (keep secret, do not commit):
 - `wafMode`: Start in `Prevention`; drop to `Detection` only if tuning false positives
 - `alertActionGroupId`: Resource id of an existing action group. Set it to deploy the alert rules (§9.3); leave it out to skip them
 - `backupVaultId`: Resource id of the Recovery Services vault, so its built-in backup alerts notify the same action group. Optional
+- `enableMalwareScanner`: Leave it out (off) until you turn on file uploads on forms. Its image has to be imported first (§11)
 
 ### 1.2 Validate Bicep
 
@@ -508,7 +509,7 @@ Sampling is fixed at 100% for the pilot (`docker/app/applicationinsights.json`) 
 
 `infra/modules/alerts.bicep` deploys every alert rule when `alertActionGroupId` is set:
 
-- **Log queries (10):** audit pipeline stopped and audit events quiet (NIST SP 800-171 3.3.4), app startup failure, HTTP 503, reCAPTCHA verification failure, Postgres FATAL, login-failure spike, WAF blocking admin paths, WAF block surge, 404 loop from one client
+- **Log queries (11):** audit pipeline stopped and audit events quiet (NIST SP 800-171 3.3.4), app startup failure, HTTP 503, reCAPTCHA verification failure, malware scanner unavailable (§11), Postgres FATAL, login-failure spike, WAF blocking admin paths, WAF block surge, 404 loop from one client
 - **Metrics (11):** Front Door origin health, 5xx count, traffic stopped and latency; App Service 5xx and memory; Postgres CPU, CPU credits (Burstable SKUs only), active connections, failed connections and storage
 - **Activity Log (3, subscription-wide):** diagnostic-setting or log-destination changes, RBAC changes, and Key Vault or WAF changes
 - **Backup routing:** sends the Recovery Services vault's built-in alerts to the action group when `backupVaultId` is set
@@ -552,6 +553,53 @@ Before switching user traffic:
 - [ ] Application Insights receiving telemetry (Live Metrics shows requests after a test hit)
 - [ ] Monitoring alerts configured
 - [ ] Runback procedure documented (switch DNS back if needed)
+
+---
+
+## 11. Malware Scanner (Form File Uploads)
+
+A form's file field (issue #2130) sends each upload to a ClamAV scanner and keeps it only if the scan is clean. With no scanner configured, every upload is rejected; text-only forms are unaffected. `enableMalwareScanner` deploys the scanner: one `clamd` container in an internal Container Apps environment (`modules/malwarescanner.bicep`), about $47 a month at East US retail prices.
+
+Every deployment creates its subnet (`snet-malware-scanner`, 10.20.3.0/27) and network security group, whether the scanner is on or not. `clamd` has no login and no encryption, so that NSG is its access control: from the rest of the VNet, only the app subnet gets in, on port 3310 and the 30000–32767 range Container Apps uses behind its load balancer.
+
+### 11.1 Import the image
+
+The scanner pulls ClamAV from this registry, never from Docker Hub. Import the pinned image first, using the digest in `malwareScannerImage` (`main.bicep`), which matches the `clamav` service in `docker-compose.yaml`:
+
+```bash
+ACR_NAME=$(az deployment group show --resource-group my-simis-rg --name main \
+  --query properties.outputs.acrName.value -o tsv)
+
+az acr import --name "$ACR_NAME" \
+  --source docker.io/clamav/clamav@sha256:cac3829563613e6eb21962bc2e6ef999492d4c20c01f17d0b5bec2f4b7ce0320 \
+  --image clamav/clamav:1.4.7-debian
+
+# Must print the same digest
+az acr repository show --name "$ACR_NAME" --image clamav/clamav:1.4.7-debian --query digest -o tsv
+```
+
+### 11.2 Deploy
+
+Run `what-if` (§1.3) with `"enableMalwareScanner": true` added to `deploy-params.json`. It should add a user-assigned identity and its AcrPull grant, a Container Apps environment and its diagnostic setting, the `ca-clamav-*` container app, and a private DNS zone named after the environment's domain. Then deploy (§1.4).
+
+The environment takes several minutes to create. On first start, `clamd` downloads its signatures before it listens; the startup probe allows five minutes.
+
+### 11.3 Point the app at it
+
+```bash
+az deployment group show --resource-group my-simis-rg --name main \
+  --query '{host: properties.outputs.malwareScannerHost.value, port: properties.outputs.malwareScannerPort.value}'
+```
+
+On `/admin/security-properties`, enter that host as **Malware scanner host** and the port (3310), save, then click **Test Malware Scanner**. It passes only when an ordinary file is accepted and the EICAR test file is flagged (`docs/forms.md`, "Setting up the malware scanner"). Only then turn on `features.form-file-uploads`.
+
+### 11.4 Running it
+
+- **Logs:** the environment's console and system logs go to the Log Analytics workspace through its diagnostic setting.
+- **Alert:** `alert-malware-scanner-unavailable` (§9.3) fires when an upload is rejected because the scanner could not scan it.
+- **Signatures:** `freshclam` runs inside the container and checks 12 times a day (`freshclamChecks`). A restart downloads the full set again, so don't restart it on a schedule.
+- **Updating ClamAV:** import the new digest (§11.1), change `malwareScannerImage` to match `docker-compose.yaml`, and redeploy.
+- **Turning it off:** setting `enableMalwareScanner` back to false does **not** delete anything, because deployments are incremental. Delete the `ca-clamav-*` container app and the `cae-*` environment by hand, and clear the scanner host on `/admin/security-properties`.
 
 ---
 

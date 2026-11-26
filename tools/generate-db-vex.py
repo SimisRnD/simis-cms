@@ -765,6 +765,40 @@ CVE_POLICY = {
         "(SCRAM password authentication). Configuring pam authentication with a stack that "
         "includes pam_namespace would void this claim.",
     ),
+    # Zstandard, triaged 2026-11-26 against the image built from docker/db/Dockerfile
+    # (libzstd1 and zstd 1.5.4+dfsg2-5, postgresql-17 17.12-1.pgdg12+1, libLLVM 19).
+    "CVE-2026-124851": (
+        CANNOT_CONTROL,
+        "The flaw lets crafted compressed data expose the contents of zstd's internal buffer "
+        "through the decompressed output, so it needs an attacker who can both supply "
+        "zstd-compressed data and read what it decompresses to. The installed versions are in "
+        "the affected range (libzstd1 and the zstd tool, 1.5.4+dfsg2-5; upstream lists 1.5.1 "
+        "through 1.5.7), so this rests on what reaches the decoder. PostgreSQL itself "
+        "decompresses zstd in one place: RestoreBlockImage() in xlogreader.c, for full-page "
+        "images in WAL written with wal_compression = zstd. The postgres binary imports "
+        "ZSTD_decompress and no streaming decoder. That WAL is the server's own, read back in "
+        "recovery; wal_compression is off by default and set nowhere in this image or "
+        "repository, which also configures no replication, WAL archive or restore_command. "
+        "Crafted WAL could come only from someone who can already write the data directory "
+        "(the postgres account, or a database user with superuser or pg_write_server_files), "
+        "which gives them nothing they do not already have. postgres links libsystemd only for "
+        "sd_notify(), which decompresses nothing. PostgreSQL's JIT provider, llvmjit.so, loads "
+        "libLLVM, which decompresses zstd when it reads compressed sections or profile data from "
+        "files it is given. The JIT gives it only IR that PostgreSQL builds itself and the "
+        "server's own bitcode files under /usr/lib/postgresql/17/lib/bitcode, all uncompressed "
+        "LLVM bitcode owned by root, so no database user supplies its input. Vector PostGIS "
+        "reaches zstd through PROJ, in libtiff's ZSTD codec and libcurl's content decoding. "
+        + TIFF_VIA_PROJ + " " + PROJ_NETWORK_OFF + " Outside the server, the zstd tool runs "
+        "only in the stock entrypoint, to decompress *.sql.zst initialization scripts on first "
+        "boot, and this image ships a single plain-text init.sql. PostgreSQL's client tools "
+        "(pg_dump, pg_restore, pg_basebackup, pg_receivewal, pg_rewind, pg_waldump), PROJ's "
+        "command-line tools, apt, dpkg and util-linux's logger and lslogins also link libzstd, "
+        "but nothing in the entrypoint or this repository runs them. libarchive13 and libblosc1 "
+        "are used only by GDAL, which only postgis_raster loads, and it is never created. "
+        "Adding compressed init scripts from an untrusted source, replaying WAL or a base backup "
+        "from an untrusted source, or running PostgreSQL's client tools over untrusted "
+        "zstd-compressed input inside the container would void this claim.",
+    ),
 }
 
 # CVE-specific evidence layered ON TOP of a package rule, rather than replacing it.
