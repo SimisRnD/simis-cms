@@ -31,6 +31,12 @@ public class FormUpload extends Entity {
   public static final String SCAN_PENDING = "pending";
   public static final String SCAN_CLEAN = "clean";
   public static final String SCAN_REJECTED = "rejected";
+  /**
+   * Stored without a malware scan, because the file is an image rebuilt from its pixels and the site
+   * does not require images to be scanned ({@code security.formUploads.imageScanRequired}). Recorded
+   * as itself rather than as clean, so the review screen and the record say what actually happened.
+   */
+  public static final String SCAN_NOT_REQUIRED = "not_required";
 
   private Long id = -1L;
   private String formUniqueId = null;
@@ -51,9 +57,22 @@ public class FormUpload extends Entity {
   public FormUpload() {
   }
 
-  /** Only a file the scan passed may be downloaded */
+  /** Whether a malware scan ran and passed the file */
   public boolean isClean() {
     return SCAN_CLEAN.equals(scanStatus);
+  }
+
+  /** Whether the file was stored without a scan because none was required for it */
+  public boolean isScanNotRequired() {
+    return SCAN_NOT_REQUIRED.equals(scanStatus);
+  }
+
+  /**
+   * Only a file the scan passed, or one stored when no scan was required, may be downloaded. A
+   * pending or rejected file never is.
+   */
+  public boolean isDownloadable() {
+    return isClean() || isScanNotRequired();
   }
 
   public Long getId() {

@@ -34,7 +34,6 @@ import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -44,8 +43,7 @@ import com.simisinc.platform.domain.model.cms.FormField;
 
 /**
  * Verifies {@link SanitizeFormUploadCommand}, which decodes an accepted form upload and encodes it
- * again so only its pixels are stored (issue #2130, step 3). The WebP tests need ImageMagick on the
- * PATH and are skipped without it; GitHub's ubuntu-latest runners ship it.
+ * again so only its pixels are stored (issue #2130, step 3).
  */
 class SanitizeFormUploadCommandTest {
 
@@ -219,7 +217,7 @@ class SanitizeFormUploadCommandTest {
   }
 
   @Test
-  void contentThatIsNotAJpegPngOrWebpIsRejectedWhateverTheCallerBelieved() throws IOException {
+  void contentThatIsNotAJpegOrPngIsRejectedWhateverTheCallerBelieved() throws IOException {
     // The type is detected again from the file on disk, not taken from step 2's answer
     assertEquals(SanitizeFormUploadCommand.REASON_UNDECODABLE,
         SanitizeFormUploadCommand.sanitize(screenshotField(), upload("logo.png", FormUploadFixtures.svg())).reason());
@@ -254,118 +252,11 @@ class SanitizeFormUploadCommandTest {
     assertEquals(1, DownscaleImageCommand.DECODE_PERMIT.availablePermits());
   }
 
-  // -- WebP, through ImageMagick -----------------------------------------------------------------
-
-  /** Writes a WebP with ImageMagick from a PNG, or skips the test when ImageMagick is missing */
-  private File webpFrom(byte[] png, String name, String... extraArgs) throws Exception {
-    Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH");
-    File source = upload(name + "-source.png", png);
-    File webp = quarantine.resolve(name + ".webp").toFile();
-    String[] command = new String[3 + extraArgs.length];
-    command[0] = "convert";
-    command[1] = source.getAbsolutePath();
-    System.arraycopy(extraArgs, 0, command, 2, extraArgs.length);
-    command[command.length - 1] = webp.getAbsolutePath();
-    Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-    process.getInputStream().readAllBytes();
-    Assumptions.assumeTrue(process.waitFor() == 0 && webp.length() > 0, "this ImageMagick cannot write WebP");
-    Files.delete(source.toPath());
-    return webp;
-  }
-
   @Test
-  void aWebpComesBackAsAWebpWithAThumbnailAndNothingLeftBesideIt() throws Exception {
-    File webp = webpFrom(FormUploadFixtures.opaque(640, 320, "png"), "phone");
-
-    Sanitized image = accepted(SanitizeFormUploadCommand.sanitize(screenshotField(), webp));
-
-    assertEquals("image/webp", image.contentType());
-    assertEquals("webp", image.extension());
-    assertEquals(640, image.width());
-    assertEquals(320, image.height());
-    assertEquals("image/webp", DetectContentTypeCommand.detectStream(new ByteArrayInputStream(image.bytes())));
-    assertEquals("image/webp", image.thumbnailContentType());
-    assertEquals("image/webp", DetectContentTypeCommand.detectStream(new ByteArrayInputStream(image.thumbnail())));
-    File thumbnail = quarantine.resolve("thumbnail-check.webp").toFile();
-    Files.write(thumbnail.toPath(), image.thumbnail());
-    assertArrayEquals(new int[] { 320, 160 }, SanitizeFormUploadCommand.readWebpSize(thumbnail));
-    Files.delete(thumbnail.toPath());
-    try (var listing = Files.list(quarantine)) {
-      assertEquals(1, listing.count(), "the temporary outputs written beside the upload are removed");
-    }
-  }
-
-  @Test
-  void aWebpLosesItsExifAndXmp() throws Exception {
-    // ImageMagick will not write EXIF or XMP into a WebP from the command line, so the metadata is
-    // added by hand: the simple WebP is rewrapped in the extended format with both chunks
-    File simple = webpFrom(FormUploadFixtures.opaque(32, 32, "png"), "simple");
-    byte[] tagged = withExifAndXmp(Files.readAllBytes(simple.toPath()), 32, 32);
-    assertTrue(contains(tagged, "EXIF") && contains(tagged, "XMP ") && contains(tagged, "<script>"), "the fixture carries both");
-    Files.delete(simple.toPath());
-
-    Sanitized image = accepted(SanitizeFormUploadCommand.sanitize(screenshotField(), upload("tagged.webp", tagged)));
-
-    assertFalse(contains(image.bytes(), "EXIF"));
-    assertFalse(contains(image.bytes(), "XMP "));
-    assertFalse(contains(image.bytes(), "<script>"));
-    assertEquals(32, image.width());
-  }
-
-  /**
-   * Rewraps a simple WebP ("RIFF", size, "WEBP", one VP8 chunk) in the extended format: a VP8X
-   * chunk flagging EXIF and XMP, the original image chunk, then an EXIF and an XMP chunk, each
-   * holding script
-   */
-  private static byte[] withExifAndXmp(byte[] simpleWebp, int width, int height) {
-    byte[] image = Arrays.copyOfRange(simpleWebp, 12, simpleWebp.length);
-    byte[] vp8x = { 0x0C, 0, 0, 0,
-        (byte) (width - 1), (byte) ((width - 1) >> 8), (byte) ((width - 1) >> 16),
-        (byte) (height - 1), (byte) ((height - 1) >> 8), (byte) ((height - 1) >> 16) };
-    byte[] exif = "Exif\0\0MM\0*\0\0\0\b\0\0\0\0\0\0<script>alert(1)</script>".getBytes(StandardCharsets.ISO_8859_1);
-    byte[] xmp = "<x:xmpmeta><script>alert(2)</script></x:xmpmeta>".getBytes(StandardCharsets.ISO_8859_1);
-    java.io.ByteArrayOutputStream payload = new java.io.ByteArrayOutputStream();
-    payload.writeBytes("WEBP".getBytes(StandardCharsets.US_ASCII));
-    payload.writeBytes(riffChunk("VP8X", vp8x));
-    payload.writeBytes(image);
-    payload.writeBytes(riffChunk("EXIF", exif));
-    payload.writeBytes(riffChunk("XMP ", xmp));
-    byte[] body = payload.toByteArray();
-    java.nio.ByteBuffer file = java.nio.ByteBuffer.allocate(8 + body.length).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-    file.put("RIFF".getBytes(StandardCharsets.US_ASCII)).putInt(body.length).put(body);
-    return file.array();
-  }
-
-  private static byte[] riffChunk(String type, byte[] data) {
-    int padded = data.length + (data.length % 2);
-    java.nio.ByteBuffer chunk = java.nio.ByteBuffer.allocate(8 + padded).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-    chunk.put(type.getBytes(StandardCharsets.US_ASCII)).putInt(data.length).put(data);
-    return chunk.array();
-  }
-
-  @Test
-  void anAnimatedWebpKeepsOnlyItsFirstFrame() throws Exception {
-    Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH");
-    File animated = quarantine.resolve("animated.webp").toFile();
-    Process process = new ProcessBuilder("convert", "-size", "100x80", "xc:red", "-size", "100x80", "xc:blue",
-        "-delay", "50", animated.getAbsolutePath()).redirectErrorStream(true).start();
-    process.getInputStream().readAllBytes();
-    Assumptions.assumeTrue(process.waitFor() == 0 && animated.length() > 0, "this ImageMagick cannot write WebP");
-
-    Sanitized image = accepted(SanitizeFormUploadCommand.sanitize(screenshotField(), animated));
-
-    assertEquals(100, image.width());
-    assertEquals(80, image.height(), "one frame's height, not the frames' sizes run together");
-    assertFalse(contains(image.bytes(), "ANMF"), "no animation frames remain");
-  }
-
-  private static boolean isImageMagickAvailable() {
-    try {
-      Process process = new ProcessBuilder("convert", "-version").redirectErrorStream(true).start();
-      process.getInputStream().readAllBytes();
-      return process.waitFor() == 0;
-    } catch (Exception e) {
-      return false;
-    }
+  void aWebpIsRefusedHereEvenIfTheTypeCheckLetItThrough() throws IOException {
+    // WebP is off the accepted list so no upload reaches ImageMagick and libwebp; this is the second
+    // gate, in case it is ever put back on the list without its re-encode
+    assertEquals(SanitizeFormUploadCommand.REASON_UNDECODABLE,
+        SanitizeFormUploadCommand.sanitize(screenshotField(), upload("phone.webp", FormUploadFixtures.webpHeader())).reason());
   }
 }

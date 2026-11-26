@@ -119,6 +119,20 @@ class FormUploadFileWidgetTest extends WidgetBase {
   }
 
   @Test
+  void anImageStoredWithoutAScanIsSentTheSameWay() {
+    uploadWithStatus(FormUpload.SCAN_NOT_REQUIRED);
+    addQueryParameter(widgetContext, "id", "7");
+
+    WidgetContext result = new FormUploadFileWidget().execute(widgetContext);
+
+    assertTrue(result.handledResponse());
+    assertArrayEquals(new byte[] { 1, 2, 3 }, body.toByteArray());
+    verify(response).setHeader("X-Content-Type-Options", "nosniff");
+    verify(response).setHeader("Content-Disposition", "attachment; filename=\"my shot.png\"");
+    verifyAudited(AuditEventCommand.SUCCESS);
+  }
+
+  @Test
   void theThumbnailIsSentInlineWithTheSandboxingHeaders() {
     uploadWithStatus(FormUpload.SCAN_CLEAN);
     addQueryParameter(widgetContext, "id", "7");

@@ -69,3 +69,10 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- affected. In docker-compose.yaml the scanner is the "clamav" service.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Malware scanner host (ClamAV clamd)', 'security.clamav.host', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (61, 'Malware scanner port', 'security.clamav.port', '3310', 'text');
+
+-- Whether an image a visitor attaches must also pass that scan. Images are rebuilt from their pixels
+-- before the scan runs, so for them it mostly re-checks a file the platform already drew; an
+-- administrator may decide not to require it (MalwareScanCommand.isScanRequired). Seeded 'true', and a
+-- missing or blank row also requires the scan: turning it off is a decision someone has to make.
+-- Seeded on existing deployments by UPGRADE_20261126.1000__form_upload_image_scan_setting.sql.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (62, 'Require a malware scan for image uploads', 'security.formUploads.imageScanRequired', 'true', 'boolean');

@@ -73,11 +73,11 @@ class FormFileFieldCommandTest {
   }
 
   @Test
-  void theImageKindAcceptsJpgPngAndWebpByNameAndByContentAndNothingElse() {
+  void theImageKindAcceptsJpgAndPngByNameAndByContentAndNothingElse() {
     FormFileFieldCommand.FileKind image = FormFileFieldCommand.kind(" Image ");
 
-    assertEquals(java.util.Set.of("jpg", "jpeg", "png", "webp"), image.extensions());
-    assertEquals(java.util.Set.of("image/jpeg", "image/png", "image/webp"), image.contentTypes());
+    assertEquals(java.util.Set.of("jpg", "jpeg", "png"), image.extensions(), "WebP is left off: it would be decoded by ImageMagick");
+    assertEquals(java.util.Set.of("image/jpeg", "image/png"), image.contentTypes());
     assertEquals(FormFileFieldCommand.availableKinds().get("image"), image.label(), "the editor and the check share one label");
     org.junit.jupiter.api.Assertions.assertNull(FormFileFieldCommand.kind("pdf"));
     org.junit.jupiter.api.Assertions.assertNull(FormFileFieldCommand.kind(null));
@@ -146,7 +146,7 @@ class FormFileFieldCommandTest {
     FormField field = fieldOfType("file");
     field.setAcceptedKinds("image");
 
-    assertEquals("image/jpeg,image/png,image/webp,.jpeg,.jpg,.png,.webp", FormFileFieldCommand.acceptAttribute(field));
+    assertEquals("image/jpeg,image/png,.jpeg,.jpg,.png", FormFileFieldCommand.acceptAttribute(field));
     field.setAcceptedKinds(null);
     assertEquals("", FormFileFieldCommand.acceptAttribute(field));
   }
@@ -159,7 +159,7 @@ class FormFileFieldCommandTest {
       field.setAcceptedKinds("image");
       field.setMaxBytes(5 * MB);
 
-      assertEquals("Images (JPG, PNG, WebP), up to 5 MB.", FormFileFieldCommand.describeLimits(field));
+      assertEquals("Images (JPG, PNG), up to 5 MB.", FormFileFieldCommand.describeLimits(field));
       field.setAcceptedKinds(null);
       assertEquals("Up to 5 MB.", FormFileFieldCommand.describeLimits(field));
     }

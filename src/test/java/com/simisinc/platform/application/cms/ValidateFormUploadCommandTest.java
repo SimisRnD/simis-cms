@@ -162,9 +162,14 @@ class ValidateFormUploadCommandTest {
     assertEquals("image/jpeg", check("photo.jpg", FormUploadFixtures.jpeg()).contentType());
     assertEquals("image/jpeg", check("photo.JPEG", FormUploadFixtures.jpeg()).contentType());
     assertEquals("image/png", check("shot.PNG", FormUploadFixtures.pngWithTransparency()).contentType());
-    Result webp = check("phone.webp", FormUploadFixtures.webpHeader());
-    assertEquals("image/webp", webp.contentType());
-    assertEquals("webp", webp.extension());
+  }
+
+  @Test
+  void aWebpIsRejectedUnderAnyName() {
+    // Left off the list so no upload is decoded by ImageMagick and libwebp
+    assertRejected(check("phone.webp", FormUploadFixtures.webpHeader()), ValidateFormUploadCommand.REASON_TYPE_NOT_ALLOWED);
+    assertRejected(check("phone.png", FormUploadFixtures.webpHeader()), ValidateFormUploadCommand.REASON_TYPE_NOT_ALLOWED);
+    assertRejected(check("photo.webp", FormUploadFixtures.jpeg()), ValidateFormUploadCommand.REASON_TYPE_NOT_ALLOWED);
   }
 
   @Test
@@ -236,7 +241,7 @@ class ValidateFormUploadCommandTest {
   void theTypeMessageNamesTheRuleAndNothingTheCheckFound() {
     Result result = check("logo.png", FormUploadFixtures.svg());
 
-    assertEquals("Screenshot: this type of file isn't accepted. Choose Images (JPG, PNG, WebP).", result.message());
+    assertEquals("Screenshot: this type of file isn't accepted. Choose Images (JPG, PNG).", result.message());
     assertFalse(result.message().toLowerCase().contains("svg"), "the visitor isn't told what the bytes were");
   }
 

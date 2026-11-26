@@ -367,7 +367,8 @@ CREATE INDEX form_fields_order_idx ON form_fields(field_order);
 -- Issue #2130: files visitors attach to forms. Kept apart from the CMS file library (files, folders):
 -- a visitor is not a user, so these rows have no created_by, and nothing here appears in the file
 -- library, folder pages or site search. They are served only by /assets/form-upload, to the roles
--- that review form data, and only when scan_status is 'clean'. file_path and thumbnail_path are
+-- that review form data, and only when scan_status is 'clean', or 'not_required' for an image stored
+-- without a scan because security.formUploads.imageScanRequired is false. file_path and thumbnail_path are
 -- relative to the file-server root and are named by the server; original_filename is the visitor's
 -- own name for the file, kept for display only. form_data_id is set once the submission is saved, and
 -- set NULL (not cascaded) when it is deleted, so the files on disk can still be found and removed.
@@ -384,7 +385,7 @@ CREATE TABLE form_uploads (
   height INTEGER,
   thumbnail_path VARCHAR(255),
   thumbnail_content_type VARCHAR(50),
-  scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected')),
+  scan_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (scan_status IN ('pending', 'clean', 'rejected', 'not_required')),
   scan_checked TIMESTAMP(3),
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

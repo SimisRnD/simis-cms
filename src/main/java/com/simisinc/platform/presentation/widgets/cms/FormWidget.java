@@ -745,7 +745,7 @@ public class FormWidget extends GenericWidget {
       return maxBytes;
     }
 
-    /** e.g. "Images (JPG, PNG, WebP), up to 10 MB." */
+    /** e.g. "Images (JPG, PNG), up to 10 MB." */
     public String getLimits() {
       return limits;
     }

@@ -205,7 +205,8 @@
                     <%-- A file the visitor attached (issue #2130). The value is the upload's id, and
                          formUploads only holds this submission's own uploads, so a value can never show
                          another submission's file. The preview is the re-encoded thumbnail, never the
-                         file itself, and both it and the download are refused unless the scan passed. --%>
+                         file itself, and both it and the download are refused unless the scan passed,
+                         or the image was stored without one because the site doesn't require it. --%>
                     <c:set var="formUpload" value="${formUploads[formData.id][formField.userValue]}"/>
                     <c:choose>
                       <c:when test="${empty formUpload}">
@@ -223,6 +224,11 @@
                           <c:when test="${formUpload.clean}">
                             <span class="success label">Scanned clean</span>
                             <a class="button tiny secondary radius" href="${ctx}<c:out value="${formUpload.downloadUrl}"/>"><i class="fa fa-download"></i> Download</a>
+                          </c:when>
+                          <c:when test="${formUpload.scanNotRequired}">
+                            <span class="secondary label">Not scanned</span>
+                            <a class="button tiny secondary radius" href="${ctx}<c:out value="${formUpload.downloadUrl}"/>"><i class="fa fa-download"></i> Download</a>
+                            <br /><small>Rebuilt from its pixels. A malware scan isn't required for images on this site.</small>
                           </c:when>
                           <c:otherwise>
                             <span class="alert label">Not scanned clean</span> <small>This file can't be downloaded.</small>
