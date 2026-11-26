@@ -254,10 +254,13 @@
       </fieldset>
     </div>
     <div class="small-12 medium-4 cell">
-      <fieldset>
+      <%-- The fieldset is named by the visible "Roles" heading, so a screen reader announces the
+           group as each checkbox is reached. The heading stays a <label> for its styling; it labels
+           no single control, so it names the group instead. --%>
+      <fieldset aria-labelledby="rolesGroupLabel">
         <div class="grid-x grid-padding-x callout secondary">
           <div class="small-3 text-right cell">
-            <label>Roles</label>
+            <label id="rolesGroupLabel">Roles</label>
           </div>
           <div class="small-9 cell">
             <p class="help-text u-mb-6" id="rolesHelpText">You can only grant a role at or below your
@@ -297,10 +300,13 @@
         </div>
       </fieldset>
       </c:if>
-      <fieldset>
+      <%-- The fieldset is named by the visible "Groups" heading, so a screen reader announces the
+           group as each checkbox is reached. The heading stays a <label> for its styling; it labels
+           no single control, so it names the group instead. --%>
+      <fieldset aria-labelledby="groupsGroupLabel">
         <div class="grid-x grid-padding-x callout secondary">
           <div class="small-3 text-right cell">
-            <label>Groups</label>
+            <label id="groupsGroupLabel">Groups</label>
           </div>
           <div class="small-9 cell">
             <p class="help-text u-mb-6" id="groupsHelpText">Unlike roles, group membership isn't

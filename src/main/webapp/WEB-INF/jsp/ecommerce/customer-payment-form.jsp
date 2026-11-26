@@ -35,6 +35,9 @@
 </style>
 <script src="${ctx}/javascript/payform-1.4.0/payform.js"></script>
 <script nonce="${cspNonce}">
+  // A failed check moves focus to the field that failed. The message is that field's description
+  // (aria-describedby), so a screen reader reads the field and its error together, where before it
+  // stayed on the Save button and said nothing.
   function checkForm${widgetContext.uniqueId}() {
 
     var ccInput = document.getElementById('creditCardNumber');
@@ -44,6 +47,7 @@
     var creditCardNumberHelpText = document.getElementById('creditCardNumberHelpText');
     if (!payform.validateCardNumber(ccInput.value)) {
       creditCardNumberHelpText.innerText = 'Please check the card number';
+      ccInput.focus();
       return false;
     } else {
       creditCardNumberHelpText.innerText = '';
@@ -52,6 +56,7 @@
     var creditCardMMYYHelpText = document.getElementById('creditCardMMYYHelpText');
     if (!payform.validateCardExpiry(payform.parseCardExpiry(mmYYInput.value))) {
       creditCardMMYYHelpText.innerText = 'The card\'s expiration date is incomplete or in the past';
+      mmYYInput.focus();
       return false;
     } else {
       creditCardMMYYHelpText.innerText = '';
@@ -60,6 +65,7 @@
     var creditCardCVCHelpText = document.getElementById('creditCardCVCHelpText');
     if (!payform.validateCardCVC(cvcInput.value)) {
       creditCardCVCHelpText.innerText = 'The card\'s security code is incomplete';
+      cvcInput.focus();
       return false;
     } else {
       creditCardCVCHelpText.innerText = '';

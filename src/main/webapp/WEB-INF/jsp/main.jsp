@@ -872,7 +872,7 @@
                   <button type="submit" class="button small">Sign Up</button>
                 </div>
               </div>
-              <p class="help-text" id="platformOverlayEmailHelpText"></p>
+              <p class="help-text" id="platformOverlayEmailHelpText" role="status"></p>
             </form>
           </div>
         </c:when>
@@ -996,14 +996,23 @@
           var re = /\S+@\S+\.\S+/;
           return re.test(email);
         }
+        // Writes a message into the overlay's status region. A live region speaks only when its
+        // content changes, so it is emptied first and the message written a moment later: the same
+        // error twice in a row is still announced. A newer message cancels a pending older one.
+        function platformNewsletterOverlayMessage(message) {
+          var el = document.getElementById('platformOverlayEmailHelpText');
+          window.clearTimeout(el.announceTimer);
+          el.innerHTML = "";
+          el.announceTimer = window.setTimeout(function () { el.innerHTML = message; }, 100);
+        }
         function platformNewsletterOverlaySignUp() {
           var email = document.getElementById("platformOverlayEmail").value;
           if (email === undefined || email.length === 0) {
-            document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please enter your email address";
+            platformNewsletterOverlayMessage("Please enter your email address");
             return false;
           }
           if (!validateEmail(email)) {
-            document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
+            platformNewsletterOverlayMessage("Please re-enter your email address using a proper format.");
             return false;
           }
           <%-- Query passed as jQuery's data argument, not concatenated into the URL literal: built
@@ -1011,10 +1020,10 @@
                script and kept fetching (see the inline subscribe form). --%>
           $.getJSON("${ctx}/json/emailSubscribe", "token=" + encodeURIComponent(mainToken) + "&email=" + encodeURIComponent(email), function(data) {
             if (data.status === undefined || data.status !== '0') {
-              document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
+              platformNewsletterOverlayMessage("Please re-enter your email address using a proper format.");
               return false;
             }
-            document.getElementById('platformOverlayEmailHelpText').innerHTML = "Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails";
+            platformNewsletterOverlayMessage("Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails");
             Cookies.set(siteNewsletterCookie, 'valid', { expires: 90 });
           });
           return false;

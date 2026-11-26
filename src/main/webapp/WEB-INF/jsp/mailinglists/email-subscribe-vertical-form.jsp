@@ -27,33 +27,42 @@
         let re = /\S+@\S+\.\S+/;
         return re.test(email);
     }
+    // Writes a message into the status region below a field. A live region speaks only when its
+    // content changes, so it is emptied first and the message written a moment later: the same
+    // error twice in a row is still announced. A newer message cancels a pending older one.
+    function showSignUpMessage${widgetContext.uniqueId}(id, message) {
+        var el = document.getElementById(id);
+        window.clearTimeout(el.announceTimer);
+        el.innerHTML = "";
+        el.announceTimer = window.setTimeout(function () { el.innerHTML = message; }, 100);
+    }
     function emailSignUp${widgetContext.uniqueId}() {
         let email = document.getElementById("email${widgetContext.uniqueId}").value;
         let name = document.getElementById("name${widgetContext.uniqueId}").value;
         <c:if test="${showName eq 'true'}">
           if (name === undefined || name.trim().length === 0) {
-            document.getElementById('nameHelpText${widgetContext.uniqueId}').innerHTML = "Please enter your name";
+            showSignUpMessage${widgetContext.uniqueId}('nameHelpText${widgetContext.uniqueId}', "Please enter your name");
             return false;
           } else {
-            document.getElementById('nameHelpText${widgetContext.uniqueId}').innerHTML = "";
+            showSignUpMessage${widgetContext.uniqueId}('nameHelpText${widgetContext.uniqueId}', "");
           }
         </c:if>
         if (email === undefined || email.trim().length === 0) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please enter your email address";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please enter your email address");
             return false;
         }
         if (!validateEmail${widgetContext.uniqueId}(email)) {
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please re-enter your email address using a proper format.");
             return false;
         }
         <%-- Query passed as jQuery's data argument, not concatenated into the URL literal: built in,
              it published a crawlable, session-unique URL on every render (see the inline form). --%>
         $.getJSON("${ctx}/json/emailSubscribe", "token=${userSession.formToken}&email=" + encodeURIComponent(email) + "&name=" + encodeURIComponent(name), function(data) {
             if (data.status === undefined || data.status !== '0') {
-                document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
+                showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Please re-enter your email address using a proper format.");
                 return false;
             }
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails!";
+            showSignUpMessage${widgetContext.uniqueId}('emailHelpText${widgetContext.uniqueId}', "Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails!");
         });
         return false;
     }
@@ -88,13 +97,13 @@
     <div class="small-12 cell">
       <label for="name${widgetContext.uniqueId}" class="show-for-sr">First name</label>
       <input type="text" id="name${widgetContext.uniqueId}" placeholder="Your first name" autocomplete="given-name" aria-describedby="nameHelpText${widgetContext.uniqueId}" required>
-      <p class="help-text" id="nameHelpText${widgetContext.uniqueId}"></p>
+      <p class="help-text" id="nameHelpText${widgetContext.uniqueId}" role="status"></p>
     </div>
   </c:if>
   <div class="small-12 cell">
     <label for="email${widgetContext.uniqueId}" class="show-for-sr">Email address</label>
     <input type="text" id="email${widgetContext.uniqueId}" placeholder="Your email address" autocomplete="email" aria-describedby="emailHelpText${widgetContext.uniqueId}" required>
-    <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
+    <p class="help-text" id="emailHelpText${widgetContext.uniqueId}" role="status"></p>
   </div>
   <c:if test="${!empty footerHtml}">
     <div class="small-12 cell">
