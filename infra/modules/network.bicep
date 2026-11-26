@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
 // Network foundation: VNet, delegated app-integration subnet, private-endpoint
-// subnet, and the private DNS zones the private endpoints resolve through.
+// subnet, the malware scanner's subnet and its NSG, and the private DNS zones
+// the private endpoints resolve through.
 //
 // Phase 0 decision #4: private endpoints for the database and Key Vault, with
 // VNet integration for the app. Nothing in the data path is publicly reachable.
@@ -33,6 +34,15 @@ this VNet's subnet list, which is the disruptive kind.
 param gatewaySubnetPrefix string = '10.20.255.0/27'
 
 @description('''
+Subnet for the Container Apps environment that runs the ClamAV malware scanner
+(modules/malwarescanner.bicep, issue #2130). A workload profiles environment needs a dedicated
+subnet of at least /27, delegated to Microsoft.App/environments, and its size cannot change once
+the environment exists. Always carved out, like the gateway subnet, so that turning the scanner on
+is an additive deployment rather than a change to this VNet's subnet list.
+''')
+param scannerSubnetPrefix string = '10.20.3.0/27'
+
+@description('''
 Deploy a NAT Gateway on the app subnet so the App Service has a route to the public internet.
 The app runs with vnetRouteAllEnabled, which sends every outbound packet into this VNet -- and a
 VNet has no default internet path -- so without this the app cannot reach any external service.
@@ -56,6 +66,7 @@ var appSubnetName = 'snet-app'
 var privateEndpointSubnetName = 'snet-private-endpoints'
 // Azure requires this exact name; the gateway will not deploy into anything else.
 var gatewaySubnetName = 'GatewaySubnet'
+var scannerSubnetName = 'snet-malware-scanner'
 var natGatewayName = 'nat-${namePrefix}'
 var natPublicIpName = 'pip-nat-${namePrefix}'
 
@@ -89,6 +100,78 @@ resource natGateway 'Microsoft.Network/natGateways@2023-11-01' = if (enableNatGa
     publicIpAddresses: [
       {
         id: natPublicIp.id
+      }
+    ]
+  }
+}
+
+// The scanner subnet's NSG. clamd's protocol has no authentication and no encryption, so this is
+// the scanner's only access control: from the rest of the VNet, only the app subnet gets in, and
+// only on clamd's port. The inbound rules follow Microsoft's list for a workload profiles
+// environment (learn.microsoft.com/azure/container-apps/firewall-integration): a TCP app needs
+// its exposed port AND 30000-32767 from its clients (the environment's edge ports behind the
+// internal load balancer, allocated dynamically at creation), the load balancer's probes on that
+// range, and traffic within the subnet. Outbound keeps the defaults: signature downloads and
+// image pulls leave through the NAT gateway, and Azure DNS (168.63.129.16) must never be denied.
+resource scannerNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
+  name: 'nsg-malware-scanner-${namePrefix}'
+  location: location
+  tags: tags
+  properties: {
+    securityRules: [
+      {
+        name: 'AllowAppSubnetToClamd'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: appSubnetPrefix
+          sourcePortRange: '*'
+          destinationAddressPrefix: scannerSubnetPrefix
+          destinationPortRanges: ['3310', '30000-32767']
+        }
+      }
+      {
+        name: 'AllowWithinScannerSubnet'
+        properties: {
+          priority: 110
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: '*'
+          sourceAddressPrefix: scannerSubnetPrefix
+          sourcePortRange: '*'
+          destinationAddressPrefix: scannerSubnetPrefix
+          destinationPortRange: '*'
+        }
+      }
+      {
+        name: 'AllowLoadBalancerProbes'
+        properties: {
+          priority: 120
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'AzureLoadBalancer'
+          sourcePortRange: '*'
+          destinationAddressPrefix: scannerSubnetPrefix
+          destinationPortRange: '30000-32767'
+        }
+      }
+      {
+        // Without this, the default AllowVnetInBound rule would let every subnet -- the
+        // private endpoints, a VPN client -- reach clamd.
+        name: 'DenyOtherVnetInbound'
+        properties: {
+          priority: 4000
+          direction: 'Inbound'
+          access: 'Deny'
+          protocol: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '*'
+        }
       }
     ]
   }
@@ -138,6 +221,28 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
         name: gatewaySubnetName
         properties: {
           addressPrefix: gatewaySubnetPrefix
+        }
+      }
+      {
+        // Dedicated to the malware scanner's Container Apps environment, which can share it with
+        // nothing else. Egress through the NAT gateway is how freshclam downloads signatures and
+        // how the environment pulls the image; a VNet-integrated workload profiles environment
+        // supports a NAT gateway on its subnet (the Consumption-only environment type does not).
+        name: scannerSubnetName
+        properties: {
+          addressPrefix: scannerSubnetPrefix
+          natGateway: enableNatGateway ? { id: resourceId('Microsoft.Network/natGateways', natGatewayName) } : null
+          networkSecurityGroup: {
+            id: scannerNsg.id
+          }
+          delegations: [
+            {
+              name: 'containerapps-delegation'
+              properties: {
+                serviceName: 'Microsoft.App/environments'
+              }
+            }
+          ]
         }
       }
     ]
@@ -206,6 +311,7 @@ output vnetId string = vnet.id
 output appSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, appSubnetName)
 output privateEndpointSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, privateEndpointSubnetName)
 output gatewaySubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, gatewaySubnetName)
+output scannerSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, scannerSubnetName)
 output postgresDnsZoneId string = postgresDnsZone.id
 output keyVaultDnsZoneId string = keyVaultDnsZone.id
 output fileDnsZoneId string = fileDnsZone.id

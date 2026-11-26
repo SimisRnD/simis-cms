@@ -39,7 +39,7 @@ deploy-time steps they cannot perform themselves.
 | File | Purpose |
 |---|---|
 | `main.bicep` | Orchestrator; wires the modules and exposes outputs for the edge tier |
-| `modules/network.bicep` | VNet, App Service integration subnet, private-endpoint subnet, private DNS zones |
+| `modules/network.bicep` | VNet, App Service integration subnet, private-endpoint subnet, the malware scanner's subnet and NSG, private DNS zones |
 | `modules/loganalytics.bicep` | Log Analytics workspace (container stdout → Sentinel "Path A") |
 | `modules/storage.bicep` | Storage account + file share backing `CMS_PATH` |
 | `modules/keyvault.bicep` | Key Vault (RBAC, private endpoint, purge protection) |
@@ -49,6 +49,7 @@ deploy-time steps they cannot perform themselves.
 | `modules/rbac.bicep` | Key Vault Secrets User + AcrPull for the app's identity and the staging slot's |
 | `modules/frontdoor.bicep` | Front Door Premium + WAF (managed rulesets), Private Link origin, optional custom domain with managed TLS, edge logs to the workspace |
 | `modules/vpngateway.bicep` | **Optional, off by default.** Point-to-site VPN gateway giving administrators a private path to the database and Key Vault |
+| `modules/malwarescanner.bicep` | **Optional, off by default** (`enableMalwareScanner`). ClamAV `clamd` that form file uploads are scanned with (issue #2130): an internal Container Apps environment in its own subnet, TCP ingress on 3310, image pulled from the registry with a user-assigned identity. `modules/malwarescanner-dns.bicep` adds the private DNS zone the app resolves it through. Setup: `DEPLOYMENT.md` §11 |
 
 ## What is not here yet
 
