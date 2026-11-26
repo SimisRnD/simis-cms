@@ -149,6 +149,28 @@ AppServiceConsoleLogs | where ResultDescription has "MalwareScanCommand" and Res
     description: 'A form upload was rejected because the malware scanner could not scan it: no scanner configured, clamd unreachable or timed out, or still loading its signatures. MalwareScanCommand fails CLOSED (issue #2130), so while this fires every file attached to a form is rejected; text-only submissions are unaffected. Check the ClamAV container app (modules/malwarescanner.bicep) and run Test Malware Scanner on /admin/security-properties. Keyed on real upload attempts, so an outage with no uploads stays silent, and a rejection for a matched signature (infected) is a different log line that does not fire this.'
   }
   {
+    name: 'alert-email-send-failure'
+    severity: 2
+    frequency: 'PT5M'
+    window: 'PT15M'
+    threshold: 0
+    // One clause per place an email can fail, each matching that class's own ERROR line:
+    // EmailTask sends every workflow email (form notifications, registration, password reset,
+    // invitations, mailing-list confirmation) and can fail to send, fail to build the message, or
+    // abort with no template or no recipients; the Send*ManagerEmailCommand classes and ItemCommand
+    // send staff notices directly; OrderManagementEmailJob sends order emails.
+    query: '''
+AppServiceConsoleLogs
+| where ResultDescription has "ERROR"
+| where ResultDescription contains "Could not send the '"
+    or ResultDescription contains "Could not build the '"
+    or ResultDescription contains "Aborting email"
+    or ResultDescription contains "could not send mail"
+    or ResultDescription contains "sendConfirmationToUser error"
+'''
+    description: 'An email the site tried to send failed: a contact-form notification, an account email (registration, password reset, invitation), a staff notice, or an order email. Before this rule a failed send was only a log line (issue #460), so a broken mail relay would have stopped every notification with nobody told. Nothing a visitor submitted is lost when this fires: form submissions are saved under Form Data either way, so check there for anything whose notification did not arrive. Workflow emails retry once (#1124), so a single transient failure can fire this and still be delivered on the retry; repeated firing means the relay or the mail settings are broken. Check the mail.* site properties and the NAT gateway path to the relay.'
+  }
+  {
     name: 'alert-postgres-fatal'
     severity: 2
     frequency: 'PT15M'
