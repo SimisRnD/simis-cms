@@ -509,7 +509,7 @@ Sampling is fixed at 100% for the pilot (`docker/app/applicationinsights.json`) 
 
 `infra/modules/alerts.bicep` deploys every alert rule when `alertActionGroupId` is set:
 
-- **Log queries (11):** audit pipeline stopped and audit events quiet (NIST SP 800-171 3.3.4), app startup failure, HTTP 503, reCAPTCHA verification failure, malware scanner unavailable (§11), Postgres FATAL, login-failure spike, WAF blocking admin paths, WAF block surge, 404 loop from one client
+- **Log queries (12):** audit pipeline stopped and audit events quiet (NIST SP 800-171 3.3.4), app startup failure, HTTP 503, reCAPTCHA verification failure, malware scanner unavailable (§11), email send failure, Postgres FATAL, login-failure spike, WAF blocking admin paths, WAF block surge, 404 loop from one client
 - **Metrics (11):** Front Door origin health, 5xx count, traffic stopped and latency; App Service 5xx and memory; Postgres CPU, CPU credits (Burstable SKUs only), active connections, failed connections and storage
 - **Activity Log (3, subscription-wide):** diagnostic-setting or log-destination changes, RBAC changes, and Key Vault or WAF changes
 - **Backup routing:** sends the Recovery Services vault's built-in alerts to the action group when `backupVaultId` is set
