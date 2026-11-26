@@ -217,6 +217,12 @@ paths:
     get:
       tags: [Content]
       summary: Get a content block's published HTML
+      description: |
+        The caller must be allowed to open at least one web page that shows this block. A block
+        on both a public and a restricted page is readable by anyone, since the public page already
+        shows it. A block that appears on no page is returned, and the read is logged. The check is
+        governed by `security.contentApi.enforcePageAccess`: it is on unless that property is
+        explicitly `false`, so a missing or blank value still enforces it.
       parameters:
         - $ref: '#/components/parameters/ContentUniqueId'
       responses:
@@ -235,7 +241,10 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: No content block with this unique id
+          description: |
+            No content block with this unique id, or one the caller may not read because every page
+            showing it is restricted from them. Both answer with the same body, so the response never
+            confirms that a restricted block exists.
           content:
             application/json:
               schema:
