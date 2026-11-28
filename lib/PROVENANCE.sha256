@@ -63,9 +63,9 @@ fabbb4aaf7fb5340aed0613826ecd110427999d765d8e0367cedde2950d7097c  lib/build/jsou
 d55951aefedb543cb16193a873b92d22c40c3b8ba26cfa7ed9229eb118bb9c9b  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.2.jar
 6f64eac736db9434dd6925b4a518b9d1d17177652320c37916cf9ba3ce7d7d7a  lib/build/kotlin/kotlin-stdlib-2.3.21.jar
 d2331daac3df752b64bfb6fbd5b1dcc7095c723167b787c18c267bef20d3864c  lib/build/libphonenumber/libphonenumber-9.0.44.jar
-73914527305a40cce504b0d3d90b23caf565136912d607ae8ae7c5895512332c  lib/build/postgresql/postgresql-42.7.14.jar
+9776fca62dfc84f312d5c1aff9791f6f3cf56d518a8eca4a3a8dca7a95ef8881  lib/build/postgresql/postgresql-42.7.15.jar
 3ae93c541a6a79c200b0da3eaf3f5fb7da4ff0bc7fc4cab2623035d714f9bce8  lib/build/rabbitmq/amqp-client-5.38.0.jar
-a87f14309be5458b901804cfd66788ed869a2b1d412e457c5098629e61f28ce1  lib/build/restfb/restfb-2026.9.0.jar
+755dca5125b07eb083ac30f349b5d75158e2ded49d20a519748154aa90d0116f  lib/build/restfb/restfb-2026.10.0.jar
 0b20f45e3a0fd8f0d12cdc5316b06776e902b1365db00118876f9175c60f302c  lib/build/rome-rss/jdom2-2.0.6.1.jar
 d4e0bb6857a25ee15e2082be6e83e1da897cfbabb025bfe01ae00346d7db7c78  lib/build/rome-rss/rome-2.1.0.jar
 6e1c3b022dff4cf7492acddbba22356f424ade3d869a42a2a4d74a28454334a4  lib/build/rome-rss/rome-utils-2.1.0.jar

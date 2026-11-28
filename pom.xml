@@ -99,9 +99,9 @@
     <libphonenumber.version>9.0.44</libphonenumber.version>
     <lombok.version>1.18.48</lombok.version>
     <playwright.version>1.65.1</playwright.version>
-    <postgresql.version>42.7.14</postgresql.version>
+    <postgresql.version>42.7.15</postgresql.version>
     <rabbitmq.version>5.38.0</rabbitmq.version>
-    <restfb.version>2026.9.0</restfb.version>
+    <restfb.version>2026.10.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
     <slf4j.version>2.0.20</slf4j.version>
     <square.version>24.0.0.20220921</square.version>
